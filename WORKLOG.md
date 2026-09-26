@@ -104,3 +104,25 @@ rather than 48-byte boards, because that is the storage that scales.
 - Pawns on both sides are refused for now: en passant makes the value
   depend on the previous move, and the index doesn't record that. The plan
   is in TODO.
+
+## 2026-09-26: en passant, pawns on both sides
+
+- Tables keep storing positions without en passant rights. A double push
+  that hands the opponent an e.p. capture leads to an extra node: the value
+  is the better of the table entry and the capture for the side that may
+  take, or the capture alone if it is the only legal move. `Probe` applies
+  the same rule to FENs with an e.p. square, through separate code.
+- New `verify <material> [stride]` command: every legal position must equal
+  the best outcome over its moves.
+- KPvKP: solved in ~5 min (given the promotion tables). **All 14,872,176
+  legal positions verified consistent**, which cross-checks the solver's e.p.
+  nodes against `Probe`'s e.p. rule. White-to-move and black-to-move
+  statistics are identical, as the colour-swap-and-flip symmetry says they
+  must be.
+- E.p. matters: with white Pe5 v black Pd5, white to move wins in 11 with the
+  e.p. right and in 12 without.
+- Plan change: a slow opt-in test (`CHESS_SLOW_TESTS=<tables dir>`) samples
+  KPvKP, because building its tables takes ~20 minutes, too long for every
+  run.
+- Every 4-piece table (21 of them) now exists in the scratch tables directory.
+  They are generated data, so not committed.

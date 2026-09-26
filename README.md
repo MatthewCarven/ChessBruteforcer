@@ -158,9 +158,12 @@ slowest loss. `line` follows the top move all the way to mate.
 | K+P v K | 0.5 M slots, 1 MB | ~6 s | 28 moves | 28, from memory (76.5% of white-to-move positions won) |
 | K+Q v K+P | 33.5 M slots, 64 MB | ~7.5 min* | 28 / 29 moves | |
 | K+R v K+P | 33.5 M slots, 64 MB | ~4 min* | 43 moves (the pawn side, after promoting) | |
+| K+P v K+P | 33.5 M slots, 64 MB | ~5 min** | 33 moves | all 14.9 M legal positions verified |
 
 \* including the other 4-piece tables its promotions lead to (a black pawn
 can become a queen, rook, bishop or knight).
+\** once those tables exist; from nothing it also builds K+B v K+P, K+N v K+P
+and their sub-tables.
 
 **Pawns.** A pawn push stays in the table, while a promotion, like a
 capture, changes the material and is looked up in the table for the new
