@@ -37,8 +37,11 @@ Steps:
 - [ ] Retrograde solver for a given material set: mark checkmates and
       stalemates, then iterate backwards, labelling every position
       WIN-in-n / LOSS-in-n / DRAW
-- [ ] Store results as sorted `.cbb` + a parallel outcome byte per record,
-      so the files dedupe and compress the same way
+- [ ] Store results **indexed, not as boards**: map each position to a
+      number (a perfect index over the material set, after symmetry), and
+      store only the outcome at that index, a few bits per position before
+      compression. 48-byte `.cbb` records stay for collecting and exchanging
+      positions, but they are ~400x too big for solved endgames
 - [ ] Commands: `solve KQvK`, `probe <fen>` (outcome + best move), `line <fen>`
       (the best play all the way to mate)
 - [ ] "Sort the tree by favourable outcome": order each position's moves by
@@ -47,6 +50,56 @@ Steps:
 - [ ] Use symmetry (mirroring / rotation, 8-fold without pawns) to cut
       storage about 8×
 - [ ] Grow the material set: KRvK → KBNvK → KPvK → 4 pieces …
+
+## Then: milestone 3, compete (openly, as software)
+
+Always play as a declared engine, only in software competition. The steps
+build on each other: each stage has to be solid before the next.
+
+### 3a. A playing engine
+
+- [ ] Search for the whole game: alpha-beta with iterative deepening,
+      transposition table (hashing a board to a key), move ordering,
+      quiescence search so it doesn't stop in the middle of a capture
+- [ ] Evaluation: material and piece-square tables to start, tuned later
+- [ ] Probe our own solved endgames as perfect knowledge near the end of
+      the game (and optionally the public Syzygy tables for more pieces)
+- [ ] Time management: decide how long to think with the clock given
+- [ ] **UCI protocol**: `uci`, `isready`, `position`, `go`, `stop`, `quit`,
+      so any chess GUI or match runner can drive it
+- [ ] `perft` and search regression tests in CI so strength changes are
+      measured, never guessed
+
+### 3b. Local matches
+
+- [ ] cutechess-cli (or fastchess) set up with a script that plays N games
+      between two builds with a fixed opening book and time control
+- [ ] SPRT or Elo-difference reporting so "is this change better?" gets a
+      statistical answer
+- [ ] Gauntlets against known engines of known rating (e.g. older Stockfish
+      levels, weaker open-source engines) to estimate our own Elo
+- [ ] Keep a match log (engine version, opponents, result, Elo estimate) in
+      WORKLOG.md or a results file
+
+### 3c. Lichess bot account
+
+- [ ] Create a separate account and upgrade it to a BOT account (permanent,
+      labelled as a bot, only plays via the Bot API)
+- [ ] Run it with the open-source lichess-bot bridge, which speaks UCI to
+      the engine
+- [ ] Decide what challenges to accept (time controls, bots only or humans
+      too), and a machine to host it
+- [ ] Profile page says plainly what it is: engine name, author, that it
+      is software
+
+### 3d. Engine rating lists and tournaments
+
+- [ ] Public release: a versioned build plus source or binary, and a
+      licence, since rating lists test engines they can download and run
+- [ ] Submit to CCRL (and similar lists) once it is stable and doesn't crash
+      or lose on time
+- [ ] Later: engine tournaments (e.g. TCEC entry is by application once
+      an engine is strong enough)
 
 ## Later: tighter null-space tiers
 

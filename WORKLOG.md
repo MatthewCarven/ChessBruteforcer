@@ -37,3 +37,11 @@ Map the minimum-spec game and its win/loss tree, then sort it by favourable
 outcome, working backwards from the endgame. King vs king is a dead draw, so
 the first real target is K+Q v K / K+R v K via retrograde analysis. It's
 milestone 2 in TODO.md.
+
+**Competition plan**
+
+The engine will only ever play openly as software: local engine-vs-engine
+matches first, then a labelled Lichess BOT account, then engine rating lists
+(CCRL) and tournaments. Added as milestone 3 in TODO.md, together with the
+UCI protocol it needs. Solved endgames will be stored as indexed outcomes
+rather than 48-byte boards, because that is the storage that scales.
