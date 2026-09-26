@@ -74,8 +74,8 @@ rather than 48-byte boards, because that is the storage that scales.
   none left (and no drawing capture) becomes a loss. Captures are settled up
   front by probing the smaller table. Predecessors come from pawnless
   un-moves.
-- Results match the known longest mates: KQvK 10, KRvK 16, KQvKR 35.
-  KvK has 3,612 legal placements, which agrees with the range
+- Results match the known longest mates: KQvK 10, KRvK 16, KQvKR 35,
+  KBNvK 33. KvK has 3,612 legal placements, which agrees with the range
   counter's non-adjacent-kings figure.
 - Test: every legal KQvK / KRvK position equals the best outcome over its
   moves, which with the mates fixed determines the table uniquely.

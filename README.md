@@ -153,6 +153,7 @@ slowest loss. `line` follows the top move all the way to mate.
 | K+Q v K | 0.5 M slots, 1 MB | ~2 s | 10 moves | 10 ✓ |
 | K+R v K | 0.5 M slots, 1 MB | ~2 s | 16 moves | 16 ✓ |
 | K+Q v K+R | 33.5 M slots, 64 MB | ~110 s | 35 moves | 35 ✓ |
+| K+B+N v K | 33.5 M slots, 64 MB | ~85 s | 33 moves | 33 ✓ |
 
 The tests also check every legal K+Q v K and K+R v K position against the
 definition: its value must equal the best outcome over its moves. Given the

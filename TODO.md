@@ -53,7 +53,7 @@ Steps:
       fastest win first, then draws, then slowest loss
 - [x] Verified: every K+Q v K and K+R v K position equals the best of its
       moves (a unique solution given the mates), and the longest mates match
-      the known values: KQvK 10, KRvK 16, KQvKR 35
+      the known values: KQvK 10, KRvK 16, KQvKR 35, KBNvK 33
 - [ ] Export the principal tree (not just one line) from a position, to a
       chosen depth, as a file the thesis can use
 - [ ] Symmetry: 8-fold for pawnless tables (fold the white king into the
