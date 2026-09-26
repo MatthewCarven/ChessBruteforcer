@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using ChessBruteforcer.Core;
+using ChessBruteforcer.Core.Game;
 using ChessBruteforcer.Core.Possibility;
 
 return Cli.Run(args);
@@ -16,6 +17,12 @@ static class Cli
           check <board>...               check boards and say why any are impossible
           show <board>                   print a board as a diagram, FEN and hex
           sample [count] [seed]          collapse random boards from superposition and check them
+
+        Positions are full FEN (side to move, castling, en passant); the start position if omitted.
+
+          moves [fen]                    legal moves, and whether it is check, mate or stalemate
+          perft <depth> [fen]            count every move sequence to <depth>
+          divide <depth> [fen]           perft split by first move, for tracking down bugs
 
           file add <file> <board>...     append boards to a board file (.cbb)
           file import <file> <text>      append every FEN / hex line of a text file
@@ -38,6 +45,12 @@ static class Cli
                 ["sample"] => Sample(1000, null),
                 ["sample", var n] => Sample(int.Parse(n), null),
                 ["sample", var n, var seed] => Sample(int.Parse(n), int.Parse(seed)),
+                ["moves"] => Moves(Fen.StartPosition),
+                ["moves", var fen] => Moves(fen),
+                ["perft", var depth] => RunPerft(int.Parse(depth), Fen.StartPosition, divide: false),
+                ["perft", var depth, var fen] => RunPerft(int.Parse(depth), fen, divide: false),
+                ["divide", var depth] => RunPerft(int.Parse(depth), Fen.StartPosition, divide: true),
+                ["divide", var depth, var fen] => RunPerft(int.Parse(depth), fen, divide: true),
                 ["file", "add", var file, .. var boards] when boards.Length > 0 => FileAdd(file, boards),
                 ["file", "import", var file, var text] => FileAdd(file, ReadLines(text)),
                 ["file", "list", var file] => FileList(file),
@@ -110,6 +123,45 @@ static class Cli
         Console.WriteLine($"FEN: {Fen.ToPlacement(board) ?? "(has meaningless codes)"}");
         Console.WriteLine($"hex: {board.ToHex()}");
         Report(BoardChecker.Standard.Check(board));
+        return 0;
+    }
+
+    private static int Moves(string fen)
+    {
+        var position = Position.FromFen(fen);
+        var moves = MoveGenerator.Legal(position);
+        Console.WriteLine(position.ToPackedBoard().ToDiagram());
+        Console.WriteLine(position.ToFen());
+        string status = position.Status() switch
+        {
+            GameStatus.Checkmate => "checkmate",
+            GameStatus.Stalemate => "stalemate",
+            _ when position.InCheck() => "in check",
+            _ => "to move",
+        };
+        Console.WriteLine($"{position.SideToMove} {status}, {moves.Count} legal moves:");
+        Console.WriteLine(string.Join(" ", moves.Select(m => m.ToUci()).Order()));
+        return 0;
+    }
+
+    private static int RunPerft(int depth, string fen, bool divide)
+    {
+        var position = Position.FromFen(fen);
+        var stopwatch = Stopwatch.StartNew();
+        long nodes;
+        if (divide)
+        {
+            var split = Perft.Divide(position, depth);
+            foreach (var (move, count) in split.OrderBy(s => s.Move.ToUci()))
+                Console.WriteLine($"{move.ToUci()}: {count}");
+            nodes = split.Sum(s => s.Nodes);
+        }
+        else
+        {
+            nodes = Perft.Count(position, depth);
+        }
+        double seconds = stopwatch.Elapsed.TotalSeconds;
+        Console.WriteLine($"perft {depth}: {nodes:N0} nodes in {seconds:0.00}s ({nodes / Math.Max(seconds, 1e-9) / 1e6:0.0}M nodes/s)");
         return 0;
     }
 

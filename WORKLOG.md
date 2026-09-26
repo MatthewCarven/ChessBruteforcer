@@ -45,3 +45,19 @@ matches first, then a labelled Lichess BOT account, then engine rating lists
 (CCRL) and tournaments. Added as milestone 3 in TODO.md, together with the
 UCI protocol it needs. Solved endgames will be stored as indexed outcomes
 rather than 48-byte boards, because that is the storage that scales.
+
+## 2026-09-26: move generator
+
+- `Position` (full FEN, make / unmake in place, check / mate / stalemate),
+  `Move` (UCI notation), `MoveGenerator` (pseudo-legal, then filtered for
+  own-king safety), `Perft`.
+- Perft matches the published counts on all six standard positions:
+  start 1-6, Kiwipete 1-4, position 3 1-6, position 4 1-5, position 5 1-4,
+  position 6 1-5. Unit tests cover the shallower depths plus castling rules,
+  en passant pins, promotions, and mate vs stalemate.
+- One scare on the way: position 6 came out 44 moves instead of 46. It turned
+  out the FEN had been typed from memory wrong (a white pawn on a2 instead of
+  a3). With the right FEN it matches to depth 5.
+- Speed is about 13-16M nodes/s in release with a plain 64-square array. That
+  is plenty for 3-4 piece endgames; bitboards come later, for search.
+- Next: the retrograde solver for K+Q v K.

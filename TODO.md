@@ -29,10 +29,15 @@ endgame tablebases are built) rather than forwards from the start.
 
 Steps:
 
-- [ ] Position = packed board + side to move (+ later castling / en
-      passant using the spare bit)
-- [ ] Legal move generator (pseudo-legal moves, then filter out moves that
-      leave your own king in check), tested with perft on standard positions
+- [x] Position = board + side to move, castling rights, en passant, clocks
+      (full FEN in and out, make / unmake in place)
+- [x] Legal move generator (pseudo-legal moves, then filter out moves that
+      leave your own king in check). Matches published perft counts on all
+      six standard positions, including start position depth 6
+      (119,060,324) and position 6 depth 5 (164,075,551)
+- [x] Checkmate / stalemate detection
+- [ ] Speed: ~13-16M nodes/s with the 64-square array. Bitboards (and
+      magic or PEXT sliding attacks) should give 10x+ when search needs it
 - [ ] "Un-move" generator for going backwards
 - [ ] Retrograde solver for a given material set: mark checkmates and
       stalemates, then iterate backwards, labelling every position

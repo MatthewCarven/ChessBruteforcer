@@ -83,6 +83,26 @@ file count <file>              number of boards
 
 A `<board>` is a FEN (only the placement field is used) or 96 hex digits.
 
+Playing moves uses full positions (side to move, castling, en passant), with
+the start position as the default:
+
+```
+moves [fen]                    legal moves, and whether it is check, mate or stalemate
+perft <depth> [fen]            count every move sequence to <depth>
+divide <depth> [fen]           perft split by first move, for tracking down bugs
+```
+
+## Move generation: `Game/`
+
+`Position` holds the full game state, and `MoveGenerator` produces the legal
+moves: it generates the candidate moves, then drops any that leave your own
+king in check. The standard way to prove a move generator is **perft**: count
+every move sequence to a fixed depth and compare with published numbers.
+All six standard test positions match. They cover castling through check,
+en passant pins, and underpromotion, and include start position depth 6
+(119,060,324 sequences). A release build runs at about 13–16 million
+positions a second.
+
 ## Board files (`.cbb`)
 
 A board file is nothing but 48-byte boards back to back: no header and no
@@ -124,6 +144,7 @@ src/ChessBruteforcer.Core/
   BoardFile.cs                  .cbb read / write / append / dedupe
   RangeCounter.cs               exact per-tier counts
   Possibility/                  the BinaryPossibility port + SuperposedBoard
+  Game/                         Position, Move, MoveGenerator, Perft
 src/ChessBruteforcer.Cli/       the commands above
 tests/ChessBruteforcer.Tests/   xunit
 ```
