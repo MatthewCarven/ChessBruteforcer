@@ -82,21 +82,44 @@ Steps:
 Always play as a declared engine, only in software competition. The steps
 build on each other: each stage has to be solid before the next.
 
-### 3a. A playing engine
+### 3a. A playing engine (in progress)
 
-- [ ] Search for the whole game: alpha-beta with iterative deepening,
-      transposition table (hashing a board to a key), move ordering,
-      quiescence search so it doesn't stop in the middle of a capture
-- [ ] Evaluation: material and piece-square tables to start, tuned later
-- [ ] Probe our own solved endgames as perfect knowledge near the end of
-      the game (and optionally the public Syzygy tables for more pieces)
-- [ ] Time management: decide how long to think with the clock given
-- [ ] **UCI protocol**: `uci`, `isready`, `position`, `go`, `stop`, `quit`,
-      so any chess GUI or match runner can drive it
-- [ ] `perft` and search regression tests in CI so strength changes are
-      measured, never guessed
+- [x] Zobrist hashing (incremental, checked against recomputation)
+- [x] Search: iterative deepening, alpha-beta / principal variation search,
+      transposition table, null-move pruning, late-move reductions, check
+      extension, quiescence search on captures, killer and history move
+      ordering, mate-distance pruning, repetition and 50-move draws
+- [x] Evaluation: material + piece-square tables (Michniewski's simplified
+      evaluation), king table blended from middlegame to endgame, bishop pair
+- [x] Our own endgame tables as perfect knowledge, probed only if already on
+      disk (never solved mid-game). At the root with every reply covered,
+      the engine plays the table's move outright
+- [x] Time management: per-move budget from clock, increment and moves to go;
+      no new depth after half the budget, hard stop at the limit
+- [x] **UCI protocol**: `uci`, `isready`, `ucinewgame`, `setoption` (Hash,
+      EndgameTables), `position`, `go` (depth, nodes, movetime, wtime/btime,
+      winc/binc, movestogo, infinite), `stop`, `quit`, plus `d` and `eval`
+- [x] Engine executable `ChessBruteforcer.Engine` with `bench [depth]` (speed)
+      and `selfplay [games] [ms]` (robustness: plays itself to the end)
+- [x] Tests: mates in 1, free / poisoned material, stalemate, UCI commands,
+      movetime, and search mate distances checked against the K+R v K table
+- [ ] Solve the remaining 4-piece tables (two pieces v bare king: KQPvK,
+      KRPvK, KQQvK, …). Without them the engine may "simplify" into a table it
+      has, e.g. give up its queen for a proven K+P v K win, which is correct
+      but slow
+- [ ] Speed: ~550k nodes/s. Bitboards plus generating only legal moves
+      should give several times more
+- [ ] Evaluation: pawn structure (passed, doubled, isolated), king safety,
+      mobility, tapered values for every piece, then tune from match results
+- [ ] Draw knowledge in search: insufficient material
+- [ ] Pondering and multiple threads (later)
 
 ### 3b. Local matches
+
+Plan change: cutechess isn't installable in the build environment, so
+matches here use our own runner (built on `selfplay`). On your own machine,
+cutechess-cli or fastchess work with the engine executable as it is.
+Stockfish *is* installable, and at reduced strength it makes a good yardstick.
 
 - [ ] cutechess-cli (or fastchess) set up with a script that plays N games
       between two builds with a fixed opening book and time control

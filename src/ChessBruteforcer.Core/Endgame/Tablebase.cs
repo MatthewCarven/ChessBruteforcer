@@ -25,6 +25,18 @@ public sealed class Tablebase
 
     public IReadOnlyCollection<EndgameTable> Tables => _tables.Values;
 
+    /// <summary>
+    /// When false, a table that is neither loaded nor on disk is reported as
+    /// missing instead of being solved.  A playing engine wants this: it must
+    /// never stop mid-game to spend minutes solving.
+    /// </summary>
+    public bool SolveMissing { get; init; } = true;
+
+    /// <summary>Largest piece count any table covers.</summary>
+    public const int MaxPieces = 4;
+
+    private readonly HashSet<Material> _missing = new();
+
     /// <summary>The table for a material set, in either colour orientation.</summary>
     public EndgameTable Get(Material material)
     {
@@ -36,6 +48,11 @@ public sealed class Tablebase
         if (path is not null && File.Exists(path))
         {
             table = EndgameTable.Load(path);
+        }
+        else if (!SolveMissing)
+        {
+            _missing.Add(material);
+            throw new TableMissingException(material);
         }
         else
         {
@@ -83,6 +100,34 @@ public sealed class Tablebase
         if (moves.Count == captures.Count)
             return best;
         return stored.Score >= best.Score ? stored : best;
+    }
+
+    /// <summary>
+    /// Probe without ever solving: false if the position has too many pieces,
+    /// castling rights, or no table on hand.  This is what the search calls.
+    /// </summary>
+    public bool TryProbe(Position position, out Outcome outcome)
+    {
+        outcome = Outcome.Draw;
+        if (position.Castling != CastlingRights.None)
+            return false;
+        int pieces = 0;
+        for (int square = 0; square < 64 && pieces <= MaxPieces; square++)
+            if (!position[square].IsEmpty) pieces++;
+        if (pieces > MaxPieces)
+            return false;
+        var material = Material.FromPosition(position).Canonical;
+        if (_missing.Contains(material))
+            return false;
+        try
+        {
+            outcome = Probe(position);
+            return true;
+        }
+        catch (TableMissingException)
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -169,4 +214,13 @@ public sealed class Tablebase
         }
         return swapped;
     }
+}
+
+/// <summary>A table was needed but is not on disk, and <see cref="Tablebase.SolveMissing"/> is off.</summary>
+public sealed class TableMissingException : Exception
+{
+    public TableMissingException(Material material)
+        : base($"No {material} table available.") => Material = material;
+
+    public Material Material { get; }
 }

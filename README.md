@@ -184,6 +184,37 @@ The tests also check every legal K+Q v K, K+R v K and K+P v K position against t
 definition: its value must equal the best outcome over its moves. Given the
 mates, that has only one solution, so it proves the whole table.
 
+## The engine: `Engine/` and `ChessBruteforcer.Engine`
+
+A UCI chess engine, so any chess GUI or match runner can play it:
+
+```
+dotnet run -c Release --project src/ChessBruteforcer.Engine                   # speaks UCI on stdin/stdout
+dotnet run -c Release --project src/ChessBruteforcer.Engine -- --tables tables  # with endgame tables
+dotnet run -c Release --project src/ChessBruteforcer.Engine -- bench 8          # speed check
+dotnet run -c Release --project src/ChessBruteforcer.Engine -- selfplay 4 100   # 4 games against itself, 100 ms a move
+```
+
+- **Search:** iterative deepening alpha-beta (principal variation search)
+  with a transposition table keyed by Zobrist hashes, null-move pruning,
+  late-move reductions, check extension, quiescence search on captures,
+  killer and history move ordering, and repetition and 50-move draws.
+- **Evaluation:** material plus piece-square tables (Michniewski's
+  simplified evaluation), the king moving from shelter to centre as pieces
+  come off, and a bishop pair bonus. It's a baseline to improve on through
+  matches.
+- **Endgame tables:** with 4 or fewer pieces left, positions are looked up
+  in our solved tables (only ones already on disk, never solved mid-game). At the
+  root it just plays the table's best move.
+- **Checked:** the search's mate distances match the K+R v K table exactly
+  on positions it has never seen, which means two independent methods (search
+  forwards, retrograde backwards) agree.
+
+About 550k positions a second. In self-play, games run to their proper end
+(mates, repetitions). Given the tables, it will happily give up its queen for a
+*proven* K+P v K win, which is correct, but a table for K+Q+P v K would find
+the faster mate. That's on the TODO.
+
 ## Superposition: `Possibility/`
 
 A C# port of the core of
@@ -213,6 +244,8 @@ src/ChessBruteforcer.Core/
   Possibility/                  the BinaryPossibility port + SuperposedBoard
   Game/                         Position, Move, MoveGenerator, Perft
   Endgame/                      Material, Outcome, EndgameTable (retrograde solver), Tablebase
+  Engine/                       Evaluation, Search, TranspositionTable, UciEngine
+src/ChessBruteforcer.Engine/    the UCI engine executable (also bench, selfplay)
 src/ChessBruteforcer.Cli/       the commands above
 tests/ChessBruteforcer.Tests/   xunit
 ```

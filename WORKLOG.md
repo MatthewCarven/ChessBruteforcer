@@ -126,3 +126,27 @@ rather than 48-byte boards, because that is the storage that scales.
   run.
 - Every 4-piece table (21 of them) now exists in the scratch tables directory.
   They are generated data, so not committed.
+
+## 2026-09-26: the engine (milestone 3a)
+
+- Zobrist hashing on `Position` (incremental; "no castling rights" hashes
+  to 0 so boards built square by square match FEN ones, a mismatch the
+  tests caught). Null move for the search.
+- `Engine/`: `Evaluation` (material + simplified piece-square tables, tapered
+  king, bishop pair), `TranspositionTable`, `Search` (ID, PVS, TT, null move,
+  LMR, check extension, quiescence, killers / history, repetition and
+  50-move draws, mate-distance pruning, endgame-table probing), `UciEngine`.
+- New executable `ChessBruteforcer.Engine`: UCI by default, plus `bench` and
+  `selfplay`. Bench depth 7 over 6 positions: ~0.94M nodes, ~560k nodes/s.
+- Tests: hashing (random playouts, transpositions, null move), colour-blind
+  evaluation, mates in one, free and poisoned material, stalemate,
+  repetition avoidance, node limit, UCI commands and movetime. Also the
+  search's mate-in-2 / mate-in-3 distances match the K+R v K table on
+  positions drawn from it.
+- Self-play at 100 ms / move: 4 games, 2 draws by repetition and 2 mates, no
+  illegal moves. One "blunder" (black Qd7-f7, queen taken) turned out to be
+  deliberate: with the tables loaded, K+P v K after the capture is a proven
+  mate in 12, while with the queen on the search couldn't prove any mate.
+  Correct but slow; solving K+Q+P v K and the other 2-v-0 tables fixes it.
+- Plan change: cutechess isn't installable here, so local matches will use
+  our own runner. Stockfish is installable as a yardstick opponent.

@@ -15,7 +15,7 @@ public enum CastlingRights : byte
 
 /// <summary>What <see cref="Position.MakeMove"/> needs to put back on unmake.</summary>
 public readonly record struct Undo(
-    Piece Captured, CastlingRights Castling, int EnPassantSquare, int HalfmoveClock);
+    Piece Captured, CastlingRights Castling, int EnPassantSquare, int HalfmoveClock, ulong Hash);
 
 public enum GameStatus
 {
@@ -42,6 +42,9 @@ public sealed class Position
     public Colour SideToMove { get; private set; }
     public CastlingRights Castling { get; private set; }
 
+    /// <summary>Zobrist hash of everything that makes positions different (see <see cref="Zobrist"/>).</summary>
+    public ulong Hash { get; private set; }
+
     /// <summary>The square a pawn could capture onto en passant, or <see cref="NoSquare"/>.</summary>
     public int EnPassantSquare { get; private set; } = NoSquare;
 
@@ -53,7 +56,12 @@ public sealed class Position
     public int KingSquare(Colour colour) => _kingSquare[(int)colour];
 
     /// <summary>An empty board with no castling rights or en passant square.</summary>
-    public static Position Empty(Colour sideToMove = Colour.White) => new() { SideToMove = sideToMove };
+    public static Position Empty(Colour sideToMove = Colour.White)
+    {
+        var position = new Position();
+        position.SetSideToMove(sideToMove);
+        return position;
+    }
 
     /// <summary>
     /// Place (or with <see cref="Piece.Empty"/>, remove) a piece directly, for
@@ -61,7 +69,23 @@ public sealed class Position
     /// </summary>
     public void SetPiece(int square, Piece piece) => Put(square, piece);
 
-    public void SetSideToMove(Colour colour) => SideToMove = colour;
+    public void SetSideToMove(Colour colour)
+    {
+        if (colour != SideToMove)
+            Hash ^= Zobrist.BlackToMove;
+        SideToMove = colour;
+    }
+
+    /// <summary>The hash computed from scratch; <see cref="Hash"/> must always equal it.</summary>
+    public ulong ComputeHash()
+    {
+        ulong hash = 0;
+        for (int square = 0; square < 64; square++)
+            hash ^= Zobrist.Piece(_squares[square], square);
+        if (SideToMove == Colour.Black)
+            hash ^= Zobrist.BlackToMove;
+        return hash ^ Zobrist.Castling(Castling) ^ Zobrist.EnPassant(EnPassantSquare);
+    }
 
     public static Position Start() => FromFen(Fen.StartPosition);
 
@@ -107,6 +131,7 @@ public sealed class Position
             position.HalfmoveClock = int.Parse(fields[4]);
         if (fields.Length > 5)
             position.FullmoveNumber = int.Parse(fields[5]);
+        position.Hash = position.ComputeHash();
         return position;
     }
 
@@ -195,7 +220,7 @@ public sealed class Position
     public Undo MakeMove(Move move)
     {
         var mover = _squares[move.From];
-        var undo = new Undo(Piece.Empty, Castling, EnPassantSquare, HalfmoveClock);
+        var undo = new Undo(Piece.Empty, Castling, EnPassantSquare, HalfmoveClock, Hash);
 
         if ((move.Flags & MoveFlags.EnPassant) != 0)
         {
@@ -218,10 +243,12 @@ public sealed class Position
             Put(rookFrom, Piece.Empty);
         }
 
+        Hash ^= Zobrist.Castling(Castling) ^ Zobrist.EnPassant(EnPassantSquare);
         Castling &= ~(RightsLostAt(move.From) | RightsLostAt(move.To));
         EnPassantSquare = (move.Flags & MoveFlags.DoublePawnPush) != 0
             ? (move.From + move.To) / 2
             : NoSquare;
+        Hash ^= Zobrist.Castling(Castling) ^ Zobrist.EnPassant(EnPassantSquare) ^ Zobrist.BlackToMove;
         HalfmoveClock = mover.Type == PieceType.Pawn || !undo.Captured.IsEmpty ? 0 : HalfmoveClock + 1;
         if (SideToMove == Colour.Black)
             FullmoveNumber++;
@@ -258,6 +285,30 @@ public sealed class Position
         Castling = undo.Castling;
         EnPassantSquare = undo.EnPassantSquare;
         HalfmoveClock = undo.HalfmoveClock;
+        Hash = undo.Hash;
+    }
+
+    /// <summary>
+    /// Pass the turn without moving (not a legal chess move; the search uses
+    /// it to ask "is my position so good that even a free move for them
+    /// doesn't help?").
+    /// </summary>
+    public Undo MakeNullMove()
+    {
+        var undo = new Undo(Piece.Empty, Castling, EnPassantSquare, HalfmoveClock, Hash);
+        Hash ^= Zobrist.EnPassant(EnPassantSquare) ^ Zobrist.BlackToMove;
+        EnPassantSquare = NoSquare;
+        HalfmoveClock++;
+        SideToMove = Opponent(SideToMove);
+        return undo;
+    }
+
+    public void UnmakeNullMove(Undo undo)
+    {
+        SideToMove = Opponent(SideToMove);
+        EnPassantSquare = undo.EnPassantSquare;
+        HalfmoveClock = undo.HalfmoveClock;
+        Hash = undo.Hash;
     }
 
     /// <summary>Find the legal move with this UCI text (e2e4, e7e8q), or null.</summary>
@@ -290,6 +341,7 @@ public sealed class Position
     private void Put(int square, Piece piece)
     {
         var old = _squares[square];
+        Hash ^= Zobrist.Piece(old, square) ^ Zobrist.Piece(piece, square);
         if (old.Type == PieceType.King && _kingSquare[(int)old.Colour] == square)
             _kingSquare[(int)old.Colour] = NoSquare;
         _squares[square] = piece;
