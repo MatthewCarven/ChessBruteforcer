@@ -25,11 +25,12 @@ static class Cli
           perft <depth> [fen]            count every move sequence to <depth>
           divide <depth> [fen]           perft split by first move, for tracking down bugs
 
-        Endgame tables (pawnless, up to 4 pieces; saved in ./tables, reused next time):
+        Endgame tables (up to 4 pieces; saved in ./tables, reused next time):
 
           solve <material>               solve e.g. KQvK or KRvK and print what it found
           probe <fen>                    the outcome, and every move ranked best first
           line <fen>                     best play from here to mate
+          verify <material> [stride]     check every (or every n-th) position against its moves
 
           file add <file> <board>...     append boards to a board file (.cbb)
           file import <file> <text>      append every FEN / hex line of a text file
@@ -61,6 +62,8 @@ static class Cli
                 ["solve", var material] => Solve(material),
                 ["probe", var fen] => Probe(fen),
                 ["line", var fen] => Line(fen),
+                ["verify", var material] => Verify(material, 1),
+                ["verify", var material, var stride] => Verify(material, int.Parse(stride)),
                 ["file", "add", var file, .. var boards] when boards.Length > 0 => FileAdd(file, boards),
                 ["file", "import", var file, var text] => FileAdd(file, ReadLines(text)),
                 ["file", "list", var file] => FileList(file),
@@ -202,6 +205,20 @@ static class Cli
                 Console.WriteLine($"    longest: {outcome}, e.g. {table.PositionAt(index).ToFen()}");
         }
         return 0;
+    }
+
+    private static int Verify(string text, int stride)
+    {
+        var material = Material.Parse(text);
+        var stopwatch = Stopwatch.StartNew();
+        var (checkedPositions, mismatches) = OpenTablebase().Verify(material, stride,
+            new Progress<string>(message => Console.Error.Write($"\r{message,-70}")));
+        Console.Error.Write($"\r{"",-70}\r");
+        foreach (string mismatch in mismatches)
+            Console.WriteLine($"  MISMATCH {mismatch}");
+        Console.WriteLine($"{material.Canonical}: {checkedPositions:N0} positions checked in " +
+                          $"{stopwatch.Elapsed.TotalSeconds:0.0}s, {(mismatches.Count == 0 ? "all consistent" : $"{mismatches.Count}+ mismatches")}");
+        return mismatches.Count == 0 ? 0 : 2;
     }
 
     private static int Probe(string fen)

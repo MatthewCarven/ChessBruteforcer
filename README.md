@@ -92,12 +92,13 @@ perft <depth> [fen]            count every move sequence to <depth>
 divide <depth> [fen]           perft split by first move, for tracking down bugs
 ```
 
-Endgame tables (up to 4 pieces, pawns on one side), saved in `./tables` and reused:
+Endgame tables (up to 4 pieces), saved in `./tables` and reused:
 
 ```
 solve <material>               solve e.g. KQvK, KRvK, KQvKR and print what it found
 probe <fen>                    the outcome, and every move ranked best first
 line <fen>                     best play from here to mate
+verify <material> [stride]     check every (or every n-th) position against its moves
 ```
 
 ## Move generation: `Game/`
@@ -165,10 +166,16 @@ can become a queen, rook, bishop or knight).
 capture, changes the material and is looked up in the table for the new
 piece. A pawn un-moves one square back, or two back to its starting rank.
 When the stronger side is black, the position is looked up with colours
-swapped *and the board flipped*, so pawns still run up the board. Pawns
-on both sides aren't supported yet. En passant would make a position's
-value depend on the move before it, which the index doesn't record, so the
-solver refuses those tables rather than getting them subtly wrong.
+swapped *and the board flipped*, so pawns still run up the board.
+
+**En passant.** Tables store positions *without* an en passant right,
+because the index has nowhere to record the previous move. When a double
+push hands the opponent an en passant capture, the solver gives the position
+after it its own node, worth the better (for the side that may capture) of
+the table's value and the capture, or the capture alone if it is the only
+legal move. The parent's double push leads to that node instead.
+`probe` applies the same rule to any FEN with an en passant square, and
+`verify` cross-checks the two.
 
 The tests also check every legal K+Q v K, K+R v K and K+P v K position against the
 definition: its value must equal the best outcome over its moves. Given the

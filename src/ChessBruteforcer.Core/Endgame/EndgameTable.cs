@@ -48,7 +48,7 @@ public sealed class EndgameTable
     public Outcome? this[long index] => Decode(_values[index]);
 
     /// <summary>
-    /// Solve a material set (pawns allowed on one side).  <paramref name="probeCapture"/>
+    /// Solve a material set.  <paramref name="probeCapture"/>
     /// gives the outcome, for the side to move, of a position reached by a
     /// capture or a promotion (its material differs, so it lives in another table).
     /// </summary>
@@ -57,9 +57,6 @@ public sealed class EndgameTable
     {
         if (!material.IsCanonical)
             throw new ArgumentException($"Solve {material.Canonical}, not {material}.");
-        if (material.White.Contains(PieceType.Pawn) && material.Black.Contains(PieceType.Pawn))
-            throw new NotSupportedException(
-                "Pawns on both sides need en passant handling, which the index cannot express yet.");
         if (material.PieceCount > 4)
             throw new NotSupportedException("More than four pieces needs a tighter index first.");
         return new Solver(material, probeCapture, progress).Run();
@@ -189,7 +186,10 @@ public sealed class EndgameTable
         private readonly short[] _longestLoss;  // slowest loss seen so far, in plies, if every move loses
         private readonly bool[] _hasDrawingExit;
         private readonly bool[] _final;
-        private readonly List<List<long>> _buckets = new();
+        private readonly List<List<long>> _buckets = new();   // non-negative: table index; negative: en passant node
+        private readonly List<EnPassantNode> _enPassant = new();
+        private readonly Dictionary<long, int> _enPassantByKey = new();          // child index * 64 + e.p. square
+        private readonly Dictionary<long, List<int>> _enPassantByChild = new();
         private readonly int[] _squares;
         private readonly Position _scratch = Position.Empty();
 
@@ -213,12 +213,25 @@ public sealed class EndgameTable
             Initialise();
             for (int ply = 0; ply < _buckets.Count; ply++)
             {
-                foreach (long index in _buckets[ply])
+                // Indexed loop: settling a position can queue more work at this same ply.
+                var bucket = _buckets[ply];
+                for (int i = 0; i < bucket.Count; i++)
                 {
+                    long index = bucket[i];
+                    if (index < 0)
+                    {
+                        var node = _enPassant[(int)(-index - 1)];
+                        if (node.Final || PliesOf(node.Value) != ply)
+                            continue;
+                        node.Final = true;
+                        PropagateEnPassant(node);
+                        continue;
+                    }
                     if (_final[index] || PliesOf(_values[index]) != ply)
                         continue;
                     _final[index] = true;
                     Propagate(index, _values[index] > 0);
+                    SettleEnPassantNodes(index);
                 }
                 _progress?.Report($"{_material}: ply {ply} done, {_buckets[ply].Count:N0} queued");
             }
@@ -279,6 +292,8 @@ public sealed class EndgameTable
                     if (!move.IsCapture && !move.IsPromotion)
                     {
                         staying++;
+                        if ((move.Flags & MoveFlags.DoublePawnPush) != 0)
+                            TrackEnPassant(index, move);
                         continue;
                     }
                     var undo = position.MakeMove(move);
@@ -332,6 +347,146 @@ public sealed class EndgameTable
             }
         }
 
+        /// <summary>
+        /// A double push from <paramref name="parent"/> that hands the
+        /// opponent an en passant capture.  The position it reaches is worth
+        /// more to the opponent than the table's entry for it (which assumes no
+        /// en passant): they may also take en passant.  That position gets its
+        /// own node, worth the better of the two, and the parent's move leads there.
+        /// </summary>
+        private void TrackEnPassant(long parent, Move move)
+        {
+            var position = _scratch;
+            var undo = position.MakeMove(move);
+            var replies = MoveGenerator.Legal(position);
+            var captures = replies.Where(r => (r.Flags & MoveFlags.EnPassant) != 0).ToList();
+            if (captures.Count == 0)
+            {
+                position.UnmakeMove(move, undo);
+                return;
+            }
+
+            var best = Outcome.Loss(0);
+            foreach (var capture in captures)
+            {
+                var captureUndo = position.MakeMove(capture);
+                var outcome = _probeCapture(position).ForPreviousMover();
+                position.UnmakeMove(capture, captureUndo);
+                if (outcome.Score > best.Score)
+                    best = outcome;
+            }
+            bool childHasOtherMoves = replies.Count > captures.Count;
+            position.UnmakeMove(move, undo);
+
+            var childSquares = (int[])_squares.Clone();
+            childSquares[Array.IndexOf(_squares, move.From)] = move.To;
+            long child = Encode(childSquares, Position.Opponent(position.SideToMove));
+
+            var node = new EnPassantNode(child, parent, best, childHasOtherMoves);
+            int id = _enPassant.Count;
+            _enPassant.Add(node);
+            _enPassantByKey.Add(child * 64 + (move.From + move.To) / 2, id);
+            if (!_enPassantByChild.TryGetValue(child, out var list))
+                _enPassantByChild[child] = list = new List<int>();
+            list.Add(id);
+
+            // With nothing but en passant to play, the capture alone decides.
+            if (!childHasOtherMoves)
+            {
+                if (best.Kind == OutcomeKind.Draw)
+                    node.Final = true;
+                else
+                    QueueEnPassant(id, EncodeOutcome(best));
+            }
+            else if (best.Kind == OutcomeKind.Win)
+            {
+                QueueEnPassant(id, EncodeOutcome(best));
+            }
+        }
+
+        /// <summary>The position behind some en passant nodes is now settled: settle them too.</summary>
+        private void SettleEnPassantNodes(long child)
+        {
+            if (!_enPassantByChild.TryGetValue(child, out var ids))
+                return;
+            var childValue = Decode(_values[child])!.Value;
+            foreach (int id in ids)
+            {
+                var node = _enPassant[id];
+                if (node.Final || !node.ChildHasOtherMoves)
+                    continue;
+                var value = childValue.Score >= node.Capture.Score ? childValue : node.Capture;
+                if (value.Kind == OutcomeKind.Draw)
+                {
+                    node.Final = true;
+                    continue;
+                }
+                short encoded = EncodeOutcome(value);
+                if (node.Value == Unknown || (value.Kind == OutcomeKind.Win && node.Value > encoded))
+                    QueueEnPassant(id, encoded);
+            }
+        }
+
+        /// <summary>An en passant node is settled: its parent learns from it like from any child.</summary>
+        private void PropagateEnPassant(EnPassantNode node)
+        {
+            long parent = node.Parent;
+            if (_final[parent])
+                return;
+            int ply = PliesOf(node.Value);
+            if (node.Value < 0)
+            {
+                short win = EncodeWin(ply + 1);
+                if (_values[parent] == Unknown || _values[parent] > win)
+                    Queue(parent, win);
+                return;
+            }
+            _remaining[parent]--;
+            _longestLoss[parent] = (short)Math.Max(_longestLoss[parent], ply + 1);
+            if (_remaining[parent] == 0 && !_hasDrawingExit[parent] && _values[parent] == Unknown)
+                Queue(parent, EncodeLoss(_longestLoss[parent]));
+        }
+
+        private void QueueEnPassant(int id, short value)
+        {
+            _enPassant[id].Value = value;
+            int ply = PliesOf(value);
+            while (_buckets.Count <= ply)
+                _buckets.Add(new List<long>());
+            _buckets[ply].Add(-(id + 1));
+        }
+
+        private static short EncodeOutcome(Outcome outcome) => outcome.Kind switch
+        {
+            OutcomeKind.Win => EncodeWin(outcome.Plies),
+            OutcomeKind.Loss => EncodeLoss(outcome.Plies),
+            _ => 0,
+        };
+
+        /// <summary>The position right after a double push, with en passant still possible.</summary>
+        private sealed class EnPassantNode
+        {
+            public EnPassantNode(long child, long parent, Outcome capture, bool childHasOtherMoves)
+            {
+                Child = child;
+                Parent = parent;
+                Capture = capture;
+                ChildHasOtherMoves = childHasOtherMoves;
+            }
+
+            public long Child { get; }
+            public long Parent { get; }
+
+            /// <summary>The best en passant capture, for the side that may take.</summary>
+            public Outcome Capture { get; }
+
+            /// <summary>False when en passant is the only legal move (so it decides alone).</summary>
+            public bool ChildHasOtherMoves { get; }
+
+            public short Value { get; set; } = Unknown;
+            public bool Final { get; set; }
+        }
+
         private void Queue(long index, short value)
         {
             _values[index] = value;
@@ -362,6 +517,10 @@ public sealed class EndgameTable
                 int from = squares[slot];
                 foreach (int to in RetractionTargets(position, piece, from))
                 {
+                    // A double push that allowed en passant leads to its node, not straight here.
+                    if (piece.Type == PieceType.Pawn && Math.Abs(to - from) == 16
+                        && _enPassantByKey.ContainsKey(index * 64 + (to + from) / 2))
+                        continue;
                     position.SetPiece(from, Piece.Empty);
                     position.SetPiece(to, piece);
                     position.SetSideToMove(previousMover);

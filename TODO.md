@@ -65,10 +65,10 @@ Steps:
       other tables, colour swap with the board flipped. KPvK (28 moves,
       76.5% of white-to-move positions won), KQvKP, KRvKP solved; KPvK
       passes the full consistency check plus textbook positions
-- [ ] Pawns on both sides (KPvKP, …): en passant. After a double push the
-      opponent may have an extra capture that the index doesn't record. Fix
-      by evaluating double-push moves as "child value, or the en passant
-      capture if better", which needs a small extra step in the solve
+- [x] Pawns on both sides, with en passant: a double push that allows en
+      passant leads to an extra node worth the better of the table value and
+      the capture. `probe` applies the same rule to FENs with an e.p. square
+- [x] `verify <material> [stride]`: check a solved table against its moves
 - [ ] Pawn-table symmetry: mirror a-d / e-h files only (2-fold)
 - [ ] The 50-move rule: these tables count distance to mate and ignore it.
       Nothing solved so far comes close (KQvKR's longest is 35), but some

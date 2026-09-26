@@ -47,7 +47,14 @@ public sealed class Tablebase
         return table;
     }
 
-    /// <summary>The outcome for the side to move.  The position is not changed.</summary>
+    /// <summary>
+    /// The outcome for the side to move.  The position is not changed.
+    ///
+    /// Tables store positions without en passant rights.  If this position
+    /// has an en passant capture available, the side to move gets the better
+    /// of the table's value and that capture, or the capture alone when it is
+    /// the only legal move.
+    /// </summary>
     public Outcome Probe(Position position)
     {
         if (position.Castling != CastlingRights.None)
@@ -55,8 +62,59 @@ public sealed class Tablebase
         var material = Material.FromPosition(position);
         var table = Get(material);
         var lookup = material.IsCanonical ? position : SwapColours(position);
-        return table.Probe(lookup)
-               ?? throw new ArgumentException("That position is impossible (the side not to move is in check).");
+        var stored = table.Probe(lookup)
+                     ?? throw new ArgumentException("That position is impossible (the side not to move is in check).");
+        if (position.EnPassantSquare == Position.NoSquare)
+            return stored;
+
+        var moves = MoveGenerator.Legal(position);
+        var captures = moves.Where(m => (m.Flags & MoveFlags.EnPassant) != 0).ToList();
+        if (captures.Count == 0)
+            return stored;
+        var best = captures
+            .Select(capture =>
+            {
+                var undo = position.MakeMove(capture);
+                var outcome = Probe(position).ForPreviousMover();
+                position.UnmakeMove(capture, undo);
+                return outcome;
+            })
+            .MaxBy(o => o.Score);
+        if (moves.Count == captures.Count)
+            return best;
+        return stored.Score >= best.Score ? stored : best;
+    }
+
+    /// <summary>
+    /// Check a solved table against the definition of solved: at every
+    /// legal position, the stored value must equal the best outcome over its
+    /// moves (or mate / stalemate when there are none).  <paramref name="stride"/>
+    /// checks every n-th index for a quicker sample.  Returns how many
+    /// positions were checked and the first few that disagree.
+    /// </summary>
+    public (long Checked, List<string> Mismatches) Verify(Material material, int stride = 1,
+                                                          IProgress<string>? progress = null)
+    {
+        var table = Get(material);
+        var mismatches = new List<string>();
+        long checkedPositions = 0;
+        for (long index = 0; index < table.Size; index += stride)
+        {
+            var stored = table[index];
+            if (stored is null)
+                continue;
+            var position = table.PositionAt(index);
+            var ranked = RankMoves(position);
+            var expected = ranked.Count > 0
+                ? ranked[0].Outcome
+                : position.InCheck() ? Outcome.Loss(0) : Outcome.Draw;
+            if (expected != stored.Value && mismatches.Count < 20)
+                mismatches.Add($"{position.ToFen()}: stored {stored}, moves give {expected}");
+            checkedPositions++;
+            if (checkedPositions % 1_000_000 == 0)
+                progress?.Report($"{table.Material}: verified {checkedPositions:N0}");
+        }
+        return (checkedPositions, mismatches);
     }
 
     /// <summary>

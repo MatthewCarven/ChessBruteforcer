@@ -58,22 +58,8 @@ public class EndgameTests : IClassFixture<SolvedTables>
     [InlineData("KPvK")]
     public void EveryPositionEqualsTheBestOfItsMoves(string material)
     {
-        var table = _tablebase.Get(Material.Parse(material));
-        long checkedPositions = 0;
-        for (long index = 0; index < table.Size; index++)
-        {
-            var stored = table[index];
-            if (stored is null)
-                continue;
-            var position = table.PositionAt(index);
-            var ranked = _tablebase.RankMoves(position);
-            var expected = ranked.Count > 0
-                ? ranked[0].Outcome
-                : position.InCheck() ? Outcome.Loss(0) : Outcome.Draw;
-            if (expected != stored.Value)
-                Assert.Fail($"{position.ToFen()}: stored {stored}, moves give {expected}");
-            checkedPositions++;
-        }
+        var (checkedPositions, mismatches) = _tablebase.Verify(Material.Parse(material));
+        Assert.Empty(mismatches);
         Assert.True(checkedPositions > 300_000);
     }
 
@@ -113,10 +99,24 @@ public class EndgameTests : IClassFixture<SolvedTables>
         Assert.True(stats.Draws[(int)Colour.White] > 0);   // unlike K+Q v K, plenty of draws
     }
 
-    [Fact]
-    public void PawnsOnBothSidesAreRefusedRatherThanGuessed()
+    /// <summary>
+    /// Pawns on both sides bring in en passant.  Solving K+P v K+P needs a
+    /// dozen 4-piece tables for its promotions (~20 minutes), so this only
+    /// runs when CHESS_SLOW_TESTS names a directory of solved tables
+    /// (e.g. after `solve KPvKP` there).
+    /// </summary>
+    [SlowFact]
+    public void PawnsOnBothSidesIncludingEnPassantAreConsistent()
     {
-        Assert.Throws<NotSupportedException>(() => new Tablebase().Get(Material.Parse("KPvKP")));
+        var tablebase = new Tablebase(Environment.GetEnvironmentVariable(SlowFactAttribute.Variable));
+        var (checkedPositions, mismatches) = tablebase.Verify(Material.Parse("KPvKP"), stride: 101);
+        Assert.Empty(mismatches);
+        Assert.True(checkedPositions > 100_000);
+
+        // An en passant right only ever adds an option for the side that has it.
+        var withRight = Position.FromFen("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1");
+        var without = Position.FromFen("4k3/8/8/3pP3/8/8/8/4K3 w - - 0 1");
+        Assert.True(tablebase.Probe(withRight).Score >= tablebase.Probe(without).Score);
     }
 
     [Theory]
@@ -204,5 +204,17 @@ public class EndgameTests : IClassFixture<SolvedTables>
         Assert.True(Outcome.Win(3).Score > Outcome.Win(5).Score);
         Assert.True(Outcome.Draw.Score > Outcome.Loss(40).Score);
         Assert.True(Outcome.Loss(40).Score > Outcome.Loss(2).Score);
+    }
+}
+
+/// <summary>A test that only runs when CHESS_SLOW_TESTS is set (to a directory of solved tables).</summary>
+public sealed class SlowFactAttribute : FactAttribute
+{
+    public const string Variable = "CHESS_SLOW_TESTS";
+
+    public SlowFactAttribute()
+    {
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(Variable)))
+            Skip = $"Slow: set {Variable} to a directory of solved tables to run.";
     }
 }
