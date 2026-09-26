@@ -84,3 +84,23 @@ rather than 48-byte boards, because that is the storage that scales.
 - Cost: 3-piece tables ~2 s and 1 MB; 4-piece ~110 s, 64 MB on disk, ~700 MB
   peak memory. Symmetry and a tighter index are next before 5 pieces.
 - DTM ignores the 50-move rule. That's fine so far, noted in TODO for 5 pieces.
+
+## 2026-09-26: pawns in the endgame solver
+
+- Pawn pushes stay in a table, while promotions (like captures) go to the table
+  for the promoted piece. Pawn un-moves: one square back, or two back to its
+  starting rank. Pawns on rank 1 or 8 are impossible slots.
+- `SwapColours` now also flips the board (square ^ 56), so a black pawn
+  side is looked up in the white-pawn table with pawns running the right
+  way. Pawnless results are unchanged by the flip.
+- KPvK: 28-move longest mate, 76.5% of white-to-move positions won. Both
+  match the figures I remember for this endgame, though I'm less sure of the
+  source than for KQK / KRK. The real proof is the consistency test over
+  every legal KPvK position, plus textbook positions (square rule, rook pawn
+  in the corner, king on the 6th in front of its pawn, an unstoppable black
+  pawn through the colour swap).
+- KQvKP ~7.5 min and KRvKP ~4 min, each including the four 4-piece tables
+  their promotions need (KQvKQ, KQvKR, …).
+- Pawns on both sides are refused for now: en passant makes the value
+  depend on the previous move, and the index doesn't record that. The plan
+  is in TODO.

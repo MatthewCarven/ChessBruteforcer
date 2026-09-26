@@ -13,6 +13,7 @@ public sealed class SolvedTables
     {
         Tablebase.Get(Material.Parse("KQvK"));
         Tablebase.Get(Material.Parse("KRvK"));
+        Tablebase.Get(Material.Parse("KPvK"));
     }
 }
 
@@ -54,6 +55,7 @@ public class EndgameTests : IClassFixture<SolvedTables>
     [Theory]
     [InlineData("KQvK")]
     [InlineData("KRvK")]
+    [InlineData("KPvK")]
     public void EveryPositionEqualsTheBestOfItsMoves(string material)
     {
         var table = _tablebase.Get(Material.Parse(material));
@@ -85,6 +87,45 @@ public class EndgameTests : IClassFixture<SolvedTables>
     public void KnownPositionsProbeCorrectly(string fen, OutcomeKind kind, int plies)
     {
         Assert.Equal(new Outcome(kind, plies), _tablebase.Probe(Position.FromFen(fen)));
+    }
+
+    /// <summary>Textbook king-and-pawn results (only the verdict; the distances come from the solver).</summary>
+    [Theory]
+    [InlineData("7k/8/8/8/P7/8/8/7K w - - 0 1", OutcomeKind.Win)]     // black king outside the pawn's square
+    [InlineData("8/8/8/2k5/P7/8/8/7K b - - 0 1", OutcomeKind.Draw)]   // inside it: Kb4 wins the pawn
+    [InlineData("k7/8/1K6/P7/8/8/8/8 w - - 0 1", OutcomeKind.Draw)]   // rook pawn, defender in the corner
+    [InlineData("k7/8/1K6/P7/8/8/8/8 b - - 0 1", OutcomeKind.Draw)]
+    [InlineData("4k3/8/4K3/4P3/8/8/8/8 w - - 0 1", OutcomeKind.Win)]  // king on the 6th in front of its pawn
+    [InlineData("4k3/8/4K3/4P3/8/8/8/8 b - - 0 1", OutcomeKind.Loss)] //   wins whoever is to move
+    [InlineData("8/4P3/8/8/8/8/k7/4K3 w - - 0 1", OutcomeKind.Win)]   // promotes, then K+Q v K
+    [InlineData("8/8/8/8/4k3/8/4p3/K7 w - - 0 1", OutcomeKind.Loss)]  // black's pawn: found by swapping colours
+    public void KingAndPawnTheory(string fen, OutcomeKind kind)
+    {
+        Assert.Equal(kind, _tablebase.Probe(Position.FromFen(fen)).Kind);
+    }
+
+    [Fact]
+    public void TheLoneKingNeverWins()
+    {
+        var stats = _tablebase.Get(Material.Parse("KPvK")).Statistics();
+        Assert.Equal(0, stats.Wins[(int)Colour.Black]);
+        Assert.Equal(0, stats.Losses[(int)Colour.White]);
+        Assert.True(stats.Draws[(int)Colour.White] > 0);   // unlike K+Q v K, plenty of draws
+    }
+
+    [Fact]
+    public void PawnsOnBothSidesAreRefusedRatherThanGuessed()
+    {
+        Assert.Throws<NotSupportedException>(() => new Tablebase().Get(Material.Parse("KPvKP")));
+    }
+
+    [Theory]
+    [InlineData("4k3/8/4K3/4P3/8/8/8/8 w - - 0 1")]
+    [InlineData("8/8/8/5k2/8/8/1q6/7K b - - 0 1")]
+    public void SwappingColoursKeepsTheResult(string fen)
+    {
+        var position = Position.FromFen(fen);
+        Assert.Equal(_tablebase.Probe(position), _tablebase.Probe(Tablebase.SwapColours(position)));
     }
 
     [Fact]

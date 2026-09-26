@@ -48,17 +48,18 @@ public sealed class EndgameTable
     public Outcome? this[long index] => Decode(_values[index]);
 
     /// <summary>
-    /// Solve a pawnless material set.  <paramref name="probeCapture"/> gives
-    /// the outcome, for the side to move, of a position reached by a capture
-    /// (it has less material, so it lives in another table).
+    /// Solve a material set (pawns allowed on one side).  <paramref name="probeCapture"/>
+    /// gives the outcome, for the side to move, of a position reached by a
+    /// capture or a promotion (its material differs, so it lives in another table).
     /// </summary>
     public static EndgameTable Solve(Material material, Func<Position, Outcome> probeCapture,
                                      IProgress<string>? progress = null)
     {
         if (!material.IsCanonical)
             throw new ArgumentException($"Solve {material.Canonical}, not {material}.");
-        if (material.HasPawns)
-            throw new NotSupportedException("Endgames with pawns are not supported yet.");
+        if (material.White.Contains(PieceType.Pawn) && material.Black.Contains(PieceType.Pawn))
+            throw new NotSupportedException(
+                "Pawns on both sides need en passant handling, which the index cannot express yet.");
         if (material.PieceCount > 4)
             throw new NotSupportedException("More than four pieces needs a tighter index first.");
         return new Solver(material, probeCapture, progress).Run();
@@ -274,7 +275,8 @@ public sealed class EndgameTable
                 int staying = 0;
                 foreach (var move in moves)
                 {
-                    if (!move.IsCapture)
+                    // Captures and promotions change the material: another table.
+                    if (!move.IsCapture && !move.IsPromotion)
                     {
                         staying++;
                         continue;
@@ -358,7 +360,7 @@ public sealed class EndgameTable
                 if (piece.Colour != previousMover)
                     continue;
                 int from = squares[slot];
-                foreach (int to in RetractionTargets(position, piece.Type, from))
+                foreach (int to in RetractionTargets(position, piece, from))
                 {
                     position.SetPiece(from, Piece.Empty);
                     position.SetPiece(to, piece);
@@ -379,14 +381,17 @@ public sealed class EndgameTable
         }
 
         /// <summary>Empty squares a piece on <paramref name="from"/> could have come from.</summary>
-        private static IEnumerable<int> RetractionTargets(Position position, PieceType type, int from)
+        private static IEnumerable<int> RetractionTargets(Position position, Piece piece, int from)
         {
+            var type = piece.Type;
             switch (type)
             {
                 case PieceType.King:
                     return Attacks.King[from].Where(s => position[s].IsEmpty);
                 case PieceType.Knight:
                     return Attacks.Knight[from].Where(s => position[s].IsEmpty);
+                case PieceType.Pawn:
+                    return PawnRetractions(position, piece.Colour, from);
             }
             int first = type == PieceType.Bishop ? Attacks.FirstBishopDirection : 0;
             int end = type == PieceType.Rook ? Attacks.FirstBishopDirection : Attacks.DirectionCount;
@@ -403,7 +408,32 @@ public sealed class EndgameTable
             return targets;
         }
 
-        /// <summary>Set up the scratch position for an index; false if two pieces share a square.</summary>
+        /// <summary>
+        /// A pawn un-pushes one square, or two if it now stands on its
+        /// double-push rank and both squares behind are empty.  It can never
+        /// have come from its own back rank.
+        /// </summary>
+        private static IEnumerable<int> PawnRetractions(Position position, Colour colour, int from)
+        {
+            int back = colour == Colour.White ? -8 : 8;
+            int rank = from / 8;
+            int homeRank = colour == Colour.White ? 1 : 6;
+            int doublePushRank = colour == Colour.White ? 3 : 4;
+
+            int one = from + back;
+            if (one / 8 == (colour == Colour.White ? 0 : 7) || !position[one].IsEmpty)
+                yield break;
+            yield return one;
+
+            int two = one + back;
+            if (rank == doublePushRank && two / 8 == homeRank && position[two].IsEmpty)
+                yield return two;
+        }
+
+        /// <summary>
+        /// Set up the scratch position for an index; false if two pieces share
+        /// a square or a pawn stands on the first or last rank.
+        /// </summary>
         private bool Load(long index)
         {
             for (int square = 0; square < 64; square++)
@@ -418,6 +448,8 @@ public sealed class EndgameTable
             for (int slot = 0; slot < _slots.Length; slot++)
             {
                 if (!_scratch[_squares[slot]].IsEmpty)
+                    return false;
+                if (_slots[slot].Type == PieceType.Pawn && _squares[slot] / 8 is 0 or 7)
                     return false;
                 _scratch.SetPiece(_squares[slot], _slots[slot]);
             }

@@ -53,7 +53,7 @@ Steps:
       fastest win first, then draws, then slowest loss
 - [x] Verified: every K+Q v K and K+R v K position equals the best of its
       moves (a unique solution given the mates), and the longest mates match
-      the known values: KQvK 10, KRvK 16, KQvKR 35, KBNvK 33
+      the known values: KQvK 10, KRvK 16, KQvKR 35, KBNvK 33, KPvK 28
 - [ ] Export the principal tree (not just one line) from a position, to a
       chosen depth, as a file the thesis can use
 - [ ] Symmetry: 8-fold for pawnless tables (fold the white king into the
@@ -61,8 +61,15 @@ Steps:
       placements the raw index keeps. KQvKR drops from 64 MB to ~5 MB
 - [ ] Memory: 4-piece solves peak at ~700 MB and take ~2 minutes; the
       working arrays can shrink (bit arrays, one queue) before 5 pieces
-- [ ] Pawns: K+P v K first. Pawn un-moves, promotions into other tables,
-      and the pawn file symmetry (mirror only, 2-fold)
+- [x] Pawns on one side: pawn pushes and un-moves, promotions into the
+      other tables, colour swap with the board flipped. KPvK (28 moves,
+      76.5% of white-to-move positions won), KQvKP, KRvKP solved; KPvK
+      passes the full consistency check plus textbook positions
+- [ ] Pawns on both sides (KPvKP, …): en passant. After a double push the
+      opponent may have an extra capture that the index doesn't record. Fix
+      by evaluating double-push moves as "child value, or the en passant
+      capture if better", which needs a small extra step in the solve
+- [ ] Pawn-table symmetry: mirror a-d / e-h files only (2-fold)
 - [ ] The 50-move rule: these tables count distance to mate and ignore it.
       Nothing solved so far comes close (KQvKR's longest is 35), but some
       5-piece wins take more than 50 moves. Add DTZ (distance to a capture or

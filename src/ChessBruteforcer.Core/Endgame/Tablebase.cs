@@ -95,7 +95,11 @@ public sealed class Tablebase
         return line;
     }
 
-    /// <summary>The same position with white and black exchanged (and the side to move with them).</summary>
+    /// <summary>
+    /// The same position with white and black exchanged, the board flipped
+    /// top to bottom so pawns still run the right way, and the other side to
+    /// move.  Every result is unchanged by this, seen from the side to move.
+    /// </summary>
     public static Position SwapColours(Position position)
     {
         var swapped = Position.Empty(Position.Opponent(position.SideToMove));
@@ -103,7 +107,7 @@ public sealed class Tablebase
         {
             var piece = position[square];
             if (!piece.IsEmpty)
-                swapped.SetPiece(square, piece with { Colour = Position.Opponent(piece.Colour) });
+                swapped.SetPiece(square ^ 56, piece with { Colour = Position.Opponent(piece.Colour) });
         }
         return swapped;
     }

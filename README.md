@@ -92,7 +92,7 @@ perft <depth> [fen]            count every move sequence to <depth>
 divide <depth> [fen]           perft split by first move, for tracking down bugs
 ```
 
-Endgame tables (pawnless, up to 4 pieces), saved in `./tables` and reused:
+Endgame tables (up to 4 pieces, pawns on one side), saved in `./tables` and reused:
 
 ```
 solve <material>               solve e.g. KQvK, KRvK, KQvKR and print what it found
@@ -154,8 +154,23 @@ slowest loss. `line` follows the top move all the way to mate.
 | K+R v K | 0.5 M slots, 1 MB | ~2 s | 16 moves | 16 ✓ |
 | K+Q v K+R | 33.5 M slots, 64 MB | ~110 s | 35 moves | 35 ✓ |
 | K+B+N v K | 33.5 M slots, 64 MB | ~85 s | 33 moves | 33 ✓ |
+| K+P v K | 0.5 M slots, 1 MB | ~6 s | 28 moves | 28, from memory (76.5% of white-to-move positions won) |
+| K+Q v K+P | 33.5 M slots, 64 MB | ~7.5 min* | 28 / 29 moves | |
+| K+R v K+P | 33.5 M slots, 64 MB | ~4 min* | 43 moves (the pawn side, after promoting) | |
 
-The tests also check every legal K+Q v K and K+R v K position against the
+\* including the other 4-piece tables its promotions lead to (a black pawn
+can become a queen, rook, bishop or knight).
+
+**Pawns.** A pawn push stays in the table, while a promotion, like a
+capture, changes the material and is looked up in the table for the new
+piece. A pawn un-moves one square back, or two back to its starting rank.
+When the stronger side is black, the position is looked up with colours
+swapped *and the board flipped*, so pawns still run up the board. Pawns
+on both sides aren't supported yet. En passant would make a position's
+value depend on the move before it, which the index doesn't record, so the
+solver refuses those tables rather than getting them subtly wrong.
+
+The tests also check every legal K+Q v K, K+R v K and K+P v K position against the
 definition: its value must equal the best outcome over its moves. Given the
 mates, that has only one solution, so it proves the whole table.
 
