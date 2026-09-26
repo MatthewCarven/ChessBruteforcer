@@ -14,7 +14,7 @@ roughly the order of work. Tick items off here and log them in
 - [x] C# port of the BinaryPossibility core, plus `SuperposedBoard`
 - [x] CLI: `ranges`, `check`, `show`, `sample`, `file …`
 
-## Next: milestone 2, the minimum-spec endgame tree (thesis core)
+## In progress: milestone 2, the minimum-spec endgame tree (thesis core)
 
 The plan: take the smallest game that can actually be won, map its whole
 tree, record win/loss, and sort it by favourable outcome. Endgames matter
@@ -38,23 +38,37 @@ Steps:
 - [x] Checkmate / stalemate detection
 - [ ] Speed: ~13-16M nodes/s with the 64-square array. Bitboards (and
       magic or PEXT sliding attacks) should give 10x+ when search needs it
-- [ ] "Un-move" generator for going backwards
-- [ ] Retrograde solver for a given material set: mark checkmates and
-      stalemates, then iterate backwards, labelling every position
-      WIN-in-n / LOSS-in-n / DRAW
-- [ ] Store results **indexed, not as boards**: map each position to a
-      number (a perfect index over the material set, after symmetry), and
-      store only the outcome at that index, a few bits per position before
-      compression. 48-byte `.cbb` records stay for collecting and exchanging
-      positions, but they are ~400x too big for solved endgames
-- [ ] Commands: `solve KQvK`, `probe <fen>` (outcome + best move), `line <fen>`
-      (the best play all the way to mate)
-- [ ] "Sort the tree by favourable outcome": order each position's moves by
-      result (fastest win first, slowest loss last) and export the principal
-      tree from any starting position
-- [ ] Use symmetry (mirroring / rotation, 8-fold without pawns) to cut
-      storage about 8×
-- [ ] Grow the material set: KRvK → KBNvK → KPvK → 4 pieces …
+- [x] "Un-move" generator for going backwards (pawnless: any piece of the
+      side that just moved steps back to an empty square)
+- [x] Retrograde solver: mates are losses in 0, then ply by ply outward.
+      A move into a lost position makes a win, and every move into a won
+      position makes a loss. Captures are looked up in the smaller table they
+      lead to (solved on demand)
+- [x] Store results **indexed, not as boards**: one 16-bit value per
+      index = squares of each piece + side to move. `.cbt` files, saved in
+      `./tables` and reused
+- [x] Commands: `solve KQvK`, `probe <fen>` (outcome + every move ranked),
+      `line <fen>` (best play all the way to mate)
+- [x] "Sort the tree by favourable outcome": `RankMoves` orders every move
+      fastest win first, then draws, then slowest loss
+- [x] Verified: every K+Q v K and K+R v K position equals the best of its
+      moves (a unique solution given the mates), and the longest mates match
+      the known values: KQvK 10, KRvK 16, KQvKR 35
+- [ ] Export the principal tree (not just one line) from a position, to a
+      chosen depth, as a file the thesis can use
+- [ ] Symmetry: 8-fold for pawnless tables (fold the white king into the
+      a1-d1-d4 triangle, 10 squares instead of 64), and skip the impossible
+      placements the raw index keeps. KQvKR drops from 64 MB to ~5 MB
+- [ ] Memory: 4-piece solves peak at ~700 MB and take ~2 minutes; the
+      working arrays can shrink (bit arrays, one queue) before 5 pieces
+- [ ] Pawns: K+P v K first. Pawn un-moves, promotions into other tables,
+      and the pawn file symmetry (mirror only, 2-fold)
+- [ ] The 50-move rule: these tables count distance to mate and ignore it.
+      Nothing solved so far comes close (KQvKR's longest is 35), but some
+      5-piece wins take more than 50 moves. Add DTZ (distance to a capture or
+      pawn move) when that matters
+- [ ] Grow the material set: KBBvK, KQvKQ, KRvKB, KRvKN … then 5 pieces
+      after symmetry
 
 ## Then: milestone 3, compete (openly, as software)
 

@@ -52,6 +52,17 @@ public sealed class Position
 
     public int KingSquare(Colour colour) => _kingSquare[(int)colour];
 
+    /// <summary>An empty board with no castling rights or en passant square.</summary>
+    public static Position Empty(Colour sideToMove = Colour.White) => new() { SideToMove = sideToMove };
+
+    /// <summary>
+    /// Place (or with <see cref="Piece.Empty"/>, remove) a piece directly, for
+    /// building positions square by square.  Does not touch castling rights.
+    /// </summary>
+    public void SetPiece(int square, Piece piece) => Put(square, piece);
+
+    public void SetSideToMove(Colour colour) => SideToMove = colour;
+
     public static Position Start() => FromFen(Fen.StartPosition);
 
     public static Position FromFen(string fen)
@@ -278,6 +289,9 @@ public sealed class Position
 
     private void Put(int square, Piece piece)
     {
+        var old = _squares[square];
+        if (old.Type == PieceType.King && _kingSquare[(int)old.Colour] == square)
+            _kingSquare[(int)old.Colour] = NoSquare;
         _squares[square] = piece;
         if (piece.Type == PieceType.King)
             _kingSquare[(int)piece.Colour] = square;

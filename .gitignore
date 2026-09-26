@@ -482,3 +482,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Solved endgame tables (generated; rebuild with `solve`)
+tables/
+*.cbt

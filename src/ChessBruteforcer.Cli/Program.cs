@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Numerics;
 using ChessBruteforcer.Core;
+using ChessBruteforcer.Core.Endgame;
 using ChessBruteforcer.Core.Game;
 using ChessBruteforcer.Core.Possibility;
 
@@ -23,6 +24,12 @@ static class Cli
           moves [fen]                    legal moves, and whether it is check, mate or stalemate
           perft <depth> [fen]            count every move sequence to <depth>
           divide <depth> [fen]           perft split by first move, for tracking down bugs
+
+        Endgame tables (pawnless, up to 4 pieces; saved in ./tables, reused next time):
+
+          solve <material>               solve e.g. KQvK or KRvK and print what it found
+          probe <fen>                    the outcome, and every move ranked best first
+          line <fen>                     best play from here to mate
 
           file add <file> <board>...     append boards to a board file (.cbb)
           file import <file> <text>      append every FEN / hex line of a text file
@@ -51,6 +58,9 @@ static class Cli
                 ["perft", var depth, var fen] => RunPerft(int.Parse(depth), fen, divide: false),
                 ["divide", var depth] => RunPerft(int.Parse(depth), Fen.StartPosition, divide: true),
                 ["divide", var depth, var fen] => RunPerft(int.Parse(depth), fen, divide: true),
+                ["solve", var material] => Solve(material),
+                ["probe", var fen] => Probe(fen),
+                ["line", var fen] => Line(fen),
                 ["file", "add", var file, .. var boards] when boards.Length > 0 => FileAdd(file, boards),
                 ["file", "import", var file, var text] => FileAdd(file, ReadLines(text)),
                 ["file", "list", var file] => FileList(file),
@@ -162,6 +172,79 @@ static class Cli
         }
         double seconds = stopwatch.Elapsed.TotalSeconds;
         Console.WriteLine($"perft {depth}: {nodes:N0} nodes in {seconds:0.00}s ({nodes / Math.Max(seconds, 1e-9) / 1e6:0.0}M nodes/s)");
+        return 0;
+    }
+
+    private const string TableDirectory = "tables";
+
+    private static Tablebase OpenTablebase() =>
+        new(TableDirectory, new Progress<string>(message => Console.Error.Write($"\r{message,-70}")));
+
+    private static int Solve(string text)
+    {
+        var material = Material.Parse(text);
+        var stopwatch = Stopwatch.StartNew();
+        var table = OpenTablebase().Get(material);
+        Console.Error.Write($"\r{"",-70}\r");
+        var stats = table.Statistics();
+
+        Console.WriteLine($"{table.Material}: {table.Size:N0} indexed slots ({table.Size * 2 / 1024.0 / 1024.0:0.0} MB), " +
+                          $"ready in {stopwatch.Elapsed.TotalSeconds:0.0}s");
+        foreach (var side in new[] { Colour.White, Colour.Black })
+        {
+            int s = (int)side;
+            long legal = stats.Legal(side);
+            Console.WriteLine($"  {side} to move: {legal:N0} legal positions");
+            Console.WriteLine($"    wins   {stats.Wins[s],10:N0}  ({100.0 * stats.Wins[s] / legal:0.0}%)");
+            Console.WriteLine($"    draws  {stats.Draws[s],10:N0}  ({100.0 * stats.Draws[s] / legal:0.0}%)");
+            Console.WriteLine($"    losses {stats.Losses[s],10:N0}  ({100.0 * stats.Losses[s] / legal:0.0}%)");
+            if (stats.Longest[s] is var (outcome, index))
+                Console.WriteLine($"    longest: {outcome}, e.g. {table.PositionAt(index).ToFen()}");
+        }
+        return 0;
+    }
+
+    private static int Probe(string fen)
+    {
+        var position = Position.FromFen(fen);
+        var tablebase = OpenTablebase();
+        var outcome = tablebase.Probe(position);
+        var ranked = tablebase.RankMoves(position);
+        Console.Error.Write($"\r{"",-70}\r");
+        Console.WriteLine(position.ToPackedBoard().ToDiagram());
+        Console.WriteLine($"{position.SideToMove} to move: {outcome}");
+        foreach (var (move, result) in ranked)
+            Console.WriteLine($"  {move.ToUci(),-6} {result}");
+        return 0;
+    }
+
+    private static int Line(string fen)
+    {
+        var position = Position.FromFen(fen);
+        var tablebase = OpenTablebase();
+        var outcome = tablebase.Probe(position);
+        var line = tablebase.PrincipalLine(position);
+        Console.Error.Write($"\r{"",-70}\r");
+        Console.WriteLine($"{position.SideToMove} to move: {outcome}");
+
+        var text = new System.Text.StringBuilder();
+        int number = position.FullmoveNumber;
+        var colour = position.SideToMove;
+        if (colour == Colour.Black)
+            text.Append($"{number}... ");
+        foreach (var move in line)
+        {
+            if (colour == Colour.White)
+                text.Append($"{number}. ");
+            text.Append(move.ToUci()).Append(' ');
+            if (colour == Colour.Black)
+                number++;
+            colour = Position.Opponent(colour);
+        }
+        Console.WriteLine(text.ToString().TrimEnd());
+        foreach (var move in line)
+            position.MakeMove(move);
+        Console.WriteLine($"final: {position.ToFen()} ({position.Status().ToString().ToLowerInvariant()})");
         return 0;
     }
 

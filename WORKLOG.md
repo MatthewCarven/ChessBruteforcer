@@ -61,3 +61,26 @@ rather than 48-byte boards, because that is the storage that scales.
 - Speed is about 13-16M nodes/s in release with a plain 64-square array. That
   is plenty for 3-4 piece endgames; bitboards come later, for search.
 - Next: the retrograde solver for K+Q v K.
+
+## 2026-09-26: endgame solver (milestone 2 core)
+
+- `Endgame/`: `Material` (signatures like KQvKR, stronger side as white),
+  `Outcome` (win / loss / draw with distance to mate in plies),
+  `EndgameTable` (index, retrograde solve, save / load as `.cbt`),
+  `Tablebase` (finds or solves tables, colour swap, ranks moves, best line).
+- Retrograde method: seed mates as Loss(0) and stalemates as draws, then
+  process ply buckets in order. Losses make their predecessors wins;
+  wins count down each predecessor's remaining moves, and a predecessor with
+  none left (and no drawing capture) becomes a loss. Captures are settled up
+  front by probing the smaller table. Predecessors come from pawnless
+  un-moves.
+- Results match the known longest mates: KQvK 10, KRvK 16, KQvKR 35.
+  KvK has 3,612 legal placements, which agrees with the range
+  counter's non-adjacent-kings figure.
+- Test: every legal KQvK / KRvK position equals the best outcome over its
+  moves, which with the mates fixed determines the table uniquely.
+- Three of my hand-picked test positions were wrong (a defended queen that
+  was really loose, and so on); the solver was right each time.
+- Cost: 3-piece tables ~2 s and 1 MB; 4-piece ~110 s, 64 MB on disk, ~700 MB
+  peak memory. Symmetry and a tighter index are next before 5 pieces.
+- DTM ignores the 50-move rule. That's fine so far, noted in TODO for 5 pieces.

@@ -92,6 +92,14 @@ perft <depth> [fen]            count every move sequence to <depth>
 divide <depth> [fen]           perft split by first move, for tracking down bugs
 ```
 
+Endgame tables (pawnless, up to 4 pieces), saved in `./tables` and reused:
+
+```
+solve <material>               solve e.g. KQvK, KRvK, KQvKR and print what it found
+probe <fen>                    the outcome, and every move ranked best first
+line <fen>                     best play from here to mate
+```
+
 ## Move generation: `Game/`
 
 `Position` holds the full game state, and `MoveGenerator` produces the legal
@@ -116,6 +124,39 @@ separators.
 
 Meaningless boards round-trip too, so a file can hold raw samples from the
 superposition as well as real positions.
+
+## Solved endgames: `Endgame/`
+
+This is the thesis core: take the smallest games that can actually be won,
+solve every position, and sort each position's moves by how good they are.
+King vs king is always a draw, so the first real ones are K+Q v K and
+K+R v K.
+
+The solver works **backwards from the end** (retrograde analysis, as
+tablebases do). Checkmates are losses in 0 moves. Then, one ply at a time:
+
+- a position with a move into a lost position is a **win**, as fast as possible;
+- a position whose every move leads into a won position is a **loss**, as slow as possible;
+- anything never reached is a **draw**.
+
+Captures leave the table, so they are looked up in the smaller table they
+lead to, which is solved first on demand (K+Q v K+R needs K+Q v K and
+K+R v K, which need K v K).
+
+Positions are stored **by index, not as boards**: the squares of each piece
+plus the side to move make a number, and the table is one 16-bit result per
+number. `probe` ranks every move fastest win first, then draws, then the
+slowest loss. `line` follows the top move all the way to mate.
+
+| table | positions | solve time | longest mate | known value |
+| --- | --- | --- | --- | --- |
+| K+Q v K | 0.5 M slots, 1 MB | ~2 s | 10 moves | 10 ✓ |
+| K+R v K | 0.5 M slots, 1 MB | ~2 s | 16 moves | 16 ✓ |
+| K+Q v K+R | 33.5 M slots, 64 MB | ~110 s | 35 moves | 35 ✓ |
+
+The tests also check every legal K+Q v K and K+R v K position against the
+definition: its value must equal the best outcome over its moves. Given the
+mates, that has only one solution, so it proves the whole table.
 
 ## Superposition: `Possibility/`
 
@@ -145,6 +186,7 @@ src/ChessBruteforcer.Core/
   RangeCounter.cs               exact per-tier counts
   Possibility/                  the BinaryPossibility port + SuperposedBoard
   Game/                         Position, Move, MoveGenerator, Perft
+  Endgame/                      Material, Outcome, EndgameTable (retrograde solver), Tablebase
 src/ChessBruteforcer.Cli/       the commands above
 tests/ChessBruteforcer.Tests/   xunit
 ```
