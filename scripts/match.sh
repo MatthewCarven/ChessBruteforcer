@@ -15,7 +15,8 @@ engine_cmd() { echo "dotnet engines/$1/ChessBruteforcer.Engine.dll --tables $TAB
 
 case "${1:-}" in
   snapshot)
-    dotnet build -c Release -v q src/ChessBruteforcer.Engine src/ChessBruteforcer.Match
+    dotnet build -c Release -v q src/ChessBruteforcer.Engine   # one project per build
+    dotnet build -c Release -v q src/ChessBruteforcer.Match
     rm -rf "engines/$2" && mkdir -p engines && cp -r src/ChessBruteforcer.Engine/bin/Release/net8.0 "engines/$2"
     echo "engines/$2 ready" ;;
   vs-stockfish)
