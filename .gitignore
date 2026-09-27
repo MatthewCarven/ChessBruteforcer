@@ -486,6 +486,8 @@ $RECYCLE.BIN/
 # Solved endgame tables (generated; rebuild with `solve`)
 tables/
 *.cbt
+*.cbz
+*.cbf
 
 # Engine snapshots and match games (see scripts/match.sh)
 engines/

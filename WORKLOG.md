@@ -478,3 +478,50 @@ rather than 48-byte boards, because that is the storage that scales.
   orderly (a Gray-code walk), and the longest stall is a Hamiltonian path
   through the side's arrangements, "like the snake solver, with a start and
   an end".
+
+## 2026-09-28: 5-piece tables, session 3a (the 50-move rule, DTZ)
+
+- Matthew said go on session 3 (or a plan if better). Split it: 3a is DTZ
+  up to 4 pieces now; 3b (slices with their own memory, for 5-piece pawn
+  tables) is its own session. Written up in TODO.
+- DTZ tables (`.cbz`, CBZ1, same index): the result under the rule with the
+  count at 0, and plies to the next capture, pawn move or mate. In the
+  solver, zeroing moves are exits worth win / draw / loss only (the count
+  restarts), un-moves never include pawns, en passant nodes aren't needed
+  (a double push is itself an exit), and the solve stops at 100 plies:
+  what's left is a draw. Tables with pawns go slice by slice (one pawn
+  placement and its mirror), most advanced first. A DTZ table needs only
+  the smaller tables' DTZ.
+- One bug on the way: `ChildOf` reads the side to move from the scratch
+  position, and I'd made the move first (null value on KPvK). Fixed by
+  taking the child before the move.
+- All 36 (`scripts/dtz-tables.sh`, 942 s with checks): 36 of 36 pass
+  `dtz verify` on every 5th position. **No cursed wins or blessed losses
+  anywhere up to 4 pieces**: the rule changes no result. Longest DTZ, plies
+  (white to move / black to move):
+
+  | Table | DTZ | Table | DTZ | Table | DTZ |
+  |---|---|---|---|---|---|
+  | KQvK | 19/20 | KRvKR | 7/7 | KQRvK | 8/9 |
+  | KRvK | 31/32 | KRvKB | 35/36 | KQBvK | 12/13 |
+  | KPvK | 19/20 | KRvKN | 53/54 | KQNvK | 14/15 |
+  | KQvKQ | 19/19 | KRvKP | 25/24 | KQPvK | 5/6 |
+  | KQvKR | 61/62 | KBvKP | 6/7 | KRRvK | 10/11 |
+  | KQvKB | 23/24 | KNvKP | 16/15 | KRBvK | 23/24 |
+  | KQvKN | 37/38 | KPvKP | 21/21 | KRNvK | 23/24 |
+  | KQvKP | 52/53 | KQQvK | 6/7 | KRPvK | 5/6 |
+  | KBBvK | 37/38 | KBNvK | 65/66 | KBPvK | 25/26 |
+  | KNPvK | 25/26 | KPPvK | 14/15 | KNNvK | 1/- |
+
+  (KvK, KBvK, KNvK, KBvKB, KBvKN, KNvKN: draws, bar a few odd mates.)
+- Syzygy check through the Lichess tablebase API (`scripts/syzygy-check.py`):
+  178 positions, each table's longest DTZ for both sides, 3 random legal
+  positions each, and 4 en passant positions in KPvKP. First pass: 177
+  agree; the one "miss" was a checkmated position, which Lichess reports as
+  dtz -1 (every mate I tried there, KQvK too) and we store as 0. Allowing
+  for that: 178 of 178. Results in `scripts/syzygy-check-results.tsv`.
+- Tests: 4 new (256 pass, 1 skipped).
+- Matthew asked whether pieces are tied to parts of the board. Yes for
+  bishops (32 squares, their colour) and pawns (48 squares, and only
+  forward, which is what makes slicing work); no for the rest. Logged the
+  48-square pawns and bishop-colour splits as memory ideas in TODO 3b.

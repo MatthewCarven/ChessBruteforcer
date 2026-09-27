@@ -10,6 +10,7 @@ namespace ChessBruteforcer.Core.Endgame;
 public sealed class Tablebase : IDisposable
 {
     private readonly Dictionary<Material, EndgameTable> _tables = new();
+    private readonly Dictionary<Material, EndgameTable> _dtzTables = new();
     private readonly IProgress<string>? _progress;
 
     /// <summary>Where tables are loaded from and saved to, or null to keep them in memory only.</summary>
@@ -28,9 +29,10 @@ public sealed class Tablebase : IDisposable
     /// <summary>Release every table's file mapping (on Windows a mapped table file can't be moved or deleted until then).</summary>
     public void Dispose()
     {
-        foreach (var table in _tables.Values)
+        foreach (var table in _tables.Values.Concat(_dtzTables.Values))
             table.Dispose();
         _tables.Clear();
+        _dtzTables.Clear();
     }
 
     /// <summary>
@@ -98,6 +100,35 @@ public sealed class Tablebase : IDisposable
         return table;
     }
 
+    /// <summary>
+    /// The DTZ table for a material set (results under the 50-move rule,
+    /// see <see cref="EndgameTable.IsDtz"/>): loaded from <c>.cbz</c> beside the
+    /// others, or solved, which first needs the smaller tables' DTZ.
+    /// </summary>
+    public EndgameTable GetDtz(Material material)
+    {
+        material = material.Canonical;
+        if (_dtzTables.TryGetValue(material, out var table))
+            return table;
+        string? path = Directory is null ? null : Path.Combine(Directory, material + ".cbz");
+        if (path is not null && File.Exists(path))
+        {
+            table = EndgameTable.Load(path);
+        }
+        else if (!SolveMissing || !LoadOnDemand)
+        {
+            throw new TableMissingException(material);
+        }
+        else
+        {
+            table = EndgameTable.SolveDtz(material, ProbeDtz, _progress);
+            if (path is not null)
+                table.Save(path);
+        }
+        _dtzTables[material] = table;
+        return table;
+    }
+
     /// <summary>Carry a capped table on to <see cref="Cap"/>: from memory, from its frontier file, or failing both, from scratch.</summary>
     private EndgameTable Deepen(EndgameTable table, string? path)
     {
@@ -148,12 +179,20 @@ public sealed class Tablebase : IDisposable
     /// of the table's value and that capture, or the capture alone when it is
     /// the only legal move.
     /// </summary>
-    public Outcome Probe(Position position)
+    public Outcome Probe(Position position) => Probe(position, dtz: false);
+
+    /// <summary>
+    /// The result under the 50-move rule, for the side to move with the count
+    /// at 0, and the plies to the next capture or pawn move (or mate).
+    /// </summary>
+    public Outcome ProbeDtz(Position position) => Probe(position, dtz: true);
+
+    private Outcome Probe(Position position, bool dtz)
     {
         if (position.Castling != CastlingRights.None)
             throw new ArgumentException("Endgame tables assume no castling rights.");
         var material = Material.FromPosition(position);
-        var table = Get(material);
+        var table = dtz ? GetDtz(material) : Get(material);
         var lookup = material.IsCanonical ? position : SwapColours(position);
         var stored = table.Probe(lookup)
                      ?? throw new ArgumentException("That position is impossible (the side not to move is in check).");
@@ -168,9 +207,10 @@ public sealed class Tablebase : IDisposable
             .Select(capture =>
             {
                 var undo = position.MakeMove(capture);
-                var outcome = Probe(position).ForPreviousMover();
+                var reached = Probe(position, dtz);
                 position.UnmakeMove(capture, undo);
-                return outcome;
+                // Under the rule a capture starts the count again: only its result carries over.
+                return (dtz ? new Outcome(reached.Kind, 0) : reached).ForPreviousMover();
             })
             .Aggregate(Outcome.Better);
         if (moves.Count == captures.Count)
@@ -287,6 +327,58 @@ public sealed class Tablebase : IDisposable
             .OrderByDescending(r => r.Item2.Score)
             .ThenBy(r => r.Item1.ToUci())
             .ToList();
+    }
+
+    /// <summary>
+    /// Every legal move with its result under the 50-move rule, best first.
+    /// A capture or pawn move wins, draws or loses one ply away (the count
+    /// starts again); any other move is one ply further from the next one,
+    /// and a result more than 100 plies away is a draw.
+    /// </summary>
+    public List<(Move Move, Outcome Outcome)> RankMovesUnderRule(Position position)
+    {
+        var ranked = new List<(Move, Outcome)>();
+        foreach (var move in MoveGenerator.Legal(position))
+        {
+            bool zeroing = move.IsCapture || move.IsPromotion || position[move.From].Type == PieceType.Pawn;
+            var undo = position.MakeMove(move);
+            var reached = ProbeDtz(position);
+            position.UnmakeMove(move, undo);
+            var outcome = (zeroing ? new Outcome(reached.Kind, 0) : reached).ForPreviousMover();
+            if (outcome.Kind != OutcomeKind.Draw && outcome.Plies > EndgameTable.RulePlies)
+                outcome = Outcome.Draw;
+            ranked.Add((move, outcome));
+        }
+        return ranked
+            .OrderByDescending(r => r.Item2.Score)
+            .ThenBy(r => r.Item1.ToUci())
+            .ToList();
+    }
+
+    /// <summary>Check a DTZ table the way <see cref="Verify"/> checks a DTM one: each value must be the best over its moves under the rule.</summary>
+    public (long Checked, List<string> Mismatches) VerifyDtz(Material material, int stride = 1,
+                                                             IProgress<string>? progress = null)
+    {
+        var table = GetDtz(material);
+        var mismatches = new List<string>();
+        long checkedPositions = 0;
+        for (long index = 0; index < table.Size; index += stride)
+        {
+            var stored = table[index];
+            if (stored is null)
+                continue;
+            var position = table.PositionAt(index);
+            var ranked = RankMovesUnderRule(position);
+            var expected = ranked.Count > 0
+                ? ranked[0].Outcome
+                : position.InCheck() ? Outcome.Loss(0) : Outcome.Draw;
+            if (expected != stored.Value && mismatches.Count < 20)
+                mismatches.Add($"{position.ToFen()}: stored {stored}, moves give {expected}");
+            checkedPositions++;
+            if (checkedPositions % 1_000_000 == 0)
+                progress?.Report($"{table.Material}: verified {checkedPositions:N0}");
+        }
+        return (checkedPositions, mismatches);
     }
 
     /// <summary>Best play from here until mate (or <paramref name="maxPlies"/> for a draw).</summary>

@@ -100,6 +100,8 @@ built yet), saved in `./tables` (or `$CHESS_TABLES`) and reused.
 ```
 solve <material>               solve e.g. KQvK, KRvK, KQvKR and print what it found (and the solver's memory)
 solve <material> --cap N       only to N plies; run it again with a bigger N (or none) to carry on
+dtz <material>                 solve under the 50-move rule; wins, draws, losses, cursed wins, blessed losses
+dtz <material> verify [stride] check the DTZ table against its moves
 probe <fen>                    the outcome, and every move ranked best first
 line <fen>                     best play from here to mate
 verify <material> [stride]     check every (or every n-th) position against its moves
@@ -346,6 +348,49 @@ side after promoting) runs past 80 plies. K+P v K+P is open at 80 although
 its own longest mate is 66 plies: 35,174 of its positions can promote to a
 rook into K+R v K+P, and until that table is deeper they can't be ruled out.
 That is the edge rule doing its job.
+
+**The 50-move rule (DTZ).** A game is drawn once 100 plies go by without a
+capture or a pawn move. So a win only counts if the winner can force a
+capture, a pawn move or mate within 100 plies, and again from there, until
+mate. `dtz <material>` solves each table that way (a `.cbz` beside the
+`.cbt`, same numbering): its distances count to the next capture or pawn move
+(a "zeroing" move), not to mate. A zeroing move starts the count again, so it
+is worth only win, draw or loss; between them the solve counts plies as
+before and stops at 100, and whatever is left is a draw. The rule is the
+ladder's natural cap. A DTZ table needs only the smaller tables' DTZ, not its
+own mate distances.
+
+Pawn moves stay inside a table, so a table with pawns is solved in slices, one
+placement of the pawns at a time, the most advanced first: pawns only go
+forward, so every pawn move leads into a slice that is already done.
+
+Wins the rule turns into draws are "cursed wins", and losses it saves are
+"blessed losses". **Up to 4 pieces there are none**: every table has the same
+wins, draws and losses under the rule as without it. The longest stretch
+between zeroing moves is K+B+N v K's 65 plies, against the 100 allowed.
+
+| table | longest DTZ (plies) | longest mate (plies) |
+| --- | --- | --- |
+| K+B+N v K | 65 | 65 |
+| K+Q v K+R | 61 | 69 |
+| K+R v K+N | 53 | 79 |
+| K+Q v K+P | 52 | 57 |
+| K+B+B v K | 37 | 37 |
+| K+Q v K+N | 37 | 41 |
+| K+R v K | 31 | 31 |
+| K+R v K+P | 25 | 85 |
+
+(Mate distances from the table of solved endgames below, in plies: a win in
+n moves is 2n - 1 plies.) Where a pawn or a capture is on the way, DTZ is
+much shorter than the mate; K+R v K+P's mate takes 85 plies, but a capture or
+pawn move comes within 25.
+
+All 36 DTZ tables pass `dtz <material> verify` (every value is the best over
+its moves), and 178 positions were checked against Syzygy, the standard
+published DTZ tables, through the Lichess tablebase: every table's longest
+case for each side, three random positions each, and four en passant cases.
+All agree. (Lichess reports a checkmated position as dtz -1; we store 0.)
+The list is in `scripts/syzygy-check-results.tsv`.
 
 | table | slots | size (was) | solve | legal positions | white to move: win / draw / loss | longest mate | known |
 | --- | --- | --- | --- | --- | --- | --- | --- |

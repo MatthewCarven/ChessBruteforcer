@@ -33,6 +33,9 @@ static class Cli
           probe <fen>                    the outcome, and every move ranked best first
           line <fen>                     best play from here to mate
           verify <material> [stride] [--cap N]  check every (or every n-th) position against its moves
+          dtz <material>                 solve under the 50-move rule (.cbz beside the table): wins, draws,
+                                         losses, and the wins and losses the rule turns into draws
+          dtz <material> verify [stride] check the DTZ table against its moves
           upgrade [dir]                  rewrite tables from before symmetry in the new format (they load either way)
 
         Tables live in ./tables, or wherever CHESS_TABLES points.
@@ -77,6 +80,9 @@ static class Cli
                 ["solve", var material] => Solve(material, null),
                 ["solve", var material, "--cap", var cap] => Solve(material, int.Parse(cap)),
                 ["probe", var fen] => Probe(fen),
+                ["dtz", var material] => Dtz(material),
+                ["dtz", var material, "verify"] => DtzVerify(material, 1),
+                ["dtz", var material, "verify", var stride] => DtzVerify(material, int.Parse(stride)),
                 ["line", var fen] => Line(fen),
                 ["verify", var material] => Verify(material, 1, null),
                 ["verify", var material, "--cap", var cap] => Verify(material, 1, int.Parse(cap)),
@@ -284,10 +290,65 @@ static class Cli
         var ranked = tablebase.RankMoves(position);
         Console.Error.Write($"\r{"",-70}\r");
         Console.WriteLine(position.ToPackedBoard().ToDiagram());
+        var underRule = tablebase.ProbeDtz(position);
+        var ruled = tablebase.RankMovesUnderRule(position).ToDictionary(r => r.Move, r => r.Outcome);
+        Console.Error.Write($"\r{"",-70}\r");
         Console.WriteLine($"{position.SideToMove} to move: {outcome}");
+        Console.WriteLine($"  under the 50-move rule: {DescribeDtz(underRule)}");
         foreach (var (move, result) in ranked)
-            Console.WriteLine($"  {move.ToUci(),-6} {result}");
+            Console.WriteLine($"  {move.ToUci(),-6} {result,-45} rule: {DescribeDtz(ruled[move])}");
         return 0;
+    }
+
+    /// <summary>A DTZ result: its distance counts to the next capture or pawn move, not to mate.</summary>
+    private static string DescribeDtz(Outcome outcome) => outcome.Kind switch
+    {
+        OutcomeKind.Win => $"win, capture/pawn move/mate in {outcome.Plies} plies",
+        OutcomeKind.Loss when outcome.Plies == 0 => "loss, checkmated",
+        OutcomeKind.Loss => $"loss, opponent's capture/pawn move/mate in {outcome.Plies} plies",
+        _ => "draw",
+    };
+
+    private static int Dtz(string text)
+    {
+        var material = Material.Parse(text);
+        var stopwatch = Stopwatch.StartNew();
+        var tablebase = OpenTablebase();
+        var dtz = tablebase.GetDtz(material);
+        var full = tablebase.Get(material);
+        Console.Error.Write($"\r{"",-70}\r");
+        var stats = dtz.Statistics();
+        var fullStats = full.Statistics();
+        var (cursed, blessed) = full.RuleDraws(dtz);
+
+        Console.WriteLine($"{dtz.Material} under the 50-move rule: ready in {stopwatch.Elapsed.TotalSeconds:0.0}s");
+        foreach (var side in new[] { Colour.White, Colour.Black })
+        {
+            int s = (int)side;
+            long legal = stats.Legal(side);
+            Console.WriteLine($"  {side} to move: {legal:N0} legal positions (best play without the rule in brackets)");
+            Console.WriteLine($"    wins   {stats.Wins[s],10:N0}  ({100.0 * stats.Wins[s] / legal:0.0}%)  [{fullStats.Wins[s]:N0}]");
+            Console.WriteLine($"    draws  {stats.Draws[s],10:N0}  ({100.0 * stats.Draws[s] / legal:0.0}%)  [{fullStats.Draws[s]:N0}]");
+            Console.WriteLine($"    losses {stats.Losses[s],10:N0}  ({100.0 * stats.Losses[s] / legal:0.0}%)  [{fullStats.Losses[s]:N0}]");
+            Console.WriteLine($"    cursed wins {cursed[s]:N0}, blessed losses {blessed[s]:N0}");
+            if (stats.Longest[s] is var (outcome, index))
+                Console.WriteLine($"    longest: {DescribeDtz(outcome)}, e.g. {dtz.PositionAt(index).ToFen()}");
+        }
+        return 0;
+    }
+
+    private static int DtzVerify(string text, int stride)
+    {
+        var material = Material.Parse(text);
+        var stopwatch = Stopwatch.StartNew();
+        var (checkedPositions, mismatches) = OpenTablebase().VerifyDtz(material, stride,
+            new Progress<string>(message => Console.Error.Write($"\r{message,-70}")));
+        Console.Error.Write($"\r{"",-70}\r");
+        foreach (string mismatch in mismatches)
+            Console.WriteLine($"  MISMATCH {mismatch}");
+        Console.WriteLine($"{material.Canonical} DTZ: {checkedPositions:N0} positions checked in " +
+                          $"{stopwatch.Elapsed.TotalSeconds:0.0}s, {(mismatches.Count == 0 ? "all consistent" : $"{mismatches.Count}+ mismatches")}");
+        return mismatches.Count == 0 ? 0 : 2;
     }
 
     private static int Line(string fen)

@@ -30,6 +30,11 @@ namespace ChessBruteforcer.Core.Endgame;
 /// in a frontier file ("CBF1", <c>.cbf</c>) so it can be extended later
 /// from ply N + 1 instead of starting again.  A table that runs out of work
 /// before its cap is complete, and is saved as "CBT2" like any other.
+///
+/// A DTZ table ("CBZ1", <c>.cbz</c>, same index) solves the same positions
+/// under the 50-move rule: a win is a win only if the winner can force a
+/// capture, pawn move or mate within 100 plies, again and again until mate.
+/// Its distances count to the next capture or pawn move, not to mate.
 /// </summary>
 public sealed class EndgameTable : IDisposable
 {
@@ -39,6 +44,10 @@ public sealed class EndgameTable : IDisposable
     private const string CappedMagic = "CBT3";
     private const string LegacyMagic = "CBT1";
     private const string FrontierMagic = "CBF1";
+    private const string DtzMagic = "CBZ1";
+
+    /// <summary>The 50-move rule, in plies: a draw once 100 go by without a capture or pawn move.</summary>
+    public const int RulePlies = 100;
 
     // Either the values are in memory (just solved) or read from the file on demand (loaded).
     // A mapped file stays locked on Windows until the table is disposed.
@@ -60,6 +69,12 @@ public sealed class EndgameTable : IDisposable
     /// <summary>Null for a complete table; otherwise the depth in plies it is solved to (see <see cref="OutcomeKind.Beyond"/>).</summary>
     public int? Cap { get; }
 
+    /// <summary>
+    /// A DTZ table: results under the 50-move rule (a position is taken with
+    /// the count at 0), and distances to the next capture or pawn move.
+    /// </summary>
+    public bool IsDtz { get; }
+
     // A capped table solved in this process keeps its solver, so it can be extended without a frontier file.
     private Solver? _frontier;
 
@@ -68,17 +83,18 @@ public sealed class EndgameTable : IDisposable
     /// <summary>Let go of the solver's working state (once it is saved), keeping just the values.</summary>
     public void DropFrontier() => _frontier = null;
 
-    private EndgameTable(TableIndex index, short[] values, int? cap = null)
+    private EndgameTable(TableIndex index, short[] values, int? cap = null, bool dtz = false)
     {
         _index = index;
         Material = index.Material;
         _values = values;
         Size = values.LongLength;
         Cap = cap;
+        IsDtz = dtz;
     }
 
     private EndgameTable(TableIndex index, MemoryMappedFile file, MemoryMappedViewAccessor view,
-                         long dataOffset, long size, int? cap)
+                         long dataOffset, long size, int? cap, bool dtz)
     {
         _index = index;
         Material = index.Material;
@@ -87,6 +103,7 @@ public sealed class EndgameTable : IDisposable
         _dataOffset = dataOffset;
         Size = size;
         Cap = cap;
+        IsDtz = dtz;
     }
 
     /// <summary>Release a loaded table's file mapping (nothing to do for one held in memory).</summary>
@@ -121,6 +138,24 @@ public sealed class EndgameTable : IDisposable
         if (cap < 0)
             throw new ArgumentException("A cap is a number of plies, 0 or more.");
         return new Solver(material, probeCapture, progress).Run(cap);
+    }
+
+    /// <summary>
+    /// Solve a material set under the 50-move rule (see <see cref="IsDtz"/>).
+    /// <paramref name="probeZeroing"/> gives the result under the rule, for the
+    /// side to move, of a position reached by a capture or promotion: the
+    /// smaller tables' DTZ.  Only win, draw or loss is used from it.
+    /// </summary>
+    public static EndgameTable SolveDtz(Material material, Func<Position, Outcome> probeZeroing,
+                                        IProgress<string>? progress = null)
+    {
+        if (!material.IsCanonical)
+            throw new ArgumentException($"Solve {material.Canonical}, not {material}.");
+        if (material.PieceCount > 5)
+            throw new NotSupportedException("At most five pieces.");
+        if (material.PieceCount == 5 && material.HasPawns)
+            throw new NotSupportedException("Five pieces with pawns needs slices with their own memory first (TODO.md).");
+        return new Solver(material, probeZeroing, progress, zeroing: true).RunDtz();
     }
 
     /// <summary>
@@ -209,6 +244,30 @@ public sealed class EndgameTable : IDisposable
         return stats;
     }
 
+    /// <summary>
+    /// Set against the same material's DTZ table: per side to move, the
+    /// positions won with best play that the 50-move rule turns into draws
+    /// ("cursed wins"), and the losses it saves ("blessed losses").  Counted
+    /// over real placements, like <see cref="Statistics"/>.
+    /// </summary>
+    public (long[] CursedWins, long[] BlessedLosses) RuleDraws(EndgameTable dtz)
+    {
+        if (!dtz.IsDtz || dtz.Material != Material || IsDtz || Cap is not null)
+            throw new ArgumentException("Compare a complete table with the DTZ table of the same material.");
+        var cursed = new long[2];
+        var blessed = new long[2];
+        var squares = new int[_index.Slots.Length];
+        for (long index = 0; index < Size; index++)
+        {
+            if (Decode(Raw(index)) is not { } full || dtz.Decode(dtz.Raw(index)) is not { Kind: OutcomeKind.Draw })
+                continue;
+            if (full.Kind is OutcomeKind.Draw || !_index.Decode(index, squares, out var side))
+                continue;
+            (full.Kind == OutcomeKind.Win ? cursed : blessed)[(int)side] += _index.Weight(squares);
+        }
+        return (cursed, blessed);
+    }
+
     /// <summary>Rebuild the position an index stands for (it may be an impossible one).</summary>
     public Position PositionAt(long index)
     {
@@ -231,7 +290,7 @@ public sealed class EndgameTable : IDisposable
 
     private void WriteTo(BinaryWriter writer)
     {
-        writer.Write(Encoding.ASCII.GetBytes(Cap is null ? Magic : CappedMagic));
+        writer.Write(Encoding.ASCII.GetBytes(IsDtz ? DtzMagic : Cap is null ? Magic : CappedMagic));
         writer.Write(Material.ToString());
         writer.Write(Size);
         if (Cap is int cap)
@@ -250,24 +309,24 @@ public sealed class EndgameTable : IDisposable
     /// </summary>
     public static EndgameTable Load(string path, bool intoMemory = false)
     {
-        var (material, count, dataOffset, legacy, cap) = ReadHeader(path);
+        var (material, count, dataOffset, legacy, cap, dtz) = ReadHeader(path);
         var index = new TableIndex(material);
         if (legacy)
             return FromLegacy(index, ReadValues(path, dataOffset, count));
         if (intoMemory)
-            return new EndgameTable(index, ReadValues(path, dataOffset, count), cap);
+            return new EndgameTable(index, ReadValues(path, dataOffset, count), cap, dtz);
         var file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         var view = file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-        return new EndgameTable(index, file, view, dataOffset, count, cap);
+        return new EndgameTable(index, file, view, dataOffset, count, cap, dtz);
     }
 
-    private readonly record struct Header(Material Material, long Count, long DataOffset, bool Legacy, int? Cap);
+    private readonly record struct Header(Material Material, long Count, long DataOffset, bool Legacy, int? Cap, bool Dtz);
 
     private static Header ReadHeader(string path)
     {
         using var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII);
         string magic = Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length));
-        if (magic != Magic && magic != CappedMagic && magic != LegacyMagic)
+        if (magic != Magic && magic != CappedMagic && magic != LegacyMagic && magic != DtzMagic)
             throw new InvalidDataException($"{path} is not an endgame table.");
         bool legacy = magic == LegacyMagic;
         var material = Material.Parse(reader.ReadString());
@@ -279,7 +338,7 @@ public sealed class EndgameTable : IDisposable
             throw new InvalidDataException($"{path} has {count} entries; {material} needs {expected}.");
         if (reader.BaseStream.Length < dataOffset + count * sizeof(short))
             throw new InvalidDataException($"{path} is truncated.");
-        return new Header(material, count, dataOffset, legacy, cap);
+        return new Header(material, count, dataOffset, legacy, cap, magic == DtzMagic);
     }
 
     /// <summary>True for a table saved before symmetry ("CBT1"): it loads, but saving it again makes it ~2-9 times smaller.</summary>
@@ -364,6 +423,7 @@ public sealed class EndgameTable : IDisposable
         private IProgress<string>? _progress;
         private int? _cap;
         private int _ply;   // the bucket being worked through; every value at a lower ply is final
+        private readonly bool _zeroing;   // DTZ: captures and pawn moves are exits, distances count to the next one
         // Queue entries are 4 bytes: a table index below this, an en passant node from it upward.
         private const uint EnPassantEntry = 1u << 31;
 
@@ -386,9 +446,10 @@ public sealed class EndgameTable : IDisposable
         private readonly Position _scratch = Position.Empty();
 
         public Solver(Material material, Func<Position, Outcome> probeCapture, IProgress<string>? progress,
-                      short[]? values = null)
+                      short[]? values = null, bool zeroing = false)
         {
             _material = material;
+            _zeroing = zeroing;
             _probeCapture = probeCapture;
             _progress = progress;
             _index = new TableIndex(material);
@@ -430,7 +491,181 @@ public sealed class EndgameTable : IDisposable
             return Continue();
         }
 
+        /// <summary>
+        /// The 50-move rule (DTZ).  Captures, promotions and pawn moves reset
+        /// the count, so they are exits, worth only whether the position
+        /// they reach is won, drawn or lost under the rule.  Between them,
+        /// distances count plies to the next such move, and a side that can't
+        /// force one (or mate) within 100 plies can't win: the solve stops
+        /// at 100 and whatever is left is a draw.
+        ///
+        /// Pawn moves stay in the table, so it is solved in slices, one pawn
+        /// placement (and its mirror image) at a time.  Pawns only move
+        /// forward, so taking the most advanced placements first means every
+        /// pawn move leads into a slice already solved.
+        /// </summary>
+        public EndgameTable RunDtz()
+        {
+            _cap = RulePlies;
+            var moves = new List<Move>(64);
+            var slices = Slices();
+            long done = 0;
+            foreach (var slice in slices)
+            {
+                _ply = 0;
+                _buckets.Clear();
+                if (slice is null)
+                {
+                    for (long index = 0; index < _values.LongLength; index++)
+                        InitialisePosition(index, moves);
+                }
+                else
+                {
+                    foreach (uint index in slice)
+                        InitialisePosition(index, moves);
+                }
+                RunBuckets();
+                // Anything not settled within 100 plies is a draw under the rule.
+                if (slice is null)
+                {
+                    for (long index = 0; index < _values.LongLength; index++)
+                        CloseUnderRule(index);
+                }
+                else
+                {
+                    foreach (uint index in slice)
+                        CloseUnderRule(index);
+                }
+                done += slice?.Count ?? _values.LongLength;
+                if (slices.Count > 1)
+                    _progress?.Report($"{_material}: DTZ, {done:N0} positions done");
+            }
+            return new EndgameTable(_index, _values, dtz: true) { SolverMemory = Measure() };
+        }
+
+        private void CloseUnderRule(long index)
+        {
+            if (_final[index])
+                return;
+            _values[index] = 0;
+            _final[index] = true;
+        }
+
+        /// <summary>
+        /// The slices, most advanced pawns first: each one's positions, or a
+        /// single null for "the whole table" when there are no pawns.  Holes
+        /// are marked impossible here and belong to no slice.
+        /// </summary>
+        private List<List<uint>?> Slices()
+        {
+            var pawnSlots = Enumerable.Range(0, _slots.Length).Where(s => _slots[s].Type == PieceType.Pawn).ToArray();
+            if (pawnSlots.Length == 0)
+                return new List<List<uint>?> { null };
+            var slices = new Dictionary<long, List<uint>>();
+            var progress = new Dictionary<long, int>();
+            for (long index = 0; index < _values.LongLength; index++)
+            {
+                if (!_index.Decode(index, _squares, out _))
+                {
+                    _values[index] = Illegal;
+                    _final[index] = true;
+                    continue;
+                }
+                long key = Math.Min(PawnKey(pawnSlots, mirror: false), PawnKey(pawnSlots, mirror: true));
+                if (!slices.TryGetValue(key, out var slice))
+                {
+                    slices[key] = slice = new List<uint>();
+                    // How far the pawns have come: the same for a placement and its mirror image.
+                    progress[key] = pawnSlots.Sum(s => _slots[s].Colour == Colour.White ? _squares[s] / 8 : 7 - _squares[s] / 8);
+                }
+                slice.Add((uint)index);
+            }
+            return slices.OrderByDescending(pair => progress[pair.Key]).ThenBy(pair => pair.Key)
+                         .Select(pair => (List<uint>?)pair.Value).ToList();
+        }
+
+        /// <summary>The pawns' squares (white's then black's, each sorted) as one number, optionally mirrored left to right.</summary>
+        private long PawnKey(int[] pawnSlots, bool mirror)
+        {
+            long key = 0;
+            foreach (var colour in new[] { Colour.White, Colour.Black })
+            {
+                foreach (int square in pawnSlots.Where(s => _slots[s].Colour == colour)
+                                                .Select(s => mirror ? _squares[s] ^ 7 : _squares[s]).Order())
+                    key = key * 64 + square;
+                key = key * 64 + 63;   // a separator: no pawn stands on h8
+            }
+            return key;
+        }
+
+        private static bool IsZeroing(Position position, Move move) =>
+            move.IsCapture || move.IsPromotion || position[move.From].Type == PieceType.Pawn;
+
+        /// <summary>
+        /// A capture or pawn move, for the side that makes it: win, draw or
+        /// loss under the rule for the position it reaches (the count starts
+        /// again there, so only that matters), as a result one ply away.
+        /// </summary>
+        private Outcome ZeroingExit(Position position, Move move)
+        {
+            bool staysHere = !move.IsCapture && !move.IsPromotion;
+            long child = staysHere ? ChildOf(move) : -1;   // before the move: ChildOf reads the side to move
+            var undo = position.MakeMove(move);
+            Outcome reached;   // for the side to move after it
+            if (!staysHere)
+            {
+                reached = _probeCapture(position);
+            }
+            else
+            {
+                // A pawn push stays here, in a slice already solved.
+                if (!_final[child])
+                    throw new InvalidOperationException($"{_material}: a pawn move leads into a slice not yet solved.");
+                reached = DecodeRaw(_values[child])!.Value;
+                if ((move.Flags & MoveFlags.DoublePawnPush) != 0)
+                    reached = WithEnPassant(position, reached);
+            }
+            position.UnmakeMove(move, undo);
+            if (reached.Kind == OutcomeKind.Beyond)
+                throw new InvalidOperationException($"{_material}: DTZ needs the smaller tables' DTZ, not a capped table.");
+            return new Outcome(reached.Kind, 0).ForPreviousMover();
+        }
+
+        /// <summary>After a double push the opponent may take en passant: the better of that and the table's value.</summary>
+        private Outcome WithEnPassant(Position position, Outcome stored)
+        {
+            var replies = MoveGenerator.Legal(position);
+            Outcome? best = null;
+            int captures = 0;
+            foreach (var reply in replies)
+            {
+                if ((reply.Flags & MoveFlags.EnPassant) == 0)
+                    continue;
+                var undo = position.MakeMove(reply);
+                var outcome = new Outcome(_probeCapture(position).Kind, 0).ForPreviousMover();
+                position.UnmakeMove(reply, undo);
+                best = best is { } sofar ? Outcome.Better(sofar, outcome) : outcome;
+                captures++;
+            }
+            if (best is not { } capture)
+                return stored;
+            return captures == replies.Count ? capture : Outcome.Better(new Outcome(stored.Kind, 0), capture);
+        }
+
         private EndgameTable Continue()
+        {
+            RunBuckets();
+            if (!IsComplete())
+                return new EndgameTable(_index, _values, _cap) { SolverMemory = Measure(), _frontier = this };
+            for (long i = 0; i < _values.LongLength; i++)
+            {
+                if (_values[i] == Unknown)
+                    _values[i] = 0;
+            }
+            return new EndgameTable(_index, _values) { SolverMemory = Measure() };
+        }
+
+        private void RunBuckets()
         {
             for (; _ply < _buckets.Count && (_cap is not int cap || _ply <= cap); _ply++)
             {
@@ -454,16 +689,9 @@ public sealed class EndgameTable : IDisposable
                     Propagate(index, _values[index] > 0);
                     SettleEnPassantNodes(index);
                 }
-                _progress?.Report($"{_material}: ply {_ply} done, {_buckets[_ply].Count:N0} queued");
+                if (!_zeroing)   // DTZ runs a hundred-odd plies per slice, over a thousand slices
+                    _progress?.Report($"{_material}: ply {_ply} done, {_buckets[_ply].Count:N0} queued");
             }
-            if (!IsComplete())
-                return new EndgameTable(_index, _values, _cap) { SolverMemory = Measure(), _frontier = this };
-            for (long i = 0; i < _values.LongLength; i++)
-            {
-                if (_values[i] == Unknown)
-                    _values[i] = 0;
-            }
-            return new EndgameTable(_index, _values) { SolverMemory = Measure() };
         }
 
         /// <summary>A queue entry still to be acted on: not settled already, and not superseded by a quicker value.</summary>
@@ -518,76 +746,89 @@ public sealed class EndgameTable : IDisposable
             var moves = new List<Move>(64);
             for (long index = 0; index < _values.LongLength; index++)
             {
-                if (!Load(index))
-                {
-                    _values[index] = Illegal;
-                    _final[index] = true;
-                    continue;
-                }
-                _values[index] = Unknown;
-                var position = _scratch;
-                Colour mover = position.SideToMove;
-                if (position.InCheck(Position.Opponent(mover)))
-                {
-                    _values[index] = Illegal;
-                    _final[index] = true;
-                    continue;
-                }
-
-                MoveGenerator.Legal(position, moves);
-                if (moves.Count == 0)
-                {
-                    if (position.InCheck(mover))
-                    {
-                        Queue(index, EncodeLoss(0));
-                    }
-                    else
-                    {
-                        _values[index] = 0;
-                        _final[index] = true;
-                    }
-                    continue;
-                }
-
-                int bestWin = int.MaxValue;
-                int longestLoss = 0;
-                _children.Clear();
-                foreach (var move in moves)
-                {
-                    // Captures and promotions change the material: another table.
-                    if (!move.IsCapture && !move.IsPromotion)
-                    {
-                        // Count children, not moves: in a symmetric position two moves can
-                        // reach mirror images of one position, which is one index.
-                        // (Predecessors are counted the same way, so the two tallies agree.)
-                        int node = (move.Flags & MoveFlags.DoublePawnPush) != 0 ? TrackEnPassant(index, move) : -1;
-                        long child = node >= 0 ? -(node + 1L) : ChildOf(move);
-                        if (!_children.Contains(child))
-                            _children.Add(child);
-                        continue;
-                    }
-                    var undo = position.MakeMove(move);
-                    var outcome = ProbeCapture(position);
-                    position.UnmakeMove(move, undo);
-                    switch (outcome.Kind)
-                    {
-                        case OutcomeKind.Win: bestWin = Math.Min(bestWin, outcome.Plies); break;
-                        case OutcomeKind.Loss: longestLoss = Math.Max(longestLoss, outcome.Plies); break;
-                        case OutcomeKind.Beyond: _hasUnknownExit[index] = true; break;
-                        default: _hasDrawingExit[index] = true; break;
-                    }
-                }
-
-                _remaining[index] = checked((byte)_children.Count);
-                _longestLoss[index] = (short)longestLoss;
-                if (bestWin != int.MaxValue)
-                    Queue(index, EncodeWin(bestWin));
-                else if (CanOnlyLose(index))
-                    Queue(index, EncodeLoss(longestLoss));
-
+                InitialisePosition(index, moves);
                 if ((index & 0xFFFFF) == 0)
                     _progress?.Report($"{_material}: initialised {index:N0} / {_values.LongLength:N0}");
             }
+        }
+
+        private void InitialisePosition(long index, List<Move> moves)
+        {
+            if (!Load(index))
+            {
+                _values[index] = Illegal;
+                _final[index] = true;
+                return;
+            }
+            _values[index] = Unknown;
+            var position = _scratch;
+            Colour mover = position.SideToMove;
+            if (position.InCheck(Position.Opponent(mover)))
+            {
+                _values[index] = Illegal;
+                _final[index] = true;
+                return;
+            }
+
+            MoveGenerator.Legal(position, moves);
+            if (moves.Count == 0)
+            {
+                if (position.InCheck(mover))
+                {
+                    Queue(index, EncodeLoss(0));
+                }
+                else
+                {
+                    _values[index] = 0;
+                    _final[index] = true;
+                }
+                return;
+            }
+
+            int bestWin = int.MaxValue;
+            int longestLoss = 0;
+            _children.Clear();
+            foreach (var move in moves)
+            {
+                Outcome outcome;
+                if (_zeroing && IsZeroing(position, move))
+                {
+                    // Under the 50-move rule a capture or pawn move is an exit: the count starts again.
+                    outcome = ZeroingExit(position, move);
+                }
+                else if (!move.IsCapture && !move.IsPromotion)
+                {
+                    // Count children, not moves: in a symmetric position two moves can
+                    // reach mirror images of one position, which is one index.
+                    // (Predecessors are counted the same way, so the two tallies agree.)
+                    int node = (move.Flags & MoveFlags.DoublePawnPush) != 0 ? TrackEnPassant(index, move) : -1;
+                    long child = node >= 0 ? -(node + 1L) : ChildOf(move);
+                    if (!_children.Contains(child))
+                        _children.Add(child);
+                    continue;
+                }
+                else
+                {
+                    // Captures and promotions change the material: another table.
+                    var undo = position.MakeMove(move);
+                    outcome = ProbeCapture(position);
+                    position.UnmakeMove(move, undo);
+                }
+                switch (outcome.Kind)
+                {
+                    case OutcomeKind.Win: bestWin = Math.Min(bestWin, outcome.Plies); break;
+                    case OutcomeKind.Loss: longestLoss = Math.Max(longestLoss, outcome.Plies); break;
+                    case OutcomeKind.Beyond: _hasUnknownExit[index] = true; break;
+                    default: _hasDrawingExit[index] = true; break;
+                }
+            }
+
+            _remaining[index] = checked((byte)_children.Count);
+            _longestLoss[index] = (short)longestLoss;
+            if (bestWin != int.MaxValue)
+                Queue(index, EncodeWin(bestWin));
+            else if (CanOnlyLose(index))
+                Queue(index, EncodeLoss(longestLoss));
         }
 
         /// <summary>
@@ -1014,6 +1255,8 @@ public sealed class EndgameTable : IDisposable
                 var piece = _slots[slot];
                 if (piece.Colour != previousMover)
                     continue;
+                if (_zeroing && piece.Type == PieceType.Pawn)
+                    continue;   // under the 50-move rule a pawn move is an exit, never an un-move within the count
                 int from = squares[slot];
                 foreach (int to in RetractionTargets(position, piece, from))
                 {

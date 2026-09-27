@@ -293,6 +293,68 @@ public class EndgameTests : IClassFixture<SolvedTables>
     }
 
     [Theory]
+    [InlineData("KRvK")]
+    [InlineData("KPvK")]   // pawn moves reset the count: solved in slices, most advanced pawn first
+    public void UnderTheFiftyMoveRuleShortEndingsKeepTheirResults(string text)
+    {
+        var material = Material.Parse(text);
+        var full = _tablebase.Get(material);
+        var dtz = _tablebase.GetDtz(material);
+        Assert.True(dtz.IsDtz);
+        for (long i = 0; i < full.Size; i++)
+        {
+            var mate = full[i];
+            var zero = dtz[i];
+            Assert.Equal(mate?.Kind, zero?.Kind);   // every mate here is well inside 100 plies
+            // Mate is itself the end of the count, so the next capture, pawn move or mate can't be further off.
+            if (mate is { Kind: not OutcomeKind.Draw })
+                Assert.True(zero!.Value.Plies <= mate.Value.Plies);
+        }
+        var (cursed, blessed) = full.RuleDraws(dtz);
+        Assert.Equal(new long[2], cursed);
+        Assert.Equal(new long[2], blessed);
+        Assert.Empty(_tablebase.VerifyDtz(material).Mismatches);
+    }
+
+    [Fact]
+    public void AZeroingMoveCountsOnePlyWhateverLiesBeyondIt()
+    {
+        // K+P v K, the king behind its pawn: mate is a long way off, but a pawn push is
+        // a zeroing move, so under the rule the win is one ply from its next reset.
+        var position = Position.FromFen("8/8/8/8/8/8/4P3/4K2k w - - 0 1");
+        var mate = _tablebase.Probe(position);
+        var rule = _tablebase.ProbeDtz(position);
+        Assert.Equal(OutcomeKind.Win, mate.Kind);
+        Assert.Equal(Outcome.Win(1), rule);
+        Assert.True(mate.Plies > 20);
+        foreach (var (move, outcome) in _tablebase.RankMovesUnderRule(position))
+        {
+            if (position[move.From].Type == PieceType.Pawn)
+                Assert.True(outcome.Kind == OutcomeKind.Draw || outcome.Plies == 1, move.ToUci());
+        }
+    }
+
+    [Fact]
+    public void ADtzTableSavesAndLoadsAsOne()
+    {
+        var dtz = _tablebase.GetDtz(Material.Parse("KPvK"));
+        string path = Path.Combine(Path.GetTempPath(), $"kpvk-{Guid.NewGuid():N}.cbz");
+        try
+        {
+            dtz.Save(path);
+            using var loaded = EndgameTable.Load(path);
+            Assert.True(loaded.IsDtz);
+            Assert.Null(loaded.Cap);
+            for (long i = 0; i < dtz.Size; i++)
+                Assert.Equal(dtz[i], loaded[i]);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
     [InlineData(OutcomeKind.Win, 3, OutcomeKind.Beyond, 10, OutcomeKind.Win, 3)]       // a win within N beats anything beyond N
     [InlineData(OutcomeKind.Win, 12, OutcomeKind.Beyond, 10, OutcomeKind.Beyond, 10)]  // beyond might be a quicker win
     [InlineData(OutcomeKind.Draw, 0, OutcomeKind.Beyond, 10, OutcomeKind.Beyond, 10)]  // ... or a win at all

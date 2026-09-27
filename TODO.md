@@ -62,24 +62,41 @@ by `solve`, pawnless 5-piece tables allowed (`Tablebase.MaxPieces` = 5).
       for a straight solve). `scripts/ladder-tables.sh`. Per-table
       statistics in WORKLOG.
 
-### Session 3: the 50-move rule (ladder part c)
-- [ ] DTZ: distance to the next capture or pawn move (a "zeroing" move),
-      capped at 100 plies, which is the 50-move rule. A zeroing move resets
-      the count, so its value is only win / draw / loss (how far that win
-      is doesn't matter). The cap is exact at every table edge, so the
-      "deeper than N" of session 2 turns into the rule's own answer:
-      a win needing more than 100 plies is a draw under the rule.
-      Count those separately ("cursed wins", "blessed losses") for Matthew.
-- [ ] Pawn moves zero too, and they stay inside the table. Solve a pawn
-      table in slices by pawn placement, most advanced first. Pawns never
-      move back, so each slice only leans on slices already solved. This is
-      also the memory fix for 5-piece pawn tables (947 M slots as one piece;
-      a slice is 1/48th-ish of that per pawn square).
-- [ ] Storage: DTZ as its own table file (`.cbz`?) beside the DTM `.cbt`,
-      same index. Or one pass producing both, if memory allows. Check some
-      DTZ values against a published source (Syzygy tables are DTZ50) and
-      write down which positions were checked.
-- [ ] `probe` shows both: mate distance, and whether the win survives the rule.
+### Session 3a: the 50-move rule (ladder part c) — done 2026-09-28
+- [x] DTZ tables (`.cbz`, CBZ1, same index as the `.cbt`): results under the
+      50-move rule with the count at 0, and plies to the next capture, pawn
+      move or mate. A zeroing move is an exit worth only win / draw / loss
+      (the count restarts); the solve stops at 100 plies and the rest is a
+      draw. `dtz <material>` (stats, cursed wins, blessed losses),
+      `dtz <material> verify [stride]`, and `probe` shows both results.
+- [x] Pawn tables in slices by pawn placement (with its mirror image), most
+      advanced first: each pawn move leads into a slice already solved. The
+      slices share the table's arrays for now (see 3b).
+- [x] All 36: 36 of 36 consistent (`scripts/dtz-tables.sh`, every 5th
+      position checked against its moves). No cursed wins or blessed losses
+      anywhere up to 4 pieces; the longest DTZ is KBNvK's 65 plies.
+- [x] Syzygy check via the Lichess tablebase API: 178 positions (every
+      table's longest DTZ for each side, 3 random each, 4 en passant), all
+      agree. `scripts/syzygy-check.py`, results in
+      `scripts/syzygy-check-results.tsv`. Lichess reports a checkmated
+      position as dtz -1; we store 0.
+
+### Session 3b: slices with their own memory (5-piece pawn tables)
+- [ ] A slice's positions numbered inside the slice, so the solver's arrays
+      are slice-sized: 947 M slots as one table, but only the current slice
+      plus the slices its pawn moves reach need to be in memory (the rest
+      on disk, in the `.cbz`).
+- [ ] 48-square pawns in the index (pawns never stand on ranks 1 or 8):
+      each pawn wastes 16 of 64 slots now, 25% of a pawn table.
+- [ ] Maybe: split a table with a bishop by the bishop's square colour
+      (Matthew asked which pieces are tied to parts of the board). A bishop
+      never changes colour, so each half is its own closed table of 32
+      squares for that bishop: half the memory per solve, same disk. (A
+      promotion to a bishop changes the material, so it's another table
+      anyway, and there the new bishop's colour picks the half.)
+- [ ] DTM (the `.cbt`) for pawn tables in slices too: pawn moves stay in
+      the table there, but they still only go forward, so the same order
+      works; distances carry across slices instead of restarting.
 
 ### Session 4: the first 5-piece tables
 - [ ] Run in whichever of WSL / Windows has the headroom (session 1's
@@ -89,8 +106,10 @@ by `solve`, pawnless 5-piece tables allowed (`Tablebase.MaxPieces` = 5).
       memory, and file size (242 M x 2 bytes = 484 MB a table).
 - [ ] Then K+R+B v K+R. Check the longest mates against published values
       (look them up; don't trust memory). `verify` a sample stride.
-- [ ] Climb the ladder: cap at 100 plies first (session 2), then extend.
-      DTZ tables (session 3) for the same material.
+- [ ] DTZ first (session 3a): it needs only the smaller tables' DTZ, never
+      the table's own DTM, and its solve stops at 100 plies by definition.
+      Cursed wins should first appear here (none up to 4 pieces).
+- [ ] DTM by the ladder: cap at 100 plies first (session 2), then extend.
 - [ ] Disk budget for every pawnless 5-piece table, before starting the lot.
       Ask Matthew before filling the disk.
 
