@@ -99,6 +99,7 @@ built yet), saved in `./tables` (or `$CHESS_TABLES`) and reused.
 
 ```
 solve <material>               solve e.g. KQvK, KRvK, KQvKR and print what it found (and the solver's memory)
+solve <material> --cap N       only to N plies; run it again with a bigger N (or none) to carry on
 probe <fen>                    the outcome, and every move ranked best first
 line <fen>                     best play from here to mate
 verify <material> [stride]     check every (or every n-th) position against its moves
@@ -303,6 +304,48 @@ to 1,660 MB of solver memory (0.65x; K+Q v K+R 52.9 -> 32.8 MB, K+R+P v K
 64x a 4-piece one): ~1.2 GB arrays + ~1 GB queues, ~2.7 GB for the process
 at its peak (was ~3.5 GB). So `solve` now takes 5 pieces without pawns;
 5 with pawns (947 M slots) is refused until pawns are solved in slices.
+
+**The depth ladder.** `solve <material> --cap N` stops after N plies. Every
+win or loss within N is then exact, and everything else reads as *beyond N*:
+a longer win or loss, or a draw (draws are only proven once nothing is left
+to do). The solver's working state goes to a frontier file (`.cbf`) beside
+the table, so `solve <material> --cap M` later carries on from ply N + 1
+instead of starting again; plain `solve` carries it to the end. More disk
+buys more depth, and nothing below is redone.
+
+The edges are the hard part. A capture into a smaller table that is itself
+capped can answer "beyond": that exit might be a draw, so the position can't
+be proven lost through it, but it can still be proven won by another move.
+That is exact as long as the smaller table reaches the same depth, and the
+smaller tables are always extended first. The engine never takes "beyond"
+for a draw: to it, the position simply isn't covered.
+
+The check: all 36 tables were solved capped at 10 plies, then extended to
+20, 40, 80, 160 and the end (`scripts/ladder-tables.sh`), and came out byte
+for byte identical to the tables solved in one go. How much of each table is
+settled at each rung (wins and losses within the cap, plus stalemates;
+100% means the table finished, so its draws are proven too):
+
+| table | draws at the end | within 10 | within 20 | within 40 | within 80 |
+| --- | --- | --- | --- | --- | --- |
+| K+Q v K | 6.3% | 31.3% | 100% | | |
+| K+R v K | 5.6% | 6.4% | 38.4% | 100% | |
+| K+P v K | 32.8% | 1.4% | 30.7% | 65.2% | 100% |
+| K+Q v K+R | 3.5% | 4.3% | 33.9% | 58.8% | 100% |
+| K+R v K+R | 70.2% | 1.2% | 7.1% | 100% | |
+| K+R v K+P | 13.4% | 2.3% | 14.1% | 81.6% | 86.6% |
+| K+P v K+P | 33.4% | 1.4% | 22.3% | 64.9% | 66.6% |
+| K+Q+Q v K | 1.5% | 94.3% | 100% | | |
+| K+B+N v K | 10.3% | 0.4% | 1.7% | 10.5% | 100% |
+| K+R+P v K | 1.4% | 24.3% | 82.5% | 98.5% | 100% |
+
+Averaged over the tables that have wins, 23% of the decisive positions are
+settled within 10 plies, 59% within 20, 94% within 40 and all within 80.
+K+R v K+P is still open at 80 because its longest mate (43 moves, the pawn
+side after promoting) runs past 80 plies. K+P v K+P is open at 80 although
+its own longest mate is 66 plies: 35,174 of its positions can promote to a
+rook into K+R v K+P, and until that table is deeper they can't be ruled out.
+That is the edge rule doing its job.
 
 | table | slots | size (was) | solve | legal positions | white to move: win / draw / loss | longest mate | known |
 | --- | --- | --- | --- | --- | --- | --- | --- |

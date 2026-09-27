@@ -23,13 +23,22 @@ namespace ChessBruteforcer.Core.Endgame;
 /// win, and a position whose every move reaches a won position is a loss.
 /// Whatever is never reached is a draw.  Captures leave the table and are
 /// looked up in the smaller table they lead to.
+///
+/// A solve can stop at a cap of N plies: every win or loss within N is then
+/// exact, and everything else is "beyond N" (a longer win or loss, or a
+/// draw).  Such a table is saved as "CBT3", with the solver's working state
+/// in a frontier file ("CBF1", <c>.cbf</c>) so it can be extended later
+/// from ply N + 1 instead of starting again.  A table that runs out of work
+/// before its cap is complete, and is saved as "CBT2" like any other.
 /// </summary>
 public sealed class EndgameTable : IDisposable
 {
     private const short Illegal = short.MinValue;
     private const short Unknown = short.MaxValue;
     private const string Magic = "CBT2";
+    private const string CappedMagic = "CBT3";
     private const string LegacyMagic = "CBT1";
+    private const string FrontierMagic = "CBF1";
 
     // Either the values are in memory (just solved) or read from the file on demand (loaded).
     // A mapped file stays locked on Windows until the table is disposed.
@@ -48,16 +57,28 @@ public sealed class EndgameTable : IDisposable
     /// <summary>For a table solved in this process: what the solver held while it worked (null if loaded).</summary>
     public SolverMemory? SolverMemory { get; private init; }
 
-    private EndgameTable(TableIndex index, short[] values)
+    /// <summary>Null for a complete table; otherwise the depth in plies it is solved to (see <see cref="OutcomeKind.Beyond"/>).</summary>
+    public int? Cap { get; }
+
+    // A capped table solved in this process keeps its solver, so it can be extended without a frontier file.
+    private Solver? _frontier;
+
+    public bool HasFrontier => _frontier is not null;
+
+    /// <summary>Let go of the solver's working state (once it is saved), keeping just the values.</summary>
+    public void DropFrontier() => _frontier = null;
+
+    private EndgameTable(TableIndex index, short[] values, int? cap = null)
     {
         _index = index;
         Material = index.Material;
         _values = values;
         Size = values.LongLength;
+        Cap = cap;
     }
 
     private EndgameTable(TableIndex index, MemoryMappedFile file, MemoryMappedViewAccessor view,
-                         long dataOffset, long size)
+                         long dataOffset, long size, int? cap)
     {
         _index = index;
         Material = index.Material;
@@ -65,6 +86,7 @@ public sealed class EndgameTable : IDisposable
         _view = view;
         _dataOffset = dataOffset;
         Size = size;
+        Cap = cap;
     }
 
     /// <summary>Release a loaded table's file mapping (nothing to do for one held in memory).</summary>
@@ -84,9 +106,11 @@ public sealed class EndgameTable : IDisposable
     /// Solve a material set.  <paramref name="probeCapture"/>
     /// gives the outcome, for the side to move, of a position reached by a
     /// capture or a promotion (its material differs, so it lives in another table).
+    /// With a <paramref name="cap"/>, stop after that many plies (see the class notes);
+    /// the tables captures lead to must then be solved to at least cap - 1.
     /// </summary>
     public static EndgameTable Solve(Material material, Func<Position, Outcome> probeCapture,
-                                     IProgress<string>? progress = null)
+                                     IProgress<string>? progress = null, int? cap = null)
     {
         if (!material.IsCanonical)
             throw new ArgumentException($"Solve {material.Canonical}, not {material}.");
@@ -94,7 +118,49 @@ public sealed class EndgameTable : IDisposable
             throw new NotSupportedException("At most five pieces.");
         if (material.PieceCount == 5 && material.HasPawns)
             throw new NotSupportedException("Five pieces with pawns is ~947 M slots: it needs 48-square pawns or pawn slices first (TODO.md).");
-        return new Solver(material, probeCapture, progress).Run();
+        if (cap < 0)
+            throw new ArgumentException("A cap is a number of plies, 0 or more.");
+        return new Solver(material, probeCapture, progress).Run(cap);
+    }
+
+    /// <summary>
+    /// Carry a capped table solved in this process on to a deeper cap (null:
+    /// to the end).  The old table is spent: its values are the new table's.
+    /// </summary>
+    public static EndgameTable Extend(EndgameTable table, Func<Position, Outcome> probeCapture,
+                                      int? cap, IProgress<string>? progress = null)
+    {
+        var solver = table._frontier
+                     ?? throw new InvalidOperationException($"{table.Material} has no solver state in memory.");
+        table._frontier = null;
+        return solver.Extend(probeCapture, progress, cap);
+    }
+
+    /// <summary>
+    /// Carry a capped table on from its files: the table and the frontier
+    /// saved beside it.  Null when the pair doesn't match (a frontier missing,
+    /// or left from another cap), and the table has to be solved again.
+    /// </summary>
+    public static EndgameTable? ExtendFromFiles(string tablePath, string frontierPath,
+                                                Func<Position, Outcome> probeCapture, int? cap,
+                                                IProgress<string>? progress = null)
+    {
+        var header = ReadHeader(tablePath);
+        if (header.Cap is not int oldCap || !File.Exists(frontierPath))
+            return null;
+        var values = ReadValues(tablePath, header.DataOffset, header.Count);
+        var solver = Solver.LoadFrontier(frontierPath, header.Material, values, oldCap, probeCapture, progress);
+        return solver?.Extend(probeCapture, progress, cap);
+    }
+
+    /// <summary>Write the solver's working state for a capped table solved in this process.</summary>
+    public void SaveFrontier(string path)
+    {
+        var solver = _frontier ?? throw new InvalidOperationException($"{Material} has no solver state to save.");
+        string temp = path + ".tmp";
+        using (var writer = new BinaryWriter(File.Create(temp), Encoding.ASCII))
+            solver.WriteFrontier(writer);
+        File.Move(temp, path, overwrite: true);
     }
 
     /// <summary>The index of a position of exactly this material (colours already canonical).</summary>
@@ -165,9 +231,11 @@ public sealed class EndgameTable : IDisposable
 
     private void WriteTo(BinaryWriter writer)
     {
-        writer.Write(Encoding.ASCII.GetBytes(Magic));
+        writer.Write(Encoding.ASCII.GetBytes(Cap is null ? Magic : CappedMagic));
         writer.Write(Material.ToString());
         writer.Write(Size);
+        if (Cap is int cap)
+            writer.Write(cap);
         var values = _values ?? Enumerable.Range(0, checked((int)Size)).Select(i => Raw(i)).ToArray();
         var bytes = new byte[values.Length * sizeof(short)];
         Buffer.BlockCopy(values, 0, bytes, 0, bytes.Length);
@@ -182,32 +250,36 @@ public sealed class EndgameTable : IDisposable
     /// </summary>
     public static EndgameTable Load(string path, bool intoMemory = false)
     {
-        Material material;
-        long count, dataOffset;
-        bool legacy;
-        using (var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII))
-        {
-            string magic = Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length));
-            if (magic != Magic && magic != LegacyMagic)
-                throw new InvalidDataException($"{path} is not an endgame table.");
-            legacy = magic == LegacyMagic;
-            material = Material.Parse(reader.ReadString());
-            count = reader.ReadInt64();
-            dataOffset = reader.BaseStream.Position;
-            long expected = legacy ? LegacySize(material) : TableSize(material);
-            if (count != expected)
-                throw new InvalidDataException($"{path} has {count} entries; {material} needs {expected}.");
-            if (reader.BaseStream.Length < dataOffset + count * sizeof(short))
-                throw new InvalidDataException($"{path} is truncated.");
-        }
+        var (material, count, dataOffset, legacy, cap) = ReadHeader(path);
         var index = new TableIndex(material);
         if (legacy)
             return FromLegacy(index, ReadValues(path, dataOffset, count));
         if (intoMemory)
-            return new EndgameTable(index, ReadValues(path, dataOffset, count));
+            return new EndgameTable(index, ReadValues(path, dataOffset, count), cap);
         var file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         var view = file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-        return new EndgameTable(index, file, view, dataOffset, count);
+        return new EndgameTable(index, file, view, dataOffset, count, cap);
+    }
+
+    private readonly record struct Header(Material Material, long Count, long DataOffset, bool Legacy, int? Cap);
+
+    private static Header ReadHeader(string path)
+    {
+        using var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII);
+        string magic = Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length));
+        if (magic != Magic && magic != CappedMagic && magic != LegacyMagic)
+            throw new InvalidDataException($"{path} is not an endgame table.");
+        bool legacy = magic == LegacyMagic;
+        var material = Material.Parse(reader.ReadString());
+        long count = reader.ReadInt64();
+        int? cap = magic == CappedMagic ? reader.ReadInt32() : null;
+        long dataOffset = reader.BaseStream.Position;
+        long expected = legacy ? LegacySize(material) : TableSize(material);
+        if (count != expected)
+            throw new InvalidDataException($"{path} has {count} entries; {material} needs {expected}.");
+        if (reader.BaseStream.Length < dataOffset + count * sizeof(short))
+            throw new InvalidDataException($"{path} is truncated.");
+        return new Header(material, count, dataOffset, legacy, cap);
     }
 
     /// <summary>True for a table saved before symmetry ("CBT1"): it loads, but saving it again makes it ~2-9 times smaller.</summary>
@@ -261,7 +333,17 @@ public sealed class EndgameTable : IDisposable
             .Concat(material.Black.Select(t => new Piece(t, Colour.Black)))
             .ToArray();
 
-    private static Outcome? Decode(short value) => value switch
+    /// <summary>A stored value as this table means it: past its cap, anything unsettled is beyond the cap.</summary>
+    private Outcome? Decode(short value)
+    {
+        var outcome = DecodeRaw(value);
+        if (Cap is int cap && outcome is { } known && (value == Unknown || known.Plies > cap))
+            return Outcome.Beyond(cap);
+        return outcome;
+    }
+
+    /// <summary>A stored value on its own (in a complete table, unknown is a draw).</summary>
+    private static Outcome? DecodeRaw(short value) => value switch
     {
         Illegal => null,
         Unknown or 0 => Outcome.Draw,
@@ -278,8 +360,10 @@ public sealed class EndgameTable : IDisposable
     {
         private readonly Material _material;
         private readonly TableIndex _index;
-        private readonly Func<Position, Outcome> _probeCapture;
-        private readonly IProgress<string>? _progress;
+        private Func<Position, Outcome> _probeCapture;
+        private IProgress<string>? _progress;
+        private int? _cap;
+        private int _ply;   // the bucket being worked through; every value at a lower ply is final
         // Queue entries are 4 bytes: a table index below this, an en passant node from it upward.
         private const uint EnPassantEntry = 1u << 31;
 
@@ -288,6 +372,9 @@ public sealed class EndgameTable : IDisposable
         private readonly byte[] _remaining;     // moves that stay in this table, not yet known to lose
         private readonly short[] _longestLoss;  // slowest loss seen so far, in plies, if every move loses
         private readonly BitSet _hasDrawingExit;
+        // A capture into a capped table that it hasn't settled: this position can
+        // still be proven a win, but not a loss, until the capture is probed again.
+        private readonly BitSet _hasUnknownExit;
         private readonly BitSet _final;
         private readonly List<List<uint>> _buckets = new();   // a table index, or an en passant node with the top bit set
         private readonly List<EnPassantNode> _enPassant = new();
@@ -298,7 +385,8 @@ public sealed class EndgameTable : IDisposable
         private readonly List<long> _children = new();
         private readonly Position _scratch = Position.Empty();
 
-        public Solver(Material material, Func<Position, Outcome> probeCapture, IProgress<string>? progress)
+        public Solver(Material material, Func<Position, Outcome> probeCapture, IProgress<string>? progress,
+                      short[]? values = null)
         {
             _material = material;
             _probeCapture = probeCapture;
@@ -308,43 +396,68 @@ public sealed class EndgameTable : IDisposable
             long size = _index.Size;
             if (size > EnPassantEntry)
                 throw new NotSupportedException($"{material} has {size:N0} slots; queue entries hold at most {EnPassantEntry:N0}.");
-            _values = new short[size];
+            _values = values ?? new short[size];
             _remaining = new byte[size];
             _longestLoss = new short[size];
             _hasDrawingExit = new BitSet(size);
+            _hasUnknownExit = new BitSet(size);
             _final = new BitSet(size);
             _squares = new int[_slots.Length];
             _childSquares = new int[_slots.Length];
         }
 
-        public EndgameTable Run()
+        public EndgameTable Run(int? cap)
         {
+            _cap = cap;
             Initialise();
-            for (int ply = 0; ply < _buckets.Count; ply++)
+            return Continue();
+        }
+
+        /// <summary>
+        /// Carry on to a deeper cap.  Captures into tables that were capped
+        /// are probed again first (those tables must have been extended
+        /// already): whatever they now settle lies beyond the old cap, so it
+        /// lands in buckets not yet worked through.
+        /// </summary>
+        public EndgameTable Extend(Func<Position, Outcome> probeCapture, IProgress<string>? progress, int? cap)
+        {
+            if (cap is int newCap && newCap < _cap)
+                throw new ArgumentException($"{_material} is already solved to {_cap} plies.");
+            _probeCapture = probeCapture;
+            _progress = progress;
+            _cap = cap;
+            Reprobe();
+            return Continue();
+        }
+
+        private EndgameTable Continue()
+        {
+            for (; _ply < _buckets.Count && (_cap is not int cap || _ply <= cap); _ply++)
             {
                 // Indexed loop: settling a position can queue more work at this same ply.
-                var bucket = _buckets[ply];
+                var bucket = _buckets[_ply];
                 for (int i = 0; i < bucket.Count; i++)
                 {
                     uint entry = bucket[i];
+                    if (!IsLive(entry, _ply))
+                        continue;
                     if (entry >= EnPassantEntry)
                     {
                         var node = _enPassant[(int)(entry - EnPassantEntry)];
-                        if (node.Final || PliesOf(node.Value) != ply)
-                            continue;
                         node.Final = true;
                         PropagateEnPassant(node);
                         continue;
                     }
                     long index = entry;
-                    if (_final[index] || PliesOf(_values[index]) != ply)
-                        continue;
                     _final[index] = true;
+                    _hasUnknownExit[index] = false;   // settled: its other exits no longer matter
                     Propagate(index, _values[index] > 0);
                     SettleEnPassantNodes(index);
                 }
-                _progress?.Report($"{_material}: ply {ply} done, {_buckets[ply].Count:N0} queued");
+                _progress?.Report($"{_material}: ply {_ply} done, {_buckets[_ply].Count:N0} queued");
             }
+            if (!IsComplete())
+                return new EndgameTable(_index, _values, _cap) { SolverMemory = Measure(), _frontier = this };
             for (long i = 0; i < _values.LongLength; i++)
             {
                 if (_values[i] == Unknown)
@@ -353,12 +466,44 @@ public sealed class EndgameTable : IDisposable
             return new EndgameTable(_index, _values) { SolverMemory = Measure() };
         }
 
+        /// <summary>A queue entry still to be acted on: not settled already, and not superseded by a quicker value.</summary>
+        private bool IsLive(uint entry, int ply)
+        {
+            if (entry >= EnPassantEntry)
+            {
+                var node = _enPassant[(int)(entry - EnPassantEntry)];
+                return !node.Final && PliesOf(node.Value) == ply;
+            }
+            return !_final[entry] && PliesOf(_values[entry]) == ply;
+        }
+
+        /// <summary>
+        /// Nothing left to learn: no queued work, and no capture waiting on a
+        /// capped table.  Whatever is still unknown can then only be a draw.
+        /// </summary>
+        private bool IsComplete()
+        {
+            if (_hasUnknownExit.NextSetBit(0) >= 0)
+                return false;
+            if (_enPassant.Any(node => !node.Final && node.Capture.Kind == OutcomeKind.Beyond))
+                return false;
+            for (int ply = _ply; ply < _buckets.Count; ply++)
+            {
+                foreach (uint entry in _buckets[ply])
+                {
+                    if (IsLive(entry, ply))
+                        return false;
+                }
+            }
+            return true;
+        }
+
         /// <summary>The working arrays, and the queues at their largest (they are only freed when the solve ends).</summary>
         private SolverMemory Measure()
         {
             long size = _values.LongLength;
             long arrays = size * (sizeof(short) + sizeof(byte) + sizeof(short))
-                          + _hasDrawingExit.ByteCount + _final.ByteCount;
+                          + _hasDrawingExit.ByteCount + _hasUnknownExit.ByteCount + _final.ByteCount;
             long entries = _buckets.Sum(b => (long)b.Count);
             long queueBytes = _buckets.Sum(b => (long)b.Capacity) * sizeof(uint);
             return new SolverMemory(arrays, queueBytes, entries);
@@ -422,22 +567,22 @@ public sealed class EndgameTable : IDisposable
                         continue;
                     }
                     var undo = position.MakeMove(move);
-                    var outcome = _probeCapture(position).ForPreviousMover();
+                    var outcome = ProbeCapture(position);
                     position.UnmakeMove(move, undo);
                     switch (outcome.Kind)
                     {
                         case OutcomeKind.Win: bestWin = Math.Min(bestWin, outcome.Plies); break;
                         case OutcomeKind.Loss: longestLoss = Math.Max(longestLoss, outcome.Plies); break;
+                        case OutcomeKind.Beyond: _hasUnknownExit[index] = true; break;
                         default: _hasDrawingExit[index] = true; break;
                     }
                 }
 
-                int staying = _children.Count;
-                _remaining[index] = checked((byte)staying);
+                _remaining[index] = checked((byte)_children.Count);
                 _longestLoss[index] = (short)longestLoss;
                 if (bestWin != int.MaxValue)
                     Queue(index, EncodeWin(bestWin));
-                else if (staying == 0 && !_hasDrawingExit[index])
+                else if (CanOnlyLose(index))
                     Queue(index, EncodeLoss(longestLoss));
 
                 if ((index & 0xFFFFF) == 0)
@@ -468,8 +613,91 @@ public sealed class EndgameTable : IDisposable
                 // One more of their moves turns out to lose.
                 _remaining[previous]--;
                 _longestLoss[previous] = (short)Math.Max(_longestLoss[previous], ply + 1);
-                if (_remaining[previous] == 0 && !_hasDrawingExit[previous] && _values[previous] == Unknown)
+                if (CanOnlyLose(previous))
                     Queue(previous, EncodeLoss(_longestLoss[previous]));
+            }
+        }
+
+        /// <summary>Every move is known to lose: none stays in the table unsettled, and no capture draws or might.</summary>
+        private bool CanOnlyLose(long index) =>
+            _remaining[index] == 0 && !_hasDrawingExit[index] && !_hasUnknownExit[index] && _values[index] == Unknown;
+
+        /// <summary>
+        /// A capture or promotion, for the side that makes it.  A capped
+        /// table can answer "beyond N"; that is only good enough if N reaches
+        /// this solve's own cap (a win or loss through it would be longer).
+        /// </summary>
+        private Outcome ProbeCapture(Position position)
+        {
+            var outcome = _probeCapture(position).ForPreviousMover();
+            if (outcome.Kind == OutcomeKind.Beyond && (_cap is not int cap || outcome.Plies < cap))
+                throw new InvalidOperationException(
+                    $"{_material} (to {(_cap is null ? "the end" : $"{_cap} plies")}) captures into a table solved only to " +
+                    $"{outcome.Plies - 1} plies: solve that one deeper first.");
+            return outcome;
+        }
+
+        /// <summary>
+        /// Probe again every capture that a capped table couldn't settle
+        /// (positions with an unknown exit, and en passant nodes).
+        /// </summary>
+        private void Reprobe()
+        {
+            var moves = new List<Move>(64);
+            for (long index = _hasUnknownExit.NextSetBit(0); index >= 0; index = _hasUnknownExit.NextSetBit(index + 1))
+            {
+                _hasUnknownExit[index] = false;
+                if (_final[index])
+                    continue;
+                Load(index);
+                var position = _scratch;
+                MoveGenerator.Legal(position, moves);
+                int bestWin = int.MaxValue;
+                foreach (var move in moves)
+                {
+                    if (!move.IsCapture && !move.IsPromotion)
+                        continue;
+                    var undo = position.MakeMove(move);
+                    var outcome = ProbeCapture(position);
+                    position.UnmakeMove(move, undo);
+                    switch (outcome.Kind)
+                    {
+                        case OutcomeKind.Win: bestWin = Math.Min(bestWin, outcome.Plies); break;
+                        case OutcomeKind.Loss:
+                            _longestLoss[index] = (short)Math.Max(_longestLoss[index], outcome.Plies);
+                            break;
+                        case OutcomeKind.Beyond: _hasUnknownExit[index] = true; break;
+                        default: _hasDrawingExit[index] = true; break;
+                    }
+                }
+                if (bestWin != int.MaxValue)
+                {
+                    short win = EncodeWin(bestWin);
+                    if (_values[index] == Unknown || _values[index] > win)
+                        Queue(index, win);
+                }
+                else if (CanOnlyLose(index))
+                {
+                    Queue(index, EncodeLoss(_longestLoss[index]));
+                }
+            }
+
+            for (int id = 0; id < _enPassant.Count; id++)
+            {
+                var node = _enPassant[id];
+                if (node.Final || node.Capture.Kind != OutcomeKind.Beyond)
+                    continue;
+                Load(node.Parent);
+                var push = MoveGenerator.Legal(_scratch).First(m => (int)m.From == node.From && (int)m.To == node.To);
+                var undo = _scratch.MakeMove(push);
+                node.Capture = EnPassantCaptures(_scratch).Best!.Value;
+                _scratch.UnmakeMove(push, undo);
+                if (!node.ChildHasOtherMoves)
+                    SettleByCaptureAlone(id);
+                else if (_final[node.Child])
+                    SettleEnPassantNode(id, DecodeRaw(_values[node.Child])!.Value);
+                else if (node.Capture.Kind == OutcomeKind.Win)
+                    QueueEnPassant(id, EncodeOutcome(node.Capture));
             }
         }
 
@@ -492,52 +720,68 @@ public sealed class EndgameTable : IDisposable
         {
             var position = _scratch;
             var undo = position.MakeMove(move);
-            var replies = MoveGenerator.Legal(position);
-            var captures = replies.Where(r => (r.Flags & MoveFlags.EnPassant) != 0).ToList();
-            if (captures.Count == 0)
-            {
-                position.UnmakeMove(move, undo);
-                return -1;
-            }
-
-            var best = Outcome.Loss(0);
-            foreach (var capture in captures)
-            {
-                var captureUndo = position.MakeMove(capture);
-                var outcome = _probeCapture(position).ForPreviousMover();
-                position.UnmakeMove(capture, captureUndo);
-                if (outcome.Score > best.Score)
-                    best = outcome;
-            }
-            bool childHasOtherMoves = replies.Count > captures.Count;
+            var (best, childHasOtherMoves) = EnPassantCaptures(position);
             position.UnmakeMove(move, undo);
+            if (best is not { } capture)
+                return -1;
 
             var childSquares = (int[])_squares.Clone();
             childSquares[Array.IndexOf(_squares, (int)move.From)] = move.To;
             long child = _index.Encode(childSquares, Position.Opponent(position.SideToMove), out int symmetry);
             int passedSquare = _index.Map(symmetry, (move.From + move.To) / 2);   // in the child's own frame
 
-            var node = new EnPassantNode(child, parent, best, childHasOtherMoves);
+            var node = new EnPassantNode(child, parent, child * 64 + passedSquare, move.From, move.To,
+                                         capture, childHasOtherMoves);
             int id = _enPassant.Count;
             _enPassant.Add(node);
-            _enPassantByKey.Add(child * 64 + passedSquare, id);
-            if (!_enPassantByChild.TryGetValue(child, out var list))
-                _enPassantByChild[child] = list = new List<int>();
-            list.Add(id);
+            Register(id);
 
-            // With nothing but en passant to play, the capture alone decides.
             if (!childHasOtherMoves)
-            {
-                if (best.Kind == OutcomeKind.Draw)
-                    node.Final = true;
-                else
-                    QueueEnPassant(id, EncodeOutcome(best));
-            }
-            else if (best.Kind == OutcomeKind.Win)
-            {
-                QueueEnPassant(id, EncodeOutcome(best));
-            }
+                SettleByCaptureAlone(id);
+            else if (capture.Kind == OutcomeKind.Win)
+                QueueEnPassant(id, EncodeOutcome(capture));
             return id;
+        }
+
+        private void Register(int id)
+        {
+            var node = _enPassant[id];
+            _enPassantByKey.Add(node.Key, id);
+            if (!_enPassantByChild.TryGetValue(node.Child, out var list))
+                _enPassantByChild[node.Child] = list = new List<int>();
+            list.Add(id);
+        }
+
+        /// <summary>
+        /// Right after a double push: the best en passant capture for the side
+        /// to move (null if there is none), and whether it has other moves.
+        /// </summary>
+        private (Outcome? Best, bool HasOtherMoves) EnPassantCaptures(Position position)
+        {
+            var replies = MoveGenerator.Legal(position);
+            Outcome? best = null;
+            int captures = 0;
+            foreach (var reply in replies)
+            {
+                if ((reply.Flags & MoveFlags.EnPassant) == 0)
+                    continue;
+                var undo = position.MakeMove(reply);
+                var outcome = ProbeCapture(position);
+                position.UnmakeMove(reply, undo);
+                best = best is { } sofar ? Outcome.Better(sofar, outcome) : outcome;
+                captures++;
+            }
+            return (best, replies.Count > captures);
+        }
+
+        /// <summary>With nothing but en passant to play, the capture alone decides (unless it is beyond the cap).</summary>
+        private void SettleByCaptureAlone(int id)
+        {
+            var node = _enPassant[id];
+            if (node.Capture.Kind == OutcomeKind.Draw)
+                node.Final = true;
+            else if (node.Capture.Kind != OutcomeKind.Beyond)
+                QueueEnPassant(id, EncodeOutcome(node.Capture));
         }
 
         /// <summary>The position behind some en passant nodes is now settled: settle them too.</summary>
@@ -545,22 +789,27 @@ public sealed class EndgameTable : IDisposable
         {
             if (!_enPassantByChild.TryGetValue(child, out var ids))
                 return;
-            var childValue = Decode(_values[child])!.Value;
+            var childValue = DecodeRaw(_values[child])!.Value;
             foreach (int id in ids)
+                SettleEnPassantNode(id, childValue);
+        }
+
+        private void SettleEnPassantNode(int id, Outcome childValue)
+        {
+            var node = _enPassant[id];
+            if (node.Final || !node.ChildHasOtherMoves)
+                return;
+            var value = Outcome.Better(childValue, node.Capture);
+            if (value.Kind == OutcomeKind.Beyond)
+                return;   // waits for the capture to be probed again
+            if (value.Kind == OutcomeKind.Draw)
             {
-                var node = _enPassant[id];
-                if (node.Final || !node.ChildHasOtherMoves)
-                    continue;
-                var value = childValue.Score >= node.Capture.Score ? childValue : node.Capture;
-                if (value.Kind == OutcomeKind.Draw)
-                {
-                    node.Final = true;
-                    continue;
-                }
-                short encoded = EncodeOutcome(value);
-                if (node.Value == Unknown || (value.Kind == OutcomeKind.Win && node.Value > encoded))
-                    QueueEnPassant(id, encoded);
+                node.Final = true;
+                return;
             }
+            short encoded = EncodeOutcome(value);
+            if (node.Value == Unknown || (value.Kind == OutcomeKind.Win && node.Value > encoded))
+                QueueEnPassant(id, encoded);
         }
 
         /// <summary>An en passant node is settled: its parent learns from it like from any child.</summary>
@@ -579,17 +828,24 @@ public sealed class EndgameTable : IDisposable
             }
             _remaining[parent]--;
             _longestLoss[parent] = (short)Math.Max(_longestLoss[parent], ply + 1);
-            if (_remaining[parent] == 0 && !_hasDrawingExit[parent] && _values[parent] == Unknown)
+            if (CanOnlyLose(parent))
                 Queue(parent, EncodeLoss(_longestLoss[parent]));
         }
 
         private void QueueEnPassant(int id, short value)
         {
             _enPassant[id].Value = value;
-            int ply = PliesOf(value);
+            BucketFor(PliesOf(value)).Add(EnPassantEntry + (uint)id);
+        }
+
+        /// <summary>The queue for a ply.  Work behind the current ply would never be done, so that is a bug.</summary>
+        private List<uint> BucketFor(int ply)
+        {
+            if (ply < _ply)
+                throw new InvalidOperationException($"{_material}: queued at ply {ply}, but ply {_ply} is already under way.");
             while (_buckets.Count <= ply)
                 _buckets.Add(new List<uint>());
-            _buckets[ply].Add(EnPassantEntry + (uint)id);
+            return _buckets[ply];
         }
 
         private static short EncodeOutcome(Outcome outcome) => outcome.Kind switch
@@ -602,10 +858,14 @@ public sealed class EndgameTable : IDisposable
         /// <summary>The position right after a double push, with en passant still possible.</summary>
         private sealed class EnPassantNode
         {
-            public EnPassantNode(long child, long parent, Outcome capture, bool childHasOtherMoves)
+            public EnPassantNode(long child, long parent, long key, int from, int to, Outcome capture,
+                                 bool childHasOtherMoves)
             {
                 Child = child;
                 Parent = parent;
+                Key = key;
+                From = (byte)from;
+                To = (byte)to;
                 Capture = capture;
                 ChildHasOtherMoves = childHasOtherMoves;
             }
@@ -613,8 +873,15 @@ public sealed class EndgameTable : IDisposable
             public long Child { get; }
             public long Parent { get; }
 
-            /// <summary>The best en passant capture, for the side that may take.</summary>
-            public Outcome Capture { get; }
+            /// <summary>Child index * 64 + the passed square, in the child's frame.</summary>
+            public long Key { get; }
+
+            /// <summary>The double push, in the parent's frame (to replay it when probing again).</summary>
+            public byte From { get; }
+            public byte To { get; }
+
+            /// <summary>The best en passant capture, for the side that may take (beyond the cap until probed again).</summary>
+            public Outcome Capture { get; set; }
 
             /// <summary>False when en passant is the only legal move (so it decides alone).</summary>
             public bool ChildHasOtherMoves { get; }
@@ -625,11 +892,108 @@ public sealed class EndgameTable : IDisposable
 
         private void Queue(long index, short value)
         {
+            var bucket = BucketFor(PliesOf(value));
             _values[index] = value;
-            int ply = PliesOf(value);
-            while (_buckets.Count <= ply)
-                _buckets.Add(new List<uint>());
-            _buckets[ply].Add((uint)index);
+            bucket.Add((uint)index);
+        }
+
+        /// <summary>
+        /// Everything needed to carry on from the next ply, beside the values
+        /// (those are in the table file): move counts, slowest losses, the
+        /// three flags, the queued work beyond the cap, and en passant nodes.
+        /// </summary>
+        public void WriteFrontier(BinaryWriter writer)
+        {
+            writer.Write(Encoding.ASCII.GetBytes(FrontierMagic));
+            writer.Write(_material.ToString());
+            writer.Write(_values.LongLength);
+            writer.Write(_cap!.Value);
+            writer.Write(_ply);
+            writer.Write(_remaining);
+            writer.Write(System.Runtime.InteropServices.MemoryMarshal.AsBytes(_longestLoss.AsSpan()));
+            _hasDrawingExit.Write(writer);
+            _hasUnknownExit.Write(writer);
+            _final.Write(writer);
+            writer.Write(_buckets.Count);
+            for (int ply = _ply; ply < _buckets.Count; ply++)
+            {
+                var live = _buckets[ply].Where(entry => IsLive(entry, ply)).ToList();
+                writer.Write(live.Count);
+                foreach (uint entry in live)
+                    writer.Write(entry);
+            }
+            writer.Write(_enPassant.Count);
+            foreach (var node in _enPassant)
+            {
+                writer.Write(node.Child);
+                writer.Write(node.Parent);
+                writer.Write(node.Key);
+                writer.Write(node.From);
+                writer.Write(node.To);
+                writer.Write((byte)node.Capture.Kind);
+                writer.Write(node.Capture.Plies);
+                writer.Write(node.ChildHasOtherMoves);
+                writer.Write(node.Value);
+                writer.Write(node.Final);
+            }
+        }
+
+        /// <summary>A solver picked up from its frontier file; null if the file is for another table or cap.</summary>
+        public static Solver? LoadFrontier(string path, Material material, short[] values, int cap,
+                                           Func<Position, Outcome> probeCapture, IProgress<string>? progress)
+        {
+            using var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII);
+            if (Encoding.ASCII.GetString(reader.ReadBytes(FrontierMagic.Length)) != FrontierMagic
+                || reader.ReadString() != material.ToString()
+                || reader.ReadInt64() != values.LongLength
+                || reader.ReadInt32() != cap)
+                return null;
+            var solver = new Solver(material, probeCapture, progress, values) { _cap = cap };
+            solver._ply = reader.ReadInt32();
+            ReadExactly(reader, solver._remaining);
+            ReadExactly(reader, System.Runtime.InteropServices.MemoryMarshal.AsBytes(solver._longestLoss.AsSpan()));
+            solver._hasDrawingExit.Read(reader);
+            solver._hasUnknownExit.Read(reader);
+            solver._final.Read(reader);
+            int buckets = reader.ReadInt32();
+            for (int ply = 0; ply < buckets; ply++)
+            {
+                var bucket = new List<uint>();
+                if (ply >= solver._ply)
+                {
+                    int count = reader.ReadInt32();
+                    bucket.Capacity = count;
+                    for (int i = 0; i < count; i++)
+                        bucket.Add(reader.ReadUInt32());
+                }
+                solver._buckets.Add(bucket);
+            }
+            int nodes = reader.ReadInt32();
+            for (int id = 0; id < nodes; id++)
+            {
+                var node = new EnPassantNode(reader.ReadInt64(), reader.ReadInt64(), reader.ReadInt64(),
+                                             reader.ReadByte(), reader.ReadByte(),
+                                             new Outcome((OutcomeKind)reader.ReadByte(), reader.ReadInt32()),
+                                             reader.ReadBoolean())
+                {
+                    Value = reader.ReadInt16(),
+                    Final = reader.ReadBoolean(),
+                };
+                solver._enPassant.Add(node);
+                solver.Register(id);
+            }
+            return solver;
+        }
+
+        private static void ReadExactly(BinaryReader reader, Span<byte> bytes)
+        {
+            while (bytes.Length > 0)
+            {
+                int read = reader.Read(bytes);
+                if (read == 0)
+                    throw new EndOfStreamException("The frontier file is truncated.");
+                bytes = bytes[read..];
+            }
         }
 
         /// <summary>
@@ -756,6 +1120,9 @@ public sealed class TableStatistics
     public long[] Losses { get; } = new long[2];
     public long[] Draws { get; } = new long[2];
 
+    /// <summary>In a capped table: positions not settled within the cap (longer wins and losses, and draws).</summary>
+    public long[] Beyond { get; } = new long[2];
+
     /// <summary>The longest forced mate for each side to move, and an index where it happens.</summary>
     public (Outcome Outcome, long Index)?[] Longest { get; } = new (Outcome, long)?[2];
 
@@ -769,11 +1136,13 @@ public sealed class TableStatistics
         {
             case OutcomeKind.Win: Wins[s] += weight; break;
             case OutcomeKind.Loss: Losses[s] += weight; break;
+            case OutcomeKind.Beyond: Beyond[s] += weight; break;
             default: Draws[s] += weight; break;
         }
-        if (outcome.Kind != OutcomeKind.Draw && (Longest[s] is null || outcome.Plies > Longest[s]!.Value.Outcome.Plies))
+        if (outcome.Kind is OutcomeKind.Win or OutcomeKind.Loss
+            && (Longest[s] is null || outcome.Plies > Longest[s]!.Value.Outcome.Plies))
             Longest[s] = (outcome, index);
     }
 
-    public long Legal(Colour side) => Wins[(int)side] + Losses[(int)side] + Draws[(int)side];
+    public long Legal(Colour side) => Wins[(int)side] + Losses[(int)side] + Draws[(int)side] + Beyond[(int)side];
 }

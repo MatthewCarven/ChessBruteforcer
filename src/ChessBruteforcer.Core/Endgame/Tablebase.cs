@@ -7,7 +7,7 @@ namespace ChessBruteforcer.Core.Endgame;
 /// solves, or loads from <see cref="Directory"/>) the table for its
 /// material, including every smaller table its captures lead to.
 /// </summary>
-public sealed class Tablebase
+public sealed class Tablebase : IDisposable
 {
     private readonly Dictionary<Material, EndgameTable> _tables = new();
     private readonly IProgress<string>? _progress;
@@ -24,6 +24,14 @@ public sealed class Tablebase
     }
 
     public IReadOnlyCollection<EndgameTable> Tables => _tables.Values;
+
+    /// <summary>Release every table's file mapping (on Windows a mapped table file can't be moved or deleted until then).</summary>
+    public void Dispose()
+    {
+        foreach (var table in _tables.Values)
+            table.Dispose();
+        _tables.Clear();
+    }
 
     /// <summary>
     /// When false, a table that is neither loaded nor on disk is reported as
@@ -44,38 +52,93 @@ public sealed class Tablebase
 
     private readonly HashSet<Material> _missing = new();
 
+    /// <summary>
+    /// How deep, in plies, tables are solved when <see cref="SolveMissing"/>
+    /// is on: null (the default) means to the end.  A table already solved
+    /// to less is extended when it is asked for, and so are the tables its
+    /// captures lead to, first.  A table solved deeper is used as it is.
+    /// </summary>
+    public int? Cap { get; set; }
+
     /// <summary>The table for a material set, in either colour orientation.</summary>
     public EndgameTable Get(Material material)
     {
         material = material.Canonical;
-        if (_tables.TryGetValue(material, out var table))
-            return table;
-
-        if (!LoadOnDemand)
-        {
-            _missing.Add(material);
-            throw new TableMissingException(material);
-        }
-
         string? path = Directory is null ? null : Path.Combine(Directory, material + ".cbt");
-        if (path is not null && File.Exists(path))
+        if (!_tables.TryGetValue(material, out var table))
         {
-            table = EndgameTable.Load(path);
+            if (!LoadOnDemand)
+            {
+                _missing.Add(material);
+                throw new TableMissingException(material);
+            }
+
+            if (path is not null && File.Exists(path))
+            {
+                table = EndgameTable.Load(path);
+            }
+            else if (!SolveMissing)
+            {
+                _missing.Add(material);
+                throw new TableMissingException(material);
+            }
+            else
+            {
+                table = EndgameTable.Solve(material, Probe, _progress, Cap);
+                Store(table, path);
+            }
+            _tables[material] = table;
         }
-        else if (!SolveMissing)
+
+        if (SolveMissing && table.Cap is int cap && (Cap is null || cap < Cap))
         {
-            _missing.Add(material);
-            throw new TableMissingException(material);
+            table = Deepen(table, path);
+            _tables[material] = table;
+        }
+        return table;
+    }
+
+    /// <summary>Carry a capped table on to <see cref="Cap"/>: from memory, from its frontier file, or failing both, from scratch.</summary>
+    private EndgameTable Deepen(EndgameTable table, string? path)
+    {
+        if (table.HasFrontier)
+        {
+            table = EndgameTable.Extend(table, Probe, Cap, _progress);
         }
         else
         {
-            table = EndgameTable.Solve(material, Probe, _progress);
-            if (path is not null)
-                table.Save(path);
+            table.Dispose();   // a mapped file stays locked on Windows until disposed
+            table = (path is null ? null : EndgameTable.ExtendFromFiles(path, FrontierPath(path), Probe, Cap, _progress))
+                    ?? EndgameTable.Solve(table.Material, Probe, _progress, Cap);
         }
-        _tables[material] = table;
+        Store(table, path);
         return table;
     }
+
+    /// <summary>
+    /// Save a table just solved or extended.  A capped one saves its
+    /// frontier first, then lets go of it (the table file's cap says which
+    /// frontier belongs to it); a complete one removes any old frontier.
+    /// </summary>
+    private static void Store(EndgameTable table, string? path)
+    {
+        if (path is null)
+            return;
+        string frontier = FrontierPath(path);
+        if (table.HasFrontier)
+        {
+            table.SaveFrontier(frontier);
+            table.Save(path);
+            table.DropFrontier();
+        }
+        else
+        {
+            table.Save(path);
+            File.Delete(frontier);
+        }
+    }
+
+    private static string FrontierPath(string tablePath) => Path.ChangeExtension(tablePath, ".cbf");
 
     /// <summary>
     /// The outcome for the side to move.  The position is not changed.
@@ -109,10 +172,10 @@ public sealed class Tablebase
                 position.UnmakeMove(capture, undo);
                 return outcome;
             })
-            .MaxBy(o => o.Score);
+            .Aggregate(Outcome.Better);
         if (moves.Count == captures.Count)
             return best;
-        return stored.Score >= best.Score ? stored : best;
+        return Outcome.Better(stored, best);
     }
 
     /// <summary>
@@ -138,7 +201,8 @@ public sealed class Tablebase
 
     /// <summary>
     /// Probe without ever solving: false if the position has too many pieces,
-    /// castling rights, or no table on hand.  This is what the search calls.
+    /// castling rights, no table on hand, or only a capped table that hasn't
+    /// settled it (that is not a draw).  This is what the search calls.
     /// </summary>
     public bool TryProbe(Position position, out Outcome outcome)
     {
@@ -156,6 +220,11 @@ public sealed class Tablebase
         try
         {
             outcome = Probe(position);
+            if (outcome.Kind == OutcomeKind.Beyond)
+            {
+                outcome = Outcome.Draw;
+                return false;
+            }
             return true;
         }
         catch (TableMissingException)
@@ -185,8 +254,13 @@ public sealed class Tablebase
             var position = table.PositionAt(index);
             var ranked = RankMoves(position);
             var expected = ranked.Count > 0
-                ? ranked[0].Outcome
+                ? ranked.Select(r => r.Outcome).Aggregate(Outcome.Better)
                 : position.InCheck() ? Outcome.Loss(0) : Outcome.Draw;
+            // A capped table settles what lies within its cap; past it, a draw
+            // (not yet proven) and a longer win or loss both read as beyond.
+            if (table.Cap is int cap && (expected.Kind == OutcomeKind.Beyond || expected.Plies > cap
+                                         || (expected.Kind == OutcomeKind.Draw && stored.Value.Kind == OutcomeKind.Beyond)))
+                expected = Outcome.Beyond(cap);
             if (expected != stored.Value && mismatches.Count < 20)
                 mismatches.Add($"{position.ToFen()}: stored {stored}, moves give {expected}");
             checkedPositions++;

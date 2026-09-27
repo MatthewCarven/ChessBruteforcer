@@ -194,10 +194,116 @@ public class EndgameTests : IClassFixture<SolvedTables>
     {
         var table = EndgameTable.Solve(Material.Parse("KRvK"), _tablebase.Probe);
         var memory = table.SolverMemory!.Value;
-        // Values, move counts and longest losses take 5 bytes a slot; the two flags are bits.
-        Assert.Equal(table.Size * 5 + 2 * ((table.Size + 63) / 64 * 8), memory.ArrayBytes);
+        // Values, move counts and longest losses take 5 bytes a slot; the three flags are bits.
+        Assert.Equal(table.Size * 5 + 3 * ((table.Size + 63) / 64 * 8), memory.ArrayBytes);
         Assert.True(memory.QueueEntries > 0);
         Assert.True(memory.QueueBytes >= memory.QueueEntries * sizeof(uint));
+    }
+
+    /// <summary>A capped table agrees with the complete one on everything within its cap, and says "beyond" for the rest.</summary>
+    private static void AssertSettledWithin(EndgameTable complete, EndgameTable capped, int cap)
+    {
+        Assert.Equal(cap, capped.Cap);
+        for (long i = 0; i < complete.Size; i++)
+        {
+            var full = complete[i];
+            var part = capped[i];
+            if (full is null)
+                Assert.Null(part);
+            else if (full.Value.Kind != OutcomeKind.Draw && full.Value.Plies <= cap)
+                Assert.Equal(full, part);
+            else if (part!.Value.Kind != OutcomeKind.Beyond)
+                Assert.Equal(full, part);   // only proven draws (stalemates) may show before the end
+            else
+                Assert.Equal(Outcome.Beyond(cap), part);
+        }
+    }
+
+    [Fact]
+    public void ACappedTableExtendedStepByStepEndsAsTheCompleteTable()
+    {
+        // K+P v K promotes into K+Q v K and the rest, so its captures lean on capped tables too.
+        var complete = _tablebase.Get(Material.Parse("KPvK"));
+        var tablebase = new Tablebase { Cap = 10 };
+        AssertSettledWithin(complete, tablebase.Get(Material.Parse("KPvK")), 10);
+        Assert.Equal(10, tablebase.Get(Material.Parse("KQvK")).Cap);
+        Assert.Empty(tablebase.Verify(Material.Parse("KPvK"), stride: 7).Mismatches);
+
+        tablebase.Cap = 25;
+        AssertSettledWithin(complete, tablebase.Get(Material.Parse("KPvK")), 25);
+
+        tablebase.Cap = null;
+        var extended = tablebase.Get(Material.Parse("KPvK"));
+        Assert.Null(extended.Cap);
+        for (long i = 0; i < complete.Size; i++)
+            Assert.Equal(complete[i], extended[i]);
+    }
+
+    [Fact]
+    public void ACappedTableOnDiskCarriesOnFromItsFrontierFile()
+    {
+        string dir = Directory.CreateTempSubdirectory("cbt-ladder").FullName;
+        try
+        {
+            string path = Path.Combine(dir, "KPvK.cbt");
+            using (var first = new Tablebase(dir) { Cap = 8 })
+                first.Get(Material.Parse("KPvK"));
+            Assert.True(File.Exists(Path.ChangeExtension(path, ".cbf")));
+            using (var capped = EndgameTable.Load(path))
+                Assert.Equal(8, capped.Cap);
+
+            // New tablebases, as a later run would open: each picks up where the files left off.
+            using (var deeper = new Tablebase(dir) { Cap = 20 })
+                deeper.Get(Material.Parse("KPvK"));
+            using (var last = new Tablebase(dir))
+                last.Get(Material.Parse("KPvK"));
+            Assert.False(File.Exists(Path.ChangeExtension(path, ".cbf")));
+
+            string reference = Path.Combine(dir, "reference.cbt");
+            _tablebase.Get(Material.Parse("KPvK")).Save(reference);
+            Assert.Equal(File.ReadAllBytes(reference), File.ReadAllBytes(path));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void BeyondTheCapIsNotADrawToTheEngine()
+    {
+        var complete = _tablebase.Get(Material.Parse("KRvK"));
+        var (outcome, index) = complete.Statistics().Longest[(int)Colour.White]!.Value;
+        var position = complete.PositionAt(index);
+        var tablebase = new Tablebase { Cap = 4 };
+
+        Assert.Equal(Outcome.Beyond(4), tablebase.Probe(position));
+        Assert.False(tablebase.TryProbe(position, out _));
+        Assert.Equal(OutcomeKind.Win, outcome.Kind);
+    }
+
+    [Fact]
+    public void CapturingIntoATableCappedTooShallowIsRefused()
+    {
+        var krvk = Material.Parse("KRvK");
+        // The capture leads to a table that says "beyond 2 plies": not enough for a cap of 10, nor for no cap.
+        Assert.Throws<InvalidOperationException>(() => EndgameTable.Solve(krvk, _ => Outcome.Beyond(2), cap: 10));
+        Assert.Throws<InvalidOperationException>(() => EndgameTable.Solve(krvk, _ => Outcome.Beyond(2)));
+        Assert.Equal(10, EndgameTable.Solve(krvk, _ => Outcome.Beyond(9), cap: 10).Cap);
+    }
+
+    [Theory]
+    [InlineData(OutcomeKind.Win, 3, OutcomeKind.Beyond, 10, OutcomeKind.Win, 3)]       // a win within N beats anything beyond N
+    [InlineData(OutcomeKind.Win, 12, OutcomeKind.Beyond, 10, OutcomeKind.Beyond, 10)]  // beyond might be a quicker win
+    [InlineData(OutcomeKind.Draw, 0, OutcomeKind.Beyond, 10, OutcomeKind.Beyond, 10)]  // ... or a win at all
+    [InlineData(OutcomeKind.Loss, 4, OutcomeKind.Beyond, 10, OutcomeKind.Beyond, 10)]  // anything beyond is a slower loss or better
+    [InlineData(OutcomeKind.Beyond, 12, OutcomeKind.Beyond, 10, OutcomeKind.Beyond, 10)]
+    [InlineData(OutcomeKind.Loss, 4, OutcomeKind.Loss, 8, OutcomeKind.Loss, 8)]
+    public void TheBetterOfTwoOutcomes(OutcomeKind a, int aPlies, OutcomeKind b, int bPlies, OutcomeKind kind, int plies)
+    {
+        var expected = new Outcome(kind, plies);
+        Assert.Equal(expected, Outcome.Better(new Outcome(a, aPlies), new Outcome(b, bPlies)));
+        Assert.Equal(expected, Outcome.Better(new Outcome(b, bPlies), new Outcome(a, aPlies)));
     }
 
     [Theory]

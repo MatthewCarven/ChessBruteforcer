@@ -38,32 +38,29 @@ by `solve`, pawnless 5-piece tables allowed (`Tablebase.MaxPieces` = 5).
 - [x] Projection to 5 pieces: ~2.7 GB process peak (was ~3.5 GB). Fits
       under WSL's 7.8 GB; no need for the rescan fallback.
 
-### Session 2: cap and resume (ladder parts a and b)
-- [ ] A stored value for **"deeper than N"**, distinct from draw. Today
-      `Unknown` (short.MaxValue) turns into 0 = draw at the end of `Run`.
-      A capped table must keep "not settled within N" apart from a proven
-      draw. `Outcome` gets a matching kind, and `probe` / `line` /
-      `RankMoves` / statistics say so.
-- [ ] `solve <material> --cap N`: stop after ply N. File header records the
-      cap (CBT3; CBT2 and CBT1 still load as complete). Wins already queued
-      at ply N+1 are exact (every shorter loss is final by then); decide
-      whether to keep them or store "deeper".
-- [ ] The frontier file (`.cbf` beside the `.cbt`): `_remaining`,
-      `_longestLoss`, both bit sets, the queued entries at plies > N, and the
-      en passant nodes. About 3.3 bytes a slot plus queue, so ~1 GB for a
-      5-piece table: this is the "more disk space" Matthew mentioned.
-      `extend <material> --cap M` loads it and carries on from N+1.
-- [ ] Edges (part b): a capture into a smaller table that answers "deeper
-      than N" is an **unknown exit**, not a draw. A third bit per slot
-      (`_hasUnknownExit`): the position can still be proven a win, but not
-      a loss. A child settled at depth d makes the parent d+1, so sub-tables
-      capped at N are deep enough for a parent capped at N. On `extend`,
-      extend the sub-tables first, then re-probe every slot with the
-      unknown-exit bit before carrying on.
-- [ ] The test that proves the edges: solve all 36 tables capped at N = 10,
-      extend to 20, 40, ... up to uncapped. Each final table must be
-      byte-identical to `tables-baseline`. Also a statistics table for
-      Matthew: per table, the share settled within 10 / 20 / 40 / all plies.
+### Session 2: cap and resume (ladder parts a and b) — done 2026-09-27
+- [x] `Outcome.Beyond(N)`: "not settled within N plies" (a longer win or
+      loss, or a draw). `Outcome.Better` compares it honestly: it only loses
+      to a win within N. `TryProbe` says "not covered" for it, so the engine
+      and the match adjudicator never take it for a draw.
+- [x] `solve <material> --cap N` (and `verify ... --cap N`): stops after ply
+      N; a table solved to less is carried on. Everything beyond N is stored
+      as it stood (tentative values read as Beyond). Capped tables are CBT3;
+      a table that runs out of work before its cap is complete and CBT2.
+- [x] Frontier file `.cbf` (CBF1) beside the `.cbt`: move counts, slowest
+      losses, three bit sets, live queue entries past the cap, en passant
+      nodes. Deleted when the table completes.
+- [x] Edges: a capture into a capped table that answers Beyond is an
+      unknown exit (`_hasUnknownExit`): it blocks a loss, not a win. Exact as
+      long as the smaller table reaches cap - 1; otherwise the solve throws.
+      On extend, the smaller tables are extended first (Tablebase.Get does
+      it), then every unknown exit and pending en passant node is probed
+      again. Anything that settles lands past the old cap; queuing behind
+      the current ply throws, as a guard.
+- [x] The proof: all 36 tables laddered 10, 20, 40, 80, 160, end came out
+      byte-identical to `tables-baseline` (36 of 36; 684 s against 481 s
+      for a straight solve). `scripts/ladder-tables.sh`. Per-table
+      statistics in WORKLOG.
 
 ### Session 3: the 50-move rule (ladder part c)
 - [ ] DTZ: distance to the next capture or pawn move (a "zeroing" move),
@@ -217,7 +214,17 @@ moves played from the start.
          before threefold, so 54 moves, past the 50-move rule. Repetition
          alone can't end stalling; the 50-move rule does (why it's the ladder's
          cap). To measure: a cycle detector (a piece back on a square it left
-         within the quiet stretch), and how many time wasters it adds
+         within the quiet stretch), and how many time wasters it adds.
+         Matthew: such cycles can look random but be orderly. A Gray-code
+         walk (one piece, one step, each move) visits all 27 arrangements
+         without repeating one, so no single piece shows a pattern. Detect
+         it by the side's whole arrangement recurring, not per piece.
+         Matthew: "like the snake solver, but with a start and an end". The
+         arrangements are cells, a move joins neighbours, and the longest
+         stall without a repeat is a Hamiltonian path from the start
+         arrangement to the end one (a snake AI follows a Hamiltonian cycle).
+         Could be measured: for a real game's quiet stretch, how close its
+         walk comes to covering the arrangements it had
 5. [x] Real games: Lichess 2013-01 (121,332) imported, graded (early kill /
        efficient / time waster), and measured as a tree (89% of plies are
        distinct tree nodes, 86% distinct positions; median game new from

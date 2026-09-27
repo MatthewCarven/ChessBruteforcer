@@ -410,3 +410,71 @@ rather than 48-byte boards, because that is the storage that scales.
   allowed twice before threefold = 54 moves, so the 50-move rule arrives
   first: repetition alone can't end stalling. The shuffle rule
   ("straight back") can't see loops.
+
+## 2026-09-27: 5-piece tables, session 2 (cap and resume)
+
+- `Outcome.Beyond(N)`: not settled within N plies (a longer win or loss, or
+  a draw). `solve <material> --cap N` stops after ply N; capped tables are
+  CBT3, with the solver's state in a `.cbf` frontier file beside them, and
+  `solve` with a bigger cap (or none) carries on from N + 1. A table that
+  runs out of work before its cap is complete and saved as CBT2.
+- Edges: a capture into a capped table that answers Beyond is an unknown
+  exit (a third bit per slot): it blocks a loss but not a win. That's exact
+  when the smaller table reaches cap - 1 (the solve throws otherwise).
+  Extending re-probes those exits after extending the smaller tables. The
+  en passant nodes needed the same treatment. Queuing behind the current
+  ply now throws, as a guard.
+- The engine: `TryProbe` reports Beyond as "not covered". Before this, the
+  search and the match adjudicator treated anything not a win or loss as a
+  draw, so a capped table would have handed out false draws.
+- Tests: 10 new (252 pass, 1 skipped), including a KPvK ladder in memory
+  and on disk (byte-identical at the end).
+- The ladder, all 36 tables: capped at 10, extended to 20, 40, 80, 160, end.
+  **36 of 36 byte-identical to tables-baseline.** Time per rung: 354, 155,
+  107, 37, 16, 15 s (684 s; a straight solve is 481 s). Tables plus frontiers
+  take 1.1 GB on disk while capped (427 MB when done).
+- Settled share per rung (wins and losses within the cap, plus stalemates;
+  100% = finished, draws proven), all 36:
+
+  | Table | draws (end) | 10 | 20 | 40 | 80 |
+  |---|---|---|---|---|---|
+  | KQvK | 6.3% | 31.3% | 100% | 100% | 100% |
+  | KRvK | 5.6% | 6.4% | 38.4% | 100% | 100% |
+  | KPvK | 32.8% | 1.4% | 30.7% | 65.2% | 100% |
+  | KQvKQ | 57.8% | 6.7% | 41.9% | 100% | 100% |
+  | KQvKR | 3.5% | 4.3% | 33.9% | 58.8% | 100% |
+  | KQvKB | 13.3% | 8.8% | 58.6% | 100% | 100% |
+  | KQvKN | 11.7% | 7.6% | 58.5% | 88.3% | 100% |
+  | KQvKP | 7.5% | 16.1% | 84.7% | 92.3% | 100% |
+  | KRvKR | 70.2% | 1.2% | 7.1% | 100% | 100% |
+  | KRvKB | 81.6% | 0.8% | 3.9% | 18.3% | 100% |
+  | KRvKN | 71.8% | 0.9% | 4.1% | 24.6% | 100% |
+  | KRvKP | 13.4% | 2.3% | 14.1% | 81.6% | 86.6% |
+  | KBvKP | 85.1% | 0.2% | 3.9% | 14.8% | 100% |
+  | KNvKP | 77.0% | 0.2% | 4.0% | 21.1% | 100% |
+  | KPvKP | 33.4% | 1.4% | 22.3% | 64.9% | 66.6% |
+  | KQQvK | 1.5% | 94.3% | 100% | 100% | 100% |
+  | KQRvK | 0.7% | 92.5% | 97.2% | 100% | 100% |
+  | KQBvK | 6.0% | 74.4% | 100% | 100% | 100% |
+  | KQNvK | 6.0% | 58.5% | 100% | 100% | 100% |
+  | KQPvK | 1.7% | 55.5% | 96.1% | 98.4% | 100% |
+  | KRRvK | 0.2% | 82.9% | 94.8% | 100% | 100% |
+  | KRBvK | 5.2% | 16.1% | 88.1% | 100% | 100% |
+  | KRNvK | 5.3% | 11.1% | 76.7% | 100% | 100% |
+  | KRPvK | 1.4% | 24.3% | 82.5% | 98.5% | 100% |
+  | KBBvK | 55.4% | 0.9% | 7.6% | 100% | 100% |
+  | KBNvK | 10.3% | 0.4% | 1.7% | 10.5% | 100% |
+  | KBPvK | 11.0% | 4.2% | 46.6% | 88.9% | 100% |
+  | KNPvK | 11.5% | 2.7% | 39.7% | 86.7% | 100% |
+  | KPPvK | 4.9% | 5.2% | 55.6% | 94.4% | 100% |
+
+  (KvK, KBvK, KNvK, KBvKB, KBvKN, KNvKN, KNNvK: all draws, finished at once.)
+  Decisive positions settled, mean over tables with wins: 23% within 10,
+  59% within 20, 94% within 40, 100% within 80. Everything is finished by 160.
+- KPvKP open at 80 with its own longest mate at 66: 35,174 positions can
+  underpromote to a rook into KRvKP (longest 43 moves), which isn't settled
+  at 80. Checked from the frontier file; that's the edge rule, not a bug.
+- Matthew on stalling, logged in TODO: cycles that look random can be
+  orderly (a Gray-code walk), and the longest stall is a Hamiltonian path
+  through the side's arrangements, "like the snake solver, with a start and
+  an end".

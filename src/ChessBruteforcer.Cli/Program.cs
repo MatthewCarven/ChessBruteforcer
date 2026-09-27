@@ -26,12 +26,13 @@ static class Cli
           perft <depth> [fen]            count every move sequence to <depth>
           divide <depth> [fen]           perft split by first move, for tracking down bugs
 
-        Endgame tables (up to 4 pieces; saved in ./tables, reused next time):
+        Endgame tables (up to 5 pieces without pawns, 4 with; saved in ./tables, reused next time):
 
-          solve <material>               solve e.g. KQvK or KRvK and print what it found
+          solve <material> [--cap N]     solve e.g. KQvK or KRvK and print what it found; with a cap, only
+                                         to N plies (a table solved to less is carried on, not redone)
           probe <fen>                    the outcome, and every move ranked best first
           line <fen>                     best play from here to mate
-          verify <material> [stride]     check every (or every n-th) position against its moves
+          verify <material> [stride] [--cap N]  check every (or every n-th) position against its moves
           upgrade [dir]                  rewrite tables from before symmetry in the new format (they load either way)
 
         Tables live in ./tables, or wherever CHESS_TABLES points.
@@ -73,11 +74,14 @@ static class Cli
                 ["perft", var depth, var fen] => RunPerft(int.Parse(depth), fen, divide: false),
                 ["divide", var depth] => RunPerft(int.Parse(depth), Fen.StartPosition, divide: true),
                 ["divide", var depth, var fen] => RunPerft(int.Parse(depth), fen, divide: true),
-                ["solve", var material] => Solve(material),
+                ["solve", var material] => Solve(material, null),
+                ["solve", var material, "--cap", var cap] => Solve(material, int.Parse(cap)),
                 ["probe", var fen] => Probe(fen),
                 ["line", var fen] => Line(fen),
-                ["verify", var material] => Verify(material, 1),
-                ["verify", var material, var stride] => Verify(material, int.Parse(stride)),
+                ["verify", var material] => Verify(material, 1, null),
+                ["verify", var material, "--cap", var cap] => Verify(material, 1, int.Parse(cap)),
+                ["verify", var material, var stride] => Verify(material, int.Parse(stride), null),
+                ["verify", var material, var stride, "--cap", var cap] => Verify(material, int.Parse(stride), int.Parse(cap)),
                 ["upgrade"] => Upgrade(TableDirectory),
                 ["upgrade", var directory] => Upgrade(directory),
                 ["file", "add", var file, .. var boards] when boards.Length > 0 => FileAdd(file, boards),
@@ -222,14 +226,14 @@ static class Cli
         return Print($"{upgraded} tables upgraded in {directory}");
     }
 
-    private static Tablebase OpenTablebase() =>
-        new(TableDirectory, new Progress<string>(message => Console.Error.Write($"\r{message,-70}")));
+    private static Tablebase OpenTablebase(int? cap = null) =>
+        new(TableDirectory, new Progress<string>(message => Console.Error.Write($"\r{message,-70}"))) { Cap = cap };
 
-    private static int Solve(string text)
+    private static int Solve(string text, int? cap)
     {
         var material = Material.Parse(text);
         var stopwatch = Stopwatch.StartNew();
-        var table = OpenTablebase().Get(material);
+        var table = OpenTablebase(cap).Get(material);
         Console.Error.Write($"\r{"",-70}\r");
         var stats = table.Statistics();
 
@@ -247,6 +251,9 @@ static class Cli
             Console.WriteLine($"    wins   {stats.Wins[s],10:N0}  ({100.0 * stats.Wins[s] / legal:0.0}%)");
             Console.WriteLine($"    draws  {stats.Draws[s],10:N0}  ({100.0 * stats.Draws[s] / legal:0.0}%)");
             Console.WriteLine($"    losses {stats.Losses[s],10:N0}  ({100.0 * stats.Losses[s] / legal:0.0}%)");
+            if (table.Cap is int tableCap)
+                Console.WriteLine($"    beyond {stats.Beyond[s],10:N0}  ({100.0 * stats.Beyond[s] / legal:0.0}%)  " +
+                                  $"not settled within {tableCap} plies: longer wins and losses, and draws");
             if (stats.Longest[s] is var (outcome, index))
                 Console.WriteLine($"    longest: {outcome}, e.g. {table.PositionAt(index).ToFen()}");
         }
@@ -255,11 +262,11 @@ static class Cli
 
     private static string Mb(long bytes) => $"{bytes / 1048576.0:0.0} MB";
 
-    private static int Verify(string text, int stride)
+    private static int Verify(string text, int stride, int? cap)
     {
         var material = Material.Parse(text);
         var stopwatch = Stopwatch.StartNew();
-        var (checkedPositions, mismatches) = OpenTablebase().Verify(material, stride,
+        var (checkedPositions, mismatches) = OpenTablebase(cap).Verify(material, stride,
             new Progress<string>(message => Console.Error.Write($"\r{message,-70}")));
         Console.Error.Write($"\r{"",-70}\r");
         foreach (string mismatch in mismatches)

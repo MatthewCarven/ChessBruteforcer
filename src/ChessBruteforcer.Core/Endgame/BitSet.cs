@@ -12,6 +12,34 @@ internal sealed class BitSet
 
     public long ByteCount => _words.LongLength * sizeof(ulong);
 
+    /// <summary>The first set bit at or after <paramref name="from"/>, or -1.</summary>
+    public long NextSetBit(long from)
+    {
+        long word = from >> 6;
+        if (word >= _words.LongLength)
+            return -1;
+        ulong bits = _words[word] & (~0UL << (int)(from & 63));
+        while (bits == 0)
+        {
+            if (++word >= _words.LongLength)
+                return -1;
+            bits = _words[word];
+        }
+        return (word << 6) + System.Numerics.BitOperations.TrailingZeroCount(bits);
+    }
+
+    public void Write(BinaryWriter writer)
+    {
+        foreach (ulong word in _words)
+            writer.Write(word);
+    }
+
+    public void Read(BinaryReader reader)
+    {
+        for (long i = 0; i < _words.LongLength; i++)
+            _words[i] = reader.ReadUInt64();
+    }
+
     public bool this[long index]
     {
         get => (_words[index >> 6] & (1UL << (int)(index & 63))) != 0;
