@@ -1,0 +1,259 @@
+using ChessBruteforcer.Core;
+using ChessBruteforcer.Core.Game;
+using ChessBruteforcer.Core.Match;
+using ChessBruteforcer.Core.Records;
+
+namespace ChessBruteforcer.Tests;
+
+public class SanParseTests
+{
+    [Theory]
+    [InlineData(Fen.StartPosition, "e4", "e2e4")]
+    [InlineData(Fen.StartPosition, "Nf3", "g1f3")]
+    [InlineData("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "O-O", "e1g1")]
+    [InlineData("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "O-O-O", "e1c1")]
+    [InlineData("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1", "0-0", "e1g1")]            // zeros, not letters
+    [InlineData("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2", "exd5", "e4d5")]
+    [InlineData("8/P6k/8/8/8/8/8/K7 w - - 0 1", "a8=Q", "a7a8q")]
+    [InlineData("8/P6k/8/8/8/8/8/K7 w - - 0 1", "a8N", "a7a8n")]                  // no '='
+    [InlineData("rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2", "Qh4#", "d8h4")]
+    [InlineData("4k3/8/8/8/8/8/8/R4RK1 w - - 0 1", "Rad1", "a1d1")]
+    [InlineData("4k3/8/8/R7/8/8/8/R3K3 w - - 0 1", "R1a3", "a1a3")]
+    [InlineData("4k3/8/8/8/8/2N3N1/8/2N1K3 w - - 0 1", "Nc3e2", "c3e2")]
+    [InlineData("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1", "exd6", "e5d6")]             // en passant
+    [InlineData(Fen.StartPosition, "Nf3!?", "g1f3")]                                // annotation ignored
+    public void StandardNotationNamesTheRightMove(string fen, string san, string uci)
+    {
+        var position = Position.FromFen(fen);
+        Assert.Equal(position.ParseUciMove(uci), San.Parse(position, san));
+    }
+
+    [Theory]
+    [InlineData(Fen.StartPosition, "e5")]                                            // not legal
+    [InlineData("4k3/8/8/8/8/8/8/R4RK1 w - - 0 1", "Rd1")]                          // two rooks can
+    [InlineData(Fen.StartPosition, "Zz9")]                                           // not a move
+    public void BadNotationIsRefused(string fen, string san)
+    {
+        Assert.Throws<FormatException>(() => San.Parse(Position.FromFen(fen), san));
+    }
+
+    [Fact]
+    public void EveryMoveReadsBackFromItsOwnNotation()
+    {
+        foreach (var (position, moves) in GameFileTests.RandomPositions())
+            foreach (var move in moves)
+                Assert.Equal(move, San.Parse(position, San.Of(position, move)));
+    }
+}
+
+public class MoveCodeTests
+{
+    [Fact]
+    public void EveryMoveDecodesToItself()
+    {
+        foreach (var (position, moves) in GameFileTests.RandomPositions())
+            foreach (var move in moves)
+                Assert.Equal(move, MoveCode.Decode(position, MoveCode.Encode(position, move)));
+    }
+
+    [Fact]
+    public void CodeOrderIsFromSquareThenToSquareThenPromotion()
+    {
+        var moves = MoveCode.Canonical(Position.FromFen("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1"));
+        for (int i = 1; i < moves.Count; i++)
+        {
+            var (a, b) = (moves[i - 1], moves[i]);
+            Assert.True((a.From, a.To, (int)a.Promotion).CompareTo((b.From, b.To, (int)b.Promotion)) < 0);
+        }
+    }
+
+    [Fact]
+    public void TheMostMovesAnyPositionHasStillFitsInAByte()
+    {
+        // The known record, 218 legal moves.
+        var position = Position.FromFen("3Q4/1Q4Q1/4Q3/2Q4R/Q4Q2/3Q4/1Q4Rp/1K1BBNNk w - - 0 1");
+        var moves = MoveCode.Canonical(position);
+        Assert.Equal(218, moves.Count);
+        Assert.Equal(217, MoveCode.Encode(position, moves[^1]));
+    }
+
+    [Fact]
+    public void ACodePastTheLastMoveIsRefused()
+    {
+        Assert.Throws<InvalidDataException>(() => MoveCode.Decode(Position.Start(), 20));   // 20 moves: 0-19
+    }
+}
+
+public class GameFileTests
+{
+    // Exactly what the writer produces, so it has to come back out unchanged.
+    private const string Opera = """
+        [Event "Casual \"Opera\" game"]
+        [Site "Paris"]
+        [Date "1858.??.??"]
+        [White "Morphy, Paul"]
+        [Black "Duke Karl / Count Isouard"]
+        [Result "1-0"]
+
+        1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8.
+        Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14.
+        Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+ Nxb8 17. Rd8# 1-0
+
+
+        """;
+
+    // The same game the way PGN turns up in the wild, plus two more after it.
+    private const string Wild = """
+        % an escape line
+        [Event "Casual \"Opera\" game"]
+        [Site "Paris"]
+        [Date "1858.??.??"]
+        [White "Morphy, Paul"]
+        [Black "Duke Karl / Count Isouard"]
+        [Result "1-0"]
+
+        1.e4 e5 {the Philidor follows} 2.Nf3 d6 3.d4 Bg4?! (3...exd4 {main line} (3...Nd7 {also ( fine )})) 4.dxe5
+        Bxf3 5.Qxf3 dxe5 6.Bc4 Nf6 7.Qb3 Qe7 8.Nc3 c6 9.Bg5 b5 $6 10.Nxb5! cxb5 11.Bxb5+ Nbd7 12.0-0-0 Rd8 ; to the end
+        13.Rxd7 Rxd7 14.Rd1 Qe6 15.Bxd7+ Nxd7 16.Qb8+!! Nxb8 17.Rd8# 1-0
+        [Event "Set-up: en passant, then an under-promotion"]
+        [SetUp "1"]
+        [FEN "4k3/1P6/8/3pP3/8/8/8/4K3 w - d6 0 1"]
+
+        1. exd6 e.p. Kd7 2. b8=N+ Kxd6 *
+        [Event "No result after the moves"]
+        [Result "1/2-1/2"]
+
+        1. d4 1... d5
+        """;
+
+    [Fact]
+    public void PgnInIsPgnOut()
+    {
+        var games = Pgn.Parse(Opera);
+        var game = Assert.Single(games);
+        Assert.Equal(33, game.Moves.Count);
+        Assert.Equal("1-0", game.Result);
+        Assert.Equal(GameStatus.Checkmate, game.PositionAt(game.Moves.Count).Status());
+        Assert.Equal(Lf(Opera), Lf(game.ToPgn()));
+    }
+
+    [Fact]
+    public void CommentsVariationsAndNagsAreDroppedAndTheMainLineKept()
+    {
+        var games = Pgn.Parse(Wild);
+        Assert.Equal(3, games.Count);
+        Assert.Equal(Pgn.Parse(Opera)[0].Moves, games[0].Moves);
+        Assert.Equal(Lf(Opera), Lf(games[0].ToPgn()));
+        Assert.Equal("Casual \"Opera\" game", games[0].Tag("Event"));
+
+        Assert.Equal("4k3/1P6/8/3pP3/8/8/8/4K3 w - d6 0 1", games[1].StartFen);
+        Assert.Equal(new[] { "e5d6", "e8d7", "b7b8n", "d7d6" }, games[1].Moves.Select(m => m.ToUci()));
+        Assert.Equal("*", games[1].Result);
+
+        Assert.Equal(2, games[2].Moves.Count);
+        Assert.Equal("1/2-1/2", games[2].Result);    // from the tag, as the moves have none
+    }
+
+    [Fact]
+    public void GamesSurviveTheFileAtOneBytePerMove()
+    {
+        var games = Pgn.Parse(Wild);
+        WithTempFile(path =>
+        {
+            var (written, moves) = GameFile.Write(path, games);
+            Assert.Equal(3, written);
+            Assert.Equal(39, moves);
+            var read = GameFile.Read(path).ToList();
+            Assert.Equal(games.Select(g => g.ToPgn()), read.Select(g => g.ToPgn()));
+
+            // The same games with no moves: the difference is the moves, one byte each.
+            var bare = games.Select(g => g with { Moves = Array.Empty<Move>() });
+            long full = new FileInfo(path).Length;
+            GameFile.Write(path, bare);
+            Assert.Equal(39, full - new FileInfo(path).Length);
+        });
+    }
+
+    [Fact]
+    public void AppendingAddsToTheEnd()
+    {
+        var games = Pgn.Parse(Wild);
+        WithTempFile(path =>
+        {
+            GameFile.Append(path, games.Take(1));
+            GameFile.Append(path, games.Skip(1));
+            Assert.Equal(games.Select(g => g.ToPgn()), GameFile.Read(path).Select(g => g.ToPgn()));
+        });
+    }
+
+    [Fact]
+    public void AnIllegalMoveSaysWhichGameAndMove()
+    {
+        var e = Assert.Throws<FormatException>(() => Pgn.Parse("[White \"A\"]\n\n1. e4 e5 2. Ke3 *"));
+        Assert.Contains("game 1", e.Message);
+        Assert.Contains("move 2", e.Message);
+        Assert.Contains("Ke3", e.Message);
+    }
+
+    [Fact]
+    public void DamagedFilesAreRefused()
+    {
+        WithTempFile(path =>
+        {
+            File.WriteAllBytes(path, "NOPE"u8.ToArray());
+            Assert.Throws<InvalidDataException>(() => GameFile.Read(path).ToList());
+
+            GameFile.Write(path, Pgn.Parse(Opera));
+            var bytes = File.ReadAllBytes(path);
+            File.WriteAllBytes(path, bytes[..^1]);                        // cut off the last move
+            Assert.Throws<InvalidDataException>(() => GameFile.Read(path).ToList());
+
+            bytes[^1] = 250;                                              // a code no position has
+            File.WriteAllBytes(path, bytes);
+            Assert.Throws<InvalidDataException>(() => GameFile.Read(path).ToList());
+        });
+    }
+
+    /// <summary>Positions from seeded random games, each with its legal moves.</summary>
+    internal static IEnumerable<(Position, List<Move>)> RandomPositions()
+    {
+        string[] starts =
+        {
+            Fen.StartPosition,
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",   // castling, pins
+            "n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1",                                // promotions
+        };
+        var random = new Random(27);
+        foreach (string fen in starts)
+        {
+            for (int game = 0; game < 8; game++)
+            {
+                var position = Position.FromFen(fen);
+                for (int ply = 0; ply < 120; ply++)
+                {
+                    var moves = MoveGenerator.Legal(position);
+                    if (moves.Count == 0)
+                        break;
+                    yield return (position, moves);
+                    position.MakeMove(moves[random.Next(moves.Count)]);
+                }
+            }
+        }
+    }
+
+    private static string Lf(string text) => text.Replace("\r\n", "\n");
+
+    private static void WithTempFile(Action<string> test)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"games-{Guid.NewGuid():N}.cbg");
+        try
+        {
+            test(path);
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".tmp");
+        }
+    }
+}

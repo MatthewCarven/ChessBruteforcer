@@ -103,6 +103,15 @@ line <fen>                     best play from here to mate
 verify <material> [stride]     check every (or every n-th) position against its moves
 ```
 
+Game files (`.cbg`), one byte per move:
+
+```
+game import <file> <pgn>...    append every game in the PGN files
+game export <file> <pgn>       write every game out as PGN
+game list <file>               one line per game: number, result, length, players
+game count <file>              number of games
+```
+
 ## Move generation: `Game/`
 
 `Position` holds the full game state, and `MoveGenerator` produces the legal
@@ -127,6 +136,29 @@ separators.
 
 Meaningless boards round-trip too, so a file can hold raw samples from the
 superposition as well as real positions.
+
+## Game files (`.cbg`): `Records/`
+
+A game is its tags, its result, and **one byte per move**. Each byte is the
+move's place in the position's legal moves, sorted by from-square, then
+to-square, then promotion piece. That order comes from the rules, not from
+the move generator, so a faster generator can't change what an old file
+means. No position has more than 218 legal moves (the test suite checks the
+record holder), so a byte always fits. The start is the standard position
+unless the tags carry a FEN. Going back to any earlier position is replay:
+play the first *n* moves.
+
+`game import` reads PGN as it turns up in the wild. It keeps the tags and
+the main line, and drops comments, variations, NAGs and `%` lines. It
+accepts `0-0`, `e8Q` for `e8=Q`, `e.p.`, and annotations like `!?`. What it
+writes back is standard PGN with the tags in their original order, so a
+file this program wrote reads back and writes out byte for byte. The tests
+check that, and so did 5,000 games through the command line. Import runs
+at about 3,000 games (100,000 moves) a second.
+
+For scale: in those 5,000 games the moves took 165 KB and the tags 590 KB,
+so the tags cost more than the game. A shared string table for tags is the
+obvious next saving.
 
 ## Solved endgames: `Endgame/`
 
@@ -273,6 +305,7 @@ src/ChessBruteforcer.Core/
   Endgame/                      Material, Outcome, EndgameTable (retrograde solver), Tablebase
   Engine/                       Evaluation, Search, TranspositionTable, UciEngine
   Match/                        San, GameRecord (PGN), players, GamePlayer, MatchStats, MatchRunner
+  Records/                      MoveCode (a move as a byte), StoredGame, Pgn (read / write), GameFile (.cbg)
 src/ChessBruteforcer.Engine/    the UCI engine executable (also bench, selfplay)
 src/ChessBruteforcer.Match/     the match runner
 scripts/match.sh                snapshots and matches

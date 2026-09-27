@@ -209,3 +209,26 @@ rather than 48-byte boards, because that is the storage that scales.
   no time losses. Logged in MATCHES.md, kept apart from the container runs
   because the hardware differs. Each engine holds all tables in memory
   (1.9 GB), so 2 games at once needs ~4 GB free.
+
+## 2026-09-27: game files, step 1 (`.cbg`, PGN in and out)
+
+- Design settled with Matthew: a game is its start position plus one byte per
+  move, the move's index among the legal moves sorted by (from, to,
+  promotion). The rules fix the order, not the generator, so the bitboard
+  rewrite can't break old files. Going back is replay. Plan in TODO.md
+  ("Next: storing games"), ahead of the 5-piece tables.
+- `Records/`: `MoveCode`, `StoredGame` (tags in order, moves, result; start
+  from the FEN tag or the standard position), `Pgn` (streaming reader and
+  writer), `GameFile` (magic "CBG1", then per game: tags, result byte, move
+  count, move bytes). `San.Parse` added beside `San.Of`. `GameRecord` now
+  shares the move-text writer, and escapes quotes in tag values too.
+- CLI: `game import / export / list / count`.
+- Tests (28 new, 213 pass): SAN parse cases and lenient forms; every legal
+  move in random games from three start positions reads back from its own SAN
+  and decodes from its own code; the 218-move record position; the Opera game
+  in = out exactly; the same game in messy real-world form (comments inside
+  variations inside variations, NAGs, `0-0-0`, `e.p.`, a `%` line, a missing
+  result) comes out identical; file round trip at exactly 1 byte per move;
+  append; errors name the game and move; damaged files are refused.
+- 5,000 games through the CLI: export identical to input, byte for byte.
+  ~3,000 games/s. Tags take 3.6x the bytes of the moves.

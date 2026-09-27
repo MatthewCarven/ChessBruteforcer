@@ -77,6 +77,31 @@ Steps:
 - [ ] Grow the material set: KBBvK, KQvKQ, KRvKB, KRvKN … then 5 pieces
       after symmetry
 
+## Next: storing games (ahead of the 5-piece tables)
+
+A game is its start position plus one byte per move: the move's place in the
+position's legal moves, **sorted by from-square, to-square, promotion piece**.
+The order is set by the rules, not by the move generator, so the bitboard
+rewrite can't silently change what old files mean. No position has more than
+218 legal moves, so a byte always fits. Most games start from the standard
+position and store no FEN. Going back is replay: position n is the first n
+moves played from the start.
+
+1. [x] `.cbg` game files: tags, result, move bytes. PGN import (reader: tags,
+       comments, variations, NAGs, SAN parsing) and export; `game import`,
+       `export`, `list`, `count`. Round trip: PGN in = PGN out
+   - [ ] Tags cost more than the moves (590 KB v 165 KB over 5,000 games): a
+         shared string table for tag names and repeated values
+   - [ ] Speed: ~3,000 games/s, so a Lichess month (~100M games) would take
+         ~9 h. Each move generates and sorts the legal moves twice (SAN in,
+         code out); once would do
+2. [ ] Replay to any ply: `game show <file> <n> <ply>`
+3. [ ] Position index (Zobrist hash -> game, ply): from a position, every
+       game that reached it, and where each came from and went
+4. [ ] Later: where each game enters table territory, and whether it played
+       perfectly from there (the ranked-move list scores each move); import
+       a Lichess database month to see how it scales
+
 ## Then: milestone 3, compete (openly, as software)
 
 Always play as a declared engine, only in software competition. The steps
@@ -182,8 +207,7 @@ cheap to check:
 - [ ] `file merge a.cbb b.cbb` for sorted-file union
 - [ ] Benchmark compression of sorted vs unsorted `.cbb` (zstd, NTFS
       compression)
-- [ ] Storing *games*, not just positions: a start board + move list, or
-      chains of board hashes
+- [ ] Storing *games*: now its own section, "Next: storing games" above
 
 ## Later: superposition
 

@@ -4,6 +4,7 @@ using ChessBruteforcer.Core;
 using ChessBruteforcer.Core.Endgame;
 using ChessBruteforcer.Core.Game;
 using ChessBruteforcer.Core.Possibility;
+using ChessBruteforcer.Core.Records;
 
 return Cli.Run(args);
 
@@ -39,6 +40,13 @@ static class Cli
           file check <file>              check every board, tallying the tier each reached
           file dedupe <file> [out]       sort and drop duplicate boards (in place by default)
           file count <file>              number of boards in the file
+
+        Game files (.cbg): tags, result, and one byte per move.
+
+          game import <file> <pgn>...    append every game in the PGN files (comments and variations dropped)
+          game export <file> <pgn>       write every game out as PGN
+          game list <file>               one line per game: number, result, length, players
+          game count <file>              number of games in the file
         """;
 
     public static int Run(string[] args)
@@ -72,6 +80,10 @@ static class Cli
                 ["file", "dedupe", var file] => FileDedupe(file, null),
                 ["file", "dedupe", var file, var output] => FileDedupe(file, output),
                 ["file", "count", var file] => Print($"{BoardFile.Count(file):N0} boards"),
+                ["game", "import", var file, .. var pgns] when pgns.Length > 0 => GameImport(file, pgns),
+                ["game", "export", var file, var pgn] => GameExport(file, pgn),
+                ["game", "list", var file] => GameList(file),
+                ["game", "count", var file] => Print($"{GameFile.Count(file):N0} games"),
                 _ => Print(Usage, 1),
             };
         }
@@ -325,6 +337,42 @@ static class Cli
     {
         var (before, after) = BoardFile.Deduplicate(file, output);
         return Print($"{before:N0} boards -> {after:N0} unique ({before - after:N0} duplicates removed), sorted, in {output ?? file}");
+    }
+
+    private static int GameImport(string file, string[] pgnFiles)
+    {
+        long before = File.Exists(file) ? new FileInfo(file).Length : 0;
+        var (games, moves) = GameFile.Append(file, pgnFiles.SelectMany(Pgn.ReadFile));
+        long added = new FileInfo(file).Length - before;
+        return Print($"appended {games:N0} games ({moves:N0} moves) to {file}, now {GameFile.Count(file):N0} games\n" +
+                     $"  {added:N0} bytes: {moves:N0} for moves (1 each), {added - moves:N0} for tags and headers");
+    }
+
+    private static int GameExport(string file, string pgnFile)
+    {
+        long count = 0;
+        using (var writer = new StreamWriter(pgnFile))
+        {
+            foreach (var game in GameFile.Read(file))
+            {
+                writer.Write(game.ToPgn());
+                count++;
+            }
+        }
+        return Print($"wrote {count:N0} games to {pgnFile}");
+    }
+
+    private static int GameList(string file)
+    {
+        long number = 0;
+        foreach (var game in GameFile.Read(file))
+        {
+            number++;
+            string players = $"{game.Tag("White") ?? "?"} v {game.Tag("Black") ?? "?"}";
+            string start = game.Tag("FEN") is null ? "" : "  (from a set-up position)";
+            Console.WriteLine($"{number,6}  {game.Result,-7}  {game.Moves.Count,4} plies  {players}{start}");
+        }
+        return 0;
     }
 
     private static PackedBoard ParseBoard(string input)

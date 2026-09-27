@@ -43,6 +43,87 @@ public static class San
         return text.ToString();
     }
 
+    /// <summary>
+    /// The legal move this SAN names.  Lenient the way PGN from the wild needs:
+    /// check marks and annotations (+ # ! ?) are ignored rather than verified,
+    /// "0-0" means "O-O", and a promotion may leave out the '='.
+    /// </summary>
+    public static Move Parse(Position position, string san)
+    {
+        string text = san.TrimEnd('+', '#', '!', '?');
+        var legal = MoveGenerator.Legal(position);
+
+        if (text is "O-O" or "0-0" or "O-O-O" or "0-0-0")
+        {
+            int file = text.Length == 3 ? 6 : 2;
+            return Single(legal.Where(m => (m.Flags & MoveFlags.Castle) != 0 && m.To % 8 == file), san, position);
+        }
+
+        var type = PieceType.Pawn;
+        int start = 0;
+        if (text.Length > 0 && PieceOf(text[0]) is PieceType named)   // "P" for a pawn is rare but allowed
+        {
+            type = named;
+            start = 1;
+        }
+
+        var promotion = PieceType.None;
+        int end = text.Length;
+        if (type == PieceType.Pawn && end > 0 && PieceOf(text[end - 1]) is PieceType promoted
+            && promoted is not (PieceType.Pawn or PieceType.King))
+        {
+            promotion = promoted;
+            end--;
+            if (end > 0 && text[end - 1] == '=')
+                end--;
+        }
+
+        if (end - start < 2)
+            throw new FormatException($"'{san}' is not a move.");
+        int to = Position.ParseSquare(text[(end - 2)..end]);
+
+        // Whatever is left between the piece and the destination: a capture mark and
+        // the from-square's file, rank, or both.
+        int? fromFile = null, fromRank = null;
+        foreach (char c in text[start..(end - 2)])
+        {
+            if (c is >= 'a' and <= 'h')
+                fromFile = c - 'a';
+            else if (c is >= '1' and <= '8')
+                fromRank = c - '1';
+            else if (c is not ('x' or ':' or '-'))
+                throw new FormatException($"'{san}' is not a move.");
+        }
+
+        return Single(legal.Where(m => m.To == to
+                                       && position[m.From].Type == type
+                                       && m.Promotion == promotion
+                                       && (fromFile is null || m.From % 8 == fromFile)
+                                       && (fromRank is null || m.From / 8 == fromRank)), san, position);
+    }
+
+    private static Move Single(IEnumerable<Move> candidates, string san, Position position)
+    {
+        var found = candidates.Take(2).ToList();
+        return found.Count switch
+        {
+            1 => found[0],
+            0 => throw new FormatException($"'{san}' is not a legal move in {position.ToFen()}."),
+            _ => throw new FormatException($"'{san}' is ambiguous in {position.ToFen()}."),
+        };
+    }
+
+    private static PieceType? PieceOf(char c) => c switch
+    {
+        'N' => PieceType.Knight,
+        'B' => PieceType.Bishop,
+        'R' => PieceType.Rook,
+        'Q' => PieceType.Queen,
+        'K' => PieceType.King,
+        'P' => PieceType.Pawn,
+        _ => null,
+    };
+
     /// <summary>File, rank, or both, when another piece of the same kind could also go there.</summary>
     private static string Disambiguation(Position position, Move move, Piece piece)
     {

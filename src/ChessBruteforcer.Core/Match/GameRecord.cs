@@ -1,5 +1,6 @@
 using System.Text;
 using ChessBruteforcer.Core.Game;
+using ChessBruteforcer.Core.Records;
 
 namespace ChessBruteforcer.Core.Match;
 
@@ -26,7 +27,7 @@ public sealed record GameRecord(
     public string ToPgn(string eventName, DateTime date)
     {
         var pgn = new StringBuilder();
-        void Tag(string name, string value) => pgn.Append('[').Append(name).Append(" \"").Append(value).AppendLine("\"]");
+        void Tag(string name, string value) => Pgn.AppendTag(pgn, name, value);
         Tag("Event", eventName);
         Tag("Site", "ChessBruteforcer match runner");
         Tag("Date", date.ToString("yyyy.MM.dd"));
@@ -52,34 +53,16 @@ public sealed record GameRecord(
         }
         pgn.AppendLine();
 
-        var position = Position.FromFen(StartFen);
-        var line = new StringBuilder();
-        var words = new List<string>();
+        var replay = Position.FromFen(StartFen);
+        var moves = new List<Move>();
         foreach (string uci in Moves)
         {
-            var move = position.ParseUciMove(uci)
-                       ?? throw new InvalidOperationException($"Illegal move {uci} in {position.ToFen()}.");
-            if (position.SideToMove == Colour.White)
-                words.Add($"{position.FullmoveNumber}.");
-            else if (words.Count == 0)
-                words.Add($"{position.FullmoveNumber}...");
-            words.Add(San.Of(position, move));
-            position.MakeMove(move);
+            var move = replay.ParseUciMove(uci)
+                       ?? throw new InvalidOperationException($"Illegal move {uci} in {replay.ToFen()}.");
+            replay.MakeMove(move);
+            moves.Add(move);
         }
-        words.Add(ResultText);
-
-        foreach (string word in words)
-        {
-            if (line.Length + word.Length + 1 > 79)
-            {
-                pgn.AppendLine(line.ToString());
-                line.Clear();
-            }
-            if (line.Length > 0)
-                line.Append(' ');
-            line.Append(word);
-        }
-        pgn.AppendLine(line.ToString()).AppendLine();
+        Pgn.AppendMoveText(pgn, Position.FromFen(StartFen), moves, ResultText);
         return pgn.ToString();
     }
 }
