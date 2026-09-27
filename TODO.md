@@ -63,8 +63,29 @@ Steps:
 - [ ] Tighter still: identical pieces in any order are stored twice (KQQvK,
       KRRvK...: 2x), pawns index 64 squares where 48 are possible (1.33x a
       pawn), and the other pieces still get 64 squares each, holes included
-- [ ] Memory: 4-piece solves peak at ~700 MB and take ~2 minutes; the
-      working arrays can shrink (bit arrays, one queue) before 5 pieces
+- [ ] **Next session: step 2 of the 5-piece plan, the solver's memory.**
+      (Step 1, symmetry, is done; step 3 is solving the first 5-piece table.)
+      Where it stands, in `EndgameTable.Solver`: per slot `_values` (short),
+      `_remaining` (byte), `_longestLoss` (short), `_hasDrawingExit` (bool),
+      `_final` (bool) = 7 bytes, plus `_buckets`, one `List<long>` per ply of
+      queued indices (8 bytes each, re-queues included, lists double as they
+      grow). A 5-piece table without pawns is 462 x 64^3 x 2 = 242 M slots:
+      ~1.7 GB of arrays and several GB of queue. Too close to the edge in WSL
+      (7.8 GB cap, and Windows runs short when the Claude app and its Cowork
+      VM are open; see Matthew's notebook). Ideas, cheapest first:
+      the two bools into bit arrays; queue entries as uint (242 M < 2^32);
+      or drop the queues and rescan the table once per ply for values at
+      that ply (no queue memory; ~100 scans of 242 M slots is minutes).
+      Check `_longestLoss` still fits whatever it's narrowed to (5-piece
+      mates can be well over 100 moves). Then lift the `PieceCount > 4`
+      guard in `EndgameTable.Solve` and `Tablebase.MaxPieces`.
+      Measure peak memory on a 4-piece solve before and after, and the
+      36-table byte-identical check (see WORKLOG, 2026-09-27) must still pass.
+- [ ] Step 3: the first 5-piece table. Start pawnless and easy (K+Q+R v K,
+      all wins), then a famous one (K+R+B v K+R), and check the longest
+      mates against published values. Pawn 5-piece tables are 1,806 x 64^3
+      x 2 = 947 M slots (6.6 GB of arrays as things stand): they need
+      48-square pawns and/or solving by pawn slices before they fit
 - [x] Pawns on one side: pawn pushes and un-moves, promotions into the
       other tables, colour swap with the board flipped. KPvK (28 moves,
       76.5% of white-to-move positions won), KQvKP, KRvKP solved; KPvK
