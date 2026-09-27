@@ -45,6 +45,9 @@ public sealed class EndgameTable : IDisposable
 
     public long Size { get; }
 
+    /// <summary>For a table solved in this process: what the solver held while it worked (null if loaded).</summary>
+    public SolverMemory? SolverMemory { get; private init; }
+
     private EndgameTable(TableIndex index, short[] values)
     {
         _index = index;
@@ -87,8 +90,10 @@ public sealed class EndgameTable : IDisposable
     {
         if (!material.IsCanonical)
             throw new ArgumentException($"Solve {material.Canonical}, not {material}.");
-        if (material.PieceCount > 4)
-            throw new NotSupportedException("More than four pieces needs the solver's memory work first (TODO.md).");
+        if (material.PieceCount > 5)
+            throw new NotSupportedException("At most five pieces.");
+        if (material.PieceCount == 5 && material.HasPawns)
+            throw new NotSupportedException("Five pieces with pawns is ~947 M slots: it needs 48-square pawns or pawn slices first (TODO.md).");
         return new Solver(material, probeCapture, progress).Run();
     }
 
@@ -275,13 +280,16 @@ public sealed class EndgameTable : IDisposable
         private readonly TableIndex _index;
         private readonly Func<Position, Outcome> _probeCapture;
         private readonly IProgress<string>? _progress;
+        // Queue entries are 4 bytes: a table index below this, an en passant node from it upward.
+        private const uint EnPassantEntry = 1u << 31;
+
         private readonly Piece[] _slots;
         private readonly short[] _values;
         private readonly byte[] _remaining;     // moves that stay in this table, not yet known to lose
         private readonly short[] _longestLoss;  // slowest loss seen so far, in plies, if every move loses
-        private readonly bool[] _hasDrawingExit;
-        private readonly bool[] _final;
-        private readonly List<List<long>> _buckets = new();   // non-negative: table index; negative: en passant node
+        private readonly BitSet _hasDrawingExit;
+        private readonly BitSet _final;
+        private readonly List<List<uint>> _buckets = new();   // a table index, or an en passant node with the top bit set
         private readonly List<EnPassantNode> _enPassant = new();
         private readonly Dictionary<long, int> _enPassantByKey = new();          // child index * 64 + e.p. square
         private readonly Dictionary<long, List<int>> _enPassantByChild = new();
@@ -298,11 +306,13 @@ public sealed class EndgameTable : IDisposable
             _index = new TableIndex(material);
             _slots = _index.Slots;
             long size = _index.Size;
+            if (size > EnPassantEntry)
+                throw new NotSupportedException($"{material} has {size:N0} slots; queue entries hold at most {EnPassantEntry:N0}.");
             _values = new short[size];
             _remaining = new byte[size];
             _longestLoss = new short[size];
-            _hasDrawingExit = new bool[size];
-            _final = new bool[size];
+            _hasDrawingExit = new BitSet(size);
+            _final = new BitSet(size);
             _squares = new int[_slots.Length];
             _childSquares = new int[_slots.Length];
         }
@@ -316,16 +326,17 @@ public sealed class EndgameTable : IDisposable
                 var bucket = _buckets[ply];
                 for (int i = 0; i < bucket.Count; i++)
                 {
-                    long index = bucket[i];
-                    if (index < 0)
+                    uint entry = bucket[i];
+                    if (entry >= EnPassantEntry)
                     {
-                        var node = _enPassant[(int)(-index - 1)];
+                        var node = _enPassant[(int)(entry - EnPassantEntry)];
                         if (node.Final || PliesOf(node.Value) != ply)
                             continue;
                         node.Final = true;
                         PropagateEnPassant(node);
                         continue;
                     }
+                    long index = entry;
                     if (_final[index] || PliesOf(_values[index]) != ply)
                         continue;
                     _final[index] = true;
@@ -339,7 +350,18 @@ public sealed class EndgameTable : IDisposable
                 if (_values[i] == Unknown)
                     _values[i] = 0;
             }
-            return new EndgameTable(_index, _values);
+            return new EndgameTable(_index, _values) { SolverMemory = Measure() };
+        }
+
+        /// <summary>The working arrays, and the queues at their largest (they are only freed when the solve ends).</summary>
+        private SolverMemory Measure()
+        {
+            long size = _values.LongLength;
+            long arrays = size * (sizeof(short) + sizeof(byte) + sizeof(short))
+                          + _hasDrawingExit.ByteCount + _final.ByteCount;
+            long entries = _buckets.Sum(b => (long)b.Count);
+            long queueBytes = _buckets.Sum(b => (long)b.Capacity) * sizeof(uint);
+            return new SolverMemory(arrays, queueBytes, entries);
         }
 
         /// <summary>
@@ -566,8 +588,8 @@ public sealed class EndgameTable : IDisposable
             _enPassant[id].Value = value;
             int ply = PliesOf(value);
             while (_buckets.Count <= ply)
-                _buckets.Add(new List<long>());
-            _buckets[ply].Add(-(id + 1));
+                _buckets.Add(new List<uint>());
+            _buckets[ply].Add(EnPassantEntry + (uint)id);
         }
 
         private static short EncodeOutcome(Outcome outcome) => outcome.Kind switch
@@ -606,8 +628,8 @@ public sealed class EndgameTable : IDisposable
             _values[index] = value;
             int ply = PliesOf(value);
             while (_buckets.Count <= ply)
-                _buckets.Add(new List<long>());
-            _buckets[ply].Add(index);
+                _buckets.Add(new List<uint>());
+            _buckets[ply].Add((uint)index);
         }
 
         /// <summary>

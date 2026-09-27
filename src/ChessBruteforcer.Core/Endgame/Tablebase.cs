@@ -40,7 +40,7 @@ public sealed class Tablebase
     public bool LoadOnDemand { get; init; } = true;
 
     /// <summary>Largest piece count any table covers.</summary>
-    public const int MaxPieces = 4;
+    public const int MaxPieces = 5;
 
     private readonly HashSet<Material> _missing = new();
 

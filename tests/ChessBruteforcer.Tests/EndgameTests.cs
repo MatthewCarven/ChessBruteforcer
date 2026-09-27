@@ -181,6 +181,26 @@ public class EndgameTests : IClassFixture<SolvedTables>
     }
 
     [Theory]
+    [InlineData("KQRPvK")]    // five pieces with a pawn: ~947 M slots, not yet
+    [InlineData("KQRRvK")]    // six pieces
+    public void TablesTooBigToSolveAreRefusedBeforeAnyWork(string material)
+    {
+        Assert.Throws<NotSupportedException>(() =>
+            EndgameTable.Solve(Material.Parse(material), _ => Outcome.Draw));
+    }
+
+    [Fact]
+    public void ASolvedTableReportsItsSolverMemory()
+    {
+        var table = EndgameTable.Solve(Material.Parse("KRvK"), _tablebase.Probe);
+        var memory = table.SolverMemory!.Value;
+        // Values, move counts and longest losses take 5 bytes a slot; the two flags are bits.
+        Assert.Equal(table.Size * 5 + 2 * ((table.Size + 63) / 64 * 8), memory.ArrayBytes);
+        Assert.True(memory.QueueEntries > 0);
+        Assert.True(memory.QueueBytes >= memory.QueueEntries * sizeof(uint));
+    }
+
+    [Theory]
     [InlineData("KQvK", "KQvK", true)]
     [InlineData("kvkq", "KvKQ", false)]
     [InlineData("KRvKQ", "KRvKQ", false)]

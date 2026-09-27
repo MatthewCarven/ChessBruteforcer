@@ -235,6 +235,10 @@ static class Cli
 
         Console.WriteLine($"{table.Material}: {table.Size:N0} indexed slots ({table.Size * 2 / 1024.0 / 1024.0:0.0} MB), " +
                           $"ready in {stopwatch.Elapsed.TotalSeconds:0.0}s");
+        if (table.SolverMemory is { } memory)
+            Console.WriteLine($"  solver memory: {Mb(memory.TotalBytes)} = arrays {Mb(memory.ArrayBytes)} + queues " +
+                              $"{Mb(memory.QueueBytes)} ({memory.QueueEntries:N0} entries); process peak " +
+                              $"{Mb(Process.GetCurrentProcess().PeakWorkingSet64)}");
         foreach (var side in new[] { Colour.White, Colour.Black })
         {
             int s = (int)side;
@@ -248,6 +252,8 @@ static class Cli
         }
         return 0;
     }
+
+    private static string Mb(long bytes) => $"{bytes / 1048576.0:0.0} MB";
 
     private static int Verify(string text, int stride)
     {
