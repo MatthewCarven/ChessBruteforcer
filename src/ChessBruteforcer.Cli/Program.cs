@@ -32,6 +32,9 @@ static class Cli
           probe <fen>                    the outcome, and every move ranked best first
           line <fen>                     best play from here to mate
           verify <material> [stride]     check every (or every n-th) position against its moves
+          upgrade [dir]                  rewrite tables from before symmetry in the new format (they load either way)
+
+        Tables live in ./tables, or wherever CHESS_TABLES points.
 
           file add <file> <board>...     append boards to a board file (.cbb)
           file import <file> <text>      append every FEN / hex line of a text file
@@ -75,6 +78,8 @@ static class Cli
                 ["line", var fen] => Line(fen),
                 ["verify", var material] => Verify(material, 1),
                 ["verify", var material, var stride] => Verify(material, int.Parse(stride)),
+                ["upgrade"] => Upgrade(TableDirectory),
+                ["upgrade", var directory] => Upgrade(directory),
                 ["file", "add", var file, .. var boards] when boards.Length > 0 => FileAdd(file, boards),
                 ["file", "import", var file, var text] => FileAdd(file, ReadLines(text)),
                 ["file", "list", var file] => FileList(file),
@@ -198,7 +203,24 @@ static class Cli
         return 0;
     }
 
-    private const string TableDirectory = "tables";
+    private static readonly string TableDirectory = Environment.GetEnvironmentVariable("CHESS_TABLES") ?? "tables";
+
+    /// <summary>Rewrite every table saved before symmetry ("CBT1") in the new, smaller format.</summary>
+    private static int Upgrade(string directory)
+    {
+        int upgraded = 0;
+        foreach (string path in Directory.EnumerateFiles(directory, "*.cbt").Order())
+        {
+            if (!EndgameTable.IsLegacyFile(path))
+                continue;
+            long before = new FileInfo(path).Length;
+            using (var table = EndgameTable.Load(path))
+                table.Save(path);
+            Console.WriteLine($"{Path.GetFileName(path),-14} {before / 1048576.0,8:0.0} MB -> {new FileInfo(path).Length / 1048576.0,6:0.0} MB");
+            upgraded++;
+        }
+        return Print($"{upgraded} tables upgraded in {directory}");
+    }
 
     private static Tablebase OpenTablebase() =>
         new(TableDirectory, new Progress<string>(message => Console.Error.Write($"\r{message,-70}")));

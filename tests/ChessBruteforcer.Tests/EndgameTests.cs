@@ -60,7 +60,8 @@ public class EndgameTests : IClassFixture<SolvedTables>
     {
         var (checkedPositions, mismatches) = _tablebase.Verify(Material.Parse(material));
         Assert.Empty(mismatches);
-        Assert.True(checkedPositions > 300_000);
+        // Each position once, up to symmetry: ~46k for K+Q v K (it was ~400k before symmetry).
+        Assert.True(checkedPositions > 40_000);
     }
 
     [Theory]

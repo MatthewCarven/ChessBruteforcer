@@ -8,16 +8,15 @@ namespace ChessBruteforcer.Core.Endgame;
 /// Every position of one material set, solved: win, loss or draw for the
 /// side to move, with distance to mate.
 ///
-/// Positions are not stored as boards.  Each one is a number:
-///
-///   index = ((square(slot 0) * 64 + square(slot 1)) * 64 + ...) * 2 + side to move
-///
-/// with slot 0 the white king, slot 1 the black king, then white's other
-/// pieces and black's, in <see cref="Material"/> order.  The table is just
+/// Positions are not stored as boards.  Each one is a number, given by
+/// <see cref="TableIndex"/>: one per position up to the board's symmetries
+/// (8 without pawns, the left-right mirror with them).  The table is just
 /// one 16-bit value per index, so the board is implied by where a value
 /// sits.  Impossible placements (two pieces on a square, the side not to
-/// move in check) are kept as holes, which costs space but keeps the index
-/// trivial; symmetry and a tighter index are on the roadmap.
+/// move in check) and the second images of symmetric ones are holes.
+///
+/// Files start "CBT2".  "CBT1" files, from before symmetry (every placement
+/// of every piece), still load: they are renumbered in memory as they are read.
 ///
 /// Solving is retrograde analysis.  Checkmates are losses in 0.  Working
 /// outward one ply at a time: a position with a move to a lost position is a
@@ -29,7 +28,8 @@ public sealed class EndgameTable : IDisposable
 {
     private const short Illegal = short.MinValue;
     private const short Unknown = short.MaxValue;
-    private const string Magic = "CBT1";
+    private const string Magic = "CBT2";
+    private const string LegacyMagic = "CBT1";
 
     // Either the values are in memory (just solved) or read from the file on demand (loaded).
     // A mapped file stays locked on Windows until the table is disposed.
@@ -37,6 +37,7 @@ public sealed class EndgameTable : IDisposable
     private readonly MemoryMappedFile? _file;
     private readonly MemoryMappedViewAccessor? _view;
     private readonly long _dataOffset;
+    private readonly TableIndex _index;
 
     public Material Material { get; }
 
@@ -44,17 +45,19 @@ public sealed class EndgameTable : IDisposable
 
     public long Size { get; }
 
-    private EndgameTable(Material material, short[] values)
+    private EndgameTable(TableIndex index, short[] values)
     {
-        Material = material;
+        _index = index;
+        Material = index.Material;
         _values = values;
         Size = values.LongLength;
     }
 
-    private EndgameTable(Material material, MemoryMappedFile file, MemoryMappedViewAccessor view,
+    private EndgameTable(TableIndex index, MemoryMappedFile file, MemoryMappedViewAccessor view,
                          long dataOffset, long size)
     {
-        Material = material;
+        _index = index;
+        Material = index.Material;
         _file = file;
         _view = view;
         _dataOffset = dataOffset;
@@ -85,14 +88,14 @@ public sealed class EndgameTable : IDisposable
         if (!material.IsCanonical)
             throw new ArgumentException($"Solve {material.Canonical}, not {material}.");
         if (material.PieceCount > 4)
-            throw new NotSupportedException("More than four pieces needs a tighter index first.");
+            throw new NotSupportedException("More than four pieces needs the solver's memory work first (TODO.md).");
         return new Solver(material, probeCapture, progress).Run();
     }
 
     /// <summary>The index of a position of exactly this material (colours already canonical).</summary>
     public long IndexOf(Position position)
     {
-        var slots = Layout(Material);
+        var slots = _index.Slots;
         var squares = new int[slots.Length];
         var used = new bool[64];
         for (int slot = 0; slot < slots.Length; slot++)
@@ -111,21 +114,26 @@ public sealed class EndgameTable : IDisposable
             used[found] = true;
             squares[slot] = found;
         }
-        return Encode(squares, position.SideToMove);
+        long index = _index.Encode(squares, position.SideToMove);
+        if (index < 0)
+            throw new ArgumentException("The kings stand on the same or neighbouring squares.");
+        return index;
     }
 
     public Outcome? Probe(Position position) => this[IndexOf(position)];
 
     public TableStatistics Statistics()
     {
+        // Each index stands for every symmetric image of its position, so it
+        // counts that many times: the totals are over real placements.
         var stats = new TableStatistics(Material);
+        var squares = new int[_index.Slots.Length];
         for (long index = 0; index < Size; index++)
         {
             var outcome = Decode(Raw(index));
-            if (outcome is null)
+            if (outcome is null || !_index.Decode(index, squares, out var side))
                 continue;
-            var side = (Colour)(index & 1);
-            stats.Add(side, outcome.Value, index);
+            stats.Add(side, outcome.Value, index, _index.Weight(squares));
         }
         return stats;
     }
@@ -133,14 +141,11 @@ public sealed class EndgameTable : IDisposable
     /// <summary>Rebuild the position an index stands for (it may be an impossible one).</summary>
     public Position PositionAt(long index)
     {
-        var slots = Layout(Material);
-        var position = Position.Empty((Colour)(index & 1));
-        long rest = index >> 1;
-        for (int slot = slots.Length - 1; slot >= 0; slot--)
-        {
-            position.SetPiece((int)(rest % 64), slots[slot]);
-            rest /= 64;
-        }
+        var squares = new int[_index.Slots.Length];
+        _index.Decode(index, squares, out var side);
+        var position = Position.Empty(side);
+        for (int slot = 0; slot < squares.Length; slot++)
+            position.SetPiece(squares[slot], _index.Slots[slot]);
         return position;
     }
 
@@ -174,32 +179,75 @@ public sealed class EndgameTable : IDisposable
     {
         Material material;
         long count, dataOffset;
+        bool legacy;
         using (var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII))
         {
-            if (Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length)) != Magic)
+            string magic = Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length));
+            if (magic != Magic && magic != LegacyMagic)
                 throw new InvalidDataException($"{path} is not an endgame table.");
+            legacy = magic == LegacyMagic;
             material = Material.Parse(reader.ReadString());
             count = reader.ReadInt64();
             dataOffset = reader.BaseStream.Position;
-            if (count != TableSize(material))
-                throw new InvalidDataException($"{path} has {count} entries; {material} needs {TableSize(material)}.");
+            long expected = legacy ? LegacySize(material) : TableSize(material);
+            if (count != expected)
+                throw new InvalidDataException($"{path} has {count} entries; {material} needs {expected}.");
             if (reader.BaseStream.Length < dataOffset + count * sizeof(short))
                 throw new InvalidDataException($"{path} is truncated.");
         }
+        var index = new TableIndex(material);
+        if (legacy)
+            return FromLegacy(index, ReadValues(path, dataOffset, count));
         if (intoMemory)
-        {
-            using var stream = File.OpenRead(path);
-            stream.Position = dataOffset;
-            var values = new short[count];
-            stream.ReadExactly(System.Runtime.InteropServices.MemoryMarshal.AsBytes(values.AsSpan()));
-            return new EndgameTable(material, values);
-        }
+            return new EndgameTable(index, ReadValues(path, dataOffset, count));
         var file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         var view = file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-        return new EndgameTable(material, file, view, dataOffset, count);
+        return new EndgameTable(index, file, view, dataOffset, count);
     }
 
-    public static long TableSize(Material material) => (1L << (6 * material.PieceCount)) * 2;
+    /// <summary>True for a table saved before symmetry ("CBT1"): it loads, but saving it again makes it ~2-9 times smaller.</summary>
+    public static bool IsLegacyFile(string path)
+    {
+        using var stream = File.OpenRead(path);
+        var magic = new byte[LegacyMagic.Length];
+        return stream.Read(magic) == magic.Length && Encoding.ASCII.GetString(magic) == LegacyMagic;
+    }
+
+    private static short[] ReadValues(string path, long offset, long count)
+    {
+        using var stream = File.OpenRead(path);
+        stream.Position = offset;
+        var values = new short[count];
+        stream.ReadExactly(System.Runtime.InteropServices.MemoryMarshal.AsBytes(values.AsSpan()));
+        return values;
+    }
+
+    /// <summary>
+    /// Renumber a table from the first format, where the index was simply
+    /// every piece's square in slot order: ((s0 * 64 + s1) * 64 + ...) * 2 + side.
+    /// </summary>
+    private static EndgameTable FromLegacy(TableIndex index, short[] legacy)
+    {
+        var values = new short[index.Size];
+        var squares = new int[index.Slots.Length];
+        for (long i = 0; i < values.LongLength; i++)
+        {
+            if (!index.Decode(i, squares, out var side))
+            {
+                values[i] = Illegal;
+                continue;
+            }
+            long raw = 0;
+            foreach (int square in squares)
+                raw = raw * 64 + square;
+            values[i] = legacy[raw * 2 + (int)side];
+        }
+        return new EndgameTable(index, values);
+    }
+
+    public static long TableSize(Material material) => new TableIndex(material).Size;
+
+    private static long LegacySize(Material material) => (1L << (6 * material.PieceCount)) * 2;
 
     /// <summary>The piece in each slot: kings first, then white's pieces, then black's.</summary>
     internal static Piece[] Layout(Material material) =>
@@ -207,14 +255,6 @@ public sealed class EndgameTable : IDisposable
             .Concat(material.White.Select(t => new Piece(t, Colour.White)))
             .Concat(material.Black.Select(t => new Piece(t, Colour.Black)))
             .ToArray();
-
-    private static long Encode(int[] squares, Colour sideToMove)
-    {
-        long index = 0;
-        foreach (int square in squares)
-            index = index * 64 + square;
-        return index * 2 + (int)sideToMove;
-    }
 
     private static Outcome? Decode(short value) => value switch
     {
@@ -232,6 +272,7 @@ public sealed class EndgameTable : IDisposable
     private sealed class Solver
     {
         private readonly Material _material;
+        private readonly TableIndex _index;
         private readonly Func<Position, Outcome> _probeCapture;
         private readonly IProgress<string>? _progress;
         private readonly Piece[] _slots;
@@ -245,6 +286,8 @@ public sealed class EndgameTable : IDisposable
         private readonly Dictionary<long, int> _enPassantByKey = new();          // child index * 64 + e.p. square
         private readonly Dictionary<long, List<int>> _enPassantByChild = new();
         private readonly int[] _squares;
+        private readonly int[] _childSquares;
+        private readonly List<long> _children = new();
         private readonly Position _scratch = Position.Empty();
 
         public Solver(Material material, Func<Position, Outcome> probeCapture, IProgress<string>? progress)
@@ -252,14 +295,16 @@ public sealed class EndgameTable : IDisposable
             _material = material;
             _probeCapture = probeCapture;
             _progress = progress;
-            _slots = Layout(material);
-            long size = TableSize(material);
+            _index = new TableIndex(material);
+            _slots = _index.Slots;
+            long size = _index.Size;
             _values = new short[size];
             _remaining = new byte[size];
             _longestLoss = new short[size];
             _hasDrawingExit = new bool[size];
             _final = new bool[size];
             _squares = new int[_slots.Length];
+            _childSquares = new int[_slots.Length];
         }
 
         public EndgameTable Run()
@@ -294,7 +339,7 @@ public sealed class EndgameTable : IDisposable
                 if (_values[i] == Unknown)
                     _values[i] = 0;
             }
-            return new EndgameTable(_material, _values);
+            return new EndgameTable(_index, _values);
         }
 
         /// <summary>
@@ -339,15 +384,19 @@ public sealed class EndgameTable : IDisposable
 
                 int bestWin = int.MaxValue;
                 int longestLoss = 0;
-                int staying = 0;
+                _children.Clear();
                 foreach (var move in moves)
                 {
                     // Captures and promotions change the material: another table.
                     if (!move.IsCapture && !move.IsPromotion)
                     {
-                        staying++;
-                        if ((move.Flags & MoveFlags.DoublePawnPush) != 0)
-                            TrackEnPassant(index, move);
+                        // Count children, not moves: in a symmetric position two moves can
+                        // reach mirror images of one position, which is one index.
+                        // (Predecessors are counted the same way, so the two tallies agree.)
+                        int node = (move.Flags & MoveFlags.DoublePawnPush) != 0 ? TrackEnPassant(index, move) : -1;
+                        long child = node >= 0 ? -(node + 1L) : ChildOf(move);
+                        if (!_children.Contains(child))
+                            _children.Add(child);
                         continue;
                     }
                     var undo = position.MakeMove(move);
@@ -361,6 +410,7 @@ public sealed class EndgameTable : IDisposable
                     }
                 }
 
+                int staying = _children.Count;
                 _remaining[index] = checked((byte)staying);
                 _longestLoss[index] = (short)longestLoss;
                 if (bestWin != int.MaxValue)
@@ -401,14 +451,22 @@ public sealed class EndgameTable : IDisposable
             }
         }
 
+        /// <summary>The index a non-capturing move from the loaded position leads to.</summary>
+        private long ChildOf(Move move)
+        {
+            _squares.CopyTo(_childSquares, 0);
+            _childSquares[Array.IndexOf(_squares, (int)move.From)] = move.To;
+            return _index.Encode(_childSquares, Position.Opponent(_scratch.SideToMove));
+        }
+
         /// <summary>
         /// A double push from <paramref name="parent"/> that hands the
-        /// opponent an en passant capture.  The position it reaches is worth
+        /// opponent an en passant capture.  Returns the node's number, or -1 if no capture is possible.  The position it reaches is worth
         /// more to the opponent than the table's entry for it (which assumes no
         /// en passant): they may also take en passant.  That position gets its
         /// own node, worth the better of the two, and the parent's move leads there.
         /// </summary>
-        private void TrackEnPassant(long parent, Move move)
+        private int TrackEnPassant(long parent, Move move)
         {
             var position = _scratch;
             var undo = position.MakeMove(move);
@@ -417,7 +475,7 @@ public sealed class EndgameTable : IDisposable
             if (captures.Count == 0)
             {
                 position.UnmakeMove(move, undo);
-                return;
+                return -1;
             }
 
             var best = Outcome.Loss(0);
@@ -433,13 +491,14 @@ public sealed class EndgameTable : IDisposable
             position.UnmakeMove(move, undo);
 
             var childSquares = (int[])_squares.Clone();
-            childSquares[Array.IndexOf(_squares, move.From)] = move.To;
-            long child = Encode(childSquares, Position.Opponent(position.SideToMove));
+            childSquares[Array.IndexOf(_squares, (int)move.From)] = move.To;
+            long child = _index.Encode(childSquares, Position.Opponent(position.SideToMove), out int symmetry);
+            int passedSquare = _index.Map(symmetry, (move.From + move.To) / 2);   // in the child's own frame
 
             var node = new EnPassantNode(child, parent, best, childHasOtherMoves);
             int id = _enPassant.Count;
             _enPassant.Add(node);
-            _enPassantByKey.Add(child * 64 + (move.From + move.To) / 2, id);
+            _enPassantByKey.Add(child * 64 + passedSquare, id);
             if (!_enPassantByChild.TryGetValue(child, out var list))
                 _enPassantByChild[child] = list = new List<int>();
             list.Add(id);
@@ -456,6 +515,7 @@ public sealed class EndgameTable : IDisposable
             {
                 QueueEnPassant(id, EncodeOutcome(best));
             }
+            return id;
         }
 
         /// <summary>The position behind some en passant nodes is now settled: settle them too.</summary>
@@ -582,7 +642,9 @@ public sealed class EndgameTable : IDisposable
                     if (!position.InCheck(sideToMove))
                     {
                         squares[slot] = to;
-                        results.Add(Encode(squares, previousMover));
+                        long previous = _index.Encode(squares, previousMover);
+                        if (previous >= 0 && !results.Contains(previous))   // distinct, like the children
+                            results.Add(previous);
                         squares[slot] = from;
                     }
                     position.SetPiece(to, Piece.Empty);
@@ -644,28 +706,18 @@ public sealed class EndgameTable : IDisposable
         }
 
         /// <summary>
-        /// Set up the scratch position for an index; false if two pieces share
-        /// a square or a pawn stands on the first or last rank.
+        /// Set up the scratch position for an index; false for a hole (see
+        /// <see cref="TableIndex.Decode"/>), which leaves the scratch position unusable.
         /// </summary>
         private bool Load(long index)
         {
+            if (!_index.Decode(index, _squares, out var side))
+                return false;
             for (int square = 0; square < 64; square++)
                 _scratch.SetPiece(square, Piece.Empty);
-            _scratch.SetSideToMove((Colour)(index & 1));
-            long rest = index >> 1;
-            for (int slot = _slots.Length - 1; slot >= 0; slot--)
-            {
-                _squares[slot] = (int)(rest % 64);
-                rest /= 64;
-            }
+            _scratch.SetSideToMove(side);
             for (int slot = 0; slot < _slots.Length; slot++)
-            {
-                if (!_scratch[_squares[slot]].IsEmpty)
-                    return false;
-                if (_slots[slot].Type == PieceType.Pawn && _squares[slot] / 8 is 0 or 7)
-                    return false;
                 _scratch.SetPiece(_squares[slot], _slots[slot]);
-            }
             return true;
         }
 
@@ -687,14 +739,15 @@ public sealed class TableStatistics
 
     public TableStatistics(Material material) => Material = material;
 
-    internal void Add(Colour side, Outcome outcome, long index)
+    /// <summary>Count a position <paramref name="weight"/> times (its symmetric images).</summary>
+    internal void Add(Colour side, Outcome outcome, long index, int weight = 1)
     {
         int s = (int)side;
         switch (outcome.Kind)
         {
-            case OutcomeKind.Win: Wins[s]++; break;
-            case OutcomeKind.Loss: Losses[s]++; break;
-            default: Draws[s]++; break;
+            case OutcomeKind.Win: Wins[s] += weight; break;
+            case OutcomeKind.Loss: Losses[s] += weight; break;
+            default: Draws[s] += weight; break;
         }
         if (outcome.Kind != OutcomeKind.Draw && (Longest[s] is null || outcome.Plies > Longest[s]!.Value.Outcome.Plies))
             Longest[s] = (outcome, index);

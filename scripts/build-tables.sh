@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Solve every 4-piece endgame table into ./tables at the repository root.  Smaller tables
+# Solve every 4-piece endgame table into ./tables at the repository root (or $CHESS_TABLES).  Smaller tables
 # a solve needs (3-piece, and 4-piece ones reached by promotion) are solved
 # along the way.  Tables already on disk are skipped, so it can be stopped and
 # restarted.  Expect roughly 1-3 hours and ~2 GB of disk for all 30.
@@ -12,9 +12,10 @@ CLI="dotnet src/ChessBruteforcer.Cli/bin/Release/net8.0/ChessBruteforcer.Cli.dll
 one_v_one="KQvKQ KQvKR KQvKB KQvKN KQvKP KRvKR KRvKB KRvKN KRvKP KBvKB KBvKN KBvKP KNvKN KNvKP KPvKP"
 two_v_zero="KQQvK KQRvK KQBvK KQNvK KQPvK KRRvK KRBvK KRNvK KRPvK KBBvK KBNvK KBPvK KNNvK KNPvK KPPvK"
 
-mkdir -p tables
+export CHESS_TABLES="${CHESS_TABLES:-tables}"
+mkdir -p "$CHESS_TABLES"
 for material in $one_v_one $two_v_zero; do
-  if [ -f "tables/$material.cbt" ]; then
+  if [ -f "$CHESS_TABLES/$material.cbt" ]; then
     echo "$material: already solved"
     continue
   fi
@@ -23,4 +24,4 @@ for material in $one_v_one $two_v_zero; do
   echo "${summary%%$'\n'*}"
   echo "  ($(( $(date +%s) - start ))s)"
 done
-echo "done: $(ls tables/*.cbt | wc -l) tables in ./tables"
+echo "done: $(ls "$CHESS_TABLES"/*.cbt | wc -l) tables in $CHESS_TABLES"
