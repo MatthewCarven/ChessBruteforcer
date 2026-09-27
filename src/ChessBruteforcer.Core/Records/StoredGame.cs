@@ -36,5 +36,18 @@ public sealed record StoredGame(IReadOnlyList<(string Name, string Value)> Tags,
         return position;
     }
 
+    /// <summary>Every move in standard notation, in order.</summary>
+    public List<string> San()
+    {
+        var position = StartPosition();
+        var names = new List<string>(Moves.Count);
+        foreach (var move in Moves)
+        {
+            names.Add(Match.San.Of(position, move));
+            position.MakeMove(move);
+        }
+        return names;
+    }
+
     public string ToPgn() => Pgn.Write(this);
 }

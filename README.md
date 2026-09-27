@@ -110,6 +110,7 @@ game import <file> <pgn>...    append every game in the PGN files
 game export <file> <pgn>       write every game out as PGN
 game list <file>               one line per game: number, result, length, players
 game count <file>              number of games
+game show <file> <n> [ply]     game n replayed to a ply (0 = start, -1 = one before the end, default the end)
 ```
 
 ## Move generation: `Game/`
@@ -146,7 +147,10 @@ the move generator, so a faster generator can't change what an old file
 means. No position has more than 218 legal moves (the test suite checks the
 record holder), so a byte always fits. The start is the standard position
 unless the tags carry a FEN. Going back to any earlier position is replay:
-play the first *n* moves.
+play the first *n* moves. `game show` does exactly that, printing the
+board, the FEN, the move that led there, the one played next, and the whole
+game with a `|` where the position sits. Fetching game *n* jumps over the
+games before it without decoding their moves.
 
 `game import` reads PGN as it turns up in the wild. It keeps the tags and
 the main line, and drops comments, variations, NAGs and `%` lines. It

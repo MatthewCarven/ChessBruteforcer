@@ -240,3 +240,19 @@ rather than 48-byte boards, because that is the storage that scales.
   placement / reachability tiers, where the published reachable estimates
   (10^44-10^46 v our tier 4 at 1.44e49) imply far more than 75%. Both
   measurements are on the TODO.
+
+## 2026-09-27: game files, step 2 (replay)
+
+- `GameFile.Read(path, n)` fetches one game, skipping the games before it
+  by their lengths (tags, then jump the move bytes), so nothing before it is
+  decoded. `Count` skips the same way now, where it decoded every move before.
+  Game 5,000 of a 5,000-game file comes up in well under a second.
+- `StoredGame.San()` lists the moves in notation; `PositionAt(ply)` was
+  already there from step 1.
+- CLI `game show <file> <n> [ply]`: the board, FEN, whose move, the move that
+  led here and the next one, and the whole game with `|` at the position.
+  A negative ply counts back from the end; the default is the end.
+- Tests (2 new, 215 pass): games read by number from a 1,200-game file
+  match reading them all; out-of-range numbers refused; a truncated last
+  game fails `Count` and its own read but leaves earlier games readable;
+  replay matches step-by-step play at every ply of the Opera game.

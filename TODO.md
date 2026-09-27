@@ -95,7 +95,8 @@ moves played from the start.
    - [ ] Speed: ~3,000 games/s, so a Lichess month (~100M games) would take
          ~9 h. Each move generates and sorts the legal moves twice (SAN in,
          code out); once would do
-2. [ ] Replay to any ply: `game show <file> <n> <ply>`
+2. [x] Replay to any ply: `game show <file> <n> [ply]` (negative counts back
+       from the end); game n is found by skipping the others' move bytes
 3. [ ] Position index (Zobrist hash -> game, ply): from a position, every
        game that reached it, and where each came from and went
 4. [ ] Repetition (Matthew's idea): repetition rules remove no *positions*,

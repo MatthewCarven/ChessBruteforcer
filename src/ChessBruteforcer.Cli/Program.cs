@@ -47,6 +47,7 @@ static class Cli
           game export <file> <pgn>       write every game out as PGN
           game list <file>               one line per game: number, result, length, players
           game count <file>              number of games in the file
+          game show <file> <n> [ply]     game n replayed to a ply: 0 = start, -1 = one before the end, default the end
         """;
 
     public static int Run(string[] args)
@@ -84,6 +85,8 @@ static class Cli
                 ["game", "export", var file, var pgn] => GameExport(file, pgn),
                 ["game", "list", var file] => GameList(file),
                 ["game", "count", var file] => Print($"{GameFile.Count(file):N0} games"),
+                ["game", "show", var file, var n] => GameShow(file, long.Parse(n), "end"),
+                ["game", "show", var file, var n, var ply] => GameShow(file, long.Parse(n), ply),
                 _ => Print(Usage, 1),
             };
         }
@@ -372,6 +375,71 @@ static class Cli
             string start = game.Tag("FEN") is null ? "" : "  (from a set-up position)";
             Console.WriteLine($"{number,6}  {game.Result,-7}  {game.Moves.Count,4} plies  {players}{start}");
         }
+        return 0;
+    }
+
+    /// <summary>
+    /// The position after <paramref name="plyText"/> half-moves of game <paramref name="number"/>:
+    /// a count from the start, a negative count back from the end, or "end".
+    /// </summary>
+    private static int GameShow(string file, long number, string plyText)
+    {
+        var game = GameFile.Read(file, number);
+        int count = game.Moves.Count;
+        int ply = plyText == "end" ? count : int.Parse(plyText);
+        if (ply < 0)
+            ply += count;
+        if (ply < 0 || ply > count)
+            throw new ArgumentException($"Game {number} has {count} plies: give 0 to {count}, or -1 to -{count} from the end.");
+
+        var san = game.San();
+        var start = game.StartPosition();
+        int offset = start.SideToMove == Colour.Black ? 1 : 0;
+        string Label(int i) =>
+            $"{start.FullmoveNumber + (i + offset) / 2}{((i + offset) % 2 == 0 ? "." : "...")} {san[i]}";
+
+        Console.WriteLine($"game {number:N0}: {game.Tag("White") ?? "?"} v {game.Tag("Black") ?? "?"}, " +
+                          $"{game.Result}, {count} plies");
+        Console.WriteLine(ply == 0 ? "at the start" : $"after {ply} {(ply == 1 ? "ply" : "plies")}, the last {Label(ply - 1)}");
+
+        var position = game.PositionAt(ply);
+        Console.WriteLine(position.ToPackedBoard().ToDiagram());
+        Console.WriteLine(position.ToFen());
+        string status = position.Status() switch
+        {
+            GameStatus.Checkmate => "checkmated",
+            GameStatus.Stalemate => "stalemated",
+            _ when position.InCheck() => "to move, in check",
+            _ => "to move",
+        };
+        string next = ply < count ? $"next in the game: {Label(ply)}" : $"the game ends here: {game.Result}";
+        Console.WriteLine($"{position.SideToMove} {status}; {next}");
+
+        // The whole game, with | where this position sits.
+        var words = new List<string>();
+        for (int i = 0; i < count; i++)
+        {
+            if (i == ply)
+                words.Add("|");
+            bool white = (i + offset) % 2 == 0;
+            words.Add(white || i == 0 || i == ply ? Label(i) : san[i]);
+        }
+        if (ply == count)
+            words.Add("|");
+        words.Add(game.Result);
+        var line = new System.Text.StringBuilder();
+        foreach (string word in words)
+        {
+            if (line.Length > 0 && line.Length + word.Length + 1 > 79)
+            {
+                Console.WriteLine(line);
+                line.Clear();
+            }
+            if (line.Length > 0)
+                line.Append(' ');
+            line.Append(word);
+        }
+        Console.WriteLine(line);
         return 0;
     }
 

@@ -51,7 +51,53 @@ public static class GameFile
         }
     }
 
-    public static long Count(string path) => Read(path).LongCount();
+    /// <summary>Game <paramref name="number"/> (the first is 1).  The games before it are skipped over, not decoded.</summary>
+    public static StoredGame Read(string path, long number)
+    {
+        if (number < 1)
+            throw new ArgumentException("Games are numbered from 1.");
+        using var stream = new BufferedStream(File.OpenRead(path));
+        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        CheckMagic(path, reader);
+        try
+        {
+            for (long skipped = 1; skipped < number; skipped++)
+            {
+                if (stream.Position >= stream.Length)
+                    throw new ArgumentException($"{path} has only {skipped - 1:N0} games.");
+                SkipGame(reader);
+                if (stream.Position > stream.Length)
+                    throw new EndOfStreamException();
+            }
+            if (stream.Position >= stream.Length)
+                throw new ArgumentException($"{path} has only {number - 1:N0} games.");
+            return ReadGame(reader);
+        }
+        catch (EndOfStreamException)
+        {
+            throw new InvalidDataException($"{path} ends part way through a game.");
+        }
+    }
+
+    public static long Count(string path)
+    {
+        using var stream = new BufferedStream(File.OpenRead(path));
+        using var reader = new BinaryReader(stream, Encoding.UTF8);
+        CheckMagic(path, reader);
+        long count = 0;
+        try
+        {
+            for (; stream.Position < stream.Length; count++)
+                SkipGame(reader);
+        }
+        catch (EndOfStreamException)
+        {
+            throw new InvalidDataException($"{path} ends part way through game {count + 1}.");
+        }
+        if (stream.Position > stream.Length)
+            throw new InvalidDataException($"{path} ends part way through game {count}.");
+        return count;
+    }
 
     /// <summary>Replace the file with exactly these games.  Written to a temporary file and renamed, so an interrupted write leaves the old file alone.</summary>
     public static (long Games, long Moves) Write(string path, IEnumerable<StoredGame> games)
@@ -142,6 +188,17 @@ public static class GameFile
             moves.Add(move);
         }
         return game;
+    }
+
+    /// <summary>Step over one game: read its lengths, jump its move bytes.</summary>
+    private static void SkipGame(BinaryReader reader)
+    {
+        int tagCount = reader.Read7BitEncodedInt();
+        for (int i = 0; i < tagCount * 2; i++)
+            reader.ReadString();
+        reader.ReadByte();
+        int moveCount = reader.Read7BitEncodedInt();
+        reader.BaseStream.Seek(moveCount, SeekOrigin.Current);
     }
 
     private static int IndexOfResult(string result)

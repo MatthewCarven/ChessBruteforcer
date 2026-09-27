@@ -187,6 +187,50 @@ public class GameFileTests
     }
 
     [Fact]
+    public void AnyOneGameCanBeReadByNumber()
+    {
+        var games = Enumerable.Repeat(Pgn.Parse(Wild), 400).SelectMany(g => g).ToList();   // 1,200 games
+        WithTempFile(path =>
+        {
+            GameFile.Write(path, games);
+            Assert.Equal(1200, GameFile.Count(path));
+            foreach (int number in new[] { 1, 2, 3, 600, 1199, 1200 })
+                Assert.Equal(games[number - 1].ToPgn(), GameFile.Read(path, number).ToPgn());
+            Assert.Throws<ArgumentException>(() => GameFile.Read(path, 0));
+            Assert.Throws<ArgumentException>(() => GameFile.Read(path, 1201));
+
+            File.WriteAllBytes(path, File.ReadAllBytes(path)[..^1]);             // lose the last move byte
+            Assert.Throws<InvalidDataException>(() => GameFile.Count(path));
+            Assert.Equal(games[1198].ToPgn(), GameFile.Read(path, 1199).ToPgn());  // earlier games still fine
+            Assert.Throws<InvalidDataException>(() => GameFile.Read(path, 1200));
+        });
+    }
+
+    [Fact]
+    public void ReplayReachesEveryPlyAndNoFurther()
+    {
+        var game = Pgn.Parse(Opera)[0];
+        var position = game.StartPosition();
+        for (int ply = 0; ply <= game.Moves.Count; ply++)
+        {
+            Assert.Equal(position.ToFen(), game.PositionAt(ply).ToFen());
+            if (ply < game.Moves.Count)
+                position.MakeMove(game.Moves[ply]);
+        }
+        Assert.Equal(Fen.StartPosition, game.PositionAt(0).ToFen());
+        Assert.Equal(GameStatus.Checkmate, game.PositionAt(33).Status());
+        Assert.Throws<ArgumentOutOfRangeException>(() => game.PositionAt(34));
+        Assert.Throws<ArgumentOutOfRangeException>(() => game.PositionAt(-1));
+
+        var san = game.San();
+        Assert.Equal(33, san.Count);
+        Assert.Equal(new[] { "e4", "e5", "Nf3" }, san.Take(3));
+        Assert.Equal(new[] { "Qb8+", "Nxb8", "Rd8#" }, san.TakeLast(3));
+        Assert.Contains("O-O-O", san);
+        Assert.Contains("Nbd7", san);
+    }
+
+    [Fact]
     public void AnIllegalMoveSaysWhichGameAndMove()
     {
         var e = Assert.Throws<FormatException>(() => Pgn.Parse("[White \"A\"]\n\n1. e4 e5 2. Ke3 *"));
