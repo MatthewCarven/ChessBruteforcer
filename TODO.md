@@ -4,6 +4,112 @@ If you're asking "where are we?", this is the answer. Top to bottom is
 roughly the order of work. Tick items off here and log them in
 [WORKLOG.md](WORKLOG.md).
 
+## Now: the session plan (5-piece tables and the depth ladder)
+
+Agreed with Matthew 2026-09-27. One session per step, in order. Any step
+may take two sessions: if it does, stop at a clean commit and write where it
+stands here. The goal is 5-piece tables built **up a ladder**: solve to a
+capped depth, then extend. More disk then buys more depth, and nothing
+below is redone. That only works if the edges are right, which is what
+sessions 2 and 3 are about.
+
+Shared facts for every session:
+- Full test suite: ~11 min on Windows (`dotnet test -c Release tests/...`).
+  Run it in the background; use `--filter` for the endgame tests while working.
+- Regression check: `scripts/measure-tables.sh <cli bin> <empty dir> <log>`
+  solves all 36 tables up to 4 pieces (~8 min) and prints each table's time
+  and solver memory. Then `cmp` every .cbt against `tables-baseline/`
+  (gitignored, Windows copy: the 36 tables from the pre-step-2 solver,
+  plus `before.log`, the baseline memory figures).
+- Memory is tight: WSL is capped at 7.8 GB, and Windows runs short with the
+  Claude app and Cowork VM open. Run one big solve at a time.
+
+### Session 1: finish the solver's memory (step 2)
+Branch `solver-memory` holds the work, uncommitted to main. Done there:
+`BitSet` for `_hasDrawingExit` / `_final` (1 bit each, was 1 byte);
+queue entries `uint` (was `long`), en passant nodes marked by the top bit;
+`SolverMemory` (arrays, queues, entries), printed by `solve`; 5-piece guard
+lifted for pawnless tables, `Tablebase.MaxPieces` = 5.
+- [ ] **Open bug first.** `solve KQRPvK` should refuse at once
+      (NotSupportedException: five pieces with pawns) but hung for 60 s+
+      on 2026-09-27; so did the two new tests (`--filter` on
+      `TooBigToSolve|ReportsItsSolverMemory`, testhost at 1.4 GB). The full
+      suite reported 1 failure, in `TablesTooBigToSolveAreRefusedBeforeAnyWork`.
+      Find out which row, and why anything is being solved or allocated
+      before the guard. Suspects: `Material.Parse` / `IsCanonical` for these
+      strings, or the CLI path around `Tablebase.Get`.
+- [ ] Full suite green. Regression: 36 of 36 byte-identical to `tables-baseline`.
+- [ ] Before/after table for Matthew, per table, from the two logs
+      (baseline: KQvKR 52.9 MB = 25.3 arrays + 27.7 queues; KRPvK 204.3 MB
+      = 98.8 + 105.6; all 36 in 479 s). Expected after: arrays 7 -> 5.25
+      bytes a slot, queues halved, so about 0.6x overall. Note any slowdown
+      from the bit twiddling.
+- [ ] Project to 5 pieces from the measured bytes per slot (242 M slots).
+      Expected: ~1.3 GB arrays + ~1 GB queues. The list-doubling copy spikes
+      on the largest bucket may add a few hundred MB. If that's too close,
+      the fallback is to drop the queues and rescan the table once per ply
+- [ ] WORKLOG, README (`solve` output), merge `solver-memory` into main, commit.
+      Tell Matthew it needs pushing.
+
+### Session 2: cap and resume (ladder parts a and b)
+- [ ] A stored value for **"deeper than N"**, distinct from draw. Today
+      `Unknown` (short.MaxValue) turns into 0 = draw at the end of `Run`.
+      A capped table must keep "not settled within N" apart from a proven
+      draw. `Outcome` gets a matching kind, and `probe` / `line` /
+      `RankMoves` / statistics say so.
+- [ ] `solve <material> --cap N`: stop after ply N. File header records the
+      cap (CBT3; CBT2 and CBT1 still load as complete). Wins already queued
+      at ply N+1 are exact (every shorter loss is final by then); decide
+      whether to keep them or store "deeper".
+- [ ] The frontier file (`.cbf` beside the `.cbt`): `_remaining`,
+      `_longestLoss`, both bit sets, the queued entries at plies > N, and the
+      en passant nodes. About 3.3 bytes a slot plus queue, so ~1 GB for a
+      5-piece table: this is the "more disk space" Matthew mentioned.
+      `extend <material> --cap M` loads it and carries on from N+1.
+- [ ] Edges (part b): a capture into a smaller table that answers "deeper
+      than N" is an **unknown exit**, not a draw. A third bit per slot
+      (`_hasUnknownExit`): the position can still be proven a win, but not
+      a loss. A child settled at depth d makes the parent d+1, so sub-tables
+      capped at N are deep enough for a parent capped at N. On `extend`,
+      extend the sub-tables first, then re-probe every slot with the
+      unknown-exit bit before carrying on.
+- [ ] The test that proves the edges: solve all 36 tables capped at N = 10,
+      extend to 20, 40, ... up to uncapped. Each final table must be
+      byte-identical to `tables-baseline`. Also a statistics table for
+      Matthew: per table, the share settled within 10 / 20 / 40 / all plies.
+
+### Session 3: the 50-move rule (ladder part c)
+- [ ] DTZ: distance to the next capture or pawn move (a "zeroing" move),
+      capped at 100 plies, which is the 50-move rule. A zeroing move resets
+      the count, so its value is only win / draw / loss (how far that win
+      is doesn't matter). The cap is exact at every table edge, so the
+      "deeper than N" of session 2 turns into the rule's own answer:
+      a win needing more than 100 plies is a draw under the rule.
+      Count those separately ("cursed wins", "blessed losses") for Matthew.
+- [ ] Pawn moves zero too, and they stay inside the table. Solve a pawn
+      table in slices by pawn placement, most advanced first. Pawns never
+      move back, so each slice only leans on slices already solved. This is
+      also the memory fix for 5-piece pawn tables (947 M slots as one piece;
+      a slice is 1/48th-ish of that per pawn square).
+- [ ] Storage: DTZ as its own table file (`.cbz`?) beside the DTM `.cbt`,
+      same index. Or one pass producing both, if memory allows. Check some
+      DTZ values against a published source (Syzygy tables are DTZ50) and
+      write down which positions were checked.
+- [ ] `probe` shows both: mate distance, and whether the win survives the rule.
+
+### Session 4: the first 5-piece tables
+- [ ] Run in whichever of WSL / Windows has the headroom (session 1's
+      projection). K+Q+R v K first (all wins, short mates). Measure time
+      (4-piece pawnless solves take ~12 s for 3.8 M slots; 64x the slots is
+      ~15 min if it scales linearly, likely more from cache misses), peak
+      memory, and file size (242 M x 2 bytes = 484 MB a table).
+- [ ] Then K+R+B v K+R. Check the longest mates against published values
+      (look them up; don't trust memory). `verify` a sample stride.
+- [ ] Climb the ladder: cap at 100 plies first (session 2), then extend.
+      DTZ tables (session 3) for the same material.
+- [ ] Disk budget for every pawnless 5-piece table, before starting the lot.
+      Ask Matthew before filling the disk.
+
 ## Done: milestone 1, the foundation
 
 - [x] 6-bit square code, 48-byte `PackedBoard`, FEN and hex in and out
@@ -63,29 +169,8 @@ Steps:
 - [ ] Tighter still: identical pieces in any order are stored twice (KQQvK,
       KRRvK...: 2x), pawns index 64 squares where 48 are possible (1.33x a
       pawn), and the other pieces still get 64 squares each, holes included
-- [ ] **Next session: step 2 of the 5-piece plan, the solver's memory.**
-      (Step 1, symmetry, is done; step 3 is solving the first 5-piece table.)
-      Where it stands, in `EndgameTable.Solver`: per slot `_values` (short),
-      `_remaining` (byte), `_longestLoss` (short), `_hasDrawingExit` (bool),
-      `_final` (bool) = 7 bytes, plus `_buckets`, one `List<long>` per ply of
-      queued indices (8 bytes each, re-queues included, lists double as they
-      grow). A 5-piece table without pawns is 462 x 64^3 x 2 = 242 M slots:
-      ~1.7 GB of arrays and several GB of queue. Too close to the edge in WSL
-      (7.8 GB cap, and Windows runs short when the Claude app and its Cowork
-      VM are open; see Matthew's notebook). Ideas, cheapest first:
-      the two bools into bit arrays; queue entries as uint (242 M < 2^32);
-      or drop the queues and rescan the table once per ply for values at
-      that ply (no queue memory; ~100 scans of 242 M slots is minutes).
-      Check `_longestLoss` still fits whatever it's narrowed to (5-piece
-      mates can be well over 100 moves). Then lift the `PieceCount > 4`
-      guard in `EndgameTable.Solve` and `Tablebase.MaxPieces`.
-      Measure peak memory on a 4-piece solve before and after, and the
-      36-table byte-identical check (see WORKLOG, 2026-09-27) must still pass.
-- [ ] Step 3: the first 5-piece table. Start pawnless and easy (K+Q+R v K,
-      all wins), then a famous one (K+R+B v K+R), and check the longest
-      mates against published values. Pawn 5-piece tables are 1,806 x 64^3
-      x 2 = 947 M slots (6.6 GB of arrays as things stand): they need
-      48-square pawns and/or solving by pawn slices before they fit
+- [ ] The 5-piece tables and the depth ladder: see **"Now: the session
+      plan"** at the top. Four sessions, briefs there
 - [x] Pawns on one side: pawn pushes and un-moves, promotions into the
       other tables, colour swap with the board flipped. KPvK (28 moves,
       76.5% of white-to-move positions won), KQvKP, KRvKP solved; KPvK
@@ -98,7 +183,7 @@ Steps:
 - [ ] The 50-move rule: these tables count distance to mate and ignore it.
       Nothing solved so far comes close (KQvKR's longest is 35), but some
       5-piece wins take more than 50 moves. Add DTZ (distance to a capture or
-      pawn move) when that matters
+      pawn move) when that matters. Now session 3 of the session plan
 - [ ] Grow the material set: KBBvK, KQvKQ, KRvKB, KRvKN … then 5 pieces
       after symmetry
 

@@ -345,3 +345,31 @@ rather than 48-byte boards, because that is the storage that scales.
 - Tests: 13 new (239 pass).
 - Left in WSL: ~/chessbruteforcer/tables (old format, untouched), plus
   tables-upgraded and tables-new (identical). Matthew to choose which to keep.
+- Later the same day: Matthew kept one WSL table folder and deleted the rest.
+
+## 2026-09-27: 5-piece tables, step 2 started (solver memory); the ladder plan
+
+- Measured first. `solve` now prints the solver's memory: its per-slot
+  arrays, plus its queues at their largest. `scripts/measure-tables.sh`
+  solves all 36 tables with one line each. Baseline, old solver, Windows:
+  36 tables in 479 s. The queues are as big as the arrays in winning tables.
+
+  | Table | Slots | Arrays | Queues | Total | Process peak |
+  |---|---|---|---|---|---|
+  | KQvKR | 3.8 M | 25.3 MB | 27.7 MB | 52.9 MB | 111 MB |
+  | KQRvK | 3.8 M | 25.3 MB | 30.7 MB | 56.0 MB | 121 MB |
+  | KBvKB (all draws) | 3.8 M | 25.3 MB | 0.0 MB | 25.3 MB | 70 MB |
+  | KRPvK | 14.8 M | 98.8 MB | 105.6 MB | 204.3 MB | 365 MB |
+
+  Saved as `tables-baseline/` (the 36 tables + `before.log`, gitignored)
+  for the regression check.
+- Matthew chose (a) bits for the two flags and (b) 4-byte queue entries.
+  Both written, on branch `solver-memory`, with the 5-piece guard lifted for
+  pawnless tables. Not finished: one new test fails, and `solve KQRPvK`
+  hung when it should refuse at once. Couldn't dig in this session. It's
+  the first item of session 1 in TODO.md.
+- Matthew's ladder: build tables to a capped depth and extend later
+  ("we can always go bigger with more disk space if we get the edges
+  correct"). He picked (a) cap and resume, (b) climb by piece count at the
+  same cap, (c) the 50-move rule as the cap. Planned as four sessions in
+  TODO.md ("Now: the session plan").
