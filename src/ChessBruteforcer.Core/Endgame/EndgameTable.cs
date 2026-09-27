@@ -133,9 +133,17 @@ public sealed class EndgameTable
         return position;
     }
 
+    /// <summary>Write the table; a temporary file is renamed at the end, so an interrupted save leaves nothing half-written.</summary>
     public void Save(string path)
     {
-        using var writer = new BinaryWriter(File.Create(path), Encoding.ASCII);
+        string temp = path + ".tmp";
+        using (var writer = new BinaryWriter(File.Create(temp), Encoding.ASCII))
+            WriteTo(writer);
+        File.Move(temp, path, overwrite: true);
+    }
+
+    private void WriteTo(BinaryWriter writer)
+    {
         writer.Write(Encoding.ASCII.GetBytes(Magic));
         writer.Write(Material.ToString());
         writer.Write(Size);

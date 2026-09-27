@@ -92,7 +92,9 @@ perft <depth> [fen]            count every move sequence to <depth>
 divide <depth> [fen]           perft split by first move, for tracking down bugs
 ```
 
-Endgame tables (up to 4 pieces), saved in `./tables` and reused:
+Endgame tables (up to 4 pieces), saved in `./tables` and reused.
+`scripts/build-tables.sh` solves all 30 four-piece tables in one go
+(restartable, roughly 1-3 hours):
 
 ```
 solve <material>               solve e.g. KQvK, KRvK, KQvKR and print what it found

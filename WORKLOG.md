@@ -170,3 +170,14 @@ rather than 48-byte boards, because that is the storage that scales.
   blocked by its own king, a queen that gave no check), PGN, Elo / SPRT maths,
   time-control parsing, and scripted-player games for mate, illegal move,
   time forfeit, threefold, bare kings, openings.
+
+## 2026-09-27: ready to move to a desktop
+
+- `scripts/build-tables.sh` solves all 30 four-piece tables (15 one-v-one, 15
+  two-v-bare-king) into ./tables, skipping ones already there, so it can be
+  stopped and restarted. Tested here: KQQvK and KQRvK each took ~107 s.
+- Table saves write to a temporary file and rename it, so killing a solve
+  never leaves a truncated table.
+- What lives only in a cloud session and has to be rebuilt on a new machine:
+  the .NET 8 SDK, Stockfish, ./tables (run the script), and engines/
+  snapshots (scripts/match.sh snapshot).

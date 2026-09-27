@@ -104,7 +104,7 @@ build on each other: each stage has to be solid before the next.
 - [x] Tests: mates in 1, free / poisoned material, stalemate, UCI commands,
       movetime, and search mate distances checked against the K+R v K table
 - [ ] Solve the remaining 4-piece tables (two pieces v bare king: KQPvK,
-      KRPvK, KQQvK, …). Without them the engine may "simplify" into a table it
+      KRPvK, KQQvK, …): `scripts/build-tables.sh` does all 30. Without them the engine may "simplify" into a table it
       has, e.g. give up its queen for a proven K+P v K win, which is correct
       but slow
 - [ ] Speed: ~550k nodes/s. Bitboards plus generating only legal moves
