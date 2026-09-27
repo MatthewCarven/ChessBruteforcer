@@ -98,7 +98,15 @@ moves played from the start.
 2. [ ] Replay to any ply: `game show <file> <n> <ply>`
 3. [ ] Position index (Zobrist hash -> game, ply): from a position, every
        game that reached it, and where each came from and went
-4. [ ] Later: where each game enters table territory, and whether it played
+4. [ ] Repetition (Matthew's idea): repetition rules remove no *positions*,
+       but they make the number of *games* finite (the 75-move and fivefold
+       rules cap a game at roughly 8,849 moves). Measure it two ways:
+   - [ ] A perft that refuses repeated positions: how much each depth loses
+         (expect almost nothing early; the first threefold needs 8 plies)
+   - [ ] On stored games, via the position index: every repetition, and
+         whether "the same piece making the same move back and forth"
+         predicts one (a detector, not the rule: FIDE counts positions)
+5. [ ] Later: where each game enters table territory, and whether it played
        perfectly from there (the ranked-move list scores each move); import
        a Lichess database month to see how it scales
 

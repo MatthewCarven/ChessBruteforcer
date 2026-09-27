@@ -232,3 +232,11 @@ rather than 48-byte boards, because that is the storage that scales.
   append; errors name the game and move; damaged files are refused.
 - 5,000 games through the CLI: export identical to input, byte for byte.
   ~3,000 games/s. Tags take 3.6x the bytes of the moves.
+- Direction, from Matthew: this project stays chess. Checkers (uniform pieces,
+  which suits how he estimates) would be a separate project. His hypothesis is
+  that enough rules write off 75%+ of the space, with repetition limiting
+  depth. The distinction worth keeping straight: repetition prunes *games*
+  (infinite to finite), not *positions*; the position space is cut by the
+  placement / reachability tiers, where the published reachable estimates
+  (10^44-10^46 v our tier 4 at 1.44e49) imply far more than 75%. Both
+  measurements are on the TODO.
