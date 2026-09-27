@@ -182,7 +182,7 @@ public class EndgameTests : IClassFixture<SolvedTables>
 
     [Theory]
     [InlineData("KQRPvK")]    // five pieces with a pawn: ~947 M slots, not yet
-    [InlineData("KQRRvK")]    // six pieces
+    [InlineData("KQRRvKR")]   // six pieces
     public void TablesTooBigToSolveAreRefusedBeforeAnyWork(string material)
     {
         Assert.Throws<NotSupportedException>(() =>

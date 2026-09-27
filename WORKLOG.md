@@ -373,3 +373,40 @@ rather than 48-byte boards, because that is the storage that scales.
   correct"). He picked (a) cap and resume, (b) climb by piece count at the
   same cap, (c) the 50-move rule as the cap. Planned as four sessions in
   TODO.md ("Now: the session plan").
+
+## 2026-09-27: 5-piece tables, step 2 finished (solver memory)
+
+- The open bug was the new test, not the solver. It listed KQRRvK as
+  "six pieces", but two kings + Q, R, R is five, with no pawn: the guard
+  rightly let it through, and the test host started a real 242 M-slot solve
+  with a draw-everything probe, then died. Six pieces is now KQRRvKR.
+  `solve KQRPvK` refuses at once, as it should.
+- Tests: 3 new (242 pass, 1 skipped as before). The full suite took 20 s.
+- Regression: all 36 tables solved again from nothing (481 s, was 479 s):
+  36 of 36 byte-identical to `tables-baseline/`.
+- Before/after solver memory (MB; arrays = value, moves left, slowest loss,
+  two flags; queues at their largest):
+
+  | Table | Slots | Before | After | Arrays | Queues | Process peak | Time |
+  |---|---|---|---|---|---|---|---|
+  | KQvKR | 3.8 M | 52.9 | 32.8 (0.62x) | 25.3 -> 18.9 | 27.7 -> 13.8 | 111 -> 85 | 13 -> 13 s |
+  | KQRvK | 3.8 M | 56.0 | 34.3 (0.61x) | 25.3 -> 18.9 | 30.7 -> 15.3 | 121 -> 90 | 12 -> 13 s |
+  | KRvKR | 3.8 M | 32.6 | 22.6 (0.69x) | 25.3 -> 18.9 | 7.3 -> 3.7 | 84 -> 71 | 8 -> 8 s |
+  | KBvKB (all draws) | 3.8 M | 25.3 | 18.9 (0.75x) | 25.3 -> 18.9 | 0 -> 0 | 70 -> 64 | 6 -> 6 s |
+  | KRPvK | 14.8 M | 204.3 | 126.9 (0.62x) | 98.8 -> 74.1 | 105.6 -> 52.8 | 365 -> 255 | 33 -> 32 s |
+  | KQvKP | 14.8 M | 185.1 | 117.2 (0.63x) | 98.8 -> 74.1 | 86.3 -> 43.2 | 334 -> 239 | 37 -> 36 s |
+  | **All 36** | | **2,571** | **1,660 (0.65x)** | 0.75x | 0.50x | | **479 -> 481 s** |
+
+  Arrays went from 7 to 5.25 bytes a slot, the queues exactly halved, and
+  the bit twiddling costs nothing measurable.
+- Projection to 5 pieces without pawns (242 M slots, 64x a 4-piece table),
+  from KQRvK: arrays 5.25 B x 242 M = ~1.2 GB; queues 0.68 entries a slot
+  at ~6.3 B each (List doubling leaves ~1.6x capacity) = ~1 GB; the largest
+  bucket (~22% of entries) may spike ~0.4 GB while it doubles. So ~2.7 GB
+  at peak, against ~3.5 GB before. Fits WSL's 7.8 GB cap with room; the
+  rescan-instead-of-queue fallback isn't needed.
+- Matthew's idea, logged in TODO (repetition): a staller cycles 3+ pieces
+  round separate loops. 3 pieces on 3-square loops = 27 arrangements, each
+  allowed twice before threefold = 54 moves, so the 50-move rule arrives
+  first: repetition alone can't end stalling. The shuffle rule
+  ("straight back") can't see loops.

@@ -14,8 +14,9 @@ below is redone. That only works if the edges are right, which is what
 sessions 2 and 3 are about.
 
 Shared facts for every session:
-- Full test suite: ~11 min on Windows (`dotnet test -c Release tests/...`).
-  Run it in the background; use `--filter` for the endgame tests while working.
+- Full test suite: 20 s on Windows on 2026-09-27 (`dotnet test -c Release
+  tests/...`); it was noted as ~11 min before. Not sure why: maybe tables
+  cached on disk by an earlier run. If it's slow again, run it in the background.
 - Regression check: `scripts/measure-tables.sh <cli bin> <empty dir> <log>`
   solves all 36 tables up to 4 pieces (~8 min) and prints each table's time
   and solver memory. Then `cmp` every .cbt against `tables-baseline/`
@@ -24,32 +25,18 @@ Shared facts for every session:
 - Memory is tight: WSL is capped at 7.8 GB, and Windows runs short with the
   Claude app and Cowork VM open. Run one big solve at a time.
 
-### Session 1: finish the solver's memory (step 2)
-Branch `solver-memory` holds the work, uncommitted to main. Done there:
-`BitSet` for `_hasDrawingExit` / `_final` (1 bit each, was 1 byte);
-queue entries `uint` (was `long`), en passant nodes marked by the top bit;
-`SolverMemory` (arrays, queues, entries), printed by `solve`; 5-piece guard
-lifted for pawnless tables, `Tablebase.MaxPieces` = 5.
-- [ ] **Open bug first.** `solve KQRPvK` should refuse at once
-      (NotSupportedException: five pieces with pawns) but hung for 60 s+
-      on 2026-09-27; so did the two new tests (`--filter` on
-      `TooBigToSolve|ReportsItsSolverMemory`, testhost at 1.4 GB). The full
-      suite reported 1 failure, in `TablesTooBigToSolveAreRefusedBeforeAnyWork`.
-      Find out which row, and why anything is being solved or allocated
-      before the guard. Suspects: `Material.Parse` / `IsCanonical` for these
-      strings, or the CLI path around `Tablebase.Get`.
-- [ ] Full suite green. Regression: 36 of 36 byte-identical to `tables-baseline`.
-- [ ] Before/after table for Matthew, per table, from the two logs
-      (baseline: KQvKR 52.9 MB = 25.3 arrays + 27.7 queues; KRPvK 204.3 MB
-      = 98.8 + 105.6; all 36 in 479 s). Expected after: arrays 7 -> 5.25
-      bytes a slot, queues halved, so about 0.6x overall. Note any slowdown
-      from the bit twiddling.
-- [ ] Project to 5 pieces from the measured bytes per slot (242 M slots).
-      Expected: ~1.3 GB arrays + ~1 GB queues. The list-doubling copy spikes
-      on the largest bucket may add a few hundred MB. If that's too close,
-      the fallback is to drop the queues and rescan the table once per ply
-- [ ] WORKLOG, README (`solve` output), merge `solver-memory` into main, commit.
-      Tell Matthew it needs pushing.
+### Session 1: finish the solver's memory (step 2) — done 2026-09-27
+Merged to main. `BitSet` flags, `uint` queue entries, `SolverMemory` printed
+by `solve`, pawnless 5-piece tables allowed (`Tablebase.MaxPieces` = 5).
+- [x] The "hang" was the test: it called KQRRvK "six pieces", but it has
+      five and no pawn, so it started a real 242 M-slot solve in the test
+      host. Now KQRRvKR. `solve KQRPvK` refuses at once.
+- [x] Full suite green (242 pass, 1 skipped). 36 of 36
+      byte-identical to `tables-baseline`.
+- [x] Before/after: solver memory 2,571 -> 1,660 MB (0.65x), no slowdown
+      (479 -> 481 s). Table in WORKLOG.
+- [x] Projection to 5 pieces: ~2.7 GB process peak (was ~3.5 GB). Fits
+      under WSL's 7.8 GB; no need for the rescan fallback.
 
 ### Session 2: cap and resume (ladder parts a and b)
 - [ ] A stored value for **"deeper than N"**, distinct from draw. Today
@@ -222,6 +209,15 @@ moves played from the start.
    - [x] Tune the shuffle rule: Matthew chose "only while nothing is
          happening" (10+ plies without a capture or pawn move). Games flagged
          by shuffling alone went from 9,937 to 97; time wasters 14% to 6%
+   - [ ] Cycling (Matthew, 2026-09-27): a smart staller doesn't send one
+         piece back and forth, it walks 3+ pieces round separate loops until
+         the unused combinations run out. The shuffle rule only sees "straight
+         back" (Nf3, Ng1), so a loop of 3+ squares never trips it. Estimate:
+         3 pieces on 3-square loops = 27 arrangements; each may occur twice
+         before threefold, so 54 moves, past the 50-move rule. Repetition
+         alone can't end stalling; the 50-move rule does (why it's the ladder's
+         cap). To measure: a cycle detector (a piece back on a square it left
+         within the quiet stretch), and how many time wasters it adds
 5. [x] Real games: Lichess 2013-01 (121,332) imported, graded (early kill /
        efficient / time waster), and measured as a tree (89% of plies are
        distinct tree nodes, 86% distinct positions; median game new from

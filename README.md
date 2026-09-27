@@ -92,12 +92,13 @@ perft <depth> [fen]            count every move sequence to <depth>
 divide <depth> [fen]           perft split by first move, for tracking down bugs
 ```
 
-Endgame tables (up to 4 pieces), saved in `./tables` and reused.
+Endgame tables (all 36 up to 4 pieces; 5 without pawns can be solved, none
+built yet), saved in `./tables` (or `$CHESS_TABLES`) and reused.
 `scripts/build-tables.sh` solves all 30 four-piece tables in one go
 (restartable, roughly 1-3 hours):
 
 ```
-solve <material>               solve e.g. KQvK, KRvK, KQvKR and print what it found
+solve <material>               solve e.g. KQvK, KRvK, KQvKR and print what it found (and the solver's memory)
 probe <fen>                    the outcome, and every move ranked best first
 line <fen>                     best play from here to mate
 verify <material> [stride]     check every (or every n-th) position against its moves
@@ -291,6 +292,17 @@ old solver made without it, once those were renumbered. All 36 solve in 8
 minutes on Matthew's laptop, down from hours, and take 427 MB of disk, down
 from 1.9 GB. Tables in the old format ("CBT1") still load, and `upgrade`
 rewrites them.
+
+**Solver memory.** `solve` prints what the solver held: its per-slot arrays
+(value, moves left, slowest loss: 5 bytes; two flags as bits) and its per-ply
+queues at their largest (4 bytes an entry, en passant nodes marked by the top
+bit). Flags as bits and 4-byte queue entries took the 36 tables from 2,571 MB
+to 1,660 MB of solver memory (0.65x; K+Q v K+R 52.9 -> 32.8 MB, K+R+P v K
+204 -> 127 MB), with the same tables byte for byte and no slowdown (479 s ->
+481 s for all 36). Projected to a 5-piece table without pawns (242 M slots,
+64x a 4-piece one): ~1.2 GB arrays + ~1 GB queues, ~2.7 GB for the process
+at its peak (was ~3.5 GB). So `solve` now takes 5 pieces without pawns;
+5 with pawns (947 M slots) is refused until pawns are solved in slices.
 
 | table | slots | size (was) | solve | legal positions | white to move: win / draw / loss | longest mate | known |
 | --- | --- | --- | --- | --- | --- | --- | --- |
