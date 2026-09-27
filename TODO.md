@@ -107,7 +107,17 @@ moves played from the start.
    - [ ] On stored games, via the position index: every repetition, and
          whether "the same piece making the same move back and forth"
          predicts one (a detector, not the rule: FIDE counts positions)
-5. [ ] Later: where each game enters table territory, and whether it played
+   - [x] Within one game: `game grade` counts repeats (FIDE's notion of a
+         position) and back-and-forth "shuffles" per game
+   - [ ] Tune the shuffle rule with Matthew: 3+ per game flags 59% of time
+         wasters on its own, including ordinary endgame king moves.
+         Candidates: shuffles per 10 moves, or shuffles only while no
+         progress is made, or several in a row
+5. [x] Real games: Lichess 2013-01 (121,332) imported, graded (early kill /
+       efficient / time waster), and measured as a tree (89% of plies are
+       distinct tree nodes, 86% distinct positions; median game new from
+       ply 7). Next: a bigger month, to see how sharing grows with scale
+6. [ ] Later: where each game enters table territory, and whether it played
        perfectly from there (the ranked-move list scores each move); import
        a Lichess database month to see how it scales
 

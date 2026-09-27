@@ -84,6 +84,87 @@ public class MoveCodeTests
     }
 }
 
+public class GameAnalysisTests
+{
+    private static StoredGame Game(string moves, string result = "*", string termination = "Normal") =>
+        Pgn.Parse($"[Result \"{result}\"]\n[Termination \"{termination}\"]\n\n{moves} {result}")[0];
+
+    [Fact]
+    public void KnightsGoingOutAndBackAreShufflesAndRepeats()
+    {
+        // Out and back twice: every return is a shuffle, and the start position comes round again.
+        var m = GameAnalysis.Measure(Game("1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6 4. Ng1 Ng8"));
+        Assert.Equal(8, m.Plies);
+        Assert.Equal(6, m.Shuffles);      // Ng1, Ng8, Nf3, Nf6, Ng1, Ng8: each undoes its side's last move
+        Assert.Equal(5, m.Repeats);       // plies 4-8 each recreate the position from 4 plies before
+        Assert.Equal(8, m.LongestQuiet);
+        Assert.Equal(0, m.Captures);
+        Assert.False(m.EndsInMate);
+    }
+
+    [Fact]
+    public void QuietStretchesResetOnCapturesAndPawnMoves()
+    {
+        var m = GameAnalysis.Measure(Game("1. e4 d5 2. exd5 Qxd5 3. Nc3 Qa5 4. Nf3 Nf6"));
+        Assert.Equal(2, m.Captures);
+        Assert.Equal(4, m.LongestQuiet);  // after Qxd5 the clock runs 3. Nc3 Qa5 4. Nf3 Nf6
+        Assert.Equal(0, m.Shuffles);
+    }
+
+    [Theory]
+    [InlineData("1. f3 e5 2. g4 Qh4#", "0-1", "Normal", GameStyle.EarlyKill)]
+    [InlineData("1. f3 e5 2. g4 Qh4#", "0-1", "Time forfeit", GameStyle.Clock)]
+    [InlineData("1. e4 e5", "1/2-1/2", "Normal", GameStyle.CleanDraw)]
+    [InlineData("1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6 4. Ng1 Ng8", "1/2-1/2", "Normal", GameStyle.TimeWaster)]
+    public void GamesAreGradedByHowTheyWent(string moves, string result, string termination, GameStyle style)
+    {
+        var game = Game(moves, result, termination);
+        Assert.Equal(style, GameAnalysis.Grade(game, GameAnalysis.Measure(game)));
+    }
+
+    [Fact]
+    public void AnEnPassantSquareCountsOnlyIfSomeoneCanUseIt()
+    {
+        // Same position both ways; the second ends on a double push nobody can capture.
+        var a = Game("1. e4 e5 2. Nf3").PositionAt(3);
+        var b = Game("1. Nf3 e5 2. e4").PositionAt(3);
+        Assert.NotEqual(a.Hash, b.Hash);
+        Assert.Equal(GameAnalysis.Key(a), GameAnalysis.Key(b));
+
+        // Here the capture is on, so the square is part of the position.
+        var live = Position.FromFen("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1");
+        var dead = Position.FromFen("4k3/8/8/3pP3/8/8/8/4K3 w - - 0 1");
+        Assert.NotEqual(GameAnalysis.Key(dead), GameAnalysis.Key(live));
+    }
+
+    [Fact]
+    public void FoolsMateIsMateInFour()
+    {
+        var m = GameAnalysis.Measure(Game("1. f3 e5 2. g4 Qh4#", "0-1"));
+        Assert.True(m.EndsInMate);
+        Assert.Equal(4, m.Plies);
+    }
+
+    [Fact]
+    public void TheTreeStoresSharedOpeningsOnceAndSpotsRepeatGames()
+    {
+        var stats = new GameTreeStats();
+        stats.Add(Game("1. e4 e5 2. Nf3 Nc6"));
+        stats.Add(Game("1. e4 e5 2. Nf3 Nf6"));      // leaves the first game's path at ply 3
+        stats.Add(Game("1. e4 e5 2. Nf3 Nc6"));      // a repeat of the first
+        stats.Add(Game("1. Nf3 Nc6 2. e4 e5"));      // new moves, but it transposes to the first game's position
+        stats.Add(Game("1. e4"));                     // a shorter game inside the first: not a repeat
+
+        Assert.Equal(17, stats.Plies);
+        Assert.Equal(9, stats.UniquePrefixes);       // 4 + 1 + 0 + 4 + 0
+        Assert.Equal(1, stats.DuplicateGames);
+        Assert.Equal(new[] { 0, 3, 4, 0, 1 }, stats.NewFrom);
+        // Positions: the start, e4, e4 e5, e4 e5 Nf3, ...Nc6, ...Nf6, then Nf3, Nf3 Nc6, Nf3 Nc6 e4
+        // (and e4 e5 Nf3 Nc6 again, merged).
+        Assert.Equal(9, stats.UniquePositions);
+    }
+}
+
 public class GameFileTests
 {
     // Exactly what the writer produces, so it has to come back out unchanged.

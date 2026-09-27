@@ -490,3 +490,7 @@ tables/
 # Engine snapshots and match games (see scripts/match.sh)
 engines/
 *.pgn
+
+# Downloaded game databases and imported .cbg files (see README: Game files)
+games/
+*.cbg

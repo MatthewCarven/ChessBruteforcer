@@ -48,6 +48,8 @@ static class Cli
           game list <file>               one line per game: number, result, length, players
           game count <file>              number of games in the file
           game show <file> <n> [ply]     game n replayed to a ply: 0 = start, -1 = one before the end, default the end
+          game grade <file> [examples]   early kill / efficient / time waster, with the sharpest examples of each
+          game tree <file>               how much the games share, as a tree of moves and as a set of positions
         """;
 
     public static int Run(string[] args)
@@ -87,6 +89,9 @@ static class Cli
                 ["game", "count", var file] => Print($"{GameFile.Count(file):N0} games"),
                 ["game", "show", var file, var n] => GameShow(file, long.Parse(n), "end"),
                 ["game", "show", var file, var n, var ply] => GameShow(file, long.Parse(n), ply),
+                ["game", "grade", var file] => GameGrade(file, 3),
+                ["game", "grade", var file, var n] => GameGrade(file, int.Parse(n)),
+                ["game", "tree", var file] => GameTree(file),
                 _ => Print(Usage, 1),
             };
         }
@@ -440,6 +445,113 @@ static class Cli
             line.Append(word);
         }
         Console.WriteLine(line);
+        return 0;
+    }
+
+    private sealed record Graded(long Number, StoredGame Game, GameMetrics Metrics, GameStyle Style);
+
+    /// <summary>Sort every game into Matthew's three styles (plus draws and clock losses), with examples of each.</summary>
+    private static int GameGrade(string file, int examples)
+    {
+        var styles = Enum.GetValues<GameStyle>();
+        var byStyle = styles.ToDictionary(s => s, _ => new List<Graded>());
+        long number = 0;
+        foreach (var game in GameFile.Read(file))
+        {
+            number++;
+            var metrics = GameAnalysis.Measure(game);
+            var style = GameAnalysis.Grade(game, metrics);
+            byStyle[style].Add(new Graded(number, game, metrics, style));
+        }
+
+        Console.WriteLine($"{number:N0} games. Early kill: won within {GameAnalysis.EarlyKillPlies} plies. " +
+                          $"Marking time: a stretch of {GameAnalysis.QuietLimit}+ plies with no capture or pawn move,");
+        Console.WriteLine($"{GameAnalysis.ShuffleLimit}+ pieces sent straight back where they came from, or a position repeated.");
+        Console.WriteLine();
+        Console.WriteLine($"{"style",-13} {"games",9} {"share",7} {"avg plies",10} {"by mate",8} {"avg rating",11}");
+        foreach (var style in styles)
+        {
+            var list = byStyle[style];
+            if (list.Count == 0)
+                continue;
+            double rating = list.Select(g => AverageRating(g.Game)).Where(r => r > 0).DefaultIfEmpty(0).Average();
+            Console.WriteLine($"{Name(style),-13} {list.Count,9:N0} {100.0 * list.Count / number,6:0.0}% " +
+                              $"{list.Average(g => g.Metrics.Plies),10:0.0} {100.0 * list.Count(g => g.Metrics.EndsInMate) / list.Count,7:0}% " +
+                              $"{rating,11:0}");
+        }
+
+        var wasters = byStyle[GameStyle.TimeWaster];
+        if (wasters.Count > 0)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Time wasters, by what gave them away (a game can show several):");
+            Console.WriteLine($"  long quiet stretch {wasters.Count(g => g.Metrics.LongestQuiet >= GameAnalysis.QuietLimit),9:N0}");
+            Console.WriteLine($"  shuffling          {wasters.Count(g => g.Metrics.Shuffles >= GameAnalysis.ShuffleLimit),9:N0}");
+            Console.WriteLine($"  repeated position  {wasters.Count(g => g.Metrics.Repeats > 0),9:N0}");
+            Console.WriteLine($"  shuffling only     {wasters.Count(g => g.Metrics.Repeats == 0 && g.Metrics.LongestQuiet < GameAnalysis.QuietLimit),9:N0}");
+            int won = wasters.Count(g => g.Game.Result != "1/2-1/2");
+            Console.WriteLine($"  ...and then won    {won,9:N0} ({100.0 * won / wasters.Count:0}%): the long plan that may have paid off");
+        }
+
+        // Examples: the sharpest of each kind, which is where a human eye learns most.
+        double median = Median(byStyle[GameStyle.Efficient]);
+        var picks = new (GameStyle Style, string Why, Func<Graded, double> Key)[]
+        {
+            (GameStyle.EarlyKill, "fastest mates", g => g.Metrics.EndsInMate ? g.Metrics.Plies : 1e9),
+            (GameStyle.Efficient, $"won by mate, nearest the median length ({median} plies)", g => g.Metrics.EndsInMate ? Math.Abs(g.Metrics.Plies - median) : 1e9),
+            (GameStyle.TimeWaster, "longest quiet stretch that still ended in mate", g => g.Metrics.EndsInMate ? -g.Metrics.LongestQuiet : 1e9),
+        };
+        foreach (var (style, why, key) in picks)
+        {
+            if (byStyle[style].Count == 0 || examples == 0)
+                continue;
+            Console.WriteLine();
+            Console.WriteLine($"{Name(style)}: {why}");
+            foreach (var g in byStyle[style].OrderBy(key).ThenBy(g => g.Number).Take(examples))
+            {
+                var m = g.Metrics;
+                Console.WriteLine($"  #{g.Number,-7} {g.Game.Result,-7} {m.Plies,3} plies  quiet {m.LongestQuiet,3}  " +
+                                  $"shuffles {m.Shuffles,2}  repeats {m.Repeats,2}  {g.Game.Tag("Site") ?? ""}");
+            }
+        }
+        return 0;
+
+        static string Name(GameStyle style) => style switch
+        {
+            GameStyle.EarlyKill => "early kill",
+            GameStyle.Efficient => "efficient",
+            GameStyle.TimeWaster => "time waster",
+            GameStyle.CleanDraw => "clean draw",
+            _ => "clock",
+        };
+
+        static double Median(List<Graded> list) =>
+            list.Count == 0 ? 0 : list.Select(g => g.Metrics.Plies).Order().ElementAt(list.Count / 2);
+    }
+
+    private static double AverageRating(StoredGame game) =>
+        int.TryParse(game.Tag("WhiteElo"), out int white) && int.TryParse(game.Tag("BlackElo"), out int black)
+            ? (white + black) / 2.0 : 0;
+
+    /// <summary>How much the games share, stored as one tree of moves (and as one set of positions).</summary>
+    private static int GameTree(string file)
+    {
+        var stats = new GameTreeStats();
+        foreach (var game in GameFile.Read(file))
+            stats.Add(game);
+
+        long plies = stats.Plies;
+        Console.WriteLine($"{stats.Games:N0} games, {plies:N0} plies stored game by game");
+        Console.WriteLine($"  as a tree of moves:     {stats.UniquePrefixes,12:N0} nodes " +
+                          $"({100.0 * stats.UniquePrefixes / plies:0.0}%: shared openings stored once)");
+        Console.WriteLine($"  as a set of positions:  {stats.UniquePositions,12:N0} positions " +
+                          $"({100.0 * stats.UniquePositions / plies:0.0}%: transpositions merged too)");
+        Console.WriteLine($"  games played before, move for move: {stats.DuplicateGames:N0}");
+
+        var newFrom = stats.NewFrom.Order().ToList();
+        int Percentile(double p) => newFrom[(int)Math.Min(newFrom.Count - 1, p * newFrom.Count)];
+        Console.WriteLine($"  where a game first leaves every earlier game's path: median ply {Percentile(0.5)}, " +
+                          $"middle half {Percentile(0.25)}-{Percentile(0.75)}, 90% by ply {Percentile(0.9)}");
         return 0;
     }
 

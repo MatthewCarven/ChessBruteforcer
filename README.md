@@ -111,6 +111,8 @@ game export <file> <pgn>       write every game out as PGN
 game list <file>               one line per game: number, result, length, players
 game count <file>              number of games
 game show <file> <n> [ply]     game n replayed to a ply (0 = start, -1 = one before the end, default the end)
+game grade <file> [examples]   early kill / efficient / time waster, with the sharpest examples of each
+game tree <file>               how much the games share, as a tree of moves and as a set of positions
 ```
 
 ## Move generation: `Game/`
@@ -163,6 +165,44 @@ at about 3,000 games (100,000 moves) a second.
 For scale: in those 5,000 games the moves took 165 KB and the tags 590 KB,
 so the tags cost more than the game. A shared string table for tags is the
 obvious next saving.
+
+### Real games: Lichess, January 2013
+
+The [Lichess database](https://database.lichess.org) publishes every rated
+game under CC0. The first month, 121,332 games (92.8 MB of PGN), imports
+with no errors in about a minute to 43.5 MB. Of that, 8.2 MB is moves and the
+rest is tags. Exported and imported again, the file comes back byte for
+byte. Downloads go in `games/`, which git ignores; Python 3.14's
+`compression.zstd` unpacks the `.zst` without installing anything.
+
+`game grade` sorts games into three styles (Matthew's): **early kill** (won
+by mate or resignation within 25 moves each), **efficient** (won later
+without marking time), and **time waster** (marked time on the way, won or
+drawn). "Marking time" means a 20-ply stretch with no capture or pawn move,
+3+ moves that send a piece straight back where it came from, or a repeated
+position. Lost-on-time games are set aside, because the clock decided them.
+
+| style | games | share | avg plies | by mate | avg rating |
+| --- | --- | --- | --- | --- | --- |
+| early kill | 27,493 | 22.7% | 34.8 | 38% | 1570 |
+| efficient | 38,154 | 31.4% | 72.6 | 43% | 1607 |
+| time waster | 16,941 | 14.0% | 108.7 | 45% | 1605 |
+| clean draw | 861 | 0.7% | 88.8 | 0% | 1603 |
+| clock | 37,883 | 31.2% | 66.2 | 0% | 1615 |
+
+85% of time wasters still won. But 59% of them were flagged by the
+shuffling rule alone, which also catches ordinary endgame king moves, so
+that threshold needs tuning before the time-waster share means much.
+
+`game tree` measures how much games share. As a tree of moves (shared
+openings stored once) the 8.16 M plies need 7.26 M nodes, **89%**. As a set
+of positions (transpositions merged too) they need 7.05 M, **86%**. Games
+leave all earlier games' paths early: the median game is new from ply 7,
+and 90% are new by ply 11. Only 811 games repeat an earlier one move for
+move. At this scale the tree is worth more as a map than as storage: a node
+needs a link to its parent, which costs more than the 1 byte a move takes
+in a flat file. Positions are compared as FIDE's repetition rule compares
+them: the en passant square counts only when a capture there is legal.
 
 ## Solved endgames: `Endgame/`
 
@@ -309,7 +349,8 @@ src/ChessBruteforcer.Core/
   Endgame/                      Material, Outcome, EndgameTable (retrograde solver), Tablebase
   Engine/                       Evaluation, Search, TranspositionTable, UciEngine
   Match/                        San, GameRecord (PGN), players, GamePlayer, MatchStats, MatchRunner
-  Records/                      MoveCode (a move as a byte), StoredGame, Pgn (read / write), GameFile (.cbg)
+  Records/                      MoveCode (a move as a byte), StoredGame, Pgn (read / write), GameFile (.cbg),
+                                GameAnalysis (metrics, styles, tree stats)
 src/ChessBruteforcer.Engine/    the UCI engine executable (also bench, selfplay)
 src/ChessBruteforcer.Match/     the match runner
 scripts/match.sh                snapshots and matches

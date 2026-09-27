@@ -256,3 +256,31 @@ rather than 48-byte boards, because that is the storage that scales.
   match reading them all; out-of-range numbers refused; a truncated last
   game fails `Count` and its own read but leaves earlier games readable;
   replay matches step-by-step play at every ply of the Opera game.
+
+## 2026-09-27: real games (Lichess 2013-01), styles, and the "grid"
+
+- Matthew thought Lichess's policy forbade taking its games; that policy is
+  about engine help while *playing*. database.lichess.org publishes every
+  rated game under CC0. Downloaded 2013-01 (17.8 MB .zst, 121,332 games) into
+  games/ (now gitignored with *.cbg), unpacked with Python 3.14's
+  compression.zstd.
+- Import: every game, no errors, ~60 s, 43.5 MB. Export then re-import gives
+  an identical .cbg, the real-data version of "PGN in = PGN out".
+- Matthew asked for three styles: early kill, moderately efficient, wastes
+  time (maybe on a long plan). `GameAnalysis` measures plies, mate, shuffles
+  (a piece straight back where it came from), repeats, the longest quiet
+  stretch and captures; `game grade` sorts and gives example games (Lichess
+  URLs). Results in the README. Early kills average ~35 rating points below
+  the rest (1570 v ~1605). The shuffle rule is too loose (59% of time wasters
+  flagged by it alone), which is left for Matthew to tune.
+- Matthew's grid idea: games share ancestors (openings) and descendants
+  (transpositions), so each should be stored once. `game tree` measures it.
+  89% of plies are distinct prefixes, 86% distinct positions, median game new
+  from ply 7, and 811 exact repeats. So at 121k games the sharing is all in the
+  first ~10 plies; the tree is a map more than a compressor. Worth measuring
+  again on a month 100x bigger.
+- Found while testing: a double push always sets the en passant square, so
+  "1. e4 e5 2. Nf3" and "1. Nf3 e5 2. e4" hashed differently. `GameAnalysis.Key`
+  drops the square unless a capture there is legal (FIDE's rule).
+  Merged positions went 7,057,164 -> 7,048,611.
+- Tests: 9 new (224 pass).
