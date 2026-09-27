@@ -1,3 +1,4 @@
+using System.IO.MemoryMappedFiles;
 using System.Text;
 using ChessBruteforcer.Core.Game;
 
@@ -30,22 +31,37 @@ public sealed class EndgameTable
     private const short Unknown = short.MaxValue;
     private const string Magic = "CBT1";
 
-    private readonly short[] _values;
+    // Either the values are in memory (just solved) or read from the file on demand (loaded).
+    private readonly short[]? _values;
+    private readonly MemoryMappedViewAccessor? _view;
+    private readonly long _dataOffset;
 
     public Material Material { get; }
 
     public int SlotCount => Material.PieceCount;
 
-    public long Size => _values.LongLength;
+    public long Size { get; }
 
     private EndgameTable(Material material, short[] values)
     {
         Material = material;
         _values = values;
+        Size = values.LongLength;
+    }
+
+    private EndgameTable(Material material, MemoryMappedViewAccessor view, long dataOffset, long size)
+    {
+        Material = material;
+        _view = view;
+        _dataOffset = dataOffset;
+        Size = size;
     }
 
     /// <summary>The value of every index, from the side to move's point of view (null = impossible).</summary>
-    public Outcome? this[long index] => Decode(_values[index]);
+    public Outcome? this[long index] => Decode(Raw(index));
+
+    private short Raw(long index) =>
+        _values is not null ? _values[index] : _view!.ReadInt16(_dataOffset + index * sizeof(short));
 
     /// <summary>
     /// Solve a material set.  <paramref name="probeCapture"/>
@@ -92,9 +108,9 @@ public sealed class EndgameTable
     public TableStatistics Statistics()
     {
         var stats = new TableStatistics(Material);
-        for (long index = 0; index < _values.LongLength; index++)
+        for (long index = 0; index < Size; index++)
         {
-            var outcome = Decode(_values[index]);
+            var outcome = Decode(Raw(index));
             if (outcome is null)
                 continue;
             var side = (Colour)(index & 1);
@@ -122,27 +138,46 @@ public sealed class EndgameTable
         using var writer = new BinaryWriter(File.Create(path), Encoding.ASCII);
         writer.Write(Encoding.ASCII.GetBytes(Magic));
         writer.Write(Material.ToString());
-        writer.Write(_values.LongLength);
-        var bytes = new byte[_values.Length * sizeof(short)];
-        Buffer.BlockCopy(_values, 0, bytes, 0, bytes.Length);
+        writer.Write(Size);
+        var values = _values ?? Enumerable.Range(0, checked((int)Size)).Select(i => Raw(i)).ToArray();
+        var bytes = new byte[values.Length * sizeof(short)];
+        Buffer.BlockCopy(values, 0, bytes, 0, bytes.Length);
         writer.Write(bytes);
     }
 
-    public static EndgameTable Load(string path)
+    /// <summary>
+    /// Open a saved table.  By default the file is memory-mapped: opening is
+    /// instant and each probe reads just the page it needs.  With
+    /// <paramref name="intoMemory"/> the whole table is read in, so later
+    /// probes never touch the disk (what a playing engine wants).
+    /// </summary>
+    public static EndgameTable Load(string path, bool intoMemory = false)
     {
-        using var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII);
-        if (Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length)) != Magic)
-            throw new InvalidDataException($"{path} is not an endgame table.");
-        var material = Material.Parse(reader.ReadString());
-        long count = reader.ReadInt64();
-        if (count != TableSize(material))
-            throw new InvalidDataException($"{path} has {count} entries; {material} needs {TableSize(material)}.");
-        var bytes = reader.ReadBytes(checked((int)(count * sizeof(short))));
-        if (bytes.Length != count * sizeof(short))
-            throw new InvalidDataException($"{path} is truncated.");
-        var values = new short[count];
-        Buffer.BlockCopy(bytes, 0, values, 0, bytes.Length);
-        return new EndgameTable(material, values);
+        Material material;
+        long count, dataOffset;
+        using (var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII))
+        {
+            if (Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length)) != Magic)
+                throw new InvalidDataException($"{path} is not an endgame table.");
+            material = Material.Parse(reader.ReadString());
+            count = reader.ReadInt64();
+            dataOffset = reader.BaseStream.Position;
+            if (count != TableSize(material))
+                throw new InvalidDataException($"{path} has {count} entries; {material} needs {TableSize(material)}.");
+            if (reader.BaseStream.Length < dataOffset + count * sizeof(short))
+                throw new InvalidDataException($"{path} is truncated.");
+        }
+        if (intoMemory)
+        {
+            using var stream = File.OpenRead(path);
+            stream.Position = dataOffset;
+            var values = new short[count];
+            stream.ReadExactly(System.Runtime.InteropServices.MemoryMarshal.AsBytes(values.AsSpan()));
+            return new EndgameTable(material, values);
+        }
+        var file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
+        var view = file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+        return new EndgameTable(material, view, dataOffset, count);
     }
 
     public static long TableSize(Material material) => (1L << (6 * material.PieceCount)) * 2;

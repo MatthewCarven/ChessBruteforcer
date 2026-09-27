@@ -32,6 +32,13 @@ public sealed class Tablebase
     /// </summary>
     public bool SolveMissing { get; init; } = true;
 
+    /// <summary>
+    /// When false, only tables already loaded (see <see cref="Preload"/>) are
+    /// used, and the disk is never touched on a probe.  A search probing
+    /// thousands of positions a second can't afford a disk read mid-move.
+    /// </summary>
+    public bool LoadOnDemand { get; init; } = true;
+
     /// <summary>Largest piece count any table covers.</summary>
     public const int MaxPieces = 4;
 
@@ -43,6 +50,12 @@ public sealed class Tablebase
         material = material.Canonical;
         if (_tables.TryGetValue(material, out var table))
             return table;
+
+        if (!LoadOnDemand)
+        {
+            _missing.Add(material);
+            throw new TableMissingException(material);
+        }
 
         string? path = Directory is null ? null : Path.Combine(Directory, material + ".cbt");
         if (path is not null && File.Exists(path))
@@ -100,6 +113,27 @@ public sealed class Tablebase
         if (moves.Count == captures.Count)
             return best;
         return stored.Score >= best.Score ? stored : best;
+    }
+
+    /// <summary>
+    /// Read every table in <see cref="Directory"/> into memory.  Returns how
+    /// many tables and bytes were loaded.
+    /// </summary>
+    public (int Tables, long Bytes) Preload()
+    {
+        if (Directory is null)
+            return (0, 0);
+        int count = 0;
+        long bytes = 0;
+        foreach (string path in System.IO.Directory.EnumerateFiles(Directory, "*.cbt").Order())
+        {
+            var table = EndgameTable.Load(path, intoMemory: true);
+            _tables[table.Material] = table;
+            _missing.Remove(table.Material);
+            count++;
+            bytes += table.Size * sizeof(short);
+        }
+        return (count, bytes);
     }
 
     /// <summary>

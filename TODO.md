@@ -121,14 +121,21 @@ matches here use our own runner (built on `selfplay`). On your own machine,
 cutechess-cli or fastchess work with the engine executable as it is.
 Stockfish *is* installable, and at reduced strength it makes a good yardstick.
 
-- [ ] cutechess-cli (or fastchess) set up with a script that plays N games
-      between two builds with a fixed opening book and time control
-- [ ] SPRT or Elo-difference reporting so "is this change better?" gets a
-      statistical answer
-- [ ] Gauntlets against known engines of known rating (e.g. older Stockfish
-      levels, weaker open-source engines) to estimate our own Elo
-- [ ] Keep a match log (engine version, opponents, result, Elo estimate) in
-      WORKLOG.md or a results file
+- [x] Match runner (`ChessBruteforcer.Match`): two UCI engines as separate
+      processes, openings played in colour-reversed pairs, a real clock
+      with time forfeits, every game ending (mate, stalemate, 50-move,
+      threefold, insufficient material, illegal / missing move), optional
+      adjudication by our tables, several games at once, PGN output
+- [x] Elo difference with 95% interval, LOS, and SPRT early stopping
+- [x] `scripts/match.sh`: snapshot a build, play it v Stockfish at a set Elo
+      or v another snapshot
+- [x] Match log: MATCHES.md
+- [x] First yardstick: v0.1 beat Stockfish-1500 18-2; v0.2 v Stockfish-2000
+      11-9. Roughly 2000 on Stockfish's UCI_Elo scale (wide error bars)
+- [x] Time forfeits traced to first-time endgame-table reads from a slow disk
+      mid-search; tables now preload on `isready`, plus a Move Overhead option
+- [ ] More games per measurement (hundreds, not tens) once changes are small
+- [ ] Gauntlet against other open-source engines of known CCRL rating
 
 ### 3c. Lichess bot account
 

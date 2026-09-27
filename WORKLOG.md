@@ -150,3 +150,23 @@ rather than 48-byte boards, because that is the storage that scales.
   Correct but slow; solving K+Q+P v K and the other 2-v-0 tables fixes it.
 - Plan change: cutechess isn't installable here, so local matches will use
   our own runner. Stockfish is installable as a yardstick opponent.
+
+## 2026-09-27: match runner (milestone 3b)
+
+- `Match/`: `San` (standard notation incl. disambiguation, e.p., promotion,
+  check / mate), `GameRecord` (PGN), `IPlayer` / `UciPlayer` (engines as
+  separate processes), `GamePlayer` (clock, time forfeits, every game ending,
+  table adjudication), `MatchStats` (Elo + 95% interval, LOS, SPRT),
+  `MatchRunner` (colour-reversed opening pairs, concurrency).
+- New executable `ChessBruteforcer.Match` and `scripts/match.sh`. Stockfish 16
+  installed from apt as the yardstick (UCI_Elo 1320-3190).
+- Results (MATCHES.md): v0.1 18-2 v Stockfish-1500; v0.2 11-9 and v0.3 14-4-2
+  v Stockfish-2000. About 2100 on Stockfish's scale, approximate.
+- Two time forfeits, traced to first-time endgame-table reads mid-search on a
+  slow disk (~65 MB/s). Fix: tables load into memory on `isready`
+  (`Tablebase.Preload`, `LoadOnDemand = false`), plus a Move Overhead UCI
+  option. v0.3 had no forfeits. Time losses now report the milliseconds.
+- Tests: SAN cases (two of my own test positions were wrong again: a rook
+  blocked by its own king, a queen that gave no check), PGN, Elo / SPRT maths,
+  time-control parsing, and scripted-player games for mate, illegal move,
+  time forfeit, threefold, bare kings, openings.

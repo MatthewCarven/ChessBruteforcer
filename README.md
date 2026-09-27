@@ -215,6 +215,31 @@ About 550k positions a second. In self-play, games run to their proper end
 *proven* K+P v K win, which is correct, but a table for K+Q+P v K would find
 the faster mate. That's on the TODO.
 
+## Matches: `Match/` and `ChessBruteforcer.Match`
+
+A match runner, in the spirit of cutechess-cli, for measuring strength in games
+rather than guessing:
+
+```
+scripts/match.sh snapshot v0.3            # freeze the current engine build as engines/v0.3
+scripts/match.sh vs-stockfish v0.3 2000   # 20 games v Stockfish limited to 2000 Elo, 10+0.1
+scripts/match.sh vs-engine v0.4 v0.3      # snapshot v snapshot, stops early by SPRT
+```
+
+- Both engines run as separate UCI processes, like in a real tournament.
+- Each opening (16 built in, or `--openings file`) is played twice with
+  colours reversed.
+- The clock is real (base + increment) and flags do fall. Games end by
+  mate, stalemate, the 50-move rule, threefold repetition, insufficient
+  material or an illegal move, or are adjudicated by our endgame tables.
+- The report gives wins/losses/draws, an Elo difference with its 95% interval,
+  the likelihood of superiority, and an optional SPRT that stops once the
+  answer is clear.
+- Every game is saved as PGN in standard notation, for any chess viewer (or
+  the thesis).
+
+Results so far are in [MATCHES.md](MATCHES.md).
+
 ## Superposition: `Possibility/`
 
 A C# port of the core of
@@ -245,7 +270,10 @@ src/ChessBruteforcer.Core/
   Game/                         Position, Move, MoveGenerator, Perft
   Endgame/                      Material, Outcome, EndgameTable (retrograde solver), Tablebase
   Engine/                       Evaluation, Search, TranspositionTable, UciEngine
+  Match/                        San, GameRecord (PGN), players, GamePlayer, MatchStats, MatchRunner
 src/ChessBruteforcer.Engine/    the UCI engine executable (also bench, selfplay)
+src/ChessBruteforcer.Match/     the match runner
+scripts/match.sh                snapshots and matches
 src/ChessBruteforcer.Cli/       the commands above
 tests/ChessBruteforcer.Tests/   xunit
 ```

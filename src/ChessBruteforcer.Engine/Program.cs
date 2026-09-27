@@ -88,7 +88,8 @@ static class SelfPlay
         var position = Position.Start();
         var hashes = new List<ulong>();
         var moves = new List<string>();
-        var tablebase = tables is null ? null : new Tablebase(tables) { SolveMissing = false };
+        var tablebase = tables is null ? null : new Tablebase(tables) { SolveMissing = false, LoadOnDemand = false };
+        tablebase?.Preload();
         var search = new Search(new TranspositionTable(32), tablebase);
 
         void Play(Move move)

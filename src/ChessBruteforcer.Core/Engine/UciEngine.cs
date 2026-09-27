@@ -23,6 +23,8 @@ public sealed class UciEngine
     private Thread? _searchThread;
 
     private Position _position = Position.Start();
+    private int _moveOverheadMs = 50;
+    private bool _tablesLoaded;
     private List<ulong> _previousHashes = new();
 
     public UciEngine(TextWriter output, string? tablePath = null)
@@ -61,9 +63,11 @@ public sealed class UciEngine
                     Send($"id author {Author}");
                     Send("option name Hash type spin default 64 min 1 max 4096");
                     Send("option name EndgameTables type string default <empty>");
+                    Send("option name Move Overhead type spin default 50 min 0 max 5000");
                     Send("uciok");
                     break;
                 case "isready":
+                    EnsureTablesLoaded();
                     Send("readyok");
                     break;
                 case "ucinewgame":
@@ -79,7 +83,8 @@ public sealed class UciEngine
                     break;
                 case "go":
                     StopSearch();
-                    StartSearch(ParseGo(words));
+                    EnsureTablesLoaded();
+                    StartSearch(ParseGo(words) with { MoveOverheadMs = _moveOverheadMs });
                     break;
                 case "stop":
                     StopSearch();
@@ -125,6 +130,9 @@ public sealed class UciEngine
             case "hash":
                 _table.Resize(int.Parse(value, CultureInfo.InvariantCulture));
                 break;
+            case "move overhead":
+                _moveOverheadMs = int.Parse(value, CultureInfo.InvariantCulture);
+                break;
             case "endgametables":
                 SetTablePath(value is "" or "<empty>" ? null : value);
                 _search = new Search(_table, _tablebase);
@@ -141,8 +149,22 @@ public sealed class UciEngine
     private void SetTablePath(string? path)
     {
         _tablebase = path is not null && System.IO.Directory.Exists(path)
-            ? new Tablebase(path) { SolveMissing = false }
+            ? new Tablebase(path) { SolveMissing = false, LoadOnDemand = false }
             : null;
+        _tablesLoaded = false;
+    }
+
+    /// <summary>
+    /// Endgame tables are read into memory once, on "isready" (the UCI
+    /// moment for slow setup), so the search never waits for the disk.
+    /// </summary>
+    private void EnsureTablesLoaded()
+    {
+        if (_tablesLoaded || _tablebase is null)
+            return;
+        var (tables, bytes) = _tablebase.Preload();
+        _tablesLoaded = true;
+        Send($"info string loaded {tables} endgame tables ({bytes / (1024 * 1024)} MB)");
     }
 
     /// <summary>position [startpos | fen &lt;fen&gt;] [moves &lt;move&gt;...]</summary>

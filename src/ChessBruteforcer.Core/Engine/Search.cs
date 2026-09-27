@@ -16,6 +16,9 @@ public sealed record SearchLimits
     public int BlackIncrementMs { get; init; }
     public int? MovesToGo { get; init; }
     public bool Infinite { get; init; }
+
+    /// <summary>Time kept back on every move for communication and the operating system.</summary>
+    public int MoveOverheadMs { get; init; } = 50;
 }
 
 /// <summary>Progress after each completed depth.</summary>
@@ -419,15 +422,16 @@ public sealed class Search
         if (limits.Infinite)
             return (0, 0);
         if (limits.MoveTimeMs is int moveTime)
-            return (0, Math.Max(1, moveTime));
+            return (0, Math.Max(1, moveTime - limits.MoveOverheadMs / 2));
         int? time = root.SideToMove == Colour.White ? limits.WhiteTimeMs : limits.BlackTimeMs;
         if (time is not int remaining)
             return (0, 0);
         int increment = root.SideToMove == Colour.White ? limits.WhiteIncrementMs : limits.BlackIncrementMs;
         int movesToGo = Math.Clamp(limits.MovesToGo ?? 30, 1, 60);
+        remaining = Math.Max(1, remaining - limits.MoveOverheadMs);
         long soft = remaining / movesToGo + increment * 3L / 4;
         long hard = Math.Min(soft * 3, remaining / 3 + increment);
-        hard = Math.Max(10, Math.Min(hard, remaining - 50));
+        hard = Math.Max(5, Math.Min(hard, remaining - 20));
         return (Math.Min(soft, hard), hard);
     }
 
