@@ -98,20 +98,24 @@ by `solve`, pawnless 5-piece tables allowed (`Tablebase.MaxPieces` = 5).
       the table there, but they still only go forward, so the same order
       works; distances carry across slices instead of restarting.
 
-### Session 4: the first 5-piece tables
-- [ ] Run in whichever of WSL / Windows has the headroom (session 1's
-      projection). K+Q+R v K first (all wins, short mates). Measure time
-      (4-piece pawnless solves take ~12 s for 3.8 M slots; 64x the slots is
-      ~15 min if it scales linearly, likely more from cache misses), peak
-      memory, and file size (242 M x 2 bytes = 484 MB a table).
-- [ ] Then K+R+B v K+R. Check the longest mates against published values
-      (look them up; don't trust memory). `verify` a sample stride.
-- [ ] DTZ first (session 3a): it needs only the smaller tables' DTZ, never
-      the table's own DTM, and its solve stops at 100 plies by definition.
-      Cursed wins should first appear here (none up to 4 pieces).
-- [ ] DTM by the ladder: cap at 100 plies first (session 2), then extend.
-- [ ] Disk budget for every pawnless 5-piece table, before starting the lot.
-      Ask Matthew before filling the disk.
+### Session 4: the first 5-piece tables — done 2026-09-28
+- [x] Windows (5.7 GB free once Matthew closed things). KQRRvK DTZ: 796 s,
+      solver 2.06 GB, process peak 2.18 GB (projected 2.7), 484 MB file.
+      All wins with white to move. (The plan said K+Q+R v K, but that's 4
+      pieces.)
+- [x] KRBvKR DTZ: 570 s, peak 1.5 GB. DTM up the ladder: capped at 100 in
+      570 s (818 MB frontier), extended to the end in 9 s. Longest mate 65
+      moves (129 plies); Lichess (Gaviota DTM) agrees. The "59 moves" in the
+      literature isn't mate: it's distance to conversion (Syzygy puts that
+      position ~116 plies from a capture). **The first cursed wins: 17,440
+      (white to move), and 5,400 blessed losses (black to move).**
+- [x] Checked against Lichess: both tables' longest cases, three random
+      KRBvKR positions (mate distance and DTZ), and the cursed/blessed
+      categories. `verify` / `dtz verify` on every 1000th position.
+- [ ] The rest of the pawnless 5-piece tables: 60 material sets (20 of
+      three pieces v a bare king, 40 of two v one). DTZ alone ~29 GB and
+      ~11 h; with DTM ~58 GB and ~22 h. Ask Matthew before filling the disk.
+      A script like dtz-tables.sh, restartable (skip tables on disk).
 
 ## Done: milestone 1, the foundation
 
@@ -225,7 +229,17 @@ moves played from the start.
    - [x] Tune the shuffle rule: Matthew chose "only while nothing is
          happening" (10+ plies without a capture or pawn move). Games flagged
          by shuffling alone went from 9,937 to 97; time wasters 14% to 6%
-   - [ ] Cycling (Matthew, 2026-09-27): a smart staller doesn't send one
+   - [x] Cycling (Matthew, 2026-09-27; measured 2026-09-28 with `game idle`,
+         five months, 741k games). Idle moves: 19% straight back, 8%
+         cycles, 73% fresh arrangements. Games with 3+ cycle moves: 1.1%,
+         and 97% of them are already flagged (mostly by the 20-ply quiet
+         stretch). A cycle rule would add 234 games of 741k: **not
+         warranted**. The quiet-stretch rule doesn't care what shape the
+         stalling takes, so an orderly walk can't slip past it, which is the
+         50-move rule's own logic. (An orderly staller's moves read as
+         "fresh" until its arrangements run out, so revisits can't measure
+         how orderly a walk is; that would need a different measure.)
+         The original note: a smart staller doesn't send one
          piece back and forth, it walks 3+ pieces round separate loops until
          the unused combinations run out. The shuffle rule only sees "straight
          back" (Nf3, Ng1), so a loop of 3+ squares never trips it. Estimate:

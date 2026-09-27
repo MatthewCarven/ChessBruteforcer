@@ -525,3 +525,53 @@ rather than 48-byte boards, because that is the storage that scales.
   bishops (32 squares, their colour) and pawns (48 squares, and only
   forward, which is what makes slicing work); no for the rest. Logged the
   48-square pawns and bishop-colour splits as memory ideas in TODO 3b.
+
+## 2026-09-28: 5-piece tables, session 4 (the first ones), and stalling cycles
+
+- Memory first: Windows had 2.0 GB free (committed 17.1 of 19.9 GB: Godot,
+  the WSL VM, the Claude app). Matthew freed some: 5.7 GB. Two trims while
+  waiting: `Save` writes straight from the array (a copy was 484 MB at 5
+  pieces), and `dtz` only compares with the DTM table if it's already on
+  disk (at 5 pieces that's a solve of its own).
+- The plan's first table, K+Q+R v K, is 4 pieces (my slip, like the test
+  in session 1). Solved it anyway in 13 s, then the real one:
+- **KQRRvK DTZ**: 796 s, solver 2.06 GB (arrays 1.24 + queues 0.82),
+  process peak 2.18 GB against 2.7 projected; 484 MB. 1.14 billion legal
+  positions; every white-to-move one won. Longest DTZ 7 / 8 plies, both
+  matched on Lichess.
+- **KRBvKR DTZ**: 570 s, peak 1.5 GB. 41.2% won with white to move.
+  Longest DTZ 99 / 100 plies, matched on Lichess.
+- **KRBvKR DTM** up the ladder: capped at 100 in 570 s (818 MB frontier),
+  extended to the end in 9 s. Within 100 plies DTM proves 234,252,104 wins,
+  DTZ 234,323,628: 71,524 wins where a capture on the way restarts the
+  count although mate is further than 100.
+- Longest mate 65 moves (129 plies); Lichess (Gaviota) agrees for our
+  position. The literature's "59 moves" is most likely distance to
+  conversion: Syzygy puts that position ~116 plies from a capture.
+  Lesson: a single published number needs its metric checked.
+- **The first cursed wins: 17,440 (white to move), and 5,400 blessed
+  losses (black to move).** Lichess classes our longest-mate positions as
+  cursed-win / blessed-loss too. Three random positions: mate distance and
+  DTZ both match. `verify` and `dtz verify` on every 1000th position of
+  both tables: all consistent.
+- Pawnless 5-piece tables in all: 60 material sets. DTZ ~29 GB / ~11 h;
+  with DTM ~58 GB / ~22 h. Asking Matthew before filling the disk.
+- Also a fix: pawnless DTZ printed no progress (muted for the thousand-slice
+  pawn case); it reports again.
+
+- Matthew's stalling question (c), `game idle`, five months, 741,349 games:
+
+  | idle moves (10+ plies into a quiet stretch) | count | share |
+  |---|---|---|
+  | straight back (the shuffle) | 199,292 | 19.3% |
+  | cycle: an arrangement already had this stretch, another way | 80,158 | 7.7% |
+  | fresh: an arrangement new to the stretch | 754,857 | 73.0% |
+
+  Per game with 10+ idle moves, the share that are cycles: median 6%, 90th
+  percentile 24%, 99th 52%. Games with 3+ cycle moves: 8,056 (1.09%); 97.1%
+  already flagged as marking time (6,751 by a 20+ quiet stretch). A cycle
+  rule would add 234 games: not warranted. January alone gave the same
+  shares to a tenth of a point. Caveat: an orderly staller's moves read as
+  "fresh" until its arrangements run out, so revisits can't say how
+  orderly a walk is.
+- Tests: 1 new (257 pass, 1 skipped).

@@ -117,6 +117,7 @@ game count <file>              number of games
 game show <file> <n> [ply]     game n replayed to a ply (0 = start, -1 = one before the end, default the end)
 game grade <file> [examples]   early kill / efficient / time waster, with the sharpest examples of each
 game tree <file>...            how much the games share (tree of moves, set of positions); what each file adds
+game idle <file>...            idle moves (nothing happening): sent straight back, cycled, or new?
 ```
 
 ## Move generation: `Game/`
@@ -204,6 +205,17 @@ instead of only idle ones, had flagged 16,941 games, 9,937 of them for
 shuffling alone (mostly ordinary endgame king moves). With the idle rule
 that's 97. Early kills come from players about 35-45 points weaker. The
 two months agree to within a point on every share.
+
+`game idle` asks whether stallers walk pieces round cycles the shuffle rule
+can't see (Matthew's question: several pieces in turn, orderly but random to
+look at). Over five months (741,349 games), idle moves, meaning 10+ plies
+into a stretch with no capture or pawn move, are 19% straight back, 8% back
+to an arrangement already had in the stretch by another route, and 73%
+arrangements new to the stretch. Games with 3+ such cycle moves are 1.1%,
+and 97% of those are already flagged, mostly by the 20-ply quiet stretch. A
+cycle rule would add 234 games, so it isn't worth one. The quiet-stretch
+rule doesn't care what shape the stalling takes, which is the 50-move rule's
+logic too.
 
 `game tree` measures how much games share. As a tree of moves (shared
 openings stored once) January's 8.16 M plies need 7.26 M nodes, **89%**. As a
@@ -391,6 +403,30 @@ published DTZ tables, through the Lichess tablebase: every table's longest
 case for each side, three random positions each, and four en passant cases.
 All agree. (Lichess reports a checkmated position as dtz -1; we store 0.)
 The list is in `scripts/syzygy-check-results.tsv`.
+
+**The first 5-piece tables** (Windows laptop, 2026-09-28). Each is 242 M
+slots and a 484 MB file per metric:
+
+| table | metric | time | solver memory | process peak | result |
+| --- | --- | --- | --- | --- | --- |
+| K+Q+R+R v K | DTZ | 796 s | 2.06 GB | 2.18 GB | every white-to-move position won; longest DTZ 7 plies |
+| K+R+B v K+R | DTZ | 570 s | 1.41 GB | 1.51 GB | 41.2% won with white to move; longest DTZ 99 / 100 plies |
+| K+R+B v K+R | DTM, capped at 100 | 570 s | 1.44 GB | 1.47 GB | 818 MB frontier file |
+| K+R+B v K+R | DTM, extended to the end | 9 s | 1.24 GB | 1.28 GB | longest mate 65 moves (129 plies) |
+
+K+R+B v K+R is where **the 50-move rule first changes results: 17,440
+cursed wins** (white to move: won with best play, drawn under the rule) **and
+5,400 blessed losses** (black to move). Its longest DTZ sits right at the
+edge, 99 plies to win and 100 to lose, as it must: anything longer is a draw.
+
+Its longest mate, 65 moves, is often quoted as 59. Lichess, which serves the
+Gaviota mate-distance tables, agrees with 65 (129 plies) for our position.
+The 59 is most likely the older "distance to conversion" (to the next
+capture), not to mate: Syzygy puts that position ~116 plies, about 58 moves,
+from its next capture. Checked against Lichess as well: both tables' longest cases, three
+random positions for mate distance and DTZ, and which positions are cursed
+or blessed. `verify` and `dtz verify` on every 1000th position: all
+consistent.
 
 | table | slots | size (was) | solve | legal positions | white to move: win / draw / loss | longest mate | known |
 | --- | --- | --- | --- | --- | --- | --- | --- |

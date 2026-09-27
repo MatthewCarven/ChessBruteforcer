@@ -56,6 +56,7 @@ static class Cli
           game count <file>              number of games in the file
           game show <file> <n> [ply]     game n replayed to a ply: 0 = start, -1 = one before the end, default the end
           game grade <file> [examples]   early kill / efficient / time waster, with the sharpest examples of each
+          game idle <file>...            idle moves (nothing happening): sent straight back, cycled, or new?
           game tree <file>...            how much the games share (tree of moves, set of positions); what each file adds
         """;
 
@@ -107,6 +108,7 @@ static class Cli
                 ["game", "grade", var file] => GameGrade(file, 3),
                 ["game", "grade", var file, var n] => GameGrade(file, int.Parse(n)),
                 ["game", "tree", .. var files] when files.Length > 0 => GameTree(files),
+                ["game", "idle", .. var files] when files.Length > 0 => GameIdle(files),
                 _ => Print(Usage, 1),
             };
         }
@@ -315,22 +317,43 @@ static class Cli
         var stopwatch = Stopwatch.StartNew();
         var tablebase = OpenTablebase();
         var dtz = tablebase.GetDtz(material);
-        var full = tablebase.Get(material);
         Console.Error.Write($"\r{"",-70}\r");
-        var stats = dtz.Statistics();
-        var fullStats = full.Statistics();
-        var (cursed, blessed) = full.RuleDraws(dtz);
-
         Console.WriteLine($"{dtz.Material} under the 50-move rule: ready in {stopwatch.Elapsed.TotalSeconds:0.0}s");
+        if (dtz.SolverMemory is { } memory)
+            Console.WriteLine($"  solver memory: {Mb(memory.TotalBytes)} = arrays {Mb(memory.ArrayBytes)} + queues " +
+                              $"{Mb(memory.QueueBytes)} ({memory.QueueEntries:N0} entries); process peak " +
+                              $"{Mb(Process.GetCurrentProcess().PeakWorkingSet64)}");
+
+        // Best play without the rule, for the cursed wins: only if that table is already on disk
+        // (at 5 pieces it is a solve of its own, and a complete one is needed to compare).
+        EndgameTable? full = null;
+        using var onDisk = new Tablebase(TableDirectory) { SolveMissing = false };
+        try
+        {
+            full = onDisk.Get(material);
+            if (full.Cap is not null)
+                full = null;
+        }
+        catch (TableMissingException)
+        {
+        }
+        var stats = dtz.Statistics();
+        var fullStats = full?.Statistics();
+        var (cursed, blessed) = full?.RuleDraws(dtz) ?? (null!, null!);
+
         foreach (var side in new[] { Colour.White, Colour.Black })
         {
             int s = (int)side;
             long legal = stats.Legal(side);
-            Console.WriteLine($"  {side} to move: {legal:N0} legal positions (best play without the rule in brackets)");
-            Console.WriteLine($"    wins   {stats.Wins[s],10:N0}  ({100.0 * stats.Wins[s] / legal:0.0}%)  [{fullStats.Wins[s]:N0}]");
-            Console.WriteLine($"    draws  {stats.Draws[s],10:N0}  ({100.0 * stats.Draws[s] / legal:0.0}%)  [{fullStats.Draws[s]:N0}]");
-            Console.WriteLine($"    losses {stats.Losses[s],10:N0}  ({100.0 * stats.Losses[s] / legal:0.0}%)  [{fullStats.Losses[s]:N0}]");
-            Console.WriteLine($"    cursed wins {cursed[s]:N0}, blessed losses {blessed[s]:N0}");
+            string Without(long[]? counts) => counts is null ? "" : $"  [{counts[s]:N0}]";
+            Console.WriteLine($"  {side} to move: {legal:N0} legal positions" +
+                              (full is null ? "" : " (best play without the rule in brackets)"));
+            Console.WriteLine($"    wins   {stats.Wins[s],10:N0}  ({100.0 * stats.Wins[s] / legal:0.0}%){Without(fullStats?.Wins)}");
+            Console.WriteLine($"    draws  {stats.Draws[s],10:N0}  ({100.0 * stats.Draws[s] / legal:0.0}%){Without(fullStats?.Draws)}");
+            Console.WriteLine($"    losses {stats.Losses[s],10:N0}  ({100.0 * stats.Losses[s] / legal:0.0}%){Without(fullStats?.Losses)}");
+            Console.WriteLine(full is null
+                ? "    cursed wins, blessed losses: solve the table without the rule first to compare"
+                : $"    cursed wins {cursed[s]:N0}, blessed losses {blessed[s]:N0}");
             if (stats.Longest[s] is var (outcome, index))
                 Console.WriteLine($"    longest: {DescribeDtz(outcome)}, e.g. {dtz.PositionAt(index).ToFen()}");
         }
@@ -547,6 +570,78 @@ static class Cli
     private sealed record Graded(long Number, StoredGame Game, GameMetrics Metrics, GameStyle Style);
 
     /// <summary>Sort every game into Matthew's three styles (plus draws and clock losses), with examples of each.</summary>
+    /// <summary>
+    /// Matthew's stalling question: when nothing is happening, do players send
+    /// pieces straight back, walk them round cycles, or keep finding new
+    /// arrangements?  And do cycles catch games the grader's rules miss?
+    /// </summary>
+    private static int GameIdle(string[] files)
+    {
+        const int CycleLimit = 3;
+        long games = 0, withIdle = 0, idle = 0, straight = 0, cycles = 0, fresh = 0;
+        long cyclers = 0, cyclersAlreadyFlagged = 0, cyclersByQuiet = 0, cyclersByShuffle = 0, cyclersByRepeat = 0;
+        long[] byStyle = new long[Enum.GetValues<GameStyle>().Length];
+        var cycleShare = new List<double>();   // per game with 10+ idle moves: the share that are cycles
+        foreach (string file in files)
+        {
+            foreach (var game in GameFile.Read(file))
+            {
+                games++;
+                var moves = GameAnalysis.Idle(game);
+                if (moves.Moves == 0)
+                    continue;
+                withIdle++;
+                idle += moves.Moves;
+                straight += moves.StraightBack;
+                cycles += moves.Cycles;
+                fresh += moves.Fresh;
+                if (moves.Moves >= 10)
+                    cycleShare.Add((double)moves.Cycles / moves.Moves);
+                if (moves.Cycles < CycleLimit)
+                    continue;
+                cyclers++;
+                var metrics = GameAnalysis.Measure(game);
+                byStyle[(int)GameAnalysis.Grade(game, metrics)]++;
+                if (GameAnalysis.MarksTime(metrics))
+                    cyclersAlreadyFlagged++;
+                if (metrics.LongestQuiet >= GameAnalysis.QuietLimit)
+                    cyclersByQuiet++;
+                if (metrics.IdleShuffles >= GameAnalysis.ShuffleLimit)
+                    cyclersByShuffle++;
+                if (metrics.Repeats > 0)
+                    cyclersByRepeat++;
+            }
+        }
+
+        double Pct(long part, long whole) => whole == 0 ? 0 : 100.0 * part / whole;
+        Console.WriteLine($"{games:N0} games; {withIdle:N0} ({Pct(withIdle, games):0.0}%) have idle moves " +
+                          $"({GameAnalysis.IdlePlies}+ plies into a stretch with no capture or pawn move).");
+        Console.WriteLine();
+        Console.WriteLine($"Idle moves: {idle:N0}");
+        Console.WriteLine($"  straight back   {straight,12:N0}  ({Pct(straight, idle):0.0}%)  the shuffle: a piece returns to where it just came from");
+        Console.WriteLine($"  cycle           {cycles,12:N0}  ({Pct(cycles, idle):0.0}%)  back to an arrangement already had this stretch, another way");
+        Console.WriteLine($"  fresh           {fresh,12:N0}  ({Pct(fresh, idle):0.0}%)  an arrangement new to the stretch");
+        Console.WriteLine();
+        if (cycleShare.Count > 0)
+        {
+            cycleShare.Sort();
+            double At(double q) => 100 * cycleShare[(int)Math.Min(cycleShare.Count - 1, q * cycleShare.Count)];
+            Console.WriteLine($"Games with 10+ idle moves: {cycleShare.Count:N0}. Share of their idle moves that are cycles: " +
+                              $"median {At(0.5):0}%, 90th percentile {At(0.9):0}%, 99th {At(0.99):0}%.");
+            Console.WriteLine();
+        }
+        Console.WriteLine($"Games with {CycleLimit}+ cycle moves: {cyclers:N0} ({Pct(cyclers, games):0.00}% of games)");
+        Console.WriteLine($"  already flagged as marking time  {cyclersAlreadyFlagged,9:N0}  ({Pct(cyclersAlreadyFlagged, cyclers):0.0}%)");
+        Console.WriteLine($"    by a long quiet stretch ({GameAnalysis.QuietLimit}+)   {cyclersByQuiet,9:N0}");
+        Console.WriteLine($"    by idle shuffling              {cyclersByShuffle,9:N0}");
+        Console.WriteLine($"    by a repeated position         {cyclersByRepeat,9:N0}");
+        Console.WriteLine($"  flagged by nothing else          {cyclers - cyclersAlreadyFlagged,9:N0}  " +
+                          $"({Pct(cyclers - cyclersAlreadyFlagged, cyclers):0.0}%): what a cycle rule would add");
+        Console.WriteLine($"  by style: " + string.Join(", ", Enum.GetValues<GameStyle>()
+            .Where(style => byStyle[(int)style] > 0).Select(style => $"{style} {byStyle[(int)style]:N0}")));
+        return 0;
+    }
+
     private static int GameGrade(string file, int examples)
     {
         var styles = Enum.GetValues<GameStyle>();

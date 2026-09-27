@@ -13,6 +13,13 @@ namespace ChessBruteforcer.Core.Records;
 public sealed record GameMetrics(int Plies, bool EndsInMate, int Shuffles, int IdleShuffles, int Repeats,
                                  int LongestQuiet, int Captures);
 
+/// <summary>A game's idle moves by kind (see <see cref="GameAnalysis.Idle"/>).</summary>
+/// <param name="Moves">Moves made at least <see cref="GameAnalysis.IdlePlies"/> plies into a stretch with no capture or pawn move.</param>
+/// <param name="StraightBack">Of those, a piece sent straight back (the shuffle).</param>
+/// <param name="Cycles">Back to an arrangement the mover's pieces already had in this stretch, not straight back.</param>
+/// <param name="Fresh">An arrangement new to the stretch.</param>
+public sealed record IdleMoves(int Moves, int StraightBack, int Cycles, int Fresh);
+
 /// <summary>The three styles Matthew asked for, plus games the clock decided.</summary>
 public enum GameStyle
 {
@@ -90,6 +97,65 @@ public static class GameAnalysis
         }
         return new GameMetrics(moves.Count, position.Status() == GameStatus.Checkmate, shuffles, idleShuffles,
                                repeats, longestQuiet, captures);
+    }
+
+    /// <summary>
+    /// How a game spends its idle moves (Matthew's stalling question): a move
+    /// made at least <see cref="IdlePlies"/> plies into a stretch with no
+    /// capture or pawn move is sent straight back (the shuffle), or returns
+    /// the mover's pieces to an arrangement they already had in this stretch
+    /// some other way (a cycle: a piece walking a loop, or several pieces in
+    /// turn, however orderly), or makes an arrangement new to the stretch.
+    /// Only the mover's own pieces count, wherever the opponent's stand.
+    /// </summary>
+    public static IdleMoves Idle(StoredGame game)
+    {
+        var position = game.StartPosition();
+        var seen = new[] { new HashSet<ulong>(), new HashSet<ulong>() };   // per side, since the last reset
+        seen[0].Add(Arrangement(position, Colour.White));
+        seen[1].Add(Arrangement(position, Colour.Black));
+        int idle = 0, straightBack = 0, cycles = 0, fresh = 0;
+        var moves = game.Moves;
+        for (int i = 0; i < moves.Count; i++)
+        {
+            var move = moves[i];
+            bool shuffle = i >= 2 && move.From == moves[i - 2].To && move.To == moves[i - 2].From;
+            var mover = position.SideToMove;
+            position.MakeMove(move);
+            if (position.HalfmoveClock == 0)
+            {
+                // A capture or pawn move: a new stretch, and nothing before it can come back.
+                seen[0].Clear();
+                seen[1].Clear();
+                seen[0].Add(Arrangement(position, Colour.White));
+                seen[1].Add(Arrangement(position, Colour.Black));
+                continue;
+            }
+            bool known = !seen[(int)mover].Add(Arrangement(position, mover));
+            if (position.HalfmoveClock < IdlePlies)
+                continue;
+            idle++;
+            if (shuffle)
+                straightBack++;
+            else if (known)
+                cycles++;
+            else
+                fresh++;
+        }
+        return new IdleMoves(idle, straightBack, cycles, fresh);
+    }
+
+    /// <summary>One side's pieces and their squares, as a hash (the other side's are left out).</summary>
+    private static ulong Arrangement(Position position, Colour side)
+    {
+        ulong hash = 0;
+        for (int square = 0; square < 64; square++)
+        {
+            var piece = position[square];
+            if (!piece.IsEmpty && piece.Colour == side)
+                hash ^= Zobrist.Piece(piece, square);
+        }
+        return hash;
     }
 
     public static bool MarksTime(GameMetrics m) =>

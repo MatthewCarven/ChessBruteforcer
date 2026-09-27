@@ -117,6 +117,24 @@ public class GameAnalysisTests
     }
 
     [Fact]
+    public void KnightsWalkingALoopAreCyclesThatTheShuffleRuleMisses()
+    {
+        // Two knights in turn: Nf3, Nc3, Ng1, Nb1 and round again (black mirrors). No move
+        // undoes the side's last one, but every arrangement comes round again.
+        var game = Game("1. Nf3 Nf6 2. Nc3 Nc6 3. Ng1 Ng8 4. Nb1 Nb8 5. Nf3 Nf6 6. Nc3 Nc6 7. Ng1 Ng8 8. Nb1 Nb8");
+        Assert.Equal(0, GameAnalysis.Measure(game).Shuffles);
+        Assert.Equal(new IdleMoves(7, 0, 7, 0), GameAnalysis.Idle(game));   // plies 10-16 are idle
+
+        // Straight out and back is the shuffle, not a cycle.
+        var dance = GameAnalysis.Idle(Game("1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6 4. Ng1 Ng8 5. Nf3 Nf6 6. Ng1 Ng8"));
+        Assert.Equal(new IdleMoves(3, 3, 0, 0), dance);
+
+        // A pawn move starts a new stretch: the loop after it is new again.
+        var reset = GameAnalysis.Idle(Game("1. Nf3 Nf6 2. Nc3 Nc6 3. Ng1 Ng8 4. Nb1 Nb8 5. e3 Nf6 6. Nf3 Nc6 7. Nc3 Ng8"));
+        Assert.Equal(0, reset.Moves);
+    }
+
+    [Fact]
     public void QuietStretchesResetOnCapturesAndPawnMoves()
     {
         var m = GameAnalysis.Measure(Game("1. e4 d5 2. exd5 Qxd5 3. Nc3 Qa5 4. Nf3 Nf6"));

@@ -295,10 +295,9 @@ public sealed class EndgameTable : IDisposable
         writer.Write(Size);
         if (Cap is int cap)
             writer.Write(cap);
+        // Straight from the array: a copy would cost another 2 bytes a slot (484 MB at 5 pieces).
         var values = _values ?? Enumerable.Range(0, checked((int)Size)).Select(i => Raw(i)).ToArray();
-        var bytes = new byte[values.Length * sizeof(short)];
-        Buffer.BlockCopy(values, 0, bytes, 0, bytes.Length);
-        writer.Write(bytes);
+        writer.Write(System.Runtime.InteropServices.MemoryMarshal.AsBytes(values.AsSpan()));
     }
 
     /// <summary>
@@ -424,6 +423,7 @@ public sealed class EndgameTable : IDisposable
         private int? _cap;
         private int _ply;   // the bucket being worked through; every value at a lower ply is final
         private readonly bool _zeroing;   // DTZ: captures and pawn moves are exits, distances count to the next one
+        private bool _manySlices;         // DTZ with pawns: too many slices to report every ply
         // Queue entries are 4 bytes: a table index below this, an en passant node from it upward.
         private const uint EnPassantEntry = 1u << 31;
 
@@ -509,6 +509,7 @@ public sealed class EndgameTable : IDisposable
             _cap = RulePlies;
             var moves = new List<Move>(64);
             var slices = Slices();
+            _manySlices = slices.Count > 1;
             long done = 0;
             foreach (var slice in slices)
             {
@@ -517,7 +518,11 @@ public sealed class EndgameTable : IDisposable
                 if (slice is null)
                 {
                     for (long index = 0; index < _values.LongLength; index++)
+                    {
                         InitialisePosition(index, moves);
+                        if ((index & 0xFFFFF) == 0)
+                            _progress?.Report($"{_material}: DTZ, initialised {index:N0} / {_values.LongLength:N0}");
+                    }
                 }
                 else
                 {
@@ -689,7 +694,7 @@ public sealed class EndgameTable : IDisposable
                     Propagate(index, _values[index] > 0);
                     SettleEnPassantNodes(index);
                 }
-                if (!_zeroing)   // DTZ runs a hundred-odd plies per slice, over a thousand slices
+                if (!_manySlices)   // DTZ with pawns runs a hundred-odd plies per slice, over a thousand slices
                     _progress?.Report($"{_material}: ply {_ply} done, {_buckets[_ply].Count:N0} queued");
             }
         }
