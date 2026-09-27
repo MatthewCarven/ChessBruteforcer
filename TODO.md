@@ -56,9 +56,13 @@ Steps:
       the known values: KQvK 10, KRvK 16, KQvKR 35, KBNvK 33, KPvK 28
 - [ ] Export the principal tree (not just one line) from a position, to a
       chosen depth, as a file the thesis can use
-- [ ] Symmetry: 8-fold for pawnless tables (fold the white king into the
-      a1-d1-d4 triangle, 10 squares instead of 64), and skip the impossible
-      placements the raw index keeps. KQvKR drops from 64 MB to ~5 MB
+- [x] Symmetry: 8-fold for pawnless tables (the white king in the a1-d1-d4
+      triangle, 462 king pairs), 2-fold with pawns (1,806 pairs); adjacent
+      kings left out. KQvKR 64 MB -> 7.2 MB. All 36 tables re-solved
+      byte-identical to the old solver's; all 36 in 8 min, 1.9 GB -> 427 MB
+- [ ] Tighter still: identical pieces in any order are stored twice (KQQvK,
+      KRRvK...: 2x), pawns index 64 squares where 48 are possible (1.33x a
+      pawn), and the other pieces still get 64 squares each, holes included
 - [ ] Memory: 4-piece solves peak at ~700 MB and take ~2 minutes; the
       working arrays can shrink (bit arrays, one queue) before 5 pieces
 - [x] Pawns on one side: pawn pushes and un-moves, promotions into the
@@ -69,7 +73,7 @@ Steps:
       passant leads to an extra node worth the better of the table value and
       the capture. `probe` applies the same rule to FENs with an e.p. square
 - [x] `verify <material> [stride]`: check a solved table against its moves
-- [ ] Pawn-table symmetry: mirror a-d / e-h files only (2-fold)
+- [x] Pawn-table symmetry: mirror a-d / e-h files only (2-fold)
 - [ ] The 50-move rule: these tables count distance to mate and ignore it.
       Nothing solved so far comes close (KQvKR's longest is 35), but some
       5-piece wins take more than 50 moves. Add DTZ (distance to a capture or

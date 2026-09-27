@@ -275,21 +275,46 @@ plus the side to move make a number, and the table is one 16-bit result per
 number. `probe` ranks every move fastest win first, then draws, then the
 slowest loss. `line` follows the top move all the way to mate.
 
-| table | positions | solve time | longest mate | known value |
-| --- | --- | --- | --- | --- |
-| K+Q v K | 0.5 M slots, 1 MB | ~2 s | 10 moves | 10 ✓ |
-| K+R v K | 0.5 M slots, 1 MB | ~2 s | 16 moves | 16 ✓ |
-| K+Q v K+R | 33.5 M slots, 64 MB | ~110 s | 35 moves | 35 ✓ |
-| K+B+N v K | 33.5 M slots, 64 MB | ~85 s | 33 moves | 33 ✓ |
-| K+P v K | 0.5 M slots, 1 MB | ~6 s | 28 moves | 28, from memory (76.5% of white-to-move positions won) |
-| K+Q v K+P | 33.5 M slots, 64 MB | ~7.5 min* | 28 / 29 moves | |
-| K+R v K+P | 33.5 M slots, 64 MB | ~4 min* | 43 moves (the pawn side, after promoting) | |
-| K+P v K+P | 33.5 M slots, 64 MB | ~5 min** | 33 moves | all 14.9 M legal positions verified |
+**Symmetry** (`TableIndex`) gives each position one number up to the board's
+symmetries. Without pawns there are 8 (rotations and reflections): the white
+king lives in the a1-d1-d4 triangle, and the two kings have 462 placements.
+With pawns only the left-right mirror is safe, so the white king lives on files
+a-d (1,806 king placements). The images a symmetric position would otherwise
+spell out twice are holes, and statistics count each position once per image,
+so the totals are over real placements. The solver counts *distinct* children
+and predecessors: a symmetric position can reach mirror images of one position
+by two different moves, and that is one index.
 
-\* including the other 4-piece tables its promotions lead to (a black pawn
-can become a queen, rook, bishop or knight).
-\** once those tables exist; from nothing it also builds K+B v K+P, K+N v K+P
-and their sub-tables.
+It was checked the strongest way available: all 36 tables up to 4 pieces
+re-solved with symmetry came out **byte for byte identical** to the tables the
+old solver made without it, once those were renumbered. All 36 solve in 8
+minutes on Matthew's laptop, down from hours, and take 427 MB of disk, down
+from 1.9 GB. Tables in the old format ("CBT1") still load, and `upgrade`
+rewrites them.
+
+| table | slots | size (was) | solve | legal positions | white to move: win / draw / loss | longest mate | known |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| K+Q v K | 59,136 | 0.1 MB (1 MB) | < 1 s | 368,452 | 100 / 0 / 0% | 10 | 10 ✓ |
+| K+R v K | 59,136 | 0.1 MB (1 MB) | < 1 s | 399,112 | 100 / 0 / 0% | 16 | 16 ✓ |
+| K+P v K | 231,168 | 0.4 MB (1 MB) | ~2 s | 331,352 | 76.5 / 23.5 / 0% | 28 | 28 ✓ |
+| K+Q v K+Q | 3.8 M | 7.2 MB (64 MB) | 11 s | 17.9 M | 41.7 / 57.8 / 0.5% | 13 | 13 ✓ |
+| K+Q v K+R | 3.8 M | 7.2 MB (64 MB) | 15 s (was ~110 s) | 19.7 M | 99.0 / 0.8 / 0.2% | 35 | 35 ✓ |
+| K+Q v K+N | 3.8 M | 7.2 MB (64 MB) | 14 s | 21.5 M | 99.3 / 0.7 / 0% | 21 | 21 ✓ |
+| K+Q v K+B | 3.8 M | 7.2 MB (64 MB) | 14 s | 20.8 M | 99.7 / 0.3 / 0% | 17 | 17 ✓ |
+| K+R v K+R | 3.8 M | 7.2 MB (64 MB) | 9 s | 21.6 M | 29.1 / 70.2 / 0.7% | 19 | 19 ✓ |
+| K+R v K+N | 3.8 M | 7.2 MB (64 MB) | 9 s | 23.3 M | 48.3 / 51.7 / 0% | 40 | 40 ✓ |
+| K+R v K+B | 3.8 M | 7.2 MB (64 MB) | 9 s | 22.6 M | 35.1 / 64.9 / 0% | 29 | 29 ✓ |
+| K+B+N v K | 3.8 M | 7.2 MB (64 MB) | 11 s (was ~85 s) | 24.5 M | 99.5 / 0.5 / 0% | 33 | 33 ✓ |
+| K+B+B v K | 3.8 M | 7.2 MB (64 MB) | 9 s | 23.8 M | 49.3 / 50.7 / 0%* | 19 | 19 ✓ |
+| K+Q v K+P | 14.8 M | 28.2 MB (64 MB) | 41 s | 16.7 M | 99.4 / 0.6 / 0% | 29 | |
+| K+R v K+P | 14.8 M | 28.2 MB (64 MB) | 37 s | 18.1 M | 91.4 / 8.4 / 0.2% | 43** | |
+| K+P v K+P | 14.8 M | 28.2 MB (64 MB) | 24 s | 14.9 M | 43.2 / 33.4 / 23.4% | 33 | |
+
+Solve times are with the smaller tables each one leads to already on disk.
+"Legal positions" counts both sides to move.
+\* Half the time the two bishops stand on squares of the same colour, and
+that can't mate.
+\** The pawn side, after promoting.
 
 **Pawns.** A pawn push stays in the table, while a promotion, like a
 capture, changes the material and is looked up in the table for the new

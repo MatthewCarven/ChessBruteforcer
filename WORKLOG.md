@@ -318,3 +318,30 @@ rather than 48-byte boards, because that is the storage that scales.
   of .zst downloads. The PGN can go (the .zst has it, and the .cbg keeps
   everything but comments), but that's Matthew's call.
 - Tests: 1 new (226 pass).
+
+## 2026-09-27: 5-piece tables, step 1 (symmetry)
+
+- The data said the ending has to be solved, not sampled; Matthew said go.
+  Plan: symmetry, then the solver's memory, then one 5-piece table to measure.
+- `TableIndex`: one index per position up to symmetry. Of a position's images,
+  keep the one whose squares read first in slot order. Without pawns that
+  puts the white king in the a1-d1-d4 triangle (462 king pairs, the standard
+  number); with pawns, files a-d (1,806). Other images are holes.
+- The solver counts distinct children and distinct predecessors, since a
+  symmetric position can reach mirror images of one child by two moves (the
+  two counts then disagree by the stabiliser sizes). With pawns no position
+  is its own mirror (the kings can't sit on the middle line), so en passant
+  nodes need nothing new; the passed square is mapped into the child's frame.
+- Statistics weight each index by its images: K v K still 3,612 per side,
+  K+P v K still 76.5% won.
+- Format CBT2; CBT1 renumbered on load; `upgrade [dir]`; `CHESS_TABLES` sets
+  the folder (CLI and build-tables.sh).
+- The check: in WSL, the 36 old tables were upgraded (5 s, 1.9 GB -> 428 MB),
+  and all 36 solved again from nothing with the new solver (491 s). They
+  are byte-identical, 36 of 36. Every pawnless longest mate matches the
+  published values (KQvKR 35, KRvKN 40, KRvKB 29, KBNvK 33, KQvKN 21,
+  KQvKB 17, KRvKR 19, KQvKQ 13, KBBvK 19); the pawn tables' aren't checked
+  against an outside source yet.
+- Tests: 13 new (239 pass).
+- Left in WSL: ~/chessbruteforcer/tables (old format, untouched), plus
+  tables-upgraded and tables-new (identical). Matthew to choose which to keep.
