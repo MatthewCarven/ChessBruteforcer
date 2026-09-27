@@ -198,3 +198,14 @@ rather than 48-byte boards, because that is the storage that scales.
   the Linux apt path.
 - Still to do on this machine: install Stockfish, run build-tables.sh
   (1-3 h), and snapshot an engine before any matches.
+- Done, in WSL (Ubuntu 24.04, clone at ~/chessbruteforcer): .NET 8.0.131
+  and Stockfish 16 from apt, tests 185/1 skipped, all 36 tables (1.9 GB).
+  The first WSL attempt died mid-test: Windows ran short of memory (the
+  Claude app and its Cowork VM held ~8 GB) and shut the VM down; a reboot
+  cleared it.
+- `match.sh snapshot` never worked: it passed two projects to one
+  `dotnet build` (MSB1008). Builds them one at a time now.
+- v0.3 v Stockfish-2000 on the laptop, one game at a time: +17 -3 =0 (85%),
+  no time losses. Logged in MATCHES.md, kept apart from the container runs
+  because the hardware differs. Each engine holds all tables in memory
+  (1.9 GB), so 2 games at once needs ~4 GB free.
