@@ -109,14 +109,19 @@ moves played from the start.
          predicts one (a detector, not the rule: FIDE counts positions)
    - [x] Within one game: `game grade` counts repeats (FIDE's notion of a
          position) and back-and-forth "shuffles" per game
-   - [ ] Tune the shuffle rule with Matthew: 3+ per game flags 59% of time
-         wasters on its own, including ordinary endgame king moves.
-         Candidates: shuffles per 10 moves, or shuffles only while no
-         progress is made, or several in a row
+   - [x] Tune the shuffle rule: Matthew chose "only while nothing is
+         happening" (10+ plies without a capture or pawn move). Games flagged
+         by shuffling alone went from 9,937 to 97; time wasters 14% to 6%
 5. [x] Real games: Lichess 2013-01 (121,332) imported, graded (early kill /
        efficient / time waster), and measured as a tree (89% of plies are
        distinct tree nodes, 86% distinct positions; median game new from
-       ply 7). Next: a bigger month, to see how sharing grows with scale
+       ply 7). 2013-02 added on top: 87.7% new, median new from ply 8, so
+       doubling saves ~1.3%.
+   - [ ] More points on the curve: add months (each ~18 MB, ~125k games,
+         ~1 min to import) and see whether "new from ply" keeps moving about
+         one ply per doubling. A bigger recent month (tens of millions of
+         games) is the real test, but would take hours to import and a lot of
+         memory for the hash sets
 6. [ ] Later: where each game enters table territory, and whether it played
        perfectly from there (the ranked-move list scores each move); import
        a Lichess database month to see how it scales

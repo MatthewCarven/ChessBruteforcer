@@ -49,7 +49,7 @@ static class Cli
           game count <file>              number of games in the file
           game show <file> <n> [ply]     game n replayed to a ply: 0 = start, -1 = one before the end, default the end
           game grade <file> [examples]   early kill / efficient / time waster, with the sharpest examples of each
-          game tree <file>               how much the games share, as a tree of moves and as a set of positions
+          game tree <file>...            how much the games share (tree of moves, set of positions); what each file adds
         """;
 
     public static int Run(string[] args)
@@ -91,7 +91,7 @@ static class Cli
                 ["game", "show", var file, var n, var ply] => GameShow(file, long.Parse(n), ply),
                 ["game", "grade", var file] => GameGrade(file, 3),
                 ["game", "grade", var file, var n] => GameGrade(file, int.Parse(n)),
-                ["game", "tree", var file] => GameTree(file),
+                ["game", "tree", .. var files] when files.Length > 0 => GameTree(files),
                 _ => Print(Usage, 1),
             };
         }
@@ -466,7 +466,8 @@ static class Cli
 
         Console.WriteLine($"{number:N0} games. Early kill: won within {GameAnalysis.EarlyKillPlies} plies. " +
                           $"Marking time: a stretch of {GameAnalysis.QuietLimit}+ plies with no capture or pawn move,");
-        Console.WriteLine($"{GameAnalysis.ShuffleLimit}+ pieces sent straight back where they came from, or a position repeated.");
+        Console.WriteLine($"{GameAnalysis.ShuffleLimit}+ pieces sent straight back where they came from while nothing was happening " +
+                          $"({GameAnalysis.IdlePlies}+ plies without a capture or pawn move), or a position repeated.");
         Console.WriteLine();
         Console.WriteLine($"{"style",-13} {"games",9} {"share",7} {"avg plies",10} {"by mate",8} {"avg rating",11}");
         foreach (var style in styles)
@@ -486,7 +487,7 @@ static class Cli
             Console.WriteLine();
             Console.WriteLine("Time wasters, by what gave them away (a game can show several):");
             Console.WriteLine($"  long quiet stretch {wasters.Count(g => g.Metrics.LongestQuiet >= GameAnalysis.QuietLimit),9:N0}");
-            Console.WriteLine($"  shuffling          {wasters.Count(g => g.Metrics.Shuffles >= GameAnalysis.ShuffleLimit),9:N0}");
+            Console.WriteLine($"  idle shuffling     {wasters.Count(g => g.Metrics.IdleShuffles >= GameAnalysis.ShuffleLimit),9:N0}");
             Console.WriteLine($"  repeated position  {wasters.Count(g => g.Metrics.Repeats > 0),9:N0}");
             Console.WriteLine($"  shuffling only     {wasters.Count(g => g.Metrics.Repeats == 0 && g.Metrics.LongestQuiet < GameAnalysis.QuietLimit),9:N0}");
             int won = wasters.Count(g => g.Game.Result != "1/2-1/2");
@@ -511,7 +512,7 @@ static class Cli
             {
                 var m = g.Metrics;
                 Console.WriteLine($"  #{g.Number,-7} {g.Game.Result,-7} {m.Plies,3} plies  quiet {m.LongestQuiet,3}  " +
-                                  $"shuffles {m.Shuffles,2}  repeats {m.Repeats,2}  {g.Game.Tag("Site") ?? ""}");
+                                  $"shuffles {m.IdleShuffles,2}/{m.Shuffles,-2} idle/all  repeats {m.Repeats,2}  {g.Game.Tag("Site") ?? ""}");
             }
         }
         return 0;
@@ -533,25 +534,38 @@ static class Cli
         int.TryParse(game.Tag("WhiteElo"), out int white) && int.TryParse(game.Tag("BlackElo"), out int black)
             ? (white + black) / 2.0 : 0;
 
-    /// <summary>How much the games share, stored as one tree of moves (and as one set of positions).</summary>
-    private static int GameTree(string file)
+    /// <summary>
+    /// How much the games share, stored as one tree of moves (and as one set of
+    /// positions).  With several files, each is added on top of the ones before,
+    /// so the report shows what each one still adds.
+    /// </summary>
+    private static int GameTree(string[] files)
     {
         var stats = new GameTreeStats();
-        foreach (var game in GameFile.Read(file))
-            stats.Add(game);
+        Console.WriteLine($"{"file",-22} {"games",9} {"plies",11} {"new nodes",11} {"new",6} {"new positions",14} {"new",6}  games new from ply");
+        foreach (string file in files)
+        {
+            long games = stats.Games, plies = stats.Plies, nodes = stats.UniquePrefixes, positions = stats.UniquePositions;
+            foreach (var game in GameFile.Read(file))
+                stats.Add(game);
+            long addedPlies = stats.Plies - plies;
+            long addedNodes = stats.UniquePrefixes - nodes, addedPositions = stats.UniquePositions - positions;
+            var newFrom = stats.NewFrom.Skip((int)games).Order().ToList();
+            int Percentile(double p) => newFrom.Count == 0 ? 0 : newFrom[(int)Math.Min(newFrom.Count - 1, p * newFrom.Count)];
+            Console.WriteLine($"{Path.GetFileName(file),-22} {stats.Games - games,9:N0} {addedPlies,11:N0} " +
+                              $"{addedNodes,11:N0} {100.0 * addedNodes / Math.Max(1, addedPlies),5:0.0}% " +
+                              $"{addedPositions,14:N0} {100.0 * addedPositions / Math.Max(1, addedPlies),5:0.0}%  " +
+                              $"median {Percentile(0.5)}, 90% by {Percentile(0.9)}");
+        }
 
-        long plies = stats.Plies;
-        Console.WriteLine($"{stats.Games:N0} games, {plies:N0} plies stored game by game");
+        long all = stats.Plies;
+        Console.WriteLine();
+        Console.WriteLine($"all together: {stats.Games:N0} games, {all:N0} plies stored game by game");
         Console.WriteLine($"  as a tree of moves:     {stats.UniquePrefixes,12:N0} nodes " +
-                          $"({100.0 * stats.UniquePrefixes / plies:0.0}%: shared openings stored once)");
+                          $"({100.0 * stats.UniquePrefixes / all:0.0}%: shared openings stored once)");
         Console.WriteLine($"  as a set of positions:  {stats.UniquePositions,12:N0} positions " +
-                          $"({100.0 * stats.UniquePositions / plies:0.0}%: transpositions merged too)");
+                          $"({100.0 * stats.UniquePositions / all:0.0}%: transpositions merged too)");
         Console.WriteLine($"  games played before, move for move: {stats.DuplicateGames:N0}");
-
-        var newFrom = stats.NewFrom.Order().ToList();
-        int Percentile(double p) => newFrom[(int)Math.Min(newFrom.Count - 1, p * newFrom.Count)];
-        Console.WriteLine($"  where a game first leaves every earlier game's path: median ply {Percentile(0.5)}, " +
-                          $"middle half {Percentile(0.25)}-{Percentile(0.75)}, 90% by ply {Percentile(0.9)}");
         return 0;
     }
 

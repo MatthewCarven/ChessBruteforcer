@@ -284,3 +284,15 @@ rather than 48-byte boards, because that is the storage that scales.
   drops the square unless a capture there is legal (FIDE's rule).
   Merged positions went 7,057,164 -> 7,048,611.
 - Tests: 9 new (224 pass).
+- Matthew chose shuffle rule (b): a shuffle counts only while nothing is
+  happening, 10+ plies without a capture or pawn move (`IdleShuffles`; plain
+  `Shuffles` still counted). Jan 2013: time wasters 16,941 -> 7,101 (5.9%),
+  flagged by shuffling alone 9,937 -> 97. 74% of time wasters won.
+- Downloaded and imported 2013-02 (18.2 MB, 123,961 games, 8.33 M moves, no
+  errors). It grades almost the same as January (23.0 / 39.6 / 6.0%).
+  `game tree` now takes several files, each added on top of the last: Feb
+  alone is 89.0% new tree nodes, and on top of Jan 87.7% (positions 86.4 ->
+  84.5%), median game new from ply 7 -> 8. Matthew's diminishing returns,
+  confirmed but gently: doubling the games moved the split point one ply.
+  Repeat games 811 -> 2,074 across both.
+- Tests: 1 new (225 pass).

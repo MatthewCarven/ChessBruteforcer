@@ -96,10 +96,24 @@ public class GameAnalysisTests
         var m = GameAnalysis.Measure(Game("1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6 4. Ng1 Ng8"));
         Assert.Equal(8, m.Plies);
         Assert.Equal(6, m.Shuffles);      // Ng1, Ng8, Nf3, Nf6, Ng1, Ng8: each undoes its side's last move
+        Assert.Equal(0, m.IdleShuffles);  // all inside the first 10 quiet plies
         Assert.Equal(5, m.Repeats);       // plies 4-8 each recreate the position from 4 plies before
         Assert.Equal(8, m.LongestQuiet);
         Assert.Equal(0, m.Captures);
         Assert.False(m.EndsInMate);
+    }
+
+    [Fact]
+    public void ShufflesCountAsIdleOnlyOnceNothingHasHappenedForAWhile()
+    {
+        // Twelve quiet plies of knight dancing: shuffles from ply 3, the clock reaches 10 at ply 10.
+        var m = GameAnalysis.Measure(Game("1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6 4. Ng1 Ng8 5. Nf3 Nf6 6. Ng1 Ng8"));
+        Assert.Equal(10, m.Shuffles);
+        Assert.Equal(3, m.IdleShuffles);  // plies 10, 11, 12
+
+        // A pawn move restarts the count, so the same dance after it starts from zero again.
+        var reset = GameAnalysis.Measure(Game("1. Nf3 Nf6 2. Ng1 Ng8 3. Nf3 Nf6 4. Ng1 Ng8 5. e3 Nf6 6. Nf3 Ng8"));
+        Assert.Equal(0, reset.IdleShuffles);
     }
 
     [Fact]

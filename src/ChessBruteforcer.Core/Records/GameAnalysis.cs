@@ -6,10 +6,12 @@ namespace ChessBruteforcer.Core.Records;
 /// <param name="Plies">Half-moves played.</param>
 /// <param name="EndsInMate">The final position is checkmate (otherwise a decisive game was resigned or lost on time).</param>
 /// <param name="Shuffles">Moves that take a piece straight back to the square its side's previous move took it from (Nf3, then Ng1).</param>
+/// <param name="IdleShuffles">The shuffles made while nothing was happening: at least <see cref="GameAnalysis.IdlePlies"/> plies into a stretch with no capture or pawn move.</param>
 /// <param name="Repeats">Plies that recreate a position already seen in the game (same pieces, side to move, castling, en passant).</param>
 /// <param name="LongestQuiet">The longest run of plies with no capture and no pawn move, the stretch the 50-move rule counts.</param>
 /// <param name="Captures">Captures, en passant included.</param>
-public sealed record GameMetrics(int Plies, bool EndsInMate, int Shuffles, int Repeats, int LongestQuiet, int Captures);
+public sealed record GameMetrics(int Plies, bool EndsInMate, int Shuffles, int IdleShuffles, int Repeats,
+                                 int LongestQuiet, int Captures);
 
 /// <summary>The three styles Matthew asked for, plus games the clock decided.</summary>
 public enum GameStyle
@@ -53,33 +55,45 @@ public static class GameAnalysis
     /// <summary>10 moves each with no capture or pawn move.</summary>
     public const int QuietLimit = 20;
 
-    /// <summary>Back-and-forth moves before a game counts as shuffling.</summary>
+    /// <summary>Idle shuffles (see below) before a game counts as shuffling.</summary>
     public const int ShuffleLimit = 3;
+
+    /// <summary>
+    /// "Nothing is happening" (Matthew's rule): 5 moves each with no capture or
+    /// pawn move.  A shuffle counts only this far into a quiet stretch, so a
+    /// piece that retreats because something just happened doesn't.
+    /// </summary>
+    public const int IdlePlies = 10;
 
     public static GameMetrics Measure(StoredGame game)
     {
         var position = game.StartPosition();
         var seen = new HashSet<ulong> { Key(position) };
-        int shuffles = 0, repeats = 0, longestQuiet = 0, captures = 0;
+        int shuffles = 0, idleShuffles = 0, repeats = 0, longestQuiet = 0, captures = 0;
         var moves = game.Moves;
         for (int i = 0; i < moves.Count; i++)
         {
             var move = moves[i];
-            if (i >= 2 && move.From == moves[i - 2].To && move.To == moves[i - 2].From)
-                shuffles++;
+            bool shuffle = i >= 2 && move.From == moves[i - 2].To && move.To == moves[i - 2].From;
             if (move.IsCapture)
                 captures++;
             position.MakeMove(move);
+            if (shuffle)
+            {
+                shuffles++;
+                if (position.HalfmoveClock >= IdlePlies)
+                    idleShuffles++;
+            }
             longestQuiet = Math.Max(longestQuiet, position.HalfmoveClock);
             if (!seen.Add(Key(position)))
                 repeats++;
         }
-        return new GameMetrics(moves.Count, position.Status() == GameStatus.Checkmate, shuffles, repeats,
-                               longestQuiet, captures);
+        return new GameMetrics(moves.Count, position.Status() == GameStatus.Checkmate, shuffles, idleShuffles,
+                               repeats, longestQuiet, captures);
     }
 
     public static bool MarksTime(GameMetrics m) =>
-        m.LongestQuiet >= QuietLimit || m.Shuffles >= ShuffleLimit || m.Repeats > 0;
+        m.LongestQuiet >= QuietLimit || m.IdleShuffles >= ShuffleLimit || m.Repeats > 0;
 
     public static GameStyle Grade(StoredGame game, GameMetrics m)
     {

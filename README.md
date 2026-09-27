@@ -112,7 +112,7 @@ game list <file>               one line per game: number, result, length, player
 game count <file>              number of games
 game show <file> <n> [ply]     game n replayed to a ply (0 = start, -1 = one before the end, default the end)
 game grade <file> [examples]   early kill / efficient / time waster, with the sharpest examples of each
-game tree <file>               how much the games share, as a tree of moves and as a set of positions
+game tree <file>...            how much the games share (tree of moves, set of positions); what each file adds
 ```
 
 ## Move generation: `Game/`
@@ -178,31 +178,52 @@ byte. Downloads go in `games/`, which git ignores; Python 3.14's
 `game grade` sorts games into three styles (Matthew's): **early kill** (won
 by mate or resignation within 25 moves each), **efficient** (won later
 without marking time), and **time waster** (marked time on the way, won or
-drawn). "Marking time" means a 20-ply stretch with no capture or pawn move,
-3+ moves that send a piece straight back where it came from, or a repeated
-position. Lost-on-time games are set aside, because the clock decided them.
+drawn). "Marking time" means any of:
+- a 20-ply stretch with no capture or pawn move;
+- 3+ moves that send a piece straight back where it came from *while nothing
+  is happening*, meaning 10+ plies into such a stretch (Matthew's rule, so a
+  piece retreating because something just happened doesn't count);
+- a repeated position.
 
-| style | games | share | avg plies | by mate | avg rating |
-| --- | --- | --- | --- | --- | --- |
-| early kill | 27,493 | 22.7% | 34.8 | 38% | 1570 |
-| efficient | 38,154 | 31.4% | 72.6 | 43% | 1607 |
-| time waster | 16,941 | 14.0% | 108.7 | 45% | 1605 |
-| clean draw | 861 | 0.7% | 88.8 | 0% | 1603 |
-| clock | 37,883 | 31.2% | 66.2 | 0% | 1615 |
+Lost-on-time games are set aside, because the clock decided them.
 
-85% of time wasters still won. But 59% of them were flagged by the
-shuffling rule alone, which also catches ordinary endgame king moves, so
-that threshold needs tuning before the time-waster share means much.
+| style | Jan 2013 | share | avg plies | by mate | avg rating | Feb 2013 share |
+| --- | --- | --- | --- | --- | --- | --- |
+| early kill | 27,493 | 22.7% | 34.8 | 38% | 1570 | 23.0% |
+| efficient | 47,253 | 38.9% | 78.2 | 45% | 1607 | 39.6% |
+| time waster | 7,101 | 5.9% | 117.0 | 39% | 1607 | 6.0% |
+| clean draw | 1,602 | 1.3% | 102.5 | 0% | 1599 | 1.2% |
+| clock | 37,883 | 31.2% | 66.2 | 0% | 1615 | 30.1% |
+
+74% of time wasters still won, in both months. Counting every shuffle,
+instead of only idle ones, had flagged 16,941 games, 9,937 of them for
+shuffling alone (mostly ordinary endgame king moves). With the idle rule
+that's 97. Early kills come from players about 35-45 points weaker. The
+two months agree to within a point on every share.
 
 `game tree` measures how much games share. As a tree of moves (shared
-openings stored once) the 8.16 M plies need 7.26 M nodes, **89%**. As a set
-of positions (transpositions merged too) they need 7.05 M, **86%**. Games
+openings stored once) January's 8.16 M plies need 7.26 M nodes, **89%**. As a
+set of positions (transpositions merged too) they need 7.05 M, **86%**. Games
 leave all earlier games' paths early: the median game is new from ply 7,
-and 90% are new by ply 11. Only 811 games repeat an earlier one move for
-move. At this scale the tree is worth more as a map than as storage: a node
-needs a link to its parent, which costs more than the 1 byte a move takes
-in a flat file. Positions are compared as FIDE's repetition rule compares
-them: the en passant square counts only when a capture there is legal.
+and 90% are new by ply 11.
+
+Given several files, `game tree` adds each on top of the ones before, which
+shows the returns diminishing:
+
+| | games | new tree nodes | new positions | median game new from |
+| --- | --- | --- | --- | --- |
+| Feb 2013 alone | 123,961 | 89.0% of its plies | 86.4% | ply 7 |
+| Feb 2013 on top of Jan | 123,961 | 87.7% | 84.5% | ply 8 |
+| both months | 245,293 | 88.3% | 85.4% | |
+
+Doubling the games saved February only another 1.3% of its moves, and
+pushed the point where games part company one ply deeper. After move 5 or
+6, nearly every game is its own. Repeat games (identical move for move)
+went from 811 to 2,074, many of them the same traps and early resignations.
+At this scale the tree is worth more as a map than as storage: a node needs
+a link to its parent, which costs more than the 1 byte a move takes in a
+flat file. Positions are compared as FIDE's repetition rule compares them:
+the en passant square counts only when a capture there is legal.
 
 ## Solved endgames: `Endgame/`
 
