@@ -117,11 +117,13 @@ moves played from the start.
        distinct tree nodes, 86% distinct positions; median game new from
        ply 7). 2013-02 added on top: 87.7% new, median new from ply 8, so
        doubling saves ~1.3%.
-   - [ ] More points on the curve: add months (each ~18 MB, ~125k games,
-         ~1 min to import) and see whether "new from ply" keeps moving about
-         one ply per doubling. A bigger recent month (tens of millions of
-         games) is the real test, but would take hours to import and a lot of
-         memory for the hash sets
+   - [x] Five months (Jan-May 2013, 741k games): new tree nodes 89.0 ->
+         86.6%, median split point ply 7 -> 9. Opening (first 12 plies) new
+         39 -> 27%; <= 6-piece positions 93 -> 84% new, 0.3% of games arrive
+         somewhere known; <= 4-piece 84 -> 64% new, 6% arrive known
+   - [ ] A recent month (tens of millions of games) is the real test of the
+         curve, but needs hours to import and several GB for the hash sets.
+         A disk-backed or sorted-file version of GameTreeStats first
 6. [ ] Later: where each game enters table territory, and whether it played
        perfectly from there (the ranked-move list scores each move); import
        a Lichess database month to see how it scales

@@ -179,6 +179,37 @@ public class GameAnalysisTests
     }
 }
 
+public class GameTreeEndsTests
+{
+    private static StoredGame FromFen(string fen, string moves) =>
+        Pgn.Parse($"[SetUp \"1\"]\n[FEN \"{fen}\"]\n\n{moves} *")[0];
+
+    [Fact]
+    public void EndgamesAreCountedByPiecesAndMeetingsAreSpotted()
+    {
+        var stats = new GameTreeStats();
+        // Five pieces; the capture on move 2 brings it to four.
+        stats.Add(FromFen("4k3/8/8/8/8/8/1p6/RN2K3 w - - 0 1", "1. Ra2 Kd7 2. Rxb2"));
+        // Same start, different second ply; its first position repeats the first game's.
+        stats.Add(FromFen("4k3/8/8/8/8/8/1p6/RN2K3 w - - 0 1", "1. Ra2 Kf7"));
+
+        var six = stats.Endgames[0];
+        Assert.Equal(6, six.Pieces);
+        Assert.Equal(5, six.Plies);          // 3 + 2
+        Assert.Equal(4, six.New);            // all but game 2's Ra2
+        Assert.Equal(2, six.Games);
+        Assert.Equal(1, six.KnownEntries);   // game 2 arrives where game 1 had been
+
+        var four = stats.Endgames[1];
+        Assert.Equal(4, four.Pieces);
+        Assert.Equal(1, four.Plies);         // only after Rxb2
+        Assert.Equal(1, four.Games);
+        Assert.Equal(0, four.KnownEntries);
+
+        Assert.Equal((5L, 4L), stats.Opening);   // 5 plies inside the first 12, 4 new tree nodes
+    }
+}
+
 public class GameFileTests
 {
     // Exactly what the writer produces, so it has to come back out unchanged.

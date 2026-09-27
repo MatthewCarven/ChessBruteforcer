@@ -208,18 +208,45 @@ leave all earlier games' paths early: the median game is new from ply 7,
 and 90% are new by ply 11.
 
 Given several files, `game tree` adds each on top of the ones before, which
-shows the returns diminishing:
+shows the returns diminishing. Five months, January to May 2013, 741,349
+games:
 
-| | games | new tree nodes | new positions | median game new from |
+| month, added on top of the earlier ones | games | new tree nodes | new positions | median game new from |
 | --- | --- | --- | --- | --- |
-| Feb 2013 alone | 123,961 | 89.0% of its plies | 86.4% | ply 7 |
-| Feb 2013 on top of Jan | 123,961 | 87.7% | 84.5% | ply 8 |
-| both months | 245,293 | 88.3% | 85.4% | |
+| Jan | 121,332 | 89.0% of its plies | 86.4% | ply 7 |
+| Feb | 123,961 | 87.7% | 84.5% | ply 8 |
+| Mar | 158,635 | 87.4% | 83.9% | ply 8 |
+| Apr | 157,871 | 86.9% | 83.2% | ply 9 |
+| May | 179,550 | 86.6% | 82.8% | ply 9 |
 
-Doubling the games saved February only another 1.3% of its moves, and
-pushed the point where games part company one ply deeper. After move 5 or
-6, nearly every game is its own. Repeat games (identical move for move)
-went from 811 to 2,074, many of them the same traps and early resignations.
+Six times the games moved the split point two plies deeper, and saved each
+new month only a couple of percent more. Most of a game is its own. The
+report also looks at the two ends of the game:
+
+| month | opening (first 12 plies) new | games reaching ≤ 6 pieces | their positions new | arrive where an earlier game had been | games reaching ≤ 4 pieces | their positions new | arrive known |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Jan | 39.2% | 9.1% | 92.6% | 0.0% | 4.3% | 84.2% | 1.0% |
+| Feb | 32.4% | 9.0% | 89.0% | 0.1% | 4.3% | 74.8% | 2.1% |
+| Mar | 30.0% | 9.2% | 87.1% | 0.1% | 4.2% | 69.9% | 3.1% |
+| Apr | 28.3% | 8.9% | 85.1% | 0.2% | 4.2% | 66.4% | 4.4% |
+| May | 27.1% | 9.0% | 84.2% | 0.3% | 4.1% | 63.7% | 6.2% |
+
+- **The opening is solidifying.** By May, 73% of opening moves were already
+  in the tree, and the new share falls every month.
+- **Six-piece endgames are not.** 99.7% of games that get there arrive in a
+  position no earlier game reached, and 84% of those positions are still
+  new. The six-piece space is far too big for samples to cover.
+- **Four-piece endgames are converging.** Only 64% of positions are new and
+  6% of games arrive somewhere known, rising fast. That space (33.5 M slots
+  a table) is small enough that games start meeting, and our tables already
+  know all of it exactly.
+
+So the beginning of a game can be learned from samples, while the end has
+to be solved: sampling covers the first dozen plies, and tables cover the
+last four or five pieces.
+
+Repeat games (identical move for move) number 6,216 across the five months,
+many of them the same traps and early resignations.
 At this scale the tree is worth more as a map than as storage: a node needs
 a link to its parent, which costs more than the 1 byte a move takes in a
 flat file. Positions are compared as FIDE's repetition rule compares them:

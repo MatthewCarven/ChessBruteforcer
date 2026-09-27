@@ -542,10 +542,14 @@ static class Cli
     private static int GameTree(string[] files)
     {
         var stats = new GameTreeStats();
+        static double Share(long part, long whole) => 100.0 * part / Math.Max(1, whole);
+        var ends = new List<string>();
         Console.WriteLine($"{"file",-22} {"games",9} {"plies",11} {"new nodes",11} {"new",6} {"new positions",14} {"new",6}  games new from ply");
         foreach (string file in files)
         {
             long games = stats.Games, plies = stats.Plies, nodes = stats.UniquePrefixes, positions = stats.UniquePositions;
+            var opening = stats.Opening;
+            var endgames = stats.Endgames.Select(e => e.Copy()).ToList();
             foreach (var game in GameFile.Read(file))
                 stats.Add(game);
             long addedPlies = stats.Plies - plies;
@@ -553,10 +557,32 @@ static class Cli
             var newFrom = stats.NewFrom.Skip((int)games).Order().ToList();
             int Percentile(double p) => newFrom.Count == 0 ? 0 : newFrom[(int)Math.Min(newFrom.Count - 1, p * newFrom.Count)];
             Console.WriteLine($"{Path.GetFileName(file),-22} {stats.Games - games,9:N0} {addedPlies,11:N0} " +
-                              $"{addedNodes,11:N0} {100.0 * addedNodes / Math.Max(1, addedPlies),5:0.0}% " +
-                              $"{addedPositions,14:N0} {100.0 * addedPositions / Math.Max(1, addedPlies),5:0.0}%  " +
+                              $"{addedNodes,11:N0} {Share(addedNodes, addedPlies),5:0.0}% " +
+                              $"{addedPositions,14:N0} {Share(addedPositions, addedPlies),5:0.0}%  " +
                               $"median {Percentile(0.5)}, 90% by {Percentile(0.9)}");
+
+            // The two ends of the game: the first 6 moves each, and the last few pieces.
+            var line = new System.Text.StringBuilder();
+            line.Append($"{Path.GetFileName(file),-22} {Share(stats.Opening.New - opening.New, stats.Opening.Plies - opening.Plies),8:0.0}%");
+            for (int b = 0; b < endgames.Count; b++)
+            {
+                var before = endgames[b];
+                var now = stats.Endgames[b];
+                long reached = now.Games - before.Games;
+                line.Append($"   {Share(reached, stats.Games - games),5:0.0}% {Share(now.New - before.New, now.Plies - before.Plies),6:0.0}% " +
+                            $"{Share(now.KnownEntries - before.KnownEntries, reached),7:0.0}%");
+            }
+            ends.Add(line.ToString());
         }
+
+        Console.WriteLine();
+        Console.WriteLine($"{"",-22} {"opening",9}   {"--- 6 pieces or fewer ---",-24}   {"--- 4 or fewer (tables) ---",-24}");
+        Console.WriteLine($"{"file",-22} {"new",9}   {"games",6} {"new",7} {"arrive",8}   {"games",6} {"new",7} {"arrive",8}");
+        Console.WriteLine($"{"",-22} {"",9}   {"reach",6} {"pos.",7} {"known",8}   {"reach",6} {"pos.",7} {"known",8}");
+        foreach (string line in ends)
+            Console.WriteLine(line);
+        Console.WriteLine($"(opening = first {GameTreeStats.OpeningPlies} plies, new tree nodes; \"arrive known\" = the game's first " +
+                          "such position had been reached by an earlier game)");
 
         long all = stats.Plies;
         Console.WriteLine();

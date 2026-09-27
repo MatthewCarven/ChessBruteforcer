@@ -134,20 +134,61 @@ public sealed class GameTreeStats
     /// <summary>For each game, the ply at which it first left every earlier game's path (its length if it never did).</summary>
     public IReadOnlyList<int> NewFrom => _newFrom;
 
+    /// <summary>The opening: 6 moves each.</summary>
+    public const int OpeningPlies = 12;
+
+    /// <summary>The first <see cref="OpeningPlies"/> plies of every game: how many, and how many were new tree nodes.</summary>
+    public (long Plies, long New) Opening => (_openingPlies, _openingNew);
+
+    /// <summary>Endgames by the most pieces on the board (kings included): 6, and 4 (what our tables cover).</summary>
+    public static readonly int[] EndgamePieces = { 6, 4 };
+
+    /// <summary>Per entry of <see cref="EndgamePieces"/>: how often games stood in such a position, how many were new, how many games got there, and how many arrived in a position some earlier game had already reached.</summary>
+    public IReadOnlyList<EndgameCounts> Endgames => _endgames;
+
+    private long _openingPlies, _openingNew;
+    private readonly EndgameCounts[] _endgames = EndgamePieces.Select(n => new EndgameCounts(n)).ToArray();
+
     public void Add(StoredGame game)
     {
         var position = game.StartPosition();
         ulong prefix = Mix(position.Hash);
         _positions.Add(GameAnalysis.Key(position));
+        int pieces = Enumerable.Range(0, 64).Count(s => !position[s].IsEmpty);
+        var entered = new bool[_endgames.Length];
         int newFrom = -1;
         for (int i = 0; i < game.Moves.Count; i++)
         {
             var move = game.Moves[i];
             prefix = Mix(prefix ^ (ulong)((move.From << 9) | (move.To << 3) | (int)move.Promotion) ^ ((ulong)i << 32));
-            if (_prefixes.Add(prefix) && newFrom < 0)
+            bool newNode = _prefixes.Add(prefix);
+            if (newNode && newFrom < 0)
                 newFrom = i;
+            if (i < OpeningPlies)
+            {
+                _openingPlies++;
+                if (newNode)
+                    _openingNew++;
+            }
+            if (move.IsCapture)
+                pieces--;
             position.MakeMove(move);
-            _positions.Add(GameAnalysis.Key(position));
+            bool newPosition = _positions.Add(GameAnalysis.Key(position));
+            for (int b = 0; b < _endgames.Length; b++)
+            {
+                if (pieces > _endgames[b].Pieces)
+                    continue;
+                _endgames[b].Plies++;
+                if (newPosition)
+                    _endgames[b].New++;
+                if (!entered[b])
+                {
+                    entered[b] = true;
+                    _endgames[b].Games++;
+                    if (!newPosition)
+                        _endgames[b].KnownEntries++;
+                }
+            }
         }
         if (!_endings.Add(Mix(prefix ^ (ulong)game.Moves.Count)))
             DuplicateGames++;
@@ -163,4 +204,24 @@ public sealed class GameTreeStats
         x = (x ^ (x >> 27)) * 0x94D049BB133111EB;
         return x ^ (x >> 31);
     }
+}
+
+/// <summary>Positions with at most <see cref="Pieces"/> pieces, across games.</summary>
+public sealed class EndgameCounts(int pieces)
+{
+    public int Pieces { get; } = pieces;
+
+    /// <summary>Plies that ended in such a position (a game sitting in one endgame for 40 plies counts 40).</summary>
+    public long Plies { get; internal set; }
+
+    /// <summary>Of those, positions no game had reached before.</summary>
+    public long New { get; internal set; }
+
+    /// <summary>Games that got down to this many pieces.</summary>
+    public long Games { get; internal set; }
+
+    /// <summary>Games whose first such position had already been reached by an earlier game: where games meet again.</summary>
+    public long KnownEntries { get; internal set; }
+
+    public EndgameCounts Copy() => new(Pieces) { Plies = Plies, New = New, Games = Games, KnownEntries = KnownEntries };
 }

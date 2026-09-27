@@ -296,3 +296,25 @@ rather than 48-byte boards, because that is the storage that scales.
   confirmed but gently: doubling the games moved the split point one ply.
   Repeat games 811 -> 2,074 across both.
 - Tests: 1 new (225 pass).
+
+## 2026-09-27: five months of games, and the two ends of the game
+
+- Downloaded 2013-03/04/05 (23.6, 23.3, 26.5 MB; 158,635, 157,871 and
+  179,550 games, sizes and counts as listed) and imported all, no errors.
+  The imports ran from a copy of the CLI build so the project could be
+  rebuilt meanwhile (Windows locks a running DLL).
+- `game tree` now also reports the opening (first 12 plies: share of new tree
+  nodes) and endgames with <= 6 and <= 4 pieces (games reaching them, share of
+  new positions, and games whose first such position an earlier game had
+  already reached). Matthew's guess was that five files would solidify
+  "the beginning 6 and the ending 6 pieces". The opening, partly: 73% of
+  May's opening moves were already known. Six-piece endgames, no: 99.7% of
+  arrivals are new, and the space is too big for samples. Four pieces:
+  converging (6% of arrivals known in May, rising). The ending has to come
+  from solving; the 5-piece tables are the way in.
+- 741,349 games, 50.2 M plies: 87.4% distinct tree nodes, 84.0% distinct
+  positions, 6,216 repeat games. 4.5 min for the whole run.
+- Disk: games/ holds 544 MB of unpacked PGN, 255 MB of .cbg and the 105 MB
+  of .zst downloads. The PGN can go (the .zst has it, and the .cbg keeps
+  everything but comments), but that's Matthew's call.
+- Tests: 1 new (226 pass).
