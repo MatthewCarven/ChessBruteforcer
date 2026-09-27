@@ -25,14 +25,16 @@ namespace ChessBruteforcer.Core.Endgame;
 /// Whatever is never reached is a draw.  Captures leave the table and are
 /// looked up in the smaller table they lead to.
 /// </summary>
-public sealed class EndgameTable
+public sealed class EndgameTable : IDisposable
 {
     private const short Illegal = short.MinValue;
     private const short Unknown = short.MaxValue;
     private const string Magic = "CBT1";
 
     // Either the values are in memory (just solved) or read from the file on demand (loaded).
+    // A mapped file stays locked on Windows until the table is disposed.
     private readonly short[]? _values;
+    private readonly MemoryMappedFile? _file;
     private readonly MemoryMappedViewAccessor? _view;
     private readonly long _dataOffset;
 
@@ -49,12 +51,21 @@ public sealed class EndgameTable
         Size = values.LongLength;
     }
 
-    private EndgameTable(Material material, MemoryMappedViewAccessor view, long dataOffset, long size)
+    private EndgameTable(Material material, MemoryMappedFile file, MemoryMappedViewAccessor view,
+                         long dataOffset, long size)
     {
         Material = material;
+        _file = file;
         _view = view;
         _dataOffset = dataOffset;
         Size = size;
+    }
+
+    /// <summary>Release a loaded table's file mapping (nothing to do for one held in memory).</summary>
+    public void Dispose()
+    {
+        _view?.Dispose();
+        _file?.Dispose();
     }
 
     /// <summary>The value of every index, from the side to move's point of view (null = impossible).</summary>
@@ -185,7 +196,7 @@ public sealed class EndgameTable
         }
         var file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         var view = file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-        return new EndgameTable(material, view, dataOffset, count);
+        return new EndgameTable(material, file, view, dataOffset, count);
     }
 
     public static long TableSize(Material material) => (1L << (6 * material.PieceCount)) * 2;

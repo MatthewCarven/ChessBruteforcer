@@ -167,7 +167,7 @@ public class EndgameTests : IClassFixture<SolvedTables>
         {
             var table = _tablebase.Get(Material.Parse("KRvK"));
             table.Save(path);
-            var loaded = EndgameTable.Load(path);
+            using var loaded = EndgameTable.Load(path);
             Assert.Equal(table.Material, loaded.Material);
             Assert.Equal(table.Size, loaded.Size);
             for (long index = 0; index < table.Size; index += 97)

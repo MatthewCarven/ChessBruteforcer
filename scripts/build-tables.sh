@@ -6,7 +6,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 dotnet build -c Release -v q src/ChessBruteforcer.Cli
-CLI="dotnet $PWD/src/ChessBruteforcer.Cli/bin/Release/net8.0/ChessBruteforcer.Cli.dll"
+# Relative to the repository root (cd above): $PWD may hold a space, and $CLI is word-split.
+CLI="dotnet src/ChessBruteforcer.Cli/bin/Release/net8.0/ChessBruteforcer.Cli.dll"
 
 one_v_one="KQvKQ KQvKR KQvKB KQvKN KQvKP KRvKR KRvKB KRvKN KRvKP KBvKB KBvKN KBvKP KNvKN KNvKP KPvKP"
 two_v_zero="KQQvK KQRvK KQBvK KQNvK KQPvK KRRvK KRBvK KRNvK KRPvK KBBvK KBNvK KBPvK KNNvK KNPvK KPPvK"

@@ -181,3 +181,20 @@ rather than 48-byte boards, because that is the storage that scales.
 - What lives only in a cloud session and has to be rebuilt on a new machine:
   the .NET 8 SDK, Stockfish, ./tables (run the script), and engines/
   snapshots (scripts/match.sh snapshot).
+
+## 2026-09-27: on the Windows desktop
+
+- Cloned onto Matthew's machine (`git init` + `git pull` from GitHub). The
+  .NET 10 SDK builds the net8.0 projects as they are; the .NET 8 runtime is
+  installed, so no SDK change was needed.
+- One test failed on Windows only: `TablesSurviveASaveAndLoad` couldn't
+  delete its temp table. A loaded table memory-maps its file and never let
+  go of it, and Windows won't delete or replace a mapped file (Linux will).
+  `EndgameTable` is now `IDisposable` and releases the mapping. 185 pass,
+  1 skipped (the long en passant consistency run, skipped on purpose).
+- `scripts/build-tables.sh` built its command from an unquoted `$PWD`, which
+  splits at the space in `Chess Bruteforcer`. It uses a relative path now.
+  `match.sh` needs `STOCKFISH=<path to stockfish.exe>` here; it defaults to
+  the Linux apt path.
+- Still to do on this machine: install Stockfish, run build-tables.sh
+  (1-3 h), and snapshot an engine before any matches.
