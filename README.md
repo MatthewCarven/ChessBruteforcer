@@ -103,6 +103,7 @@ solve <material> --cap N       only to N plies; run it again with a bigger N (or
 dtz <material>                 solve under the 50-move rule; wins, draws, losses, cursed wins, blessed losses
 dtz <material> verify [stride] check the DTZ table against its moves
 probe <fen>                    the outcome, and every move ranked best first
+probe <fen> --rule             the same under the 50-move rule only (needs just the DTZ tables)
 line <fen>                     best play from here to mate
 verify <material> [stride]     check every (or every n-th) position against its moves
 ```
@@ -426,6 +427,20 @@ slots and a 484 MB file per metric:
 | K+R+B v K+R | DTZ | 570 s | 1.41 GB | 1.51 GB | 41.2% won with white to move; longest DTZ 99 / 100 plies |
 | K+R+B v K+R | DTM, capped at 100 | 570 s | 1.44 GB | 1.47 GB | 818 MB frontier file |
 | K+R+B v K+R | DTM, extended to the end | 9 s | 1.24 GB | 1.28 GB | longest mate 65 moves (129 plies) |
+| K+Q+R v K+R | DTZ | 830 s | 1.88 GB | 1.85 GB | 99.8% won with white to move; longest DTZ 30 / 31 |
+| K+R+R v K+R | DTZ | 762 s | 1.91 GB | 1.91 GB | 99.2% won; longest DTZ 49 / 50 |
+| K+R+N v K+R | DTZ | 539 s | 1.41 GB | 1.49 GB | 36.6% won; longest DTZ 65 / 64 |
+| **K+R+P v K+R** | DTZ, by slices | 2,040 s | **0.24 GB** | 3.7 GB* | 66.6% won with white to move; longest DTZ 69 / 70 |
+
+\* Mostly table files mapped into memory (the 1.9 GB table itself as it is
+written, and the promotion tables it reads), which Windows can let go of; the
+solver's own arrays and queues were 244 MB. K+R+P v K+R, the classic
+rook-and-pawn ending, is the first 5-piece table with a pawn (947 M slots,
+a 1.9 GB file): 24
+slices of 33.5 M positions each, where a whole-table solve would need ~5 GB.
+Checked against Lichess: 30 positions across the six 5-piece tables, and 12
+more random ones in K+R+P v K+R, all agree
+(`scripts/syzygy-check-5piece.tsv`).
 
 K+R+B v K+R is where **the 50-move rule first changes results: 17,440
 cursed wins** (white to move: won with best play, drawn under the rule) **and

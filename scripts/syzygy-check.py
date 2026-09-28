@@ -1,26 +1,34 @@
 """Compare our DTZ (50-move rule) with Syzygy's, via the Lichess tablebase API.
 
-    python scripts/syzygy-check.py <cli bin dir> <tables dir> <results .tsv>
+    python scripts/syzygy-check.py <cli bin dir> <tables dir> <results .tsv> [tables] [--rule]
 
 Per table: the longest DTZ position for each side to move (from `dtz`), three
 random legal positions, and a few en passant positions in KPvKP.  Needs the
 DTM and DTZ tables in <tables dir> (scripts/dtz-tables.sh makes them).
+[tables] is a comma-separated list (default: all 36 up to 4 pieces; the en
+passant cases only come with the default). --rule probes with `probe --rule`,
+which needs only the DTZ tables: for 5-piece tables without their DTM.
 Lichess reports a checkmated position as dtz -1; we store it as 0 ("checkmated
 now"), so that one convention is allowed for.
 """
 import json, os, random, re, subprocess, sys, time, urllib.request
 
 BIN, TABLES, RESULTS = sys.argv[1], sys.argv[2], sys.argv[3]
+EXTRA = sys.argv[4:]
+RULE_ONLY = "--rule" in EXTRA
+CHOSEN = [a for a in EXTRA if a != "--rule"]
 CLI = os.path.join(BIN, "ChessBruteforcer.Cli.dll")
 ENV = dict(os.environ, CHESS_TABLES=TABLES)
 ALL = "KvK KQvK KRvK KBvK KNvK KPvK KQvKQ KQvKR KQvKB KQvKN KQvKP KRvKR KRvKB KRvKN KRvKP KBvKB KBvKN KBvKP KNvKN KNvKP KPvKP KQQvK KQRvK KQBvK KQNvK KQPvK KRRvK KRBvK KRNvK KRPvK KBBvK KBNvK KBPvK KNNvK KNPvK KPPvK".split()
+if CHOSEN:
+    ALL = CHOSEN[0].split(",")
 random.seed(20260928)
 
 def cli(*args):
     return subprocess.run(["dotnet", CLI, *args], capture_output=True, text=True, env=ENV).stdout
 
 def ours(fen):
-    out = cli("probe", fen)
+    out = cli("probe", fen, "--rule") if RULE_ONLY else cli("probe", fen)
     m = re.search(r"under the 50-move rule: (.*)", out)
     if not m:
         return None
@@ -76,7 +84,7 @@ for m in ALL:
             samples.append((m, "random", fen))
             got += 1
 # En passant: white has just played a double push next to a black pawn.
-samples += [("KPvKP", "en passant", f) for f in [
+samples += [] if CHOSEN else [("KPvKP", "en passant", f) for f in [
     "8/8/8/8/3pP3/8/8/K6k b - e3 0 1",
     "8/8/8/8/4Pp2/8/8/k6K b - e3 0 1",
     "4k3/8/8/8/2Pp4/8/8/4K3 b - c3 0 1",

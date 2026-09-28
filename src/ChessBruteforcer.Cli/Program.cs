@@ -31,6 +31,7 @@ static class Cli
           solve <material> [--cap N]     solve e.g. KQvK or KRvK and print what it found; with a cap, only
                                          to N plies (a table solved to less is carried on, not redone)
           probe <fen>                    the outcome, and every move ranked best first
+          probe <fen> --rule             the same under the 50-move rule only (DTZ tables; no mate distances needed)
           line <fen>                     best play from here to mate
           verify <material> [stride] [--cap N]  check every (or every n-th) position against its moves
           dtz <material>                 solve under the 50-move rule (.cbz beside the table): wins, draws,
@@ -81,6 +82,7 @@ static class Cli
                 ["solve", var material] => Solve(material, null),
                 ["solve", var material, "--cap", var cap] => Solve(material, int.Parse(cap)),
                 ["probe", var fen] => Probe(fen),
+                ["probe", var fen, "--rule"] => ProbeUnderRule(fen),
                 ["dtz", var material] => Dtz(material),
                 ["dtz", var material, "verify"] => DtzVerify(material, 1),
                 ["dtz", var material, "verify", var stride] => DtzVerify(material, int.Parse(stride)),
@@ -282,6 +284,21 @@ static class Cli
         Console.WriteLine($"{material.Canonical}: {checkedPositions:N0} positions checked in " +
                           $"{stopwatch.Elapsed.TotalSeconds:0.0}s, {(mismatches.Count == 0 ? "all consistent" : $"{mismatches.Count}+ mismatches")}");
         return mismatches.Count == 0 ? 0 : 2;
+    }
+
+    /// <summary>Under the 50-move rule alone: needs only the DTZ tables, not the mate distances.</summary>
+    private static int ProbeUnderRule(string fen)
+    {
+        var position = Position.FromFen(fen);
+        var tablebase = OpenTablebase();
+        var outcome = tablebase.ProbeDtz(position);
+        var ranked = tablebase.RankMovesUnderRule(position);
+        Console.Error.Write($"\r{"",-70}\r");
+        Console.WriteLine(position.ToPackedBoard().ToDiagram());
+        Console.WriteLine($"{position.SideToMove} to move, under the 50-move rule: {DescribeDtz(outcome)}");
+        foreach (var (move, result) in ranked)
+            Console.WriteLine($"  {move.ToUci(),-6} {DescribeDtz(result)}");
+        return 0;
     }
 
     private static int Probe(string fen)

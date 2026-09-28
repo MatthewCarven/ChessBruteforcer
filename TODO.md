@@ -100,10 +100,17 @@ Plan agreed with Matthew: part A (slices, proven on 4 pieces), then part B
       time); all 36 DTZ tables byte-identical to the pre-change DTZ
       (`tables-baseline/*.cbz`, made first); the capped ladder still
       byte-identical; tests green.
-- [ ] Part B: KRPvKR under the rule. Promotion targets first: KQRvKR,
-      KRRvKR, KRNvKR (KRBvKR is done), ~10-13 min each. KRPvKR itself: 24
-      slices x 33.5 M, estimated ~45 min, ~0.3-0.5 GB plus the 1.9 GB
-      file. Check against Lichess. Then maybe its mate distances.
+- [x] Part B (2026-09-28): KRPvKR under the rule, the first 5-piece table
+      with a pawn. Promotion targets first: KQRvKR 830 s, KRRvKR 762 s,
+      KRNvKR 539 s (peaks 1.5-1.9 GB). KRPvKR: 2,040 s, solver memory
+      244 MB (whole-table would be ~5 GB), process peak 3.7 GB (mostly
+      mapped files), 1.9 GB file. `dtz verify` on every 1009th position
+      (479,339): consistent. Against Lichess: 30 positions over the six
+      5-piece tables plus 12 more random KRPvKR, all agree
+      (`scripts/syzygy-check-5piece.tsv`; `syzygy-check.py ... --rule`).
+      `probe <fen> --rule` answers from the DTZ tables alone.
+- [ ] KRPvKR's mate distances (the three promotion targets' DTM first,
+      ~10 min each, then KRPvKR by slices), for its cursed wins.
 - [ ] Later: 48-square pawns (25% less disk per pawn, but a new file
       format); a cap for 5-piece pawn tables (slices and the ladder
       together).

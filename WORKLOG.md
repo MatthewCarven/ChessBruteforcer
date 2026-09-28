@@ -611,3 +611,30 @@ rather than 48-byte boards, because that is the storage that scales.
   20 from scratch, twice each): 165 / 163 s old, 168 / 165 s new. The same
   within 2%, so the slow ladder run was the machine at the time, not the
   code (the capped path barely changed).
+
+## 2026-09-28: session 3b, part B (the first 5-piece table with a pawn)
+
+- KRPvKR under the rule. Its promotions lead to KQRvKR, KRRvKR, KRNvKR and
+  KRBvKR (done), so those first, each in its own process:
+
+  | Table | Time | Solver memory | Process peak | White to move W / D / L | Longest DTZ |
+  |---|---|---|---|---|---|
+  | KQRvKR | 830 s | 1,884 MB | 1,848 MB | 99.8 / 0.1 / 0.0% | 30 / 31 |
+  | KRRvKR | 762 s | 1,912 MB | 1,906 MB | 99.2 / 0.7 / 0.0% | 49 / 50 |
+  | KRNvKR | 539 s | 1,406 MB | 1,486 MB | 36.6 / 63.3 / 0.1% | 65 / 64 |
+  | **KRPvKR** | 2,040 s | **244 MB** | 3,724 MB | 66.6 / 33.0 / 0.4% | 69 / 70 |
+
+  KRPvKR by slices: 24 slices of 33.5 M, arrays 172 MB + queues 72 MB. The
+  process peak is mostly mapped files (the 1.9 GB table as it's written and
+  the promotion tables), which Windows can drop; RAM free never went below
+  ~3 GB. Black to move: 20.1% won, 54.4% drawn, 25.5% lost. 967 M legal
+  positions (476.6 M white to move, 490.1 M black).
+- Checks: `dtz KRPvKR verify` on every 1009th index (a prime, so the sample
+  doesn't line up with the index): 479,339 positions consistent. Lichess:
+  the six 5-piece tables' longest cases and 3 random each, 30 of 30; 12
+  more random KRPvKR, 12 of 12. `scripts/syzygy-check.py` takes a table
+  list and `--rule` now (probing with the new `probe <fen> --rule`, which
+  needs only DTZ tables).
+- Tests: 258 pass, 1 skipped.
+- Next, if wanted: KRPvKR's mate distances for its cursed wins (promotion
+  targets' DTM first), or the pawnless 5-piece lot (Matthew to OK the disk).
