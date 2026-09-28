@@ -638,3 +638,14 @@ rather than 48-byte boards, because that is the storage that scales.
 - Tests: 258 pass, 1 skipped.
 - Next, if wanted: KRPvKR's mate distances for its cursed wins (promotion
   targets' DTM first), or the pawnless 5-piece lot (Matthew to OK the disk).
+
+## 2026-09-28: KRPvKR's mate distances, started and put on hold
+
+- Matthew picked (a), KRPvKR's mate distances for its cursed wins, then
+  asked to hold and rerun later. KQRvKR's DTM finished first: 816 s,
+  solver 1.94 GB (arrays 1.24 + queues 0.70), process peak 1.95 GB; same
+  win / draw / loss counts as its DTZ table (so no cursed wins or blessed
+  losses there, to be confirmed by `dtz KQRvKR`); longest mate 34 moves
+  (67 plies) with white to move, 35 (70 plies) with black.
+- Stopped during KRRvKR's DTM: no solver left running, nothing
+  half-written. The commands to carry on are in TODO (3b).

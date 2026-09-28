@@ -111,6 +111,17 @@ Plan agreed with Matthew: part A (slices, proven on 4 pieces), then part B
       `probe <fen> --rule` answers from the DTZ tables alone.
 - [ ] KRPvKR's mate distances (the three promotion targets' DTM first,
       ~10 min each, then KRPvKR by slices), for its cursed wins.
+      **On hold (Matthew, 2026-09-28), part done:** KQRvKR's DTM is solved
+      and saved (816 s, peak 1.95 GB; longest mate 34 moves / 67 plies with
+      white to move, 35 / 70 plies with black; not yet checked on Lichess).
+      Stopped during KRRvKR, nothing half-written. To carry on (Git Bash, in
+      the repo; ~70 min, then a few minutes per comparison):
+
+          export CHESS_TABLES=tables
+          for m in KRRvKR KRNvKR KRPvKR; do dotnet src/ChessBruteforcer.Cli/bin/Release/net8.0/ChessBruteforcer.Cli.dll solve $m; done
+          for m in KQRvKR KRRvKR KRNvKR KRPvKR; do dotnet src/ChessBruteforcer.Cli/bin/Release/net8.0/ChessBruteforcer.Cli.dll dtz $m; done
+
+      The second loop prints each table's cursed wins and blessed losses.
 - [ ] Later: 48-square pawns (25% less disk per pawn, but a new file
       format); a cap for 5-piece pawn tables (slices and the ladder
       together).
