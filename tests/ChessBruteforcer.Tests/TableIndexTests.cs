@@ -69,9 +69,38 @@ public class TableIndexTests
     }
 
     [Theory]
+    [InlineData("KRRvK", 462L * 2016 * 2, 462L * 64 * 64 * 2)]          // a pair: C(64, 2) = 2,016 sets, not 64 * 64
+    [InlineData("KQQQvK", 462L * 41664 * 2, 462L * 64 * 64 * 64 * 2)]   // three alike: C(64, 3) = 41,664, not 262,144
+    [InlineData("KRRvKR", 462L * 2016 * 64 * 2, 462L * 64 * 64 * 64 * 2)]
+    [InlineData("KPPvK", 1806L * 2016 * 2, 1806L * 64 * 64 * 2)]
+    public void IdenticalPiecesAreStoredOnce(string material, long size, long orderedSize)
+    {
+        Assert.Equal(size, EndgameTable.TableSize(Material.Parse(material)));
+        // The first numbering kept every order of them: a digit of 64 for each piece.
+        Assert.Equal(orderedSize, new TableIndex(Material.Parse(material), ordered: true).Size);
+    }
+
+    [Fact]
+    public void SwappingIdenticalPiecesGivesTheSameIndex()
+    {
+        var index = new TableIndex(Material.Parse("KRRvKR"));
+        var random = new Random(7);
+        var squares = new int[5];
+        for (int trial = 0; trial < 2000; trial++)
+        {
+            RandomPlacement(random, squares);
+            long expected = index.Encode(squares, Colour.White);
+            (squares[2], squares[3]) = (squares[3], squares[2]);   // the two white rooks
+            Assert.Equal(expected, index.Encode(squares, Colour.White));
+        }
+    }
+
+    [Theory]
     [InlineData("KvK")]
     [InlineData("KQvK")]
     [InlineData("KPvK")]
+    [InlineData("KRRvK")]
+    [InlineData("KPPvK")]
     public void EveryPlacementIsCountedExactlyOnce(string material)
     {
         // Decoding every index and weighting it by its images gives back the plain
@@ -93,9 +122,70 @@ public class TableIndexTests
         {
             "KvK" => kings,
             "KQvK" => kings * 62,
+            "KRRvK" => kings * 62 * 61 / 2,                         // two rooks: which is which doesn't matter
+            "KPPvK" => KingPawnPairPlacements(),
             _ => KingPawnPlacements(),
         };
         Assert.Equal(expected * 2, weighted);
+    }
+
+    [Fact]
+    public void TablesWithIdenticalPiecesInEveryOrderStillLoad()
+    {
+        // Write K+R+R v K the first way (both orders of the rooks) and read it back.
+        var table = new Tablebase().Get(Material.Parse("KRRvK"));
+        var index = new TableIndex(table.Material);
+        var ordered = new TableIndex(table.Material, ordered: true);
+        var old = new short[ordered.Size];
+        var squares = new int[4];
+        for (long i = 0; i < old.LongLength; i++)
+        {
+            var value = ordered.Decode(i, squares, out var side) ? table[index.Encode(squares, side)] : null;
+            old[i] = value switch
+            {
+                null => short.MinValue,
+                { Kind: OutcomeKind.Win } v => (short)v.Plies,
+                { Kind: OutcomeKind.Loss } v => (short)(-v.Plies - 1),
+                _ => 0,
+            };
+        }
+
+        string path = Path.Combine(Path.GetTempPath(), $"krrvk-ordered-{Guid.NewGuid():N}.cbt");
+        try
+        {
+            using (var writer = new BinaryWriter(File.Create(path), Encoding.ASCII))
+            {
+                writer.Write(Encoding.ASCII.GetBytes("CBT2"));
+                writer.Write("KRRvK");
+                writer.Write(old.LongLength);
+                foreach (short value in old)
+                    writer.Write(value);
+            }
+            Assert.True(EndgameTable.IsOutdatedFile(path));
+            using var loaded = EndgameTable.Load(path);
+            Assert.Equal(table.Size, loaded.Size);
+            for (long i = 0; i < table.Size; i++)
+                Assert.Equal(table[i], loaded[i]);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>King, king and two white pawns (either order is one placement): pawns on ranks 2-7, on no king or each other.</summary>
+    private static long KingPawnPairPlacements()
+    {
+        long count = 0;
+        for (int wk = 0; wk < 64; wk++)
+            for (int bk = 0; bk < 64; bk++)
+            {
+                if (wk == bk || Attacks.King[wk].Contains(bk))
+                    continue;
+                int free = Enumerable.Range(8, 48).Count(s => s != wk && s != bk);
+                count += free * (free - 1) / 2;
+            }
+        return count;
     }
 
     [Fact]

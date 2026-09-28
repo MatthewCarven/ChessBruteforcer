@@ -37,7 +37,8 @@ static class Cli
           dtz <material>                 solve under the 50-move rule (.cbz beside the table): wins, draws,
                                          losses, and the wins and losses the rule turns into draws
           dtz <material> verify [stride] check the DTZ table against its moves
-          upgrade [dir]                  rewrite tables from before symmetry in the new format (they load either way)
+          upgrade [dir]                  rewrite older table files in the current format (they load either way)
+          compare <file> <file>          two table files of one material, value by value
 
         Tables live in ./tables, or wherever CHESS_TABLES points.
 
@@ -92,6 +93,7 @@ static class Cli
                 ["verify", var material, var stride] => Verify(material, int.Parse(stride), null),
                 ["verify", var material, var stride, "--cap", var cap] => Verify(material, int.Parse(stride), int.Parse(cap)),
                 ["upgrade"] => Upgrade(TableDirectory),
+                ["compare", var first, var second] => Compare(first, second),
                 ["upgrade", var directory] => Upgrade(directory),
                 ["file", "add", var file, .. var boards] when boards.Length > 0 => FileAdd(file, boards),
                 ["file", "import", var file, var text] => FileAdd(file, ReadLines(text)),
@@ -223,17 +225,56 @@ static class Cli
     private static int Upgrade(string directory)
     {
         int upgraded = 0;
-        foreach (string path in Directory.EnumerateFiles(directory, "*.cbt").Order())
+        var files = Directory.EnumerateFiles(directory, "*.cbt").Concat(Directory.EnumerateFiles(directory, "*.cbz"));
+        foreach (string path in files.Order())
         {
-            if (!EndgameTable.IsLegacyFile(path))
+            // From before symmetry, with identical pieces in every order, or DTZ at two bytes a value.
+            if (!EndgameTable.IsOutdatedFile(path))
                 continue;
+            if (File.Exists(Path.ChangeExtension(path, ".cbf")))
+            {
+                Console.WriteLine($"{Path.GetFileName(path),-14} capped, with a frontier: left as it is (solve it again to upgrade)");
+                continue;
+            }
             long before = new FileInfo(path).Length;
-            using (var table = EndgameTable.Load(path))
+            using (var table = EndgameTable.Load(path, intoMemory: true))   // in memory: the file is rewritten in place
                 table.Save(path);
             Console.WriteLine($"{Path.GetFileName(path),-14} {before / 1048576.0,8:0.0} MB -> {new FileInfo(path).Length / 1048576.0,6:0.0} MB");
             upgraded++;
         }
         return Print($"{upgraded} tables upgraded in {directory}");
+    }
+
+    /// <summary>
+    /// Two table files of one material, value by value in the current
+    /// numbering (older files are renumbered as they load): for checking a
+    /// change of format, where the bytes may differ but no value may.
+    /// </summary>
+    private static int Compare(string first, string second)
+    {
+        using var a = EndgameTable.Load(first);
+        using var b = EndgameTable.Load(second);
+        if (a.Material != b.Material || a.Size != b.Size)
+            return Print($"different tables: {a.Material} ({a.Size:N0} slots) and {b.Material} ({b.Size:N0} slots)", 2);
+        long differ = 0, legal = 0;
+        long firstDiffer = -1;
+        for (long i = 0; i < a.Size; i++)
+        {
+            var x = a[i];
+            if (x is not null)
+                legal++;
+            if (x != b[i])
+            {
+                differ++;
+                if (firstDiffer < 0)
+                    firstDiffer = i;
+            }
+        }
+        if (differ == 0)
+            return Print($"{a.Material}: {a.Size:N0} slots, {legal:N0} legal, all equal");
+        Console.WriteLine($"{a.Material}: {differ:N0} of {a.Size:N0} slots differ; first at {firstDiffer:N0} " +
+                          $"({a.PositionAt(firstDiffer).ToFen()}): {a[firstDiffer]?.ToString() ?? "impossible"} v {b[firstDiffer]?.ToString() ?? "impossible"}");
+        return 2;
     }
 
     private static Tablebase OpenTablebase(int? cap = null) =>

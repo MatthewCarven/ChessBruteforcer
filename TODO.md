@@ -152,10 +152,18 @@ Plan agreed with Matthew: part A (slices, proven on 4 pieces), then part B
 - [x] Checked against Lichess: both tables' longest cases, three random
       KRBvKR positions (mate distance and DTZ), and the cursed/blessed
       categories. `verify` / `dtz verify` on every 1000th position.
+- [x] Before the lot, less disk (Matthew, 2026-09-28: "sort them and
+      deduplicate"): identical pieces stored once (a pair halves a table,
+      three alike a sixth; the counts had doubled them), DTZ in one byte.
+      60 tables both kinds: ~58 GB -> ~31 GB. 31 of 36 small tables byte-
+      identical, the 5 with a pair and all 36 DTZ equal value for value, the
+      ladder too; KRRvKR re-solved fresh = upgraded, 533 s (was 762), 0.95 GB
+      (was 1.91). `upgrade` took `tables/` from 8.39 GB to 5.67 GB.
 - [ ] The rest of the pawnless 5-piece tables: 60 material sets (20 of
-      three pieces v a bare king, 40 of two v one). DTZ alone ~29 GB and
-      ~11 h; with DTM ~58 GB and ~22 h. Ask Matthew before filling the disk.
-      A script like dtz-tables.sh, restartable (skip tables on disk).
+      three pieces v a bare king, 40 of two v one), both kinds, ~31 GB and
+      ~18 h. Matthew said go (option a); he runs
+      `scriptsuild-five-piece.cmd` (restartable, logs to
+      `tablesive-piece.log`, stops under 10 GB free).
 
 ## Done: milestone 1, the foundation
 

@@ -40,9 +40,11 @@ internal sealed class FileStore : IValueStore
     private readonly MemoryMappedFile _file;
     private readonly MemoryMappedViewAccessor _view;
     private readonly long _dataOffset;
+    private readonly int _width;   // bytes a value: 2, or 1 for DTZ (see EndgameTable.ToByte)
 
-    public FileStore(string path, string magic, Material material, long size, short fill)
+    public FileStore(string path, string magic, Material material, long size, short fill, int width = 2)
     {
+        _width = width;
         _path = path;
         _temp = path + ".tmp";
         using (var stream = File.Create(_temp))
@@ -55,9 +57,12 @@ internal sealed class FileStore : IValueStore
             _dataOffset = stream.Position;
             var chunk = new short[1 << 20];
             Array.Fill(chunk, fill);
-            var bytes = System.Runtime.InteropServices.MemoryMarshal.AsBytes(chunk.AsSpan());
+            var narrow = new sbyte[chunk.Length];
+            Array.Fill(narrow, EndgameTable.ToByte(fill));
+            var bytes = width == 1 ? System.Runtime.InteropServices.MemoryMarshal.AsBytes(narrow.AsSpan())
+                                   : System.Runtime.InteropServices.MemoryMarshal.AsBytes(chunk.AsSpan());
             for (long written = 0; written < size; written += chunk.Length)
-                stream.Write(bytes[..(int)(Math.Min(chunk.Length, size - written) * sizeof(short))]);
+                stream.Write(bytes[..(int)(Math.Min(chunk.Length, size - written) * width)]);
         }
         _file = MemoryMappedFile.CreateFromFile(_temp, FileMode.Open, null, 0, MemoryMappedFileAccess.ReadWrite);
         _view = _file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
@@ -65,8 +70,15 @@ internal sealed class FileStore : IValueStore
 
     public short this[long index]
     {
-        get => _view.ReadInt16(_dataOffset + index * sizeof(short));
-        set => _view.Write(_dataOffset + index * sizeof(short), value);
+        get => _width == 1 ? EndgameTable.FromByte(_view.ReadSByte(_dataOffset + index))
+                           : _view.ReadInt16(_dataOffset + index * sizeof(short));
+        set
+        {
+            if (_width == 1)
+                _view.Write(_dataOffset + index, EndgameTable.ToByte(value));
+            else
+                _view.Write(_dataOffset + index * sizeof(short), value);
+        }
     }
 
     /// <summary>Flush, close, and give the file its real name.</summary>

@@ -31,7 +31,8 @@ namespace ChessBruteforcer.Core.Endgame;
 /// from ply N + 1 instead of starting again.  A table that runs out of work
 /// before its cap is complete, and is saved as "CBT2" like any other.
 ///
-/// A DTZ table ("CBZ1", <c>.cbz</c>, same index) solves the same positions
+/// A DTZ table ("CBZ2", <c>.cbz</c>, same index, one byte a value; "CBZ1"
+/// files, two bytes a value, still load) solves the same positions
 /// under the 50-move rule: a win is a win only if the winner can force a
 /// capture, pawn move or mate within 100 plies, again and again until mate.
 /// Its distances count to the next capture or pawn move, not to mate.
@@ -44,7 +45,8 @@ public sealed class EndgameTable : IDisposable
     private const string CappedMagic = "CBT3";
     private const string LegacyMagic = "CBT1";
     private const string FrontierMagic = "CBF1";
-    private const string DtzMagic = "CBZ1";
+    private const string DtzWideMagic = "CBZ1";   // DTZ at two bytes a value, as first written
+    private const string DtzMagic = "CBZ2";       // DTZ at one byte: its values never pass 101
 
     /// <summary>The 50-move rule, in plies: a draw once 100 go by without a capture or pawn move.</summary>
     public const int RulePlies = 100;
@@ -55,6 +57,7 @@ public sealed class EndgameTable : IDisposable
     private readonly MemoryMappedFile? _file;
     private readonly MemoryMappedViewAccessor? _view;
     private readonly long _dataOffset;
+    private readonly int _width;   // bytes a value in the file: 2, or 1 for DTZ
     private readonly TableIndex _index;
 
     public Material Material { get; }
@@ -97,8 +100,9 @@ public sealed class EndgameTable : IDisposable
     }
 
     private EndgameTable(TableIndex index, MemoryMappedFile file, MemoryMappedViewAccessor view,
-                         long dataOffset, long size, int? cap, bool dtz)
+                         long dataOffset, long size, int? cap, bool dtz, int width)
     {
+        _width = width;
         _index = index;
         Material = index.Material;
         _file = file;
@@ -120,7 +124,17 @@ public sealed class EndgameTable : IDisposable
     public Outcome? this[long index] => Decode(Raw(index));
 
     private short Raw(long index) =>
-        _values is not null ? _values[index] : _view!.ReadInt16(_dataOffset + index * sizeof(short));
+        _values is not null ? _values[index]
+        : _width == 1 ? FromByte(_view!.ReadSByte(_dataOffset + index))
+        : _view!.ReadInt16(_dataOffset + index * sizeof(short));
+
+    /// <summary>
+    /// A DTZ value in one byte: win in d plies is d (1-100), loss in d is
+    /// -d - 1 (down to -101), draw 0, impossible -128.
+    /// </summary>
+    internal static sbyte ToByte(short value) => value == Illegal ? sbyte.MinValue : checked((sbyte)value);
+
+    internal static short FromByte(sbyte value) => value == sbyte.MinValue ? Illegal : value;
 
     /// <summary>
     /// Solve a material set.  <paramref name="probeCapture"/>
@@ -162,7 +176,7 @@ public sealed class EndgameTable : IDisposable
         if (material.PieceCount > 5)
             throw new NotSupportedException("At most five pieces.");
         var solver = new Solver(material, probeZeroing, progress, zeroing: true, sliced: material.HasPawns);
-        return material.HasPawns ? solver.RunSliced(path, DtzMagic) : solver.RunDtz();
+        return material.HasPawns ? solver.RunSliced(path, DtzMagic, width: 1) : solver.RunDtz();
     }
 
     /// <summary>
@@ -188,8 +202,8 @@ public sealed class EndgameTable : IDisposable
                                                 IProgress<string>? progress = null)
     {
         var header = ReadHeader(tablePath);
-        if (header.Cap is not int oldCap || !File.Exists(frontierPath))
-            return null;
+        if (header.Cap is not int oldCap || header.Ordered || !File.Exists(frontierPath))
+            return null;   // (a frontier in the old numbering doesn't fit the new one: solve again)
         var values = ReadValues(tablePath, header.DataOffset, header.Count);
         var solver = Solver.LoadFrontier(frontierPath, header.Material, values, oldCap, probeCapture, progress);
         return solver?.Extend(probeCapture, progress, cap);
@@ -305,17 +319,28 @@ public sealed class EndgameTable : IDisposable
         if (Cap is int cap)
             writer.Write(cap);
         // Straight from the array: a copy would cost another 2 bytes a slot (484 MB at 5 pieces).
-        if (_values is not null)
+        if (_values is not null && !IsDtz)
         {
             writer.Write(System.Runtime.InteropServices.MemoryMarshal.AsBytes(_values.AsSpan()));
             return;
         }
         var chunk = new short[1 << 20];
+        var bytes = new sbyte[chunk.Length];
         for (long start = 0; start < Size; start += chunk.Length)
         {
             int count = (int)Math.Min(chunk.Length, Size - start);
-            _view!.ReadArray(_dataOffset + start * sizeof(short), chunk, 0, count);
-            writer.Write(System.Runtime.InteropServices.MemoryMarshal.AsBytes(chunk.AsSpan(0, count)));
+            for (int i = 0; i < count; i++)
+                chunk[i] = Raw(start + i);
+            if (IsDtz)
+            {
+                for (int i = 0; i < count; i++)
+                    bytes[i] = ToByte(chunk[i]);
+                writer.Write(System.Runtime.InteropServices.MemoryMarshal.AsBytes(bytes.AsSpan(0, count)));
+            }
+            else
+            {
+                writer.Write(System.Runtime.InteropServices.MemoryMarshal.AsBytes(chunk.AsSpan(0, count)));
+            }
         }
     }
 
@@ -327,36 +352,64 @@ public sealed class EndgameTable : IDisposable
     /// </summary>
     public static EndgameTable Load(string path, bool intoMemory = false)
     {
-        var (material, count, dataOffset, legacy, cap, dtz) = ReadHeader(path);
+        var header = ReadHeader(path);
+        var (material, count, dataOffset, legacy, cap, dtz, width, ordered) = header;
         var index = new TableIndex(material);
         if (legacy)
-            return FromLegacy(index, ReadValues(path, dataOffset, count));
+            return FromLegacy(index, ReadValues(path, dataOffset, count, width));
+        if (ordered)
+            return FromOrdered(index, ReadValues(path, dataOffset, count, width), cap, dtz);
         if (intoMemory)
-            return new EndgameTable(index, ReadValues(path, dataOffset, count), cap, dtz);
+            return new EndgameTable(index, ReadValues(path, dataOffset, count, width), cap, dtz);
         var file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         var view = file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
-        return new EndgameTable(index, file, view, dataOffset, count, cap, dtz) { FilePath = path };
+        return new EndgameTable(index, file, view, dataOffset, count, cap, dtz, width) { FilePath = path };
     }
 
-    private readonly record struct Header(Material Material, long Count, long DataOffset, bool Legacy, int? Cap, bool Dtz);
+    /// <summary>
+    /// True for a table file an <c>upgrade</c> would rewrite: from before symmetry
+    /// ("CBT1"), with identical pieces in every order, or DTZ at two bytes a value.
+    /// It loads either way.
+    /// </summary>
+    public static bool IsOutdatedFile(string path)
+    {
+        var header = ReadHeader(path);
+        return header.Legacy || header.Ordered || (header.Dtz && header.Width == 2);
+    }
+
+    private readonly record struct Header(Material Material, long Count, long DataOffset, bool Legacy, int? Cap,
+                                          bool Dtz, int Width, bool Ordered);
 
     private static Header ReadHeader(string path)
     {
         using var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII);
         string magic = Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length));
-        if (magic != Magic && magic != CappedMagic && magic != LegacyMagic && magic != DtzMagic)
+        if (magic is not (Magic or CappedMagic or LegacyMagic or DtzMagic or DtzWideMagic))
             throw new InvalidDataException($"{path} is not an endgame table.");
         bool legacy = magic == LegacyMagic;
+        bool dtz = magic is DtzMagic or DtzWideMagic;
+        int width = magic == DtzMagic ? 1 : 2;
         var material = Material.Parse(reader.ReadString());
         long count = reader.ReadInt64();
         int? cap = magic == CappedMagic ? reader.ReadInt32() : null;
         long dataOffset = reader.BaseStream.Position;
-        long expected = legacy ? LegacySize(material) : TableSize(material);
-        if (count != expected)
-            throw new InvalidDataException($"{path} has {count} entries; {material} needs {expected}.");
-        if (reader.BaseStream.Length < dataOffset + count * sizeof(short))
+        bool ordered = false;
+        if (legacy)
+        {
+            if (count != LegacySize(material))
+                throw new InvalidDataException($"{path} has {count} entries; {material} needs {LegacySize(material)}.");
+        }
+        else if (count != TableSize(material))
+        {
+            // Identical pieces in every order: the numbering before 2026-09-28.
+            long orderedSize = new TableIndex(material, ordered: true).Size;
+            if (count != orderedSize)
+                throw new InvalidDataException($"{path} has {count} entries; {material} needs {TableSize(material)}.");
+            ordered = true;
+        }
+        if (reader.BaseStream.Length < dataOffset + count * width)
             throw new InvalidDataException($"{path} is truncated.");
-        return new Header(material, count, dataOffset, legacy, cap, magic == DtzMagic);
+        return new Header(material, count, dataOffset, legacy, cap, dtz, width, ordered);
     }
 
     /// <summary>True for a table saved before symmetry ("CBT1"): it loads, but saving it again makes it ~2-9 times smaller.</summary>
@@ -367,13 +420,39 @@ public sealed class EndgameTable : IDisposable
         return stream.Read(magic) == magic.Length && Encoding.ASCII.GetString(magic) == LegacyMagic;
     }
 
-    private static short[] ReadValues(string path, long offset, long count)
+    private static short[] ReadValues(string path, long offset, long count, int width = 2)
     {
         using var stream = File.OpenRead(path);
         stream.Position = offset;
         var values = new short[count];
-        stream.ReadExactly(System.Runtime.InteropServices.MemoryMarshal.AsBytes(values.AsSpan()));
+        if (width == 2)
+        {
+            stream.ReadExactly(System.Runtime.InteropServices.MemoryMarshal.AsBytes(values.AsSpan()));
+            return values;
+        }
+        var chunk = new byte[1 << 20];
+        for (long start = 0; start < count; start += chunk.Length)
+        {
+            int n = (int)Math.Min(chunk.Length, count - start);
+            stream.ReadExactly(chunk, 0, n);
+            for (int i = 0; i < n; i++)
+                values[start + i] = FromByte((sbyte)chunk[i]);
+        }
         return values;
+    }
+
+    /// <summary>
+    /// Renumber a table saved with identical pieces in every order (before
+    /// 2026-09-28): each position is looked up by its squares in that numbering.
+    /// </summary>
+    private static EndgameTable FromOrdered(TableIndex index, short[] old, int? cap, bool dtz)
+    {
+        var ordered = new TableIndex(index.Material, ordered: true);
+        var values = new short[index.Size];
+        var squares = new int[index.Slots.Length];
+        for (long i = 0; i < values.LongLength; i++)
+            values[i] = index.Decode(i, squares, out var side) ? old[ordered.Encode(squares, side)] : Illegal;
+        return new EndgameTable(index, values, cap, dtz);
     }
 
     /// <summary>
@@ -556,14 +635,14 @@ public sealed class EndgameTable : IDisposable
         /// mate distances it carries on).  The arrays hold one slice; the whole
         /// table is in memory, or with <paramref name="path"/> in its file.
         /// </summary>
-        public EndgameTable RunSliced(string? path, string magic)
+        public EndgameTable RunSliced(string? path, string magic, int width = 2)
         {
             if (_zeroing)
                 _cap = RulePlies;
             var pawnSlots = PawnSlots(_slots);
             var placements = SliceIndex.Placements(_slots, pawnSlots);
             _global = path is null ? new ArrayStore(Filled(_table.Size, Illegal))
-                                   : new FileStore(path, magic, _material, _table.Size, Illegal);
+                                   : new FileStore(path, magic, _material, _table.Size, Illegal, width);
             var moves = new List<Move>(64);
             var largest = default(SolverMemory);
             try

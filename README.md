@@ -102,6 +102,8 @@ solve <material>               solve e.g. KQvK, KRvK, KQvKR and print what it fo
 solve <material> --cap N       only to N plies; run it again with a bigger N (or none) to carry on
 dtz <material>                 solve under the 50-move rule; wins, draws, losses, cursed wins, blessed losses
 dtz <material> verify [stride] check the DTZ table against its moves
+upgrade [dir]                  rewrite older table files in the current format (they load either way)
+compare <file> <file>          two table files of one material, value by value
 probe <fen>                    the outcome, and every move ranked best first
 probe <fen> --rule             the same under the 50-move rule only (needs just the DTZ tables)
 line <fen>                     best play from here to mate
@@ -390,6 +392,30 @@ tables, the pawn tables' solver memory went from ~127 MB to ~5 MB in the same
 time, and all 36 tables, both kinds, came out byte for byte the same as
 before.
 
+**Identical pieces, stored once** (Matthew's "sort them and deduplicate",
+2026-09-28). Two white rooks are one position whichever rook stands where,
+but the numbering used to keep both orders. Now a run of identical pieces is
+stored as the set of its squares: one number out of C(64, 2) = 2,016 for a
+pair instead of 64 x 64 = 4,096, and C(64, 3) = 41,664 for three instead of
+262,144. A table with a pair is half the size, and half the work to solve;
+one with three alike is a sixth. It also corrects the counts: "legal
+positions" had counted every position with a pair twice (K+B+B v K is 11.9 M,
+not 23.8 M; K+R+R v K+R about 254 M white to move, not 509 M), though no
+percentage changed. And DTZ is stored in one byte a value, since it never
+passes 101: half the size again. On the 36 tables up to 4 pieces: the 31
+without identical pieces are byte for byte as before, the 5 with a pair
+are equal value for value (`compare`), DTZ equal value for value in 209 MB
+instead of 448 MB, and the capped ladder ends on the same tables. Older
+files load either way; `upgrade` rewrites them.
+
+| the 60 pawnless 5-piece tables, both kinds | disk | time |
+| --- | --- | --- |
+| as first planned | ~58 GB | ~22 h |
+| DTZ in one byte | ~44 GB | ~22 h |
+| and identical pieces once | ~31 GB | ~18 h (a table with a pair solves ~30% faster, not 50%: sorting costs a little on every lookup) |
+
+`scripts\build-five-piece.cmd` builds them all (restartable; see the script).
+
 Wins the rule turns into draws are "cursed wins", and losses it saves are
 "blessed losses". **Up to 4 pieces there are none**: every table has the same
 wins, draws and losses under the rule as without it. The longest stretch
@@ -477,7 +503,7 @@ consistent.
 | K+R v K+N | 3.8 M | 7.2 MB (64 MB) | 9 s | 23.3 M | 48.3 / 51.7 / 0% | 40 | 40 ✓ |
 | K+R v K+B | 3.8 M | 7.2 MB (64 MB) | 9 s | 22.6 M | 35.1 / 64.9 / 0% | 29 | 29 ✓ |
 | K+B+N v K | 3.8 M | 7.2 MB (64 MB) | 11 s (was ~85 s) | 24.5 M | 99.5 / 0.5 / 0% | 33 | 33 ✓ |
-| K+B+B v K | 3.8 M | 7.2 MB (64 MB) | 9 s | 23.8 M | 49.3 / 50.7 / 0%* | 19 | 19 ✓ |
+| K+B+B v K | 1.9 M | 3.6 MB (64 MB) | 9 s | 11.9 M*** | 49.3 / 50.7 / 0%* | 19 | 19 ✓ |
 | K+Q v K+P | 14.8 M | 28.2 MB (64 MB) | 41 s | 16.7 M | 99.4 / 0.6 / 0% | 29 | |
 | K+R v K+P | 14.8 M | 28.2 MB (64 MB) | 37 s | 18.1 M | 91.4 / 8.4 / 0.2% | 43** | |
 | K+P v K+P | 14.8 M | 28.2 MB (64 MB) | 24 s | 14.9 M | 43.2 / 33.4 / 23.4% | 33 | |
@@ -487,6 +513,8 @@ Solve times are with the smaller tables each one leads to already on disk.
 \* Half the time the two bishops stand on squares of the same colour, and
 that can't mate.
 \** The pawn side, after promoting.
+\*** 23.8 M until 2026-09-28: both orders of the two bishops were counted
+as two positions (see "Identical pieces" below).
 
 **Pawns.** A pawn push stays in the table, while a promotion, like a
 capture, changes the material and is looked up in the table for the new

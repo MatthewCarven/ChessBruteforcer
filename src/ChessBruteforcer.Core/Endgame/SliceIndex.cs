@@ -97,27 +97,35 @@ internal sealed class SliceIndex : IPositionIndex
     {
         var placements = new List<int[]>();
         var squares = new int[pawnSlots.Length];
+        bool Same(int i) => slots[pawnSlots[i]] == slots[pawnSlots[i - 1]];
+        void SortRuns(int[] placement)
+        {
+            for (int i = 1; i < placement.Length; i++)
+            {
+                for (int j = i; j > 0 && Same(j) && placement[j] < placement[j - 1]; j--)
+                    (placement[j], placement[j - 1]) = (placement[j - 1], placement[j]);
+            }
+        }
         void Place(int i)
         {
             if (i == pawnSlots.Length)
             {
-                // One of each mirror pair: the one whose squares read first.
-                for (int j = 0; j < squares.Length; j++)
-                {
-                    int mirrored = squares[j] ^ 7;
-                    if (squares[j] != mirrored)
-                    {
-                        if (squares[j] < mirrored)
-                            placements.Add((int[])squares.Clone());
-                        return;
-                    }
-                }
+                // One of each mirror pair: the one whose squares read first (identical
+                // pawns in order, as the table numbers them).  Only with identical pawns
+                // can a placement be its own mirror image, e.g. white pawns on d2 and e2;
+                // then both images are in the slice, and write the same values.
+                var mirrored = squares.Select(square => square ^ 7).ToArray();
+                SortRuns(mirrored);
+                if (((ReadOnlySpan<int>)squares).SequenceCompareTo(mirrored) <= 0)
+                    placements.Add((int[])squares.Clone());
                 return;
             }
             for (int square = 8; square < 56; square++)   // never on the first or last rank
             {
                 if (Array.IndexOf(squares, square, 0, i) >= 0)
                     continue;
+                if (i > 0 && Same(i) && square < squares[i - 1])
+                    continue;   // identical pawns: one order only
                 squares[i] = square;
                 Place(i + 1);
             }

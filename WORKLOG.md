@@ -672,3 +672,28 @@ rather than 48-byte boards, because that is the storage that scales.
   puts the 147-ply mate's position 65 plies from its next reset). Of the
   six 5-piece tables so far, only KRBvKR, with nothing to push, has cursed
   wins.
+
+## 2026-09-28: identical pieces stored once, DTZ in one byte
+
+- Matthew, before the overnight run: "if we sort these correctly we will
+  minimize disk space by means of deduplication". Yes: the numbering kept
+  both orders of two identical pieces (six of three). Now a run of them is
+  one digit of C(64, n): a pair's table is half, three alike a sixth. It
+  also fixes the counts, which had counted every position with a pair
+  twice (percentages unaffected): K+B+B v K 11.9 M legal, not 23.8 M;
+  K+R+R v K+R 254,487,576 white to move, not 508,975,152.
+- DTZ in one byte a value (CBZ2; its values stay within -101..100).
+- Older files load either way (the size says which numbering; they're
+  renumbered in memory); `upgrade` rewrites them; `compare` checks two
+  files value by value. A capped table in the old numbering is solved again
+  rather than extended (its frontier follows the old numbering).
+- Regression: mate tables 36 of 36 (the 31 without identical pieces byte
+  for byte, the 5 with a pair value for value); DTZ 36 of 36 value for value,
+  209 MB against 448 MB; the capped ladder 36 of 36; tests 266 pass.
+- 5 pieces: `upgrade tables` in 59 s, 8.39 GB -> 5.67 GB (KQRRvK's DTZ 462
+  -> 114 MB). KRRvKR's DTZ re-solved fresh: equal to the upgraded file,
+  533 s against 762 s, solver 0.95 GB against 1.91 GB. So about 30% faster,
+  not the 50% I'd guessed: sorting the images costs a little each time.
+- The overnight run: `scripts\build-five-piece.cmd` (a PowerShell script
+  underneath) for all 60 pawnless 5-piece tables, both kinds: ~31 GB,
+  ~18 h. Restartable, logs to `tables\five-piece.log`.
