@@ -109,8 +109,14 @@ Plan agreed with Matthew: part A (slices, proven on 4 pieces), then part B
       5-piece tables plus 12 more random KRPvKR, all agree
       (`scripts/syzygy-check-5piece.tsv`; `syzygy-check.py ... --rule`).
       `probe <fen> --rule` answers from the DTZ tables alone.
-- [ ] KRPvKR's mate distances (the three promotion targets' DTM first,
-      ~10 min each, then KRPvKR by slices), for its cursed wins.
+- [x] KRPvKR's mate distances (2026-09-28, after a hold). KQRvKR 816 s,
+      KRRvKR 766 s, KRNvKR 539 s, KRPvKR 2,082 s by slices (solver 263 MB).
+      Longest mates: KQRvKR 34 moves, KRRvKR 31, KRNvKR 41 (for the side
+      with the lone rook!), **KRPvKR 74 moves (147 plies)**, all confirmed
+      on Lichess. **No cursed wins or blessed losses in any of the four**:
+      KRPvKR's 147-ply mate still has a pawn move or capture within every
+      100 plies (Syzygy: DTZ 65). `verify` on every 1009th position of each:
+      consistent. The hold note, for the record:
       **On hold (Matthew, 2026-09-28), part done:** KQRvKR's DTM is solved
       and saved (816 s, peak 1.95 GB; longest mate 34 moves / 67 plies with
       white to move, 35 / 70 plies with black; not yet checked on Lichess).

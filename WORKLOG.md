@@ -649,3 +649,26 @@ rather than 48-byte boards, because that is the storage that scales.
   (67 plies) with white to move, 35 (70 plies) with black.
 - Stopped during KRRvKR's DTM: no solver left running, nothing
   half-written. The commands to carry on are in TODO (3b).
+
+## 2026-09-28: KRPvKR's mate distances, finished
+
+- Matthew said carry on. KRRvKR 766 s, KRNvKR 539 s, KRPvKR 2,082 s by
+  slices (solver 263 MB: arrays 172 + queues 91; process peak 3.6 GB,
+  mostly mapped files; free RAM got down to 1.2 GB with other things open,
+  no harm done).
+
+  | Table | Longest mate (white / black to move) | Cursed wins | Blessed losses |
+  |---|---|---|---|
+  | KQRvKR | 34 moves, 67 plies / 35, 70 | 0 | 0 |
+  | KRRvKR | 31, 61 / 31, 62 | 0 | 0 |
+  | KRNvKR | lost in 39, 78 / won in 41, 81 (the lone rook wins) | 0 | 0 |
+  | KRPvKR | 74, 147 / 74, 148 | 0 | 0 |
+
+  All longest mates confirmed on Lichess (Gaviota DTM). `verify` on every
+  1009th position: KRPvKR 479,339, KQRvKR 133,404, KRRvKR 143,748, KRNvKR
+  155,088, all consistent.
+- The finding: KRPvKR's mates run to 147 plies, but the pawn resets the
+  count often enough that the 50-move rule never changes a result (Syzygy
+  puts the 147-ply mate's position 65 plies from its next reset). Of the
+  six 5-piece tables so far, only KRBvKR, with nothing to push, has cursed
+  wins.

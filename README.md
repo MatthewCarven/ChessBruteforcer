@@ -442,6 +442,14 @@ Checked against Lichess: 30 positions across the six 5-piece tables, and 12
 more random ones in K+R+P v K+R, all agree
 (`scripts/syzygy-check-5piece.tsv`).
 
+Their mate distances followed (K+R+P v K+R by slices: 2,082 s, 263 MB of
+solver memory). Longest mates: K+Q+R v K+R 34 moves, K+R+R v K+R 31,
+K+R+N v K+R 41 (won by the side with the lone rook), and **K+R+P v K+R 74
+moves (147 plies)**, all confirmed on Lichess. Yet none of the four has a
+single cursed win or blessed loss: however long the mate, a pawn move or a
+capture always comes within the 100 plies. So far only K+R+B v K+R, with no
+pawn to push, loses wins to the 50-move rule.
+
 K+R+B v K+R is where **the 50-move rule first changes results: 17,440
 cursed wins** (white to move: won with best play, drawn under the rule) **and
 5,400 blessed losses** (black to move). Its longest DTZ sits right at the
