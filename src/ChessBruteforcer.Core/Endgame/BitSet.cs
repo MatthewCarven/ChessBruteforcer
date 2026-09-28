@@ -12,6 +12,8 @@ internal sealed class BitSet
 
     public long ByteCount => _words.LongLength * sizeof(ulong);
 
+    public void Clear() => Array.Clear(_words);
+
     /// <summary>The first set bit at or after <paramref name="from"/>, or -1.</summary>
     public long NextSetBit(long from)
     {

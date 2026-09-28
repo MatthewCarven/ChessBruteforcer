@@ -575,3 +575,39 @@ rather than 48-byte boards, because that is the storage that scales.
   "fresh" until its arrangements run out, so revisits can't say how
   orderly a walk is.
 - Tests: 1 new (257 pass, 1 skipped).
+
+## 2026-09-28: session 3b, part A (slices with their own memory)
+
+- Matthew asked for a plan first, then said go with part A (slices proven
+  on 4 pieces), part B (the first 5-piece pawn table) next session, and to
+  drop back to planning on any major failure. None came.
+- Reference first: today's DTZ for all 36 into `tables-baseline/*.cbz`
+  (549 s), so the new code had something exact to match.
+- `SliceIndex`: pawns fixed, every other piece anywhere, no symmetry. One
+  placement of each mirror pair (a placement is never its own mirror), most
+  advanced first. The solver switches its index per slice and reuses
+  slice-sized arrays. Pawn pushes are exits into solved slices, read from
+  the whole table (`ArrayStore`, or `FileStore`: the table file itself,
+  memory-mapped, filled with "impossible" first): DTZ restarts its count,
+  mate distances carry on; en passant is a plain exit, no nodes. Two
+  identical pawns: each order is its own slice, as the index has both.
+- Used for DTZ with pawns always, and for mate distances with pawns when
+  solved to the end. Capped pawn tables keep the whole-table solver (the
+  ladder); 5-piece pawn tables can't be capped yet.
+- Also: `Save` skips a table loaded from the very file it's asked to write
+  (a table solved straight into its file), and writes a mapped table in
+  chunks rather than copying it all into memory.
+- Regression, all byte for byte:
+  - mate distances, 36 of 36 against `tables-baseline` (493 s, was 481 s).
+    Pawn tables' solver memory: KRPvK 126.9 MB -> 5.4 MB, KQvKP 117.2 ->
+    4.9, KPvKP 101.3 -> 0.1;
+  - DTZ, 36 of 36 against the references (494 s);
+  - the capped ladder (10 ... 160, end), 36 of 36 (result below);
+  - tests: 258 pass, 1 skipped, 22 s. One new test solved KPPvK in memory
+    and with it half a dozen 4-piece promotion tables (4 min 44 s); cut to
+    KPvK, the rest is covered by the byte checks.
+- The ladder check: 36 of 36 byte-identical, but 1,227 s against 684 s
+  last time. Timed old and new builds on the same capped solve (KRPvK to
+  20 from scratch, twice each): 165 / 163 s old, 168 / 165 s new. The same
+  within 2%, so the slow ladder run was the machine at the time, not the
+  code (the capped path barely changed).

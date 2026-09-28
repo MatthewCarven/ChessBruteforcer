@@ -81,22 +81,38 @@ by `solve`, pawnless 5-piece tables allowed (`Tablebase.MaxPieces` = 5).
       `scripts/syzygy-check-results.tsv`. Lichess reports a checkmated
       position as dtz -1; we store 0.
 
-### Session 3b: slices with their own memory (5-piece pawn tables)
-- [ ] A slice's positions numbered inside the slice, so the solver's arrays
-      are slice-sized: 947 M slots as one table, but only the current slice
-      plus the slices its pawn moves reach need to be in memory (the rest
-      on disk, in the `.cbz`).
-- [ ] 48-square pawns in the index (pawns never stand on ranks 1 or 8):
-      each pawn wastes 16 of 64 slots now, 25% of a pawn table.
+### Session 3b: slices with their own memory — part A done 2026-09-28
+Plan agreed with Matthew: part A (slices, proven on 4 pieces), then part B
+(the first 5-piece pawn table) in its own session.
+- [x] `SliceIndex`: one pawn placement, every other piece anywhere, no
+      symmetry. A placement is never its own mirror image, so one of each
+      mirror pair covers the table exactly once. The solver's arrays hold
+      one slice (5-piece, one pawn: 33.5 M slots, not 947 M), reused.
+- [x] Pawn moves are exits into slices already solved, read from the whole
+      table: DTZ restarts its count, mate distances carry on. En passant is
+      a plain exit (no nodes). The whole table is in memory, or with a path
+      written straight into its file (memory-mapped, `FileStore`).
+- [x] DTZ with pawns always by slices; mate distances with pawns by slices
+      when solved to the end (capped pawn tables keep the whole-table
+      solver; 5-piece pawn tables can't be capped yet).
+- [x] Regression: all 36 mate-distance tables byte-identical to
+      `tables-baseline` (pawn tables' solver memory ~127 MB -> ~5 MB, same
+      time); all 36 DTZ tables byte-identical to the pre-change DTZ
+      (`tables-baseline/*.cbz`, made first); the capped ladder still
+      byte-identical; tests green.
+- [ ] Part B: KRPvKR under the rule. Promotion targets first: KQRvKR,
+      KRRvKR, KRNvKR (KRBvKR is done), ~10-13 min each. KRPvKR itself: 24
+      slices x 33.5 M, estimated ~45 min, ~0.3-0.5 GB plus the 1.9 GB
+      file. Check against Lichess. Then maybe its mate distances.
+- [ ] Later: 48-square pawns (25% less disk per pawn, but a new file
+      format); a cap for 5-piece pawn tables (slices and the ladder
+      together).
 - [ ] Maybe: split a table with a bishop by the bishop's square colour
       (Matthew asked which pieces are tied to parts of the board). A bishop
       never changes colour, so each half is its own closed table of 32
       squares for that bishop: half the memory per solve, same disk. (A
       promotion to a bishop changes the material, so it's another table
       anyway, and there the new bishop's colour picks the half.)
-- [ ] DTM (the `.cbt`) for pawn tables in slices too: pawn moves stay in
-      the table there, but they still only go forward, so the same order
-      works; distances carry across slices instead of restarting.
 
 ### Session 4: the first 5-piece tables — done 2026-09-28
 - [x] Windows (5.7 GB free once Matthew closed things). KQRRvK DTZ: 796 s,

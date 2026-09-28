@@ -180,13 +180,51 @@ public class EndgameTests : IClassFixture<SolvedTables>
         }
     }
 
-    [Theory]
-    [InlineData("KQRPvK")]    // five pieces with a pawn: ~947 M slots, not yet
-    [InlineData("KQRRvKR")]   // six pieces
-    public void TablesTooBigToSolveAreRefusedBeforeAnyWork(string material)
+    [Fact]
+    public void TablesTooBigToSolveAreRefusedBeforeAnyWork()
     {
-        Assert.Throws<NotSupportedException>(() =>
-            EndgameTable.Solve(Material.Parse(material), _ => Outcome.Draw));
+        // Six pieces, either way; five with a pawn only slice by slice, so not capped.
+        Assert.Throws<NotSupportedException>(() => EndgameTable.Solve(Material.Parse("KQRRvKR"), _ => Outcome.Draw));
+        Assert.Throws<NotSupportedException>(() => EndgameTable.SolveDtz(Material.Parse("KQRRvKR"), _ => Outcome.Draw));
+        Assert.Throws<NotSupportedException>(() => EndgameTable.Solve(Material.Parse("KQRPvK"), _ => Outcome.Draw, cap: 10));
+    }
+
+    [Theory]
+    [InlineData("KPvK")]   // (4-piece pawn tables promote into 4-piece tables: minutes each here, so the
+                           // byte-for-byte check of all 36 covers them, scripts/measure-tables.sh)
+    public void SolvingByPawnSlicesGivesTheSameTableAsSolvingItWhole(string text)
+    {
+        // Slices (the default for pawns) against the whole table at once (a cap past every mate).
+        var material = Material.Parse(text);
+        var sliced = EndgameTable.Solve(material, _tablebase.Probe);
+        var whole = EndgameTable.Solve(material, _tablebase.Probe, cap: 1000);
+        Assert.Null(whole.Cap);
+        Assert.Equal(whole.Size, sliced.Size);
+        for (long i = 0; i < whole.Size; i++)
+            Assert.Equal(whole[i], sliced[i]);
+    }
+
+    [Fact]
+    public void ASlicedTableIsWrittenStraightToItsFile()
+    {
+        string dir = Directory.CreateTempSubdirectory("cbt-sliced").FullName;
+        try
+        {
+            string path = Path.Combine(dir, "KPvK.cbt");
+            using (var table = EndgameTable.Solve(Material.Parse("KPvK"), _tablebase.Probe, path: path))
+            {
+                Assert.Equal(path, table.FilePath);   // loaded from the file it was solved into
+                table.Save(path);                     // already there: nothing to do (and no clash with the mapping)
+            }
+            string reference = Path.Combine(dir, "reference.cbt");
+            _tablebase.Get(Material.Parse("KPvK")).Save(reference);
+            Assert.Equal(File.ReadAllBytes(reference), File.ReadAllBytes(path));
+            Assert.False(File.Exists(path + ".tmp"));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
     }
 
     [Fact]

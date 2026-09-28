@@ -86,7 +86,7 @@ public sealed class Tablebase : IDisposable
             }
             else
             {
-                table = EndgameTable.Solve(material, Probe, _progress, Cap);
+                table = EndgameTable.Solve(material, Probe, _progress, Cap, path);
                 Store(table, path);
             }
             _tables[material] = table;
@@ -121,7 +121,7 @@ public sealed class Tablebase : IDisposable
         }
         else
         {
-            table = EndgameTable.SolveDtz(material, ProbeDtz, _progress);
+            table = EndgameTable.SolveDtz(material, ProbeDtz, _progress, path);
             if (path is not null)
                 table.Save(path);
         }
@@ -140,7 +140,7 @@ public sealed class Tablebase : IDisposable
         {
             table.Dispose();   // a mapped file stays locked on Windows until disposed
             table = (path is null ? null : EndgameTable.ExtendFromFiles(path, FrontierPath(path), Probe, Cap, _progress))
-                    ?? EndgameTable.Solve(table.Material, Probe, _progress, Cap);
+                    ?? EndgameTable.Solve(table.Material, Probe, _progress, Cap, path);
         }
         Store(table, path);
         return table;

@@ -20,7 +20,7 @@ namespace ChessBruteforcer.Core.Endgame;
 /// that aren't the first image of their position, or put two pieces on one
 /// square, or a pawn on the first or last rank, are holes.
 /// </summary>
-public sealed class TableIndex
+public sealed class TableIndex : IPositionIndex
 {
     private readonly int[][] _maps;              // square -> square, per symmetry
     private readonly int[] _pairOf = new int[64 * 64];

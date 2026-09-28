@@ -92,8 +92,8 @@ perft <depth> [fen]            count every move sequence to <depth>
 divide <depth> [fen]           perft split by first move, for tracking down bugs
 ```
 
-Endgame tables (all 36 up to 4 pieces; 5 without pawns can be solved, none
-built yet), saved in `./tables` (or `$CHESS_TABLES`) and reused.
+Endgame tables (all 36 up to 4 pieces, and 5-piece ones: KQRRvK, KRBvKR so
+far; 5 with pawns by slices, to the end only), saved in `./tables` (or `$CHESS_TABLES`) and reused.
 `scripts/build-tables.sh` solves all 30 four-piece tables in one go
 (restartable, roughly 1-3 hours):
 
@@ -317,7 +317,7 @@ to 1,660 MB of solver memory (0.65x; K+Q v K+R 52.9 -> 32.8 MB, K+R+P v K
 481 s for all 36). Projected to a 5-piece table without pawns (242 M slots,
 64x a 4-piece one): ~1.2 GB arrays + ~1 GB queues, ~2.7 GB for the process
 at its peak (was ~3.5 GB). So `solve` now takes 5 pieces without pawns;
-5 with pawns (947 M slots) is refused until pawns are solved in slices.
+5 with pawns (947 M slots) came later, by slices (below).
 
 **The depth ladder.** `solve <material> --cap N` stops after N plies. Every
 win or loss within N is then exact, and everything else reads as *beyond N*:
@@ -375,6 +375,19 @@ own mate distances.
 Pawn moves stay inside a table, so a table with pawns is solved in slices, one
 placement of the pawns at a time, the most advanced first: pawns only go
 forward, so every pawn move leads into a slice that is already done.
+
+**Slices with their own memory.** Every table with pawns is solved that way
+now, the mate distances too. A slice numbers its own positions (the pawns
+fixed, every other piece anywhere, no symmetry: a pawn placement is never its
+own mirror image, so one of each mirror pair covers the table exactly once),
+and the solver's arrays hold just that slice. A pawn move is an exit into a
+slice already solved, read from the whole table: the 50-move count starts
+again there, while a mate distance carries on. The whole table is in memory,
+or for a big one written straight into its file. For a 5-piece table with one
+pawn that is 33.5 M slots of working memory instead of 947 M. On the 4-piece
+tables, the pawn tables' solver memory went from ~127 MB to ~5 MB in the same
+time, and all 36 tables, both kinds, came out byte for byte the same as
+before.
 
 Wins the rule turns into draws are "cursed wins", and losses it saves are
 "blessed losses". **Up to 4 pieces there are none**: every table has the same
