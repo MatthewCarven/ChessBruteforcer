@@ -65,10 +65,15 @@ included, ~112 GB plain, would be ~11 GB.
       leaves compressed ones, and plain ones past that, on disk.
 
 ### Step B: which pawn endings real games reach
-- [ ] `game endings`: over the 741k Lichess games, every material of 5
-      pieces or fewer each game passes through; rank the 50 pawn tables by
-      games reaching them, the coverage curve, and how many games leave our
-      tables' reach today. Sets the order of step D.
+- [x] `game endings` (2026-09-30; WORKLOG has the full table): of 741,349
+      games only 48,138 (6.5%) get down to 5 pieces or fewer. Of those,
+      14.3% stay in tables we have; 85.7% pass through a pawn table we don't
+      (two-thirds of them are back in our tables by the end, a pawn promoted
+      or taken). The most reached of all is K+P+P v K+P (8,719 games, 18% of
+      them), and it needs almost every other pawn table first.
+- [x] Found on the way: the Windows `tables/` lacked 8 of the 36 small
+      tables (the 4-piece ones with pawns, solved only in WSL before). Solved
+      in 9 min; 7 byte for byte the baseline, KPPvK equal value for value.
 
 ### Step C: rule-aware engine play (Matthew's "wanderer")
 Matthew: a brute-forced game is weakest where the opponent (a) flukes, or
@@ -89,10 +94,15 @@ left is a draw.
       engines do), so it prefers progress outside the tables too.
 
 ### Step D: the 50 pawn tables
-- [ ] 36 with one pawn, 12 with two, 2 with three. Order by pawn count (a
-      promotion keeps 5 pieces and removes a pawn, so each group needs the
-      one before; the pawnless ones are done), then by step B's ranking.
-      ~49 h of solving; ~115 GB plain (81.5 GB on 48 squares), ~11 GB
+- [ ] 49 left (KRPvKR is done): 35 with one pawn, 12 with two, 2 with three.
+      A table needs the tables its promotions lead to first. Order from step
+      B (`game endings`: most games wholly in the tables per position solved):
+      first the 15 "three against a bare king" (KQRPvK, KQQPvK, KQBPvK,
+      KRBPvK, KQNPvK, KRNPvK, KRRPvK, KBNPvK, KBBPvK, KNNPvK, KRPPvK, KQPPvK,
+      KBPPvK, KNPPvK, KPPPvK): 25.5% of the work, and the games wholly in the
+      tables go from 14.3% to 41.9%. Then the 25 one-pawn "two against one"
+      (54.3% at 83.7% of the work), then the 8 two-pawn ones (81.9%), then
+      K+P+P v K+P last (100%). ~49 h of solving; ~115 GB plain, ~8 GB
       compressed. Extend build-five-piece.ps1 (-Pawns), same restartable
       pattern. Lichess samples and a summary like FIVE-PIECE.md after.
 - [ ] 48-square pawns (25% per pawn): with compression it matters little

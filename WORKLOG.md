@@ -857,3 +857,41 @@ rather than 48-byte boards, because that is the storage that scales.
   mostly solving K+R+R v K, both kinds, and again from compressed tables). A deliberately broken cache
   lookup fails the eviction test.
 - Left for Matthew: compress `tables/` (replaces his plain files, so his go).
+  He chose to run build-five-piece.cmd himself; it was compressing by 02:40.
+
+## 2026-09-30: step B, which pawn endings real games reach
+
+- `game endings <file>...` (EndingStats): replays every game and records
+  each material of 5 pieces or fewer it passes through. 741,349 games in
+  231 s.
+- First run said 40% of games went through a table outside the plan: the
+  Windows `tables/` had never had 8 of the 36 small tables (KQPvK, KBPvK,
+  KNPvK, KPPvK, KQvKP, KBvKP, KNvKP, KPvKP, both kinds; they were solved in
+  WSL before). Solved here in 9 min; 7 byte for byte `tables-baseline/`,
+  KPPvK (pawns stored once now) equal value for value. Longest mates as
+  published: KPvKP 33 moves, KQvKP 28, KBPvK 31, KNPvK 27.
+- With all 36: **48,138 games (6.5%) get down to 5 pieces or fewer**. Of
+  those, 6,879 (14.3%) stay in tables we have; 41,259 (85.7%) pass through a
+  5-piece pawn table we don't, and 66% of those are back in our tables by
+  the end (the pawn promoted or taken). One game held castling rights at 5
+  pieces.
+- Most reached pawn tables (games, share of all games): KPPvKP 8,719
+  (1.18%), KQPvKP 4,014, KRPvKP 3,464, KRPPvK 3,197, KQPPvK 2,756, KPPPvK
+  2,698, KBPvKP 1,963, KPPvKR 1,765, KPPvKQ 1,571, KQRPvK 1,417. Pawn
+  endings are brief: KPPvKP games stay 5 plies on average (races).
+- The build order (EndingStats.BuildOrder): greedy, each round the table
+  that with the tables its promotions need brings the most games wholly into
+  the tables per position solved. Milestones:
+
+  | after | tables | work (positions) | games wholly in tables |
+  |---|---|---|---|
+  | today | 0 | 0% | 14.3% |
+  | the 15 "three v a bare king" | 15 | 25.5% | 41.9% |
+  | the 25 one-pawn "two v one" | 40 | 83.7% | 54.3% |
+  | the 8 two-pawn "two v one" | 48 | 98.8% | 81.9% |
+  | K+P+P v K+P | 49 | 100% | 100% |
+
+  KPPvKP comes last because its promotions lead into all 8 two-pawn tables,
+  which lead into most of the one-pawn ones: 18% of these games wait for
+  nearly all the work. Order in TODO step D.
+- 7 tests (EndingStatsTests); 286 pass.
