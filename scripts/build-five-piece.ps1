@@ -12,19 +12,32 @@
 #
 # Expect ~18 hours and ~31 GB for all 60 on Matthew's laptop, one table at a
 # time (~1-2 GB of memory each).  Each table is compressed once both files are
-# done (~15x smaller; `compress` checks every value first); -Plain leaves them.
+# done (~9x smaller; `compress` checks every value first); -Plain leaves them.
+#
+# -Pawns: the 50 with pawns instead (KRPvKR, done, then 49 more), in the order
+# `game endings` chose (TODO step D): each after the tables its promotions
+# lead to.  ~49 hours, ~2.8 GB plain at most at a time, ~13 GB compressed.
+# After each table a sample of both kinds is verified against its moves
+# (every 1009th position, ~4 min); a failure or a mismatch stops the run,
+# since the tables after it are built on it.
+#
+#   scripts\build-five-piece.cmd -Pawns
+#   pwsh scripts\build-five-piece.ps1 -Pawns -List
 param(
     [int] $MinFreeGB = 10,
     [string[]] $Only,
     [switch] $List,
-    [switch] $Plain
+    [switch] $Plain,
+    [switch] $Pawns
 )
 $ErrorActionPreference = 'Continue'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $tables = if ($env:CHESS_TABLES) { $env:CHESS_TABLES } else { 'tables' }
 New-Item -ItemType Directory -Force $tables | Out-Null
 $log = Join-Path $tables 'five-piece.log'
-$cli = 'src\ChessBruteforcer.Cli\bin\Release\net8.0\ChessBruteforcer.Cli.dll'
+$build = 'src\ChessBruteforcer.Cli\bin\Release\net8.0'
+$cli = Join-Path $build 'ChessBruteforcer.Cli.dll'
+$VerifyStride = 1009   # a prime, so the sample doesn't line up with the numbering
 
 function Log([string] $text) {
     $line = '{0:yyyy-MM-dd HH:mm:ss}  {1}' -f (Get-Date), $text
@@ -71,6 +84,22 @@ for ($a = 0; $a -lt 4; $a++) { for ($b = $a; $b -lt 4; $b++) {
 } }
 # Tables with identical pieces first: they are a half or a sixth the size, so quicker.
 $materials = $materials | Sort-Object { if ($_ -match '(.)\1') { 0 } else { 1 } }, { $_ }
+if ($Pawns) {
+    # Step B's order (`game endings`, 2026-09-30): the most games wholly inside the tables per
+    # position solved, each table after the ones its promotions lead to.  KRPvKR is done already
+    # (listed so it gets compressed).  The first 15 are a quarter of the work and take the games
+    # wholly in the tables from 14% to 42%; K+P+P v K+P, the most reached, needs nearly all the rest.
+    $materials = @(
+        'KRPvKR',
+        'KQRPvK', 'KQQPvK', 'KQBPvK', 'KRBPvK', 'KQNPvK', 'KRNPvK', 'KRRPvK', 'KBNPvK', 'KBBPvK', 'KNNPvK',
+        'KRPPvK', 'KQPPvK', 'KBPPvK', 'KNPPvK', 'KPPPvK',
+        'KQPvKQ', 'KQRvKP', 'KQPvKR', 'KBPvKB', 'KBPvKR', 'KNPvKN', 'KQQvKP', 'KRPvKB', 'KQBvKP', 'KRPvKQ',
+        'KNPvKR', 'KRPvKN', 'KQNvKP', 'KNPvKB', 'KRBvKP', 'KBPvKN', 'KQPvKN', 'KQPvKB', 'KBPvKQ', 'KRNvKP',
+        'KNPvKQ', 'KRRvKP', 'KBNvKP', 'KBBvKP', 'KNNvKP',
+        'KQPvKP', 'KRPvKP', 'KBPvKP', 'KPPvKR', 'KPPvKQ', 'KNPvKP', 'KPPvKN', 'KPPvKB',
+        'KPPvKP'
+    )
+}
 if ($Only) { $materials = $materials | Where-Object { $Only -contains $_ } }
 
 if ($List) {
@@ -85,14 +114,20 @@ if ($List) {
     return
 }
 
-Log "=== start: $($materials.Count) tables into $tables"
+Log "=== start: $($materials.Count) tables into $tables$(if ($Pawns) { ' (with pawns)' })"
 dotnet build -c Release --nologo -v q | Out-Null
 if ($LASTEXITCODE -ne 0) { Log 'build failed: stopping'; exit 1 }
+# Run from a copy of the build: Windows locks a running program's files, and this can take days.
+$run = Join-Path $tables '.cli'
+Remove-Item -Recurse -Force $run -ErrorAction SilentlyContinue
+Copy-Item -Recurse $build $run
+$cli = Join-Path $run 'ChessBruteforcer.Cli.dll'
 # Older files (identical pieces in every order, DTZ at two bytes) into the current format.
 dotnet $cli upgrade $tables | ForEach-Object { Log "upgrade: $_" }
 
 $begin = Get-Date
 $done = 0
+$stop = $false
 foreach ($m in $materials) {
     $cbt = Join-Path $tables "$m.cbt"
     $cbz = Join-Path $tables "$m.cbz"
@@ -101,18 +136,30 @@ foreach ($m in $materials) {
     $free = (Get-PSDrive $drive.Name).Free / 1GB
     if ($free -lt $MinFreeGB) { Log ('stopping: only {0:N1} GB free on {1}:' -f $free, $drive.Name); break }
 
-    # Mate distances first, then the rule: the second also prints the cursed wins.
-    foreach ($step in 'solve', 'dtz') {
+    # Mate distances first, then the rule: the second also prints the cursed wins.  With pawns,
+    # then a sample of each checked against its moves.
+    $steps = @(@('solve', $m), @('dtz', $m))
+    if ($Pawns) { $steps += @(, @('verify', $m, $VerifyStride)) ; $steps += @(, @('dtz', $m, 'verify', $VerifyStride)) }
+    $failed = $false
+    foreach ($step in $steps) {
+        $name = $step -join ' '
         $watch = [Diagnostics.Stopwatch]::StartNew()
-        Log ("$m ${step}: starting ({0:N1} GB free)" -f $free)
-        $output = & dotnet $cli $step $m          # progress goes to the window; results to the log
+        Log ("${name}: starting ({0:N1} GB free)" -f $free)
+        $output = & dotnet $cli @step              # progress goes to the window; results to the log
         $code = $LASTEXITCODE
-        Log ("$m ${step}: exit $code after {0:N1} min" -f $watch.Elapsed.TotalMinutes)
+        Log ("${name}: exit $code after {0:N1} min" -f $watch.Elapsed.TotalMinutes)
         $output | ForEach-Object { Add-Content -Path $log -Value "    $_" }
-        if ($code -ne 0) { Log "$m ${step}: failed, going on to the next table"; break }
+        if ($code -ne 0) { $failed = $true; break }
     }
+    if ($failed -and $Pawns) {
+        # The tables after this one are built on it: nothing more until it's looked at.
+        Log "${m}: failed or a mismatch (see above): stopping, left plain"
+        $stop = $true
+        break
+    }
+    if ($failed) { Log "${m}: failed, going on to the next table"; continue }
     if ((Complete $cbt) -and (Test-Path $cbz)) { Compress-Table $m }
     $done++
     Log ("{0} of {1} tables done, {2:N1} h so far" -f $done, $materials.Count, ((Get-Date) - $begin).TotalHours)
 }
-Log "=== finished: $done of $($materials.Count) tables on disk"
+Log "=== finished: $done of $($materials.Count) tables on disk$(if ($stop) { ' (stopped on a failure)' })"
