@@ -4,6 +4,83 @@ If you're asking "where are we?", this is the answer. Top to bottom is
 roughly the order of work. Tick items off here and log them in
 [WORKLOG.md](WORKLOG.md).
 
+## Now: compression, then the pawn tables (agreed 2026-09-29/30)
+
+All 60 pawnless 5-piece tables are done (FIVE-PIECE.md). Next are the 50
+5-piece tables with pawns, but they don't fit: 115 GB as stored (81.5 GB
+with 48-square pawns) against ~103 GB free. Matthew chose compression first
+over buying a drive (a drive would have to be an SSD: solving writes and
+reads all over the files).
+
+### Step A: compression (in progress, branch `compression`)
+Measured on our tables, compressed in independent 64 KB blocks (so a probe
+still jumps straight to its position): zlib 9.5x (KRPvKR.cbz) to 12x
+(KRBvKR.cbt); lzma on a 64 MB sample 17-35x. So every 5-piece table, pawns
+included, ~112 GB plain, would be ~11 GB.
+- [x] `CompressedTable` (CompressedTable.cs): format "CBC1", same `.cbt` /
+      `.cbz` names; values in 64 KB blocks, each Brotli-compressed on its
+      own, block offsets up front; reads a block per probe through a
+      direct-mapped cache of 1024 blocks (64 MB a table at most), locked.
+      `EndgameTable.Load` reads it (mapped, or `intoMemory` decompresses
+      all); `SaveCompressed(file, quality)` writes it, compressing blocks in
+      parallel and decompressing each again to check it before writing.
+      Builds; the 266 tests still pass. **Not yet tested itself.**
+- [ ] `compress [dir|file]` in the CLI: write to a temporary name, dispose
+      the table read, then move over the plain file; skip capped tables and
+      any with a frontier. Report sizes.
+- [ ] Tests: round trip (every value equal, DTM and DTZ, a pawn table and a
+      table with identical pieces), `compare` plain v compressed, Tablebase
+      probes through a compressed table, `IsOutdatedFile` false for it.
+- [ ] Measure Brotli quality 5 against 9-11 (size and time) on KRBvKR.cbt
+      and KRPvKR.cbz; pick one. Consider splitting DTM's low and high
+      bytes into two planes per block if it compresses much better.
+- [ ] Solve speed with compressed smaller tables: e.g. re-solve KRPvKR's
+      DTZ (34 min before) with its promotion tables compressed. If much
+      slower, unpack the tables a solve reads (to memory or a temporary
+      plain file) and compress only the finished ones.
+- [ ] Compress the 5-piece tables in `tables/` (30.8 GB + KRPvKR 2.7 GB,
+      expect ~3.5 GB), `compare` each against its plain file before
+      deleting that. The 4-piece tables can stay plain (427 MB).
+- [ ] `build-five-piece.ps1`: compress each table once solved (for the pawn
+      run: disk then holds only one plain table at a time).
+- [ ] The engine: `Tablebase.Preload` reads every `.cbt` in its folder into
+      memory. With 5-piece tables there that is tens of GB: limit it (by
+      piece count or size), and let compressed tables stay compressed.
+
+### Step B: which pawn endings real games reach
+- [ ] `game endings`: over the 741k Lichess games, every material of 5
+      pieces or fewer each game passes through; rank the 50 pawn tables by
+      games reaching them, the coverage curve, and how many games leave our
+      tables' reach today. Sets the order of step D.
+
+### Step C: rule-aware engine play (Matthew's "wanderer")
+Matthew: a brute-forced game is weakest where the opponent (a) flukes, or
+(b) knows exactly what they're doing and wanders pieces about to draw
+moves out of us. Today the engine plays table positions by mate distance
+only and ignores the 50-move clock (`Search.TablebaseMove`, `TryProbe`),
+so (b) can run the clock up and then a shortest mate longer than what's
+left is a draw.
+- [ ] At the root of a table position: winning, choose among moves that
+      keep the win within the clock left (DTZ + halfmove clock <= 100) the
+      one quickest to its next capture / pawn move / mate (ties by mate
+      distance); losing, the one furthest from it (the clock may save us);
+      drawn, keep it drawn.
+- [ ] In the search, a table win counts only if it fits the clock.
+- [ ] Match adjudication by the rule (a cursed win is a draw).
+- [ ] Tests: KRvK with the clock at 90; a cursed win in KBBvKN.
+- [ ] Maybe: scale the evaluation down as the clock rises (as strong
+      engines do), so it prefers progress outside the tables too.
+
+### Step D: the 50 pawn tables
+- [ ] 36 with one pawn, 12 with two, 2 with three. Order by pawn count (a
+      promotion keeps 5 pieces and removes a pawn, so each group needs the
+      one before; the pawnless ones are done), then by step B's ranking.
+      ~49 h of solving; ~115 GB plain (81.5 GB on 48 squares), ~11 GB
+      compressed. Extend build-five-piece.ps1 (-Pawns), same restartable
+      pattern. Lichess samples and a summary like FIVE-PIECE.md after.
+- [ ] 48-square pawns (25% per pawn): with compression it matters little
+      for disk (the holes compress to nothing); do it only if it helps.
+
 ## Now: the session plan (5-piece tables and the depth ladder)
 
 Agreed with Matthew 2026-09-27. One session per step, in order. Any step

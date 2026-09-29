@@ -58,6 +58,7 @@ public sealed class EndgameTable : IDisposable
     private readonly MemoryMappedViewAccessor? _view;
     private readonly long _dataOffset;
     private readonly int _width;   // bytes a value in the file: 2, or 1 for DTZ
+    private readonly CompressedTable? _compressed;   // a compressed file, read block by block
     private readonly TableIndex _index;
 
     public Material Material { get; }
@@ -113,11 +114,24 @@ public sealed class EndgameTable : IDisposable
         IsDtz = dtz;
     }
 
+    private EndgameTable(TableIndex index, CompressedTable compressed)
+    {
+        _index = index;
+        Material = index.Material;
+        _compressed = compressed;
+        Size = compressed.Size;
+        IsDtz = compressed.IsDtz;
+    }
+
+    /// <summary>Read from a compressed file (see <see cref="SaveCompressed"/>).</summary>
+    public bool IsCompressed => _compressed is not null;
+
     /// <summary>Release a loaded table's file mapping (nothing to do for one held in memory).</summary>
     public void Dispose()
     {
         _view?.Dispose();
         _file?.Dispose();
+        _compressed?.Dispose();
     }
 
     /// <summary>The value of every index, from the side to move's point of view (null = impossible).</summary>
@@ -125,6 +139,7 @@ public sealed class EndgameTable : IDisposable
 
     private short Raw(long index) =>
         _values is not null ? _values[index]
+        : _compressed is not null ? _compressed[index]
         : _width == 1 ? FromByte(_view!.ReadSByte(_dataOffset + index))
         : _view!.ReadInt16(_dataOffset + index * sizeof(short));
 
@@ -300,6 +315,20 @@ public sealed class EndgameTable : IDisposable
         return position;
     }
 
+    /// <summary>
+    /// Write the table compressed (see <see cref="CompressedTable"/>): ~10x
+    /// smaller on disk, each probe decompressing one 64 KB block (cached).
+    /// Only a complete table.  The file is written as given; to replace the
+    /// file this table was read from, write elsewhere, dispose, then move.
+    /// Returns the compressed size.
+    /// </summary>
+    public long SaveCompressed(string file, int quality = 5)
+    {
+        if (Cap is not null)
+            throw new InvalidOperationException($"{Material} is capped at {Cap} plies: only complete tables are compressed.");
+        return CompressedTable.Write(this, file, Raw, quality);
+    }
+
     /// <summary>Write the table; a temporary file is renamed at the end, so an interrupted save leaves nothing half-written.</summary>
     public void Save(string path)
     {
@@ -352,6 +381,20 @@ public sealed class EndgameTable : IDisposable
     /// </summary>
     public static EndgameTable Load(string path, bool intoMemory = false)
     {
+        if (CompressedTable.IsCompressedFile(path))
+        {
+            var compressed = CompressedTable.Open(path);
+            var table = new EndgameTable(new TableIndex(compressed.Material), compressed) { FilePath = path };
+            if (!intoMemory)
+                return table;
+            using (table)
+            {
+                var values = new short[table.Size];
+                for (long i = 0; i < values.LongLength; i++)
+                    values[i] = table.Raw(i);
+                return new EndgameTable(table._index, values, null, table.IsDtz);
+            }
+        }
         var header = ReadHeader(path);
         var (material, count, dataOffset, legacy, cap, dtz, width, ordered) = header;
         var index = new TableIndex(material);
@@ -373,6 +416,8 @@ public sealed class EndgameTable : IDisposable
     /// </summary>
     public static bool IsOutdatedFile(string path)
     {
+        if (CompressedTable.IsCompressedFile(path))
+            return false;
         var header = ReadHeader(path);
         return header.Legacy || header.Ordered || (header.Dtz && header.Width == 2);
     }
