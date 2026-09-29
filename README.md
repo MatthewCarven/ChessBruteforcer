@@ -575,9 +575,12 @@ dotnet run -c Release --project src/ChessBruteforcer.Engine -- selfplay 4 100   
   simplified evaluation), the king moving from shelter to centre as pieces
   come off, and a bishop pair bonus. It's a baseline to improve on through
   matches.
-- **Endgame tables:** with 4 or fewer pieces left, positions are looked up
+- **Endgame tables:** with few pieces left, positions are looked up
   in our solved tables (only ones already on disk, never solved mid-game). At the
-  root it just plays the table's best move.
+  root it just plays the table's best move, by the 50-move rule at the game's
+  own clock when the DTZ tables are there: winning, the win nearest its next
+  capture, pawn move or mate that the clock still allows; a win the clock
+  would run out on counts as a draw, in the search and in adjudication too.
 - **Checked:** the search's mate distances match the K+R v K table exactly
   on positions it has never seen, which means two independent methods (search
   forwards, retrograde backwards) agree.
