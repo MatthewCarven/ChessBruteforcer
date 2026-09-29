@@ -935,10 +935,12 @@ rather than 48-byte boards, because that is the storage that scales.
   (tables\.cli). First start at 03:27 stopped at "build failed" (the build
   was fine a minute later; the error wasn't kept, so now it is logged).
   Restarted 03:28, in its own window.
-- KRPvKR.cbt had been compressed at ~03:27, outside the run (most likely
-  Matthew running the `compress` command I'd given him; a CLI running from
-  bin\Release locks its files, which fits the first start's build failure
-  at 03:27:56). The run found it done and compressed KRPvKR.cbz (12.6x).
+- KRPvKR.cbt had been compressed at 03:27, outside the run: Matthew ran the
+  `compress` command I'd given him (confirmed), and a CLI running from
+  bin\Release locks its files, hence the first start's build failure at
+  03:27:56. The run found it done and compressed KRPvKR.cbz (12.6x); he ran
+  the .cbz command too, around then. Checked afterwards: both files read
+  end to end with KRPvKR's original counts, to the position.
 - First two new tables, ~75 min each with checks:
 
   | table | positions | DTM solve | DTZ solve | verified (both) | compressed |
