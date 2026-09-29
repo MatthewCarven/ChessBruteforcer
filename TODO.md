@@ -82,14 +82,23 @@ moves out of us. Today the engine plays table positions by mate distance
 only and ignores the 50-move clock (`Search.TablebaseMove`, `TryProbe`),
 so (b) can run the clock up and then a shortest mate longer than what's
 left is a draw.
-- [ ] At the root of a table position: winning, choose among moves that
-      keep the win within the clock left (DTZ + halfmove clock <= 100) the
-      one quickest to its next capture / pawn move / mate (ties by mate
-      distance); losing, the one furthest from it (the clock may save us);
-      drawn, keep it drawn.
-- [ ] In the search, a table win counts only if it fits the clock.
-- [ ] Match adjudication by the rule (a cursed win is a draw).
-- [ ] Tests: KRvK with the clock at 90; a cursed win in KBBvKN.
+- [x] At the root of a table position (2026-09-30, `Search.TablebaseMove`):
+      with the DTZ tables on hand, winning, the win quickest to its next
+      capture / pawn move / mate that still fits the clock (ties by mate
+      distance); losing, the one furthest from it; a win the clock would run
+      out on is a draw. Without DTZ tables, mate distance as before.
+- [x] In the search, `Tablebase.TryProbeWithClock`: a table result counts
+      only if the DTZ table says it fits the node's clock.
+- [x] Match adjudication by the rule: a cursed win (or a win too slow for the
+      clock) is "tablebase draw (50-move rule; ...)".
+- [x] The engine's Preload opens the `.cbz` tables too (within its 1 GB:
+      both kinds up to 4 pieces are ~850 MB in memory), and a DTZ lookup no
+      longer reads the disk mid-search when LoadOnDemand is off.
+- [x] Tests: K+R v K at the last clock that still wins, and one ply later
+      (both sides); K+P v K at 99, where only a pawn move keeps the win;
+      DTZ-optimal play move after move; adjudication; a cursed win in
+      K+B+B v K+N (slow test, on the real tables). Three deliberate breaks
+      each caught.
 - [ ] Maybe: scale the evaluation down as the clock rises (as strong
       engines do), so it prefers progress outside the tables too.
 

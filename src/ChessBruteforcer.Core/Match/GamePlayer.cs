@@ -116,13 +116,15 @@ public static class GamePlayer
             return (GameResult.Draw, "threefold repetition");
         if (InsufficientMaterial(position))
             return (GameResult.Draw, "insufficient material");
-        if (adjudicator is not null && adjudicator.TryProbe(position, out var outcome))
+        // By the 50-move rule at the game's clock, where the DTZ tables are on hand: a cursed win is a draw.
+        if (adjudicator is not null && adjudicator.TryProbeWithClock(position, out var outcome))
         {
             return outcome.Kind switch
             {
                 OutcomeKind.Win => (whiteToMove ? GameResult.WhiteWins : GameResult.BlackWins, $"tablebase ({outcome})"),
                 OutcomeKind.Loss => (whiteToMove ? GameResult.BlackWins : GameResult.WhiteWins, $"tablebase ({outcome})"),
-                _ => (GameResult.Draw, "tablebase draw"),
+                _ => (GameResult.Draw, adjudicator.TryProbe(position, out var mate) && mate.Kind != OutcomeKind.Draw
+                    ? $"tablebase draw (50-move rule; {mate} without it)" : "tablebase draw"),
             };
         }
         return null;

@@ -53,6 +53,7 @@ public sealed class Tablebase : IDisposable
     public const int MaxPieces = 5;
 
     private readonly HashSet<Material> _missing = new();
+    private readonly HashSet<Material> _missingDtz = new();
 
     /// <summary>
     /// How deep, in plies, tables are solved when <see cref="SolveMissing"/>
@@ -111,12 +112,18 @@ public sealed class Tablebase : IDisposable
         if (_dtzTables.TryGetValue(material, out var table))
             return table;
         string? path = Directory is null ? null : Path.Combine(Directory, material + ".cbz");
+        if (!LoadOnDemand)
+        {
+            _missingDtz.Add(material);
+            throw new TableMissingException(material);
+        }
         if (path is not null && File.Exists(path))
         {
             table = EndgameTable.Load(path);
         }
-        else if (!SolveMissing || !LoadOnDemand)
+        else if (!SolveMissing)
         {
+            _missingDtz.Add(material);
             throw new TableMissingException(material);
         }
         else
@@ -218,11 +225,12 @@ public sealed class Tablebase : IDisposable
         return Outcome.Better(stored, best);
     }
 
-    /// <summary>Memory <see cref="Preload"/> reads tables into by default: every table up to 4 pieces is 427 MB.</summary>
+    /// <summary>Memory <see cref="Preload"/> reads tables into by default: every table up to 4 pieces, both kinds, is ~850 MB there.</summary>
     public const long PreloadBytes = 1L << 30;
 
     /// <summary>
-    /// Open every table in <see cref="Directory"/> (mate distances, <c>.cbt</c>).
+    /// Open every table in <see cref="Directory"/>: mate distances (<c>.cbt</c>)
+    /// and the 50-move rule (<c>.cbz</c>, for <see cref="TryProbeWithClock"/>).
     /// Plain files are read into memory, smallest first, while they fit in
     /// <paramref name="memoryBytes"/>.  Compressed files, and plain ones past
     /// that, stay on disk and are read as they are probed (a compressed one
@@ -237,16 +245,19 @@ public sealed class Tablebase : IDisposable
         int count = 0, onDisk = 0;
         long bytes = 0;
         var files = System.IO.Directory.EnumerateFiles(Directory, "*.cbt")
+            .Concat(System.IO.Directory.EnumerateFiles(Directory, "*.cbz"))
             .Select(path => (Path: path, Length: new FileInfo(path).Length))
             .OrderBy(file => file.Length).ThenBy(file => file.Path, StringComparer.Ordinal);
         foreach (var (path, length) in files)
         {
-            bool intoMemory = bytes + length <= memoryBytes && !EndgameTable.IsCompressedFile(path);
+            long need = path.EndsWith(".cbz", StringComparison.OrdinalIgnoreCase) ? length * 2 : length;   // (DTZ: 1 byte on disk, 2 in memory)
+            bool intoMemory = bytes + need <= memoryBytes && !EndgameTable.IsCompressedFile(path);
             var table = EndgameTable.Load(path, intoMemory);
-            if (_tables.Remove(table.Material, out var old))
+            var (tables, missing) = table.IsDtz ? (_dtzTables, _missingDtz) : (_tables, _missing);
+            if (tables.Remove(table.Material, out var old))
                 old.Dispose();
-            _tables[table.Material] = table;
-            _missing.Remove(table.Material);
+            tables[table.Material] = table;
+            missing.Remove(table.Material);
             count++;
             if (intoMemory)
                 bytes += table.Size * sizeof(short);
@@ -261,7 +272,36 @@ public sealed class Tablebase : IDisposable
     /// castling rights, no table on hand, or only a capped table that hasn't
     /// settled it (that is not a draw).  This is what the search calls.
     /// </summary>
-    public bool TryProbe(Position position, out Outcome outcome)
+    public bool TryProbe(Position position, out Outcome outcome) => TryProbe(position, dtz: false, out outcome);
+
+    /// <summary>
+    /// <see cref="ProbeDtz"/> without ever solving: false if the position has
+    /// too many pieces, castling rights, or no DTZ table on hand.
+    /// </summary>
+    public bool TryProbeDtz(Position position, out Outcome outcome) => TryProbe(position, dtz: true, out outcome);
+
+    /// <summary>
+    /// The outcome with the 50-move rule applied at the position's own clock:
+    /// the mate distance (as <see cref="TryProbe"/>), but a draw when the rule
+    /// makes it one, which the DTZ table tells: it has the position drawn (a
+    /// cursed win or blessed loss), or its next capture, pawn move or mate lies
+    /// further off than the plies left before 100.  Without a DTZ table on
+    /// hand, the mate distance as it stands.  This is what play should use.
+    /// </summary>
+    public bool TryProbeWithClock(Position position, out Outcome outcome)
+    {
+        if (!TryProbe(position, out outcome))
+            return false;
+        if (outcome.Kind != OutcomeKind.Draw && TryProbeDtz(position, out var dtz) && !DecisiveInTime(dtz, position.HalfmoveClock))
+            outcome = Outcome.Draw;
+        return true;
+    }
+
+    /// <summary>A DTZ result reached with the count at <paramref name="clock"/> plies: a win or loss that comes before the rule's 100 (a draw never does).</summary>
+    public static bool DecisiveInTime(Outcome dtz, int clock) =>
+        dtz.Kind != OutcomeKind.Draw && clock + dtz.Plies <= EndgameTable.RulePlies;
+
+    private bool TryProbe(Position position, bool dtz, out Outcome outcome)
     {
         outcome = Outcome.Draw;
         if (position.Castling != CastlingRights.None)
@@ -272,11 +312,11 @@ public sealed class Tablebase : IDisposable
         if (pieces > MaxPieces)
             return false;
         var material = Material.FromPosition(position).Canonical;
-        if (_missing.Contains(material))
+        if ((dtz ? _missingDtz : _missing).Contains(material))
             return false;
         try
         {
-            outcome = Probe(position);
+            outcome = Probe(position, dtz);
             if (outcome.Kind == OutcomeKind.Beyond)
             {
                 outcome = Outcome.Draw;
@@ -350,7 +390,8 @@ public sealed class Tablebase : IDisposable
     /// Every legal move with its result under the 50-move rule, best first.
     /// A capture or pawn move wins, draws or loses one ply away (the count
     /// starts again); any other move is one ply further from the next one,
-    /// and a result more than 100 plies away is a draw.
+    /// and a result that comes after the count reaches 100 is a draw.  The
+    /// count starts from the position's own halfmove clock.
     /// </summary>
     public List<(Move Move, Outcome Outcome)> RankMovesUnderRule(Position position)
     {
@@ -362,7 +403,7 @@ public sealed class Tablebase : IDisposable
             var reached = ProbeDtz(position);
             position.UnmakeMove(move, undo);
             var outcome = (zeroing ? new Outcome(reached.Kind, 0) : reached).ForPreviousMover();
-            if (outcome.Kind != OutcomeKind.Draw && outcome.Plies > EndgameTable.RulePlies)
+            if (outcome.Kind != OutcomeKind.Draw && position.HalfmoveClock + outcome.Plies > EndgameTable.RulePlies)
                 outcome = Outcome.Draw;
             ranked.Add((move, outcome));
         }

@@ -895,3 +895,28 @@ rather than 48-byte boards, because that is the storage that scales.
   which lead into most of the one-pawn ones: 18% of these games wait for
   nearly all the work. Order in TODO step D.
 - 7 tests (EndingStatsTests); 286 pass.
+
+## 2026-09-30: step C, the engine plays the tables by the 50-move rule
+
+- Matthew's "wanderer" (an opponent who knows the tables runs the clock up):
+  before, the engine chose table moves by mate distance alone, so a shortest
+  mate longer than the plies left on the clock was a draw it thought a win.
+- Root (`Search.TablebaseMove`), with DTZ tables on hand: each move's result
+  for us is the reply position's DTZ result at its clock (0 after a capture or
+  pawn move), a draw if clock + DTZ passes 100. Winning, the win nearest its
+  next capture, pawn move or mate (the count restarts there), ties by mate
+  distance; losing, the furthest loss; draws broken by mate distance too.
+- In the search and in match adjudication, `Tablebase.TryProbeWithClock`:
+  the mate distance, but a draw where the DTZ table says the rule makes it
+  one at that node's clock. `RankMovesUnderRule` (and `probe --rule`) now
+  count from the position's own clock, not 0.
+- The engine now preloads the `.cbz` tables too; both kinds up to 4 pieces
+  take ~850 MB in memory, inside Preload's 1 GB.
+- Tests: K+R v K at the last clock that still wins and one ply later, both
+  sides; K+P v K at 99 (only a pawn move wins, though king moves win without
+  the rule); DTZ-optimal play move after move; adjudication; a cursed K+B+B v
+  K+N position (slow test, run on the real tables: passes). Three mutations
+  (root ignores the clock; probe ignores DTZ; ranking ignores the clock)
+  each fail at least one test. 291 pass, 2 skipped (the slow ones).
+- Not done: scaling the evaluation down as the clock rises outside the
+  tables (the "maybe" in TODO).
