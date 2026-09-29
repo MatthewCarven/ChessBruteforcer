@@ -51,12 +51,12 @@ included, ~112 GB plain, would be ~11 GB.
       peak 1.93 GB v 1.62 GB; both byte for byte the table already on
       disk. So no unpacking needed. A DTZ `verify` of
       KRBvKR (every 10,007th) took 0.9 s plain, 2.2 s compressed.
-- [ ] Compress the 5-piece tables in `tables/` (30.8 GB + KRPvKR 2.7 GB,
-      expect ~2.5-3.5 GB): **Matthew's go needed** (it replaces his plain
-      files; `compress` checks every value before each one). Either run
-      `scripts\build-five-piece.cmd` (it finds all 60 done and compresses
-      them, ~1 h), then `compress tables\KRPvKR.cbt` and `tables\KRPvKR.cbz`.
-      The 4-piece tables stay plain (427 MB).
+- [x] Compress the 5-piece tables in `tables/` (Matthew ran
+      build-five-piece.cmd, 2026-09-30 02:30-03:18): all 120 files, 28.7 GB
+      -> 3.15 GB (9.1x; DTM 10.1x, DTZ 7.7x; 3.6x to 78x). Free space 96 ->
+      122 GB. The 36 small tables stay plain.
+- [ ] KRPvKR's two files are still plain (2.7 GB): `compress
+      tables\KRPvKR.cbt`, then `tables\KRPvKR.cbz`.
 - [x] `build-five-piece.ps1`: compresses both files of each finished table
       (and any finished one it skips), unless `-Plain`; `-List` shows which
       are compressed. Run as it is, it would compress the 60 pawnless tables.
@@ -111,8 +111,9 @@ left is a draw.
       KBPPvK, KNPPvK, KPPPvK): 25.5% of the work, and the games wholly in the
       tables go from 14.3% to 41.9%. Then the 25 one-pawn "two against one"
       (54.3% at 83.7% of the work), then the 8 two-pawn ones (81.9%), then
-      K+P+P v K+P last (100%). ~49 h of solving; ~115 GB plain, ~8 GB
-      compressed. Extend build-five-piece.ps1 (-Pawns), same restartable
+      K+P+P v K+P last (100%). ~49 h of solving; ~115 GB plain, ~13 GB
+      compressed at the pawnless tables' 9x (disk holds one plain table at
+      a time). Extend build-five-piece.ps1 (-Pawns), same restartable
       pattern. Lichess samples and a summary like FIVE-PIECE.md after.
 - [ ] 48-square pawns (25% per pawn): with compression it matters little
       for disk (the holes compress to nothing); do it only if it helps.

@@ -857,7 +857,12 @@ rather than 48-byte boards, because that is the storage that scales.
   mostly solving K+R+R v K, both kinds, and again from compressed tables). A deliberately broken cache
   lookup fails the eviction test.
 - Left for Matthew: compress `tables/` (replaces his plain files, so his go).
-  He chose to run build-five-piece.cmd himself; it was compressing by 02:40.
+  He ran build-five-piece.cmd himself, 02:30-03:18: all 120 files of the 60
+  pawnless tables, every one checked value by value, none failed. 28.7 GB ->
+  3.15 GB (9.1x): mate distances 19.1 -> 1.90 GB (10.1x), DTZ 9.6 -> 1.24 GB
+  (7.7x). From 3.6x (KBNvKQ.cbz) to 78x (KNNvKN.cbt, nearly all draws), so
+  KRBvKR's 18x, which set my estimate of ~8 GB for everything, was on the
+  kind side: expect ~13 GB for the pawn tables. Free space 96 -> 122 GB.
 
 ## 2026-09-30: step B, which pawn endings real games reach
 

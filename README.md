@@ -428,9 +428,10 @@ agrees. Per table: [FIVE-PIECE.md](FIVE-PIECE.md).
 would not fit plain (~115 GB against ~96 GB free). A table's values are cut
 into 64 KB blocks, each compressed on its own with Brotli (quality 10), with
 the blocks' offsets up front, so a probe still goes straight to its position
-and decompresses one block (70-100 us, then cached). Measured: 13-18x smaller
-on mate distances, 6.5-17.5x on DTZ; the whole 5-piece set would be ~8 GB
-instead of ~112. Same names (`.cbt`, `.cbz`); everything that reads a table
+and decompresses one block (70-100 us, then cached). On the 60 pawnless
+5-piece tables: **28.7 GB became 3.15 GB (9.1x)**, mate distances 10.1x
+(4.7x for the hardest, 78x for K+N+N v K+N, nearly all draws), DTZ 7.7x;
+48 minutes. At that rate the 50 pawn tables would be ~13 GB instead of ~115. Same names (`.cbt`, `.cbz`); everything that reads a table
 reads either kind. `compress <dir or file>` converts in place, checking every
 value against the plain file first, and `scripts\build-five-piece.cmd` now
 compresses each table it finishes. The tables up to 4 pieces are best left
