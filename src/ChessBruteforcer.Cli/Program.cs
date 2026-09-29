@@ -63,6 +63,8 @@ static class Cli
           game grade <file> [examples]   early kill / efficient / time waster, with the sharpest examples of each
           game idle <file>...            idle moves (nothing happening): sent straight back, cycled, or new?
           game tree <file>...            how much the games share (tree of moves, set of positions); what each file adds
+          game endings <file>...         which endgame tables (5 pieces or fewer) the games reach; the 5-piece tables
+                                         with pawns not yet in ./tables ranked, in the order they can be built
         """;
 
     public static int Run(string[] args)
@@ -120,6 +122,7 @@ static class Cli
                 ["game", "grade", var file, var n] => GameGrade(file, int.Parse(n)),
                 ["game", "tree", .. var files] when files.Length > 0 => GameTree(files),
                 ["game", "idle", .. var files] when files.Length > 0 => GameIdle(files),
+                ["game", "endings", .. var files] when files.Length > 0 => GameEndings(files),
                 _ => Print(Usage, 1),
             };
         }
@@ -911,6 +914,118 @@ static class Cli
         Console.WriteLine($"  as a set of positions:  {stats.UniquePositions,12:N0} positions " +
                           $"({100.0 * stats.UniquePositions / all:0.0}%: transpositions merged too)");
         Console.WriteLine($"  games played before, move for move: {stats.DuplicateGames:N0}");
+        return 0;
+    }
+
+    /// <summary>
+    /// Which endgame tables the games reach (step B of the pawn-table plan).
+    /// The tables we have are the .cbt files in the tables folder.  The 5-piece
+    /// tables with pawns still missing are put in an order to build them (see
+    /// <see cref="EndingStats.BuildOrder"/>: a table comes after the ones its
+    /// promotions lead to), with the share of games each one brings wholly
+    /// inside the tables and the share of the work (positions) it costs.
+    /// </summary>
+    private static int GameEndings(string[] files)
+    {
+        var watch = Stopwatch.StartNew();
+        var stats = new EndingStats();
+        foreach (string file in files)
+            foreach (var game in GameFile.Read(file))
+                stats.Add(game);
+
+        var have = new HashSet<Material>();
+        if (Directory.Exists(TableDirectory))
+            foreach (string path in Directory.EnumerateFiles(TableDirectory, "*.cbt"))
+                try { have.Add(Material.Parse(Path.GetFileNameWithoutExtension(path)).Canonical); }
+                catch (FormatException) { }
+
+        // Every 5-piece table with a pawn: three pieces against a bare king, or two against one.
+        var types = new[] { PieceType.Queen, PieceType.Rook, PieceType.Bishop, PieceType.Knight, PieceType.Pawn };
+        var sets = new List<PieceType[]>();
+        for (int a = 0; a < 5; a++)
+            for (int b = a; b < 5; b++)
+                sets.Add([types[a], types[b]]);
+        var pawnTables = new HashSet<Material>();
+        foreach (var pair in sets)
+        {
+            foreach (var type in types)
+            {
+                var three = pair.Append(type).ToArray();
+                pawnTables.Add(new Material(three, []).Canonical);
+                pawnTables.Add(new Material(pair, [type]).Canonical);
+            }
+        }
+        pawnTables.RemoveWhere(m => !m.HasPawns);
+        int Pawns(Material m) => m.White.Count(t => t == PieceType.Pawn) + m.Black.Count(t => t == PieceType.Pawn);
+
+        var id = stats.Materials.Select((m, i) => (m, i)).ToDictionary(x => x.m, x => x.i);
+        long GamesAt(Material m) => id.TryGetValue(m, out int i) ? stats.Counts[i].Games : 0;
+        long FirstAt(Material m) => id.TryGetValue(m, out int i) ? stats.Counts[i].FirstEntries : 0;
+        // Each game: in our tables all the way, needing some of the missing pawn tables, or a table outside them.
+        var missing = pawnTables.Where(m => !have.Contains(m)).ToHashSet();
+        long inTables = 0, outsidePlan = 0, backInReach = 0;
+        var needs = new List<Material[]>();
+        foreach (var passed in stats.GameMaterials)
+        {
+            var need = passed.Select(i => stats.Materials[i]).Where(m => !have.Contains(m)).ToArray();
+            if (need.Any(m => !missing.Contains(m)))
+                outsidePlan++;
+            else if (need.Length == 0)
+                inTables++;
+            else
+                needs.Add(need);
+            if (need.Length > 0 && have.Contains(stats.Materials[passed[^1]]))
+                backInReach++;
+        }
+        var plan = EndingStats.BuildOrder(missing.OrderBy(m => m.ToString(), StringComparer.Ordinal).ToList(), needs);
+        var step = plan.Select((m, i) => (m, i)).ToDictionary(x => x.m, x => x.i);
+        var byGames = plan.OrderByDescending(GamesAt).ThenBy(m => m.ToString(), StringComparer.Ordinal)
+            .Select((m, i) => (m, i)).ToDictionary(x => x.m, x => x.i + 1);
+        var readyAfter = new long[plan.Count];
+        foreach (var need in needs)
+            readyAfter[need.Max(m => step[m])]++;
+
+        double Pct(long part, long whole) => whole == 0 ? 0 : 100.0 * part / whole;
+        long reaching = stats.Reaching;
+        long waiting = reaching - inTables - outsidePlan;
+        Console.WriteLine($"{stats.Games:N0} games in {watch.Elapsed.TotalSeconds:0}s; {reaching:N0} ({Pct(reaching, stats.Games):0.0}%) " +
+                          $"get down to {EndingStats.MaxPieces} pieces or fewer. Tables on disk: {have.Count} (in {TableDirectory}).");
+        Console.WriteLine($"Of those {reaching:N0} games:");
+        Console.WriteLine($"  every such position in a table we have     {inTables,9:N0}  ({Pct(inTables, reaching):0.0}%)");
+        Console.WriteLine($"  through a 5-piece pawn table not built yet {waiting,9:N0}  ({Pct(waiting, reaching):0.0}%)");
+        if (outsidePlan > 0)
+            Console.WriteLine($"  through another table we don't have        {outsidePlan,9:N0}  ({Pct(outsidePlan, reaching):0.0}%)");
+        Console.WriteLine($"  ...of the last two, back in our tables by the end  {backInReach,9:N0}  " +
+                          $"({Pct(backInReach, waiting + outsidePlan):0.0}%)");
+        Console.WriteLine($"  with castling rights still held at {EndingStats.MaxPieces} pieces or fewer (no table covers those positions): " +
+                          $"{stats.WithCastling:N0}");
+        Console.WriteLine();
+
+        long totalSize = plan.Sum(EndgameTable.TableSize);
+        Console.WriteLine($"The {plan.Count} pawn tables to build, in the order that brings games into the tables soonest per position " +
+                          "solved (each after the tables its promotions lead to):");
+        Console.WriteLine($"{"step",4} {"table",-8} {"pawns",5} {"positions",10} {"games",8} {"of all",7} {"first",7} {"rank",5}   " +
+                          $"{"games in tables",15} {"work done",10}");
+        long covered = inTables, size = 0;
+        for (int k = 0; k < plan.Count; k++)
+        {
+            var material = plan[k];
+            covered += readyAfter[k];
+            size += EndgameTable.TableSize(material);
+            Console.WriteLine($"{k + 1,4} {material,-8} {Pawns(material),5} {EndgameTable.TableSize(material) / 1e6,9:0}M " +
+                              $"{GamesAt(material),8:N0} {Pct(GamesAt(material), stats.Games),6:0.00}% {FirstAt(material),7:N0} " +
+                              $"{byGames[material],5}   {Pct(covered, reaching),14:0.0}% {Pct(size, totalSize),9:0.0}%");
+        }
+        Console.WriteLine("(games: reaching the table at all; first: arriving there first, their first position of " +
+                          $"{EndingStats.MaxPieces} pieces or fewer; rank: by games; games in tables: share of the {reaching:N0} " +
+                          "whose every such position is in a table once this one is built; work: positions solved so far, of the plan's)");
+
+        // What else games spend time in: the most visited materials of all, for scale.
+        Console.WriteLine();
+        Console.WriteLine($"Most reached materials of {EndingStats.MaxPieces} pieces or fewer (all of them, for scale):");
+        foreach (var (material, counts) in stats.Materials.Zip(stats.Counts).OrderByDescending(x => x.Second.Games).Take(15))
+            Console.WriteLine($"  {material,-8} {counts.Games,8:N0} games  {Pct(counts.Games, stats.Games),5:0.0}%  " +
+                              $"{counts.Plies / (double)counts.Games,5:0} plies each  {(have.Contains(material) ? "have" : "not yet")}");
         return 0;
     }
 
