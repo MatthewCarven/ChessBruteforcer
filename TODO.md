@@ -159,7 +159,9 @@ Plan agreed with Matthew: part A (slices, proven on 4 pieces), then part B
       identical, the 5 with a pair and all 36 DTZ equal value for value, the
       ladder too; KRRvKR re-solved fresh = upgraded, 533 s (was 762), 0.95 GB
       (was 1.91). `upgrade` took `tables/` from 8.39 GB to 5.67 GB.
-- [ ] The rest of the pawnless 5-piece tables: 60 material sets (20 of
+- [x] Done 2026-09-29: all 60 pawnless 5-piece tables, both kinds, 30.8 GB,
+      20.9 h of solving (one restart after the window closed). Results in
+      FIVE-PIECE.md. Was: 60 material sets (20 of
       three pieces v a bare king, 40 of two v one), both kinds, ~31 GB and
       ~18 h. Matthew said go (option a); he runs
       `scriptsuild-five-piece.cmd` (restartable, logs to

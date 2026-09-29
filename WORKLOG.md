@@ -781,3 +781,20 @@ rather than 48-byte boards, because that is the storage that scales.
   | KQRvKR | 1,078 M | 99.8 / 0.1 / 0.0% | 35 moves | 31 | 0 | 0 | 27 | 1.95 |
   | KRBvKR | 1,221 M | 41.2 / 58.7 / 0.0% | 65 moves | 100 | 17,440 | 5,400 | 19 | 1.51 |
   | KRNvKR | 1,252 M | 36.6 / 63.3 / 0.1% | 41 moves (black wins) | 65 | 0 | 0 | 18 | 1.49 |
+
+## 2026-09-29: all 60 pawnless 5-piece tables done
+
+- Matthew restarted the run at 13:01 (a first start got stopped straight
+  away: "6.7 GB" was RAM, not disk, a misread). The last 11 took 5.7 h;
+  finished 18:41, 60 of 60 on disk, no non-zero exits.
+- Totals: 51,862,481,856 legal positions; 30.8 GB of files (33.7 GB with
+  KRPvKR); 20.9 h of solving; peak 2.25 GB (KQRNvK).
+- One more table with cursed wins: KQRvKQ, 1,840 cursed, 8,848 blessed.
+  So six in all, and they are exactly the six whose longest DTZ reaches
+  the rule's 100. New long mates: KRBvKQ 70 moves, KRNvKQ 69, KQRvKQ 67
+  (the first two won by the queen); all confirmed on Lichess, KQRvKQ's
+  edge positions too (DTZ 99 / -100).
+- Checked before writing it down: KNNvKB is not drawn from every position,
+  as its 100.0% looked: 72,816 white-to-move wins (0.02%), all mates in 4
+  or fewer.
+- The full table (grouped 3 v 0, then 2 v 1) is in FIVE-PIECE.md.

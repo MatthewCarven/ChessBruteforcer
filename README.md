@@ -416,6 +416,13 @@ files load either way; `upgrade` rewrites them.
 
 `scripts\build-five-piece.cmd` builds them all (restartable; see the script).
 
+**All 60 pawnless 5-piece tables are solved** (2026-09-29): 51.9 billion
+legal positions, 30.8 GB for both kinds, 20.9 hours, never more than 2.25 GB
+of memory. The 50-move rule changes results in only 6 of them, almost all in
+K+B+B v K+N (a fifth of its wins are cursed); the longest mate is K+B+N v
+K+N's 107 moves (213 plies). Every longest mate checked against Lichess
+agrees. Per table: [FIVE-PIECE.md](FIVE-PIECE.md).
+
 Wins the rule turns into draws are "cursed wins", and losses it saves are
 "blessed losses". **Up to 4 pieces there are none**: every table has the same
 wins, draws and losses under the rule as without it. The longest stretch
