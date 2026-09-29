@@ -218,25 +218,42 @@ public sealed class Tablebase : IDisposable
         return Outcome.Better(stored, best);
     }
 
+    /// <summary>Memory <see cref="Preload"/> reads tables into by default: every table up to 4 pieces is 427 MB.</summary>
+    public const long PreloadBytes = 1L << 30;
+
     /// <summary>
-    /// Read every table in <see cref="Directory"/> into memory.  Returns how
-    /// many tables and bytes were loaded.
+    /// Open every table in <see cref="Directory"/> (mate distances, <c>.cbt</c>).
+    /// Plain files are read into memory, smallest first, while they fit in
+    /// <paramref name="memoryBytes"/>.  Compressed files, and plain ones past
+    /// that, stay on disk and are read as they are probed (a compressed one
+    /// a 64 KB block at a time, cached): with the 5-piece tables there, all
+    /// of them in memory would be tens of GB.  Returns how many tables were
+    /// opened, the bytes read into memory, and how many stay on disk.
     /// </summary>
-    public (int Tables, long Bytes) Preload()
+    public (int Tables, long Bytes, int OnDisk) Preload(long memoryBytes = PreloadBytes)
     {
         if (Directory is null)
-            return (0, 0);
-        int count = 0;
+            return (0, 0, 0);
+        int count = 0, onDisk = 0;
         long bytes = 0;
-        foreach (string path in System.IO.Directory.EnumerateFiles(Directory, "*.cbt").Order())
+        var files = System.IO.Directory.EnumerateFiles(Directory, "*.cbt")
+            .Select(path => (Path: path, Length: new FileInfo(path).Length))
+            .OrderBy(file => file.Length).ThenBy(file => file.Path, StringComparer.Ordinal);
+        foreach (var (path, length) in files)
         {
-            var table = EndgameTable.Load(path, intoMemory: true);
+            bool intoMemory = bytes + length <= memoryBytes && !EndgameTable.IsCompressedFile(path);
+            var table = EndgameTable.Load(path, intoMemory);
+            if (_tables.Remove(table.Material, out var old))
+                old.Dispose();
             _tables[table.Material] = table;
             _missing.Remove(table.Material);
             count++;
-            bytes += table.Size * sizeof(short);
+            if (intoMemory)
+                bytes += table.Size * sizeof(short);
+            else
+                onDisk++;
         }
-        return (count, bytes);
+        return (count, bytes, onDisk);
     }
 
     /// <summary>

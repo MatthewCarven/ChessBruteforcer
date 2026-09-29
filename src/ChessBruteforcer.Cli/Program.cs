@@ -39,6 +39,9 @@ static class Cli
           dtz <material> verify [stride] check the DTZ table against its moves
           upgrade [dir]                  rewrite older table files in the current format (they load either way)
           compare <file> <file>          two table files of one material, value by value
+          compress [dir|file] [--quality N]  compress complete tables in place (13-18x smaller; they load and probe
+                                         as before, a block at a time): each is checked value by value against
+                                         the plain file before replacing it.  Brotli quality 0-11, default 10
 
         Tables live in ./tables, or wherever CHESS_TABLES points.
 
@@ -95,6 +98,10 @@ static class Cli
                 ["upgrade"] => Upgrade(TableDirectory),
                 ["compare", var first, var second] => Compare(first, second),
                 ["upgrade", var directory] => Upgrade(directory),
+                ["compress"] => Compress(TableDirectory, EndgameTable.CompressionQuality),
+                ["compress", "--quality", var quality] => Compress(TableDirectory, int.Parse(quality)),
+                ["compress", var target] => Compress(target, EndgameTable.CompressionQuality),
+                ["compress", var target, "--quality", var quality] => Compress(target, int.Parse(quality)),
                 ["file", "add", var file, .. var boards] when boards.Length > 0 => FileAdd(file, boards),
                 ["file", "import", var file, var text] => FileAdd(file, ReadLines(text)),
                 ["file", "list", var file] => FileList(file),
@@ -256,6 +263,17 @@ static class Cli
         using var b = EndgameTable.Load(second);
         if (a.Material != b.Material || a.Size != b.Size)
             return Print($"different tables: {a.Material} ({a.Size:N0} slots) and {b.Material} ({b.Size:N0} slots)", 2);
+        var (differ, legal, firstDiffer) = Differences(a, b);
+        if (differ == 0)
+            return Print($"{a.Material}: {a.Size:N0} slots, {legal:N0} legal, all equal");
+        Console.WriteLine($"{a.Material}: {differ:N0} of {a.Size:N0} slots differ; first at {firstDiffer:N0} " +
+                          $"({a.PositionAt(firstDiffer).ToFen()}): {a[firstDiffer]?.ToString() ?? "impossible"} v {b[firstDiffer]?.ToString() ?? "impossible"}");
+        return 2;
+    }
+
+    /// <summary>Two tables of one material and size, value by value: how many differ, how many are legal, the first to differ (-1 if none).</summary>
+    private static (long Differ, long Legal, long First) Differences(EndgameTable a, EndgameTable b)
+    {
         long differ = 0, legal = 0;
         long firstDiffer = -1;
         for (long i = 0; i < a.Size; i++)
@@ -270,11 +288,63 @@ static class Cli
                     firstDiffer = i;
             }
         }
-        if (differ == 0)
-            return Print($"{a.Material}: {a.Size:N0} slots, {legal:N0} legal, all equal");
-        Console.WriteLine($"{a.Material}: {differ:N0} of {a.Size:N0} slots differ; first at {firstDiffer:N0} " +
-                          $"({a.PositionAt(firstDiffer).ToFen()}): {a[firstDiffer]?.ToString() ?? "impossible"} v {b[firstDiffer]?.ToString() ?? "impossible"}");
-        return 2;
+        return (differ, legal, firstDiffer);
+    }
+
+    /// <summary>
+    /// Compress every complete table in a folder (or one file) in place.
+    /// Each is written to a temporary file, read back and compared with the
+    /// plain one value by value, and only then moved over it.  Tables already
+    /// compressed are skipped, and so are capped ones (they grow deeper yet).
+    /// </summary>
+    private static int Compress(string target, int quality)
+    {
+        if (quality is < 0 or > 11)
+            return Print("error: Brotli's quality is 0 to 11", 1);
+        var files = Directory.Exists(target)
+            ? Directory.EnumerateFiles(target, "*.cbt").Concat(Directory.EnumerateFiles(target, "*.cbz")).Order().ToList()
+            : File.Exists(target) ? new List<string> { target } : throw new FileNotFoundException($"No table or folder {target}.");
+        int compressed = 0, already = 0;
+        long before = 0, after = 0;
+        var total = Stopwatch.StartNew();
+        foreach (string path in files)
+        {
+            string name = Path.GetFileName(path);
+            if (EndgameTable.IsCompressedFile(path))
+            {
+                already++;
+                continue;
+            }
+            string temp = path + ".tmp";
+            var watch = Stopwatch.StartNew();
+            long plainBytes = new FileInfo(path).Length, packedBytes;
+            using (var table = EndgameTable.Load(path))
+            {
+                if (table.Cap is not null)
+                {
+                    Console.WriteLine($"{name,-14} capped at {table.Cap} plies: left plain (only complete tables are compressed)");
+                    continue;
+                }
+                packedBytes = table.SaveCompressed(temp, quality);
+                using var check = EndgameTable.Load(temp);
+                var (differ, _, first) = Differences(table, check);
+                if (differ != 0)
+                {
+                    check.Dispose();
+                    File.Delete(temp);
+                    return Print($"{name}: {differ:N0} values differ once compressed (first at {first:N0}): left plain, stopping", 2);
+                }
+            }
+            File.Move(temp, path, overwrite: true);
+            before += plainBytes;
+            after += packedBytes;
+            compressed++;
+            Console.WriteLine($"{name,-14} {plainBytes / 1048576.0,9:0.0} MB -> {packedBytes / 1048576.0,7:0.0} MB " +
+                              $"({(double)plainBytes / packedBytes,5:0.0}x) in {watch.Elapsed.TotalSeconds,5:0.0}s");
+        }
+        string ratio = after == 0 ? "" : $" ({(double)before / after:0.0}x)";
+        return Print($"{compressed} tables compressed in {total.Elapsed.TotalMinutes:0.0} min, " +
+                     $"{before / 1048576.0:0.0} MB -> {after / 1048576.0:0.0} MB{ratio}; {already} already compressed");
     }
 
     private static Tablebase OpenTablebase(int? cap = null) =>
