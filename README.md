@@ -104,6 +104,7 @@ dtz <material>                 solve under the 50-move rule; wins, draws, losses
 dtz <material> verify [stride] check the DTZ table against its moves
 upgrade [dir]                  rewrite older table files in the current format (they load either way)
 compare <file> <file>          two table files of one material, value by value
+compress [dir|file] [--quality N]  compress complete tables in place, each checked value by value first
 probe <fen>                    the outcome, and every move ranked best first
 probe <fen> --rule             the same under the 50-move rule only (needs just the DTZ tables)
 line <fen>                     best play from here to mate
@@ -422,6 +423,19 @@ of memory. The 50-move rule changes results in only 6 of them, almost all in
 K+B+B v K+N (a fifth of its wins are cursed); the longest mate is K+B+N v
 K+N's 107 moves (213 plies). Every longest mate checked against Lichess
 agrees. Per table: [FIVE-PIECE.md](FIVE-PIECE.md).
+
+**Compressed tables** ("CBC1", 2026-09-30), for the 50 pawn tables, which
+would not fit plain (~115 GB against ~96 GB free). A table's values are cut
+into 64 KB blocks, each compressed on its own with Brotli (quality 10), with
+the blocks' offsets up front, so a probe still goes straight to its position
+and decompresses one block (70-100 us, then cached). Measured: 13-18x smaller
+on mate distances, 6.5-17.5x on DTZ; the whole 5-piece set would be ~8 GB
+instead of ~112. Same names (`.cbt`, `.cbz`); everything that reads a table
+reads either kind. `compress <dir or file>` converts in place, checking every
+value against the plain file first, and `scripts\build-five-piece.cmd` now
+compresses each table it finishes. The tables up to 4 pieces are best left
+plain: the engine reads plain tables into memory (up to 1 GB) and probes
+compressed ones from disk.
 
 Wins the rule turns into draws are "cursed wins", and losses it saves are
 "blessed losses". **Up to 4 pieces there are none**: every table has the same

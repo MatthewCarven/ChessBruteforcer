@@ -24,28 +24,45 @@ included, ~112 GB plain, would be ~11 GB.
       `EndgameTable.Load` reads it (mapped, or `intoMemory` decompresses
       all); `SaveCompressed(file, quality)` writes it, compressing blocks in
       parallel and decompressing each again to check it before writing.
-      Builds; the 266 tests still pass. **Not yet tested itself.**
-- [ ] `compress [dir|file]` in the CLI: write to a temporary name, dispose
-      the table read, then move over the plain file; skip capped tables and
-      any with a frontier. Report sizes.
-- [ ] Tests: round trip (every value equal, DTM and DTZ, a pawn table and a
-      table with identical pieces), `compare` plain v compressed, Tablebase
-      probes through a compressed table, `IsOutdatedFile` false for it.
-- [ ] Measure Brotli quality 5 against 9-11 (size and time) on KRBvKR.cbt
-      and KRPvKR.cbz; pick one. Consider splitting DTM's low and high
-      bytes into two planes per block if it compresses much better.
-- [ ] Solve speed with compressed smaller tables: e.g. re-solve KRPvKR's
-      DTZ (34 min before) with its promotion tables compressed. If much
-      slower, unpack the tables a solve reads (to memory or a temporary
-      plain file) and compress only the finished ones.
+      Builds; the 266 tests still pass.
+- [x] `compress [dir|file] [--quality N]` in the CLI (2026-09-30): writes a
+      temporary file, reads it back and compares every value with the plain
+      one, then moves it over; capped tables stay plain. On the four 5-piece
+      DTZ tables KRPvKR promotes into: 6.5-17.5x, ~25 s each.
+- [x] Tests (13, in CompressedTableTests): every value back (DTM and DTZ,
+      a pawn table, identical pieces, and into memory), cache eviction,
+      probes and move rankings through compressed tables, solving from
+      compressed smaller tables, capped and cut-short files refused, Preload.
+- [x] Brotli quality: **10** (2026-09-30). Per 64 KB block, sampled:
+
+      | quality | KRBvKR.cbt | KRPvKR.cbz | time, whole file, 16 threads |
+      |---|---|---|---|
+      | 1 | 7.4x | 7.5x | ~1 s |
+      | 5 | 13.1x | 11.0x | 1 s / 3 s |
+      | 9 | 14.6x | 11.4x | 4 s / 13 s |
+      | 10 | 18.0x | 13.1x | 23 s / 36 s |
+      | 11 | 19.7x | 14.2x | 97 s / 113 s |
+
+      Reading costs the same at every quality: 70-100 us to decompress a
+      block. Low and high bytes in two planes: no gain (13.2x v 13.1x at 5).
+- [x] Solve speed with compressed smaller tables (2026-09-30): KRPvKR's
+      DTZ solved twice at once, from its promotion tables plain and
+      compressed: **1,990 s plain, 2,055 s compressed (3% slower)**, process
+      peak 1.93 GB v 1.62 GB; both byte for byte the table already on
+      disk. So no unpacking needed. A DTZ `verify` of
+      KRBvKR (every 10,007th) took 0.9 s plain, 2.2 s compressed.
 - [ ] Compress the 5-piece tables in `tables/` (30.8 GB + KRPvKR 2.7 GB,
-      expect ~3.5 GB), `compare` each against its plain file before
-      deleting that. The 4-piece tables can stay plain (427 MB).
-- [ ] `build-five-piece.ps1`: compress each table once solved (for the pawn
-      run: disk then holds only one plain table at a time).
-- [ ] The engine: `Tablebase.Preload` reads every `.cbt` in its folder into
-      memory. With 5-piece tables there that is tens of GB: limit it (by
-      piece count or size), and let compressed tables stay compressed.
+      expect ~2.5-3.5 GB): **Matthew's go needed** (it replaces his plain
+      files; `compress` checks every value before each one). Either run
+      `scripts\build-five-piece.cmd` (it finds all 60 done and compresses
+      them, ~1 h), then `compress tables\KRPvKR.cbt` and `tables\KRPvKR.cbz`.
+      The 4-piece tables stay plain (427 MB).
+- [x] `build-five-piece.ps1`: compresses both files of each finished table
+      (and any finished one it skips), unless `-Plain`; `-List` shows which
+      are compressed. Run as it is, it would compress the 60 pawnless tables.
+- [x] The engine: `Tablebase.Preload` reads plain tables into memory,
+      smallest first, within 1 GB (the 36 up to 4 pieces are 427 MB), and
+      leaves compressed ones, and plain ones past that, on disk.
 
 ### Step B: which pawn endings real games reach
 - [ ] `game endings`: over the 741k Lichess games, every material of 5

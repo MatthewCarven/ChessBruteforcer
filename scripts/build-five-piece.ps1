@@ -11,11 +11,13 @@
 #   pwsh scripts\build-five-piece.ps1 -Only KQRRvK,KRBvKR
 #
 # Expect ~18 hours and ~31 GB for all 60 on Matthew's laptop, one table at a
-# time (~1-2 GB of memory each).
+# time (~1-2 GB of memory each).  Each table is compressed once both files are
+# done (~15x smaller; `compress` checks every value first); -Plain leaves them.
 param(
     [int] $MinFreeGB = 10,
     [string[]] $Only,
-    [switch] $List
+    [switch] $List,
+    [switch] $Plain
 )
 $ErrorActionPreference = 'Continue'
 Set-Location (Split-Path $PSScriptRoot -Parent)
@@ -30,15 +32,33 @@ function Log([string] $text) {
     Add-Content -Path $log -Value $line
 }
 
-# A mate-distance table that is finished: "CBT2" (a capped one is "CBT3").
-function Complete([string] $path) {
-    if (-not (Test-Path $path)) { return $false }
+# A table file's first four bytes: "CBT2" finished, "CBT3" capped, "CBC1" compressed.
+function Magic([string] $path) {
+    if (-not (Test-Path $path)) { return $null }
     $stream = [IO.File]::OpenRead((Resolve-Path $path))
     try {
         $magic = New-Object byte[] 4
         [void] $stream.Read($magic, 0, 4)
-        return [Text.Encoding]::ASCII.GetString($magic) -eq 'CBT2'
+        return [Text.Encoding]::ASCII.GetString($magic)
     } finally { $stream.Dispose() }
+}
+
+# A mate-distance table that is finished (only complete tables are compressed).
+function Complete([string] $path) { return (Magic $path) -in 'CBT2', 'CBC1' }
+
+function Compressed([string] $path) { return (Magic $path) -eq 'CBC1' }
+
+# Both files of a finished table, compressed in place unless -Plain.
+function Compress-Table([string] $m) {
+    if ($Plain) { return }
+    foreach ($file in (Join-Path $tables "$m.cbt"), (Join-Path $tables "$m.cbz")) {
+        if ((Test-Path $file) -and -not (Compressed $file)) {
+            $output = & dotnet $cli compress $file
+            $code = $LASTEXITCODE
+            $output | Select-Object -First 1 | ForEach-Object { Log "compress: $_" }
+            if ($code -ne 0) { Log "compress ${file}: exit $code, left plain" }
+        }
+    }
 }
 
 # The 60: three pieces against a bare king, and two against one.  Pieces are
@@ -57,7 +77,9 @@ if ($List) {
     foreach ($m in $materials) {
         $cbt = if (Complete (Join-Path $tables "$m.cbt")) { 'mate done' } else { 'mate to do' }
         $cbz = if (Test-Path (Join-Path $tables "$m.cbz")) { 'rule done' } else { 'rule to do' }
-        '{0,-8} {1,-11} {2}' -f $m, $cbt, $cbz
+        $packed = @('cbt', 'cbz' | Where-Object { Compressed (Join-Path $tables "$m.$_") })
+        $note = if ($packed.Count -gt 0) { "(compressed: $($packed -join ', '))" } else { '' }
+        '{0,-8} {1,-11} {2,-11} {3}' -f $m, $cbt, $cbz, $note
     }
     "$($materials.Count) tables"
     return
@@ -74,7 +96,7 @@ $done = 0
 foreach ($m in $materials) {
     $cbt = Join-Path $tables "$m.cbt"
     $cbz = Join-Path $tables "$m.cbz"
-    if ((Complete $cbt) -and (Test-Path $cbz)) { $done++; continue }
+    if ((Complete $cbt) -and (Test-Path $cbz)) { Compress-Table $m; $done++; continue }
     $drive = (Get-Item $tables).PSDrive
     $free = (Get-PSDrive $drive.Name).Free / 1GB
     if ($free -lt $MinFreeGB) { Log ('stopping: only {0:N1} GB free on {1}:' -f $free, $drive.Name); break }
@@ -89,6 +111,7 @@ foreach ($m in $materials) {
         $output | ForEach-Object { Add-Content -Path $log -Value "    $_" }
         if ($code -ne 0) { Log "$m ${step}: failed, going on to the next table"; break }
     }
+    if ((Complete $cbt) -and (Test-Path $cbz)) { Compress-Table $m }
     $done++
     Log ("{0} of {1} tables done, {2:N1} h so far" -f $done, $materials.Count, ((Get-Date) - $begin).TotalHours)
 }

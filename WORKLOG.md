@@ -819,3 +819,41 @@ rather than 48-byte boards, because that is the storage that scales.
   64 KB block, offsets up front, a 1024-block cache), loading and
   `SaveCompressed` in EndgameTable. Builds, 266 tests pass; the new code
   isn't tested yet. Next steps listed in TODO, step A.
+
+## 2026-09-30: compression, step A (all but compressing `tables/`)
+
+- Brotli quality measured per 64 KB block (a sample of 1 in 4 or 8 blocks):
+
+  | quality | KRBvKR.cbt | KRPvKR.cbz | whole file, 16 threads |
+  |---|---|---|---|
+  | 5 | 13.1x | 11.0x | 1 s / 3 s |
+  | 9 | 14.6x | 11.4x | 4 s / 13 s |
+  | **10** | **18.0x** | **13.1x** | 23 s / 36 s |
+  | 11 | 19.7x | 14.2x | 97 s / 113 s |
+
+  Chose 10: most of 11's gain at a quarter of its time. Decompressing a
+  block takes 70-100 us at any quality. Two byte planes for mate distances
+  (low bytes, then high) gained nothing: Brotli already models them.
+- `compress [dir|file] [--quality N]`: temporary file, read back, every
+  value compared with the plain table, then moved over. The four DTZ tables
+  KRPvKR promotes into: KQRvKR 9.8x, KRRvKR 6.5x, KRBvKR 15.9x, KRNvKR
+  17.5x, ~25 s each (compressing and checking).
+- The question that decided the plan: is a solve slower when the tables it
+  reads are compressed? KRPvKR's DTZ solved twice at the same time (so both
+  saw the same machine), promotion tables plain in one, compressed in the
+  other: **1,990 s plain, 2,055 s compressed, 3% slower**; process peak
+  1.93 GB v 1.62 GB. Both came out byte for byte the KRPvKR.cbz already on
+  disk. The solver's probes land near each
+  other, so the 1024-block cache mostly hits. So the pawn tables can be
+  solved from compressed smaller tables, and each compressed as it finishes.
+- `Tablebase.Preload` (the engine) now reads plain tables into memory,
+  smallest first, within 1 GB, and leaves compressed ones (and plain ones
+  past 1 GB) on disk. Before, with the 5-piece tables in the folder, it would
+  have tried to read ~31 GB.
+- `build-five-piece.ps1` compresses both files of every finished table
+  (`-Plain` to skip), including ones it finds already done: run as it is, it
+  compresses the 60 pawnless tables. `-List` shows which are compressed.
+- 13 new tests (CompressedTableTests); 279 pass, 1 skipped, 46 s (was 20 s:
+  mostly solving K+R+R v K, both kinds, and again from compressed tables). A deliberately broken cache
+  lookup fails the eviction test.
+- Left for Matthew: compress `tables/` (replaces his plain files, so his go).
