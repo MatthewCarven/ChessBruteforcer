@@ -925,3 +925,30 @@ rather than 48-byte boards, because that is the storage that scales.
   each fail at least one test. 291 pass, 2 skipped (the slow ones).
 - Not done: scaling the evaluation down as the clock rises outside the
   tables (the "maybe" in TODO).
+
+## 2026-09-30: step D started, the 49 pawn tables
+
+- `build-five-piece.ps1 -Pawns`: step B's order written out (checked by a
+  script: all 50 pawn tables, none before a table it promotes into); after
+  each table, `verify` and `dtz verify` on every 1009th position, and a
+  failure or mismatch stops the run; it runs from a copy of the build
+  (tables\.cli). First start at 03:27 stopped at "build failed" (the build
+  was fine a minute later; the error wasn't kept, so now it is logged).
+  Restarted 03:28, in its own window.
+- KRPvKR.cbt had been compressed at ~03:27, outside the run (most likely
+  Matthew running the `compress` command I'd given him; a CLI running from
+  bin\Release locks its files, which fits the first start's build failure
+  at 03:27:56). The run found it done and compressed KRPvKR.cbz (12.6x).
+- First two new tables, ~75 min each with checks:
+
+  | table | positions | DTM solve | DTZ solve | verified (both) | compressed |
+  |---|---|---|---|---|---|
+  | KQRPvK | 947 M | 37.5 min | 34.8 min | 459,351, consistent | 2.7 GB -> 97 MB (28x) |
+  | KQQPvK | 466 M | 35.3 min | 42.7 min | 216,413, consistent | 1.3 GB -> 50 MB (27x) |
+
+  Pawn tables compress 25-34x, three times the pawnless ones: expect ~5 GB
+  for all 49, not ~13. At this pace (~3.8% of the work in 2.6 h) the run
+  is ~60-70 h, not 49.
+- Lichess (Syzygy) on both: longest DTZ each side and 3 random positions
+  each, 10 of 10 agree (`scripts/syzygy-check-pawns.tsv`). Both easy
+  tables (longest DTZ 5-6 plies: the pawn runs).

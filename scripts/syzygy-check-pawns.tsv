@@ -1,0 +1,11 @@
+table	kind	fen	ours	syzygy category	syzygy dtz	precise dtz	agree
+KQRPvK	longest	RQ6/P7/8/8/8/8/2k5/K7 w - - 0 1	win 5	win	5	5	yes
+KQRPvK	longest	RQ6/P7/8/8/8/8/8/K1k5 b - - 0 1	loss -6	loss	-6	-6	yes
+KQRPvK	random	8/2Pk4/8/8/5Q2/7R/4K3/8 w - - 0 1	win 1	win	1	1	yes
+KQRPvK	random	8/6Q1/2K5/k5P1/8/8/8/2R5 w - - 0 1	win 1	win	1	1	yes
+KQRPvK	random	1R6/8/k7/8/8/4P1K1/5Q2/8 w - - 0 1	win 1	win	1	1	yes
+KQQPvK	longest	QQ6/PK6/8/8/8/8/1k6/8 w - - 0 1	win 5	win	5	5	yes
+KQQPvK	longest	QQ6/PK6/8/8/8/8/8/k7 b - - 0 1	loss -6	loss	-6	-6	yes
+KQQPvK	random	8/5Q2/8/1P6/8/k7/2Q1K3/8 b - - 0 1	loss -2	loss	-2	-2	yes
+KQQPvK	random	8/2Q3KQ/8/8/8/8/P7/k7 b - - 0 1	loss -2	loss	-2	-2	yes
+KQQPvK	random	1k3K2/8/4PQQ1/8/8/8/8/8 b - - 0 1	loss -2	loss	-2	-2	yes
