@@ -697,3 +697,87 @@ rather than 48-byte boards, because that is the storage that scales.
 - The overnight run: `scripts\build-five-piece.cmd` (a PowerShell script
   underneath) for all 60 pawnless 5-piece tables, both kinds: ~31 GB,
   ~18 h. Restartable, logs to `tables\five-piece.log`.
+
+## 2026-09-29: the overnight 5-piece run, 49 of 60 so far
+
+- `build-five-piece.cmd` ran 20:33 to 10:18, 46 tables, then stopped a few
+  seconds into KQRNvK's mate table: no solver left, no crash or low-memory
+  event in Windows' logs, no reboot, no half-written file. Most likely the
+  window was closed. 11 left, all full-size (~5 h): run it again.
+- 49 done (the run's 45 + KQRRvK's mate table + the four solved before;
+  those four re-read here with the same commands). No non-zero exits.
+  38,499,347,744 legal positions between them (identical pieces counted
+  once). 5-piece files on disk: 25.7 GB (KRPvKR's 2.7 GB included); the
+  last 11 add ~7.6 GB, so ~31 GB for the pawnless 60, as estimated.
+- **Cursed wins in 5 tables only**, all minor pieces against a minor piece
+  or a queen, plus KRBvKR:
+
+  | Table | Cursed wins | share of wins | Blessed losses | share of losses |
+  |---|---|---|---|---|
+  | KBBvKN | 31,000,264 | 20.9% | 61,322,704 | 48.1% |
+  | KBBvKQ | 3,808,264 | 1.2% | 16,652,104 | 8.3% |
+  | KBNvKN | 1,068,600 | 0.5% | 517,376 | 1.8% |
+  | KNNvKQ | 28,760 | 0.01% | 94,800 | 0.05% |
+  | KRBvKR | 17,440 | 0.01% | 5,400 | 0.02% |
+
+- Longest mates: KBNvKN 107 moves (213 plies), KBBvKQ 81 (the queen side
+  wins), KBBvKN 78, KNNvKQ 72 (queen side), KRBvKR 65. All four new ones
+  match Lichess's mate distance exactly, and Lichess marks those positions
+  cursed / blessed too.
+- 16 tables are won from every white-to-move position; KNNvKB is drawn
+  from all of them. Memory peak 2.18 GB (KQBNvK); tables with identical
+  pieces 0.4-1.2 GB. Per table, both kinds: 6 min (three alike) to 29 min.
+- Full per-table table below (time and peak for the four earlier tables
+  from their own sessions).
+
+  | Table | Legal positions | White to move: won / drawn / lost | Longest mate | Longest DTZ | Cursed wins | Blessed losses | Time (min) | Peak (GB) |
+  |---|---|---|---|---|---|---|---|---|
+  | KBBBvK | 224 M | 73.9 / 26.1 / 0.0% | 19 moves | 21 | 0 | 0 | 6 | 0.39 |
+  | KBBNvK | 693 M | 100.0 / 0.0 / 0.0% | 33 moves | 27 | 0 | 0 | 19 | 1.17 |
+  | KBBvKB | 663 M | 15.6 / 84.4 / 0.0% | 22 moves | 12 | 0 | 0 | 12 | 0.68 |
+  | KBBvKN | 683 M | 48.2 / 51.8 / 0.0% | 78 moves | 100 | 31,000,264 | 61,322,704 | 14 | 0.89 |
+  | KBBvKQ | 580 M | 15.3 / 20.2 / 64.6% | 81 moves (black wins) | 100 | 3,808,264 | 16,652,104 | 21 | 0.98 |
+  | KBBvKR | 633 M | 16.5 / 83.4 / 0.1% | 31 moves (black wins) | 17 | 0 | 0 | 12 | 0.69 |
+  | KBNNvK | 711 M | 100.0 / 0.0 / 0.0% | 34 moves | 27 | 0 | 0 | 19 | 1.07 |
+  | KNNNvK | 242 M | 98.7 / 1.3 / 0.0% | 21 moves | 42 | 0 | 0 | 6 | 0.45 |
+  | KNNvKB | 701 M | 0.0 / 100.0 / 0.0% | 4 moves | 7 | 0 | 0 | 11 | 0.64 |
+  | KNNvKN | 721 M | 0.1 / 99.9 / 0.0% | 7 moves | 13 | 0 | 0 | 10 | 0.65 |
+  | KNNvKQ | 618 M | 0.0 / 42.8 / 57.2% | 72 moves (black wins) | 100 | 28,760 | 94,800 | 18 | 0.95 |
+  | KNNvKR | 671 M | 0.0 / 99.6 / 0.4% | 41 moves (black wins) | 21 | 0 | 0 | 12 | 0.66 |
+  | KQBBvK | 611 M | 100.0 / 0.0 / 0.0% | 19 moves | 12 | 0 | 0 | 20 | 1.10 |
+  | KQNNvK | 641 M | 100.0 / 0.0 / 0.0% | 9 moves | 14 | 0 | 0 | 20 | 1.05 |
+  | KQQBvK | 560 M | 100.0 / 0.0 / 0.0% | 8 moves | 7 | 0 | 0 | 22 | 1.19 |
+  | KQQNvK | 572 M | 100.0 / 0.0 / 0.0% | 9 moves | 8 | 0 | 0 | 19 | 1.18 |
+  | KQQQvK | 173 M | 100.0 / 0.0 / 0.0% | 4 moves | 6 | 0 | 0 | 6 | 0.38 |
+  | KQQRvK | 543 M | 100.0 / 0.0 / 0.0% | 6 moves | 7 | 0 | 0 | 18 | 1.06 |
+  | KQQvKB | 532 M | 100.0 / 0.0 / 0.0% | 17 moves | 8 | 0 | 0 | 20 | 1.07 |
+  | KQQvKN | 551 M | 100.0 / 0.0 / 0.0% | 21 moves | 9 | 0 | 0 | 20 | 1.09 |
+  | KQQvKQ | 448 M | 99.1 / 0.8 / 0.1% | 30 moves | 50 | 0 | 0 | 17 | 0.91 |
+  | KQQvKR | 502 M | 100.0 / 0.0 / 0.0% | 35 moves | 28 | 0 | 0 | 19 | 1.04 |
+  | KQRRvK | 572 M | 100.0 / 0.0 / 0.0% | 7 moves | 8 | 0 | 0 | 10 | 1.16 |
+  | KRBBvK | 656 M | 100.0 / 0.0 / 0.0% | 19 moves | 21 | 0 | 0 | 20 | 1.09 |
+  | KRNNvK | 685 M | 100.0 / 0.0 / 0.0% | 16 moves | 21 | 0 | 0 | 19 | 1.11 |
+  | KRRBvK | 632 M | 100.0 / 0.0 / 0.0% | 16 moves | 11 | 0 | 0 | 19 | 1.08 |
+  | KRRNvK | 644 M | 100.0 / 0.0 / 0.0% | 16 moves | 11 | 0 | 0 | 19 | 1.11 |
+  | KRRRvK | 201 M | 100.0 / 0.0 / 0.0% | 7 moves | 9 | 0 | 0 | 7 | 0.43 |
+  | KRRvKB | 611 M | 99.3 / 0.7 / 0.0% | 29 moves | 20 | 0 | 0 | 18 | 1.07 |
+  | KRRvKN | 631 M | 99.7 / 0.3 / 0.0% | 40 moves | 15 | 0 | 0 | 19 | 1.05 |
+  | KRRvKQ | 527 M | 58.1 / 36.8 / 5.1% | 49 moves (black wins) | 40 | 0 | 0 | 17 | 0.85 |
+  | KRRvKR | 581 M | 99.2 / 0.7 / 0.0% | 31 moves | 50 | 0 | 0 | 22 | 1.88 |
+  | KBNvKB | 1,367 M | 25.5 / 74.5 / 0.0% | 39 moves | 25 | 0 | 0 | 16 | 1.40 |
+  | KBNvKN | 1,407 M | 32.1 / 67.9 / 0.0% | 107 moves | 100 | 1,068,600 | 517,376 | 16 | 1.48 |
+  | KBNvKQ | 1,200 M | 25.0 / 6.4 / 68.6% | 53 moves (black wins) | 84 | 0 | 0 | 29 | 1.96 |
+  | KBNvKR | 1,307 M | 26.0 / 73.8 / 0.2% | 41 moves (black wins) | 25 | 0 | 0 | 18 | 1.42 |
+  | KQBNvK | 1,254 M | 100.0 / 0.0 / 0.0% | 33 moves | 9 | 0 | 0 | 27 | 2.18 |
+  | KQBvKB | 1,183 M | 99.7 / 0.3 / 0.0% | 17 moves | 16 | 0 | 0 | 27 | 1.97 |
+  | KQBvKN | 1,223 M | 99.5 / 0.5 / 0.0% | 21 moves | 14 | 0 | 0 | 27 | 1.94 |
+  | KQBvKQ | 1,016 M | 55.7 / 44.0 / 0.3% | 33 moves | 60 | 0 | 0 | 22 | 1.60 |
+  | KQBvKR | 1,123 M | 99.3 / 0.6 / 0.0% | 40 moves | 38 | 0 | 0 | 27 | 1.93 |
+  | KQNvKB | 1,214 M | 99.8 / 0.2 / 0.0% | 17 moves | 18 | 0 | 0 | 27 | 1.97 |
+  | KQNvKN | 1,254 M | 99.4 / 0.6 / 0.0% | 21 moves | 18 | 0 | 0 | 26 | 1.96 |
+  | KQNvKQ | 1,047 M | 50.1 / 49.6 / 0.3% | 41 moves | 70 | 0 | 0 | 22 | 1.55 |
+  | KQNvKR | 1,154 M | 99.2 / 0.7 / 0.0% | 41 moves (black wins) | 44 | 0 | 0 | 28 | 1.88 |
+  | KQRBvK | 1,188 M | 100.0 / 0.0 / 0.0% | 16 moves | 9 | 0 | 0 | 27 | 2.17 |
+  | KQRvKR | 1,078 M | 99.8 / 0.1 / 0.0% | 35 moves | 31 | 0 | 0 | 27 | 1.95 |
+  | KRBvKR | 1,221 M | 41.2 / 58.7 / 0.0% | 65 moves | 100 | 17,440 | 5,400 | 19 | 1.51 |
+  | KRNvKR | 1,252 M | 36.6 / 63.3 / 0.1% | 41 moves (black wins) | 65 | 0 | 0 | 18 | 1.49 |
