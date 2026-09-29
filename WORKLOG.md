@@ -798,3 +798,24 @@ rather than 48-byte boards, because that is the storage that scales.
   as its 100.0% looked: 72,816 white-to-move wins (0.02%), all mates in 4
   or fewer.
 - The full table (grouped 3 v 0, then 2 v 1) is in FIVE-PIECE.md.
+
+## 2026-09-29/30: planning the pawn tables; compression started
+
+- Matthew: plan the pawn tables, thinking of the engine's weak points, an
+  opponent who (a) flukes or (b) knows exactly what they're doing and
+  wanders pieces about to draw moves out of us. Found: the engine plays
+  table positions by mate distance only and ignores the 50-move clock, which
+  is what (b) exploits. Plan in TODO ("Now: compression, then the pawn
+  tables"): steps A-D.
+- Sizes: the 50 pawn tables are 36 with one pawn, 12 with two, 2 with
+  three; both kinds 115.1 GB with pawns on 64 squares, 81.5 GB on 48;
+  ~49 h. Only ~103 GB free.
+- Matthew asked: buy a drive, or clean up? Measured compression on our own
+  tables in independent 64 KB blocks: zlib 12.0x (KRBvKR.cbt), 9.5x
+  (KRPvKR.cbz); 4 KB blocks 8-9x; lzma on a 64 MB sample 17-35x. So the
+  whole 5-piece set (~112 GB plain) would be ~11 GB. He chose compression
+  first (a drive would have to be an SSD anyway).
+- Started on branch `compression`: `CompressedTable` ("CBC1", Brotli per
+  64 KB block, offsets up front, a 1024-block cache), loading and
+  `SaveCompressed` in EndgameTable. Builds, 266 tests pass; the new code
+  isn't tested yet. Next steps listed in TODO, step A.
