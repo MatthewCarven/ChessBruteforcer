@@ -113,8 +113,12 @@ left is a draw.
       (54.3% at 83.7% of the work), then the 8 two-pawn ones (81.9%), then
       K+P+P v K+P last (100%). ~49 h of solving; ~115 GB plain, ~13 GB
       compressed at the pawnless tables' 9x (disk holds one plain table at
-      a time). Extend build-five-piece.ps1 (-Pawns), same restartable
-      pattern. Lichess samples and a summary like FIVE-PIECE.md after.
+      a time). **Running since 2026-09-30 03:27** (`build-five-piece.cmd
+      -Pawns`, its own window; progress in tables\five-piece.log, `-Pawns
+      -List` for what's done). Restartable: close the window, run it again.
+      It verifies a sample of each table (every 1009th position, both kinds)
+      and stops on a mismatch. Lichess samples and a summary like
+      FIVE-PIECE.md after.
 - [ ] 48-square pawns (25% per pawn): with compression it matters little
       for disk (the holes compress to nothing); do it only if it helps.
 

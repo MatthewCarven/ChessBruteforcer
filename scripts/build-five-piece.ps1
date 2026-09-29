@@ -115,8 +115,12 @@ if ($List) {
 }
 
 Log "=== start: $($materials.Count) tables into $tables$(if ($Pawns) { ' (with pawns)' })"
-dotnet build -c Release --nologo -v q | Out-Null
-if ($LASTEXITCODE -ne 0) { Log 'build failed: stopping'; exit 1 }
+$output = dotnet build -c Release --nologo -v q
+if ($LASTEXITCODE -ne 0) {
+    $output | Where-Object { $_ -match 'error' } | Select-Object -Unique -First 10 | ForEach-Object { Log "build: $_" }
+    Log 'build failed: stopping'
+    exit 1
+}
 # Run from a copy of the build: Windows locks a running program's files, and this can take days.
 $run = Join-Path $tables '.cli'
 Remove-Item -Recurse -Force $run -ErrorAction SilentlyContinue
