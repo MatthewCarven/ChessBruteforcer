@@ -61,15 +61,22 @@ function Complete([string] $path) { return (Magic $path) -in 'CBT2', 'CBC1' }
 
 function Compressed([string] $path) { return (Magic $path) -eq 'CBC1' }
 
-# Both files of a finished table, compressed in place unless -Plain.
+# Both files of a finished table, compressed in place unless -Plain.  A failure is
+# retried once after a pause: on 2026-09-30 one came from Windows running short of
+# memory (Resource-Exhaustion-Detector 2004 that second), and passed.
 function Compress-Table([string] $m) {
     if ($Plain) { return }
     foreach ($file in (Join-Path $tables "$m.cbt"), (Join-Path $tables "$m.cbz")) {
-        if ((Test-Path $file) -and -not (Compressed $file)) {
-            $output = & dotnet $cli compress $file
+        for ($try = 1; $try -le 2 -and (Test-Path $file) -and -not (Compressed $file); $try++) {
+            $output = & dotnet $cli compress $file 2>&1
             $code = $LASTEXITCODE
-            $output | Select-Object -First 1 | ForEach-Object { Log "compress: $_" }
-            if ($code -ne 0) { Log "compress ${file}: exit $code, left plain" }
+            if ($code -eq 0) {
+                $output | Select-Object -First 1 | ForEach-Object { Log "compress: $_" }
+                break
+            }
+            $output | Where-Object { "$_" -match 'error' } | Select-Object -First 3 | ForEach-Object { Log "compress: $_" }
+            if ($try -eq 1) { Log "compress ${file}: exit $code, trying again in 2 min"; Start-Sleep -Seconds 120 }
+            else { Log "compress ${file}: exit $code again, left plain (a restart of this script tries again)" }
         }
     }
 }
@@ -147,12 +154,20 @@ foreach ($m in $materials) {
     $failed = $false
     foreach ($step in $steps) {
         $name = $step -join ' '
-        $watch = [Diagnostics.Stopwatch]::StartNew()
-        Log ("${name}: starting ({0:N1} GB free)" -f $free)
-        $output = & dotnet $cli @step              # progress goes to the window; results to the log
-        $code = $LASTEXITCODE
-        Log ("${name}: exit $code after {0:N1} min" -f $watch.Elapsed.TotalMinutes)
-        $output | ForEach-Object { Add-Content -Path $log -Value "    $_" }
+        for ($try = 1; $try -le 2; $try++) {
+            $watch = [Diagnostics.Stopwatch]::StartNew()
+            Log ("${name}: starting ({0:N1} GB free)" -f $free)
+            $output = & dotnet $cli @step              # progress goes to the window; results to the log
+            $code = $LASTEXITCODE
+            Log ("${name}: exit $code after {0:N1} min" -f $watch.Elapsed.TotalMinutes)
+            $output | ForEach-Object { Add-Content -Path $log -Value "    $_" }
+            # A mismatch (verify's exit 2) is an answer, not an accident: no second try.  Anything
+            # else may be the machine (memory ran short once): one more try after a pause.
+            $mismatch = ($step -contains 'verify') -and ($code -eq 2)
+            if (($code -eq 0) -or $mismatch -or ($try -eq 2)) { break }
+            Log "${name}: trying again in 5 min"
+            Start-Sleep -Seconds 300
+        }
         if ($code -ne 0) { $failed = $true; break }
     }
     if ($failed -and $Pawns) {

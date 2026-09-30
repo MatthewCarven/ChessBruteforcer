@@ -954,3 +954,13 @@ rather than 48-byte boards, because that is the storage that scales.
 - Lichess (Syzygy) on both: longest DTZ each side and 3 random positions
   each, 10 of 10 agree (`scripts/syzygy-check-pawns.tsv`). Both easy
   tables (longest DTZ 5-6 plies: the pawn runs).
+- 18:33, 13 of 50 done (15.1 h): both compresses of KQPPvK failed with exit
+  1 in the same second, leaving it plain (the run went on, as it should).
+  Matthew guessed low memory, and Windows agrees: Resource-Exhaustion-
+  Detector 2004 at 18:33:11, "low virtual memory", vmmem (the Cowork VM, not
+  WSL) 4.3 GB and the Claude app ~5 GB across its processes; commit free
+  was still 1.7 of 21.8 GB half an hour later. Compressed by hand then:
+  25.8x and 57.7x, each checked. The script now logs a failed compress's
+  error, retries it once after 2 min, and retries a crashed solve or DTZ step
+  once after 5 min; a verify mismatch still stops at once (8 cases of the
+  rule checked). Takes effect at the script's next start.
