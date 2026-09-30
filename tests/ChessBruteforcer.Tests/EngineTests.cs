@@ -3,6 +3,7 @@ using ChessBruteforcer.Core.Endgame;
 using ChessBruteforcer.Core.Engine;
 using ChessBruteforcer.Core.Game;
 using ChessBruteforcer.Core.Match;
+using ChessBruteforcer.Core.Records;
 
 namespace ChessBruteforcer.Tests;
 
@@ -319,6 +320,59 @@ public class RuleAwareTableTests : IClassFixture<RookEndgame>
         var (outcome, why) = GamePlayer.Ended(cursed!, new Dictionary<ulong, int>(), tables)!.Value;
         Assert.Equal(GameResult.Draw, outcome);
         Assert.Contains("50-move rule", why);
+    }
+}
+
+/// <summary>Taking over real games where they enter a table (Matthew's early test, 2026-10-01).</summary>
+public class TakeoverTests : IClassFixture<RookEndgame>
+{
+    private readonly Tablebase _tables;
+
+    public TakeoverTests(RookEndgame rook) => _tables = rook.Tablebase;
+
+    private static StoredGame FromFen(string fen, string moves) =>
+        Pgn.Parse($"[SetUp \"1\"]\n[FEN \"{fen}\"]\n\n{moves} *")[0];
+
+    [Fact]
+    public void AGameIsTakenOverWhereItFirstReachesATableWeHave()
+    {
+        // K+R v K+P; the king takes the pawn (K+R v K), then one more move.
+        var game = FromFen("4k3/8/8/8/8/8/3p4/R3K3 w - - 0 1", "1. Kxd2 Kd7");
+        var point = Takeover.Find(game, m => m.ToString() == "KRvK")!;
+        Assert.Equal(1, point.Ply);
+        Assert.Equal(1, point.PliesLeft);
+        Assert.Equal("KRvK", point.Material.ToString());
+        Assert.Equal(2, point.Hashes.Count);                    // the start, and the takeover position
+        Assert.Equal(point.Position.Hash, point.Hashes[^1]);
+        Assert.Equal("KRvKP", Takeover.Find(game, _ => true)!.Material.ToString());   // with every table, at once
+        Assert.Null(Takeover.Find(game, _ => false));
+    }
+
+    [Fact]
+    public void CastlingRightsWaitUntilTheyAreGone()
+    {
+        var game = FromFen("4k3/8/8/8/8/8/8/R3K3 w Q - 0 1", "1. O-O-O Kf7 2. Rd7+");
+        Assert.Equal(1, Takeover.Find(game, _ => true)!.Ply);   // tables assume no castling rights
+    }
+
+    [Fact]
+    public void PlayedOutAWinIsMatedInExactlyTheTablesDistance()
+    {
+        var position = Position.FromFen("8/8/8/8/8/2k5/1R6/K7 w - - 0 1");   // mate in 16
+        var (result, termination, plies) = Takeover.PlayOut(position, new[] { position.Hash }, _tables);
+        Assert.Equal(GameResult.WhiteWins, result);
+        Assert.Equal("checkmate", termination);
+        Assert.Equal(31, plies);   // the winner as fast as it can go, the loser as slow
+    }
+
+    [Fact]
+    public void PlayedOutFromALateClockTheRuleDrawsIt()
+    {
+        var position = Position.FromFen("8/8/8/8/8/2k5/1R6/K7 w - - 80 1");   // 31 plies of mate, 20 left on the count
+        var (result, termination, plies) = Takeover.PlayOut(position, new[] { position.Hash }, _tables);
+        Assert.Equal(GameResult.Draw, result);
+        Assert.Equal("50-move rule", termination);
+        Assert.Equal(20, plies);
     }
 }
 

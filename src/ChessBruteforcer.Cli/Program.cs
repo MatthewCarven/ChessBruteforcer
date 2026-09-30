@@ -3,6 +3,7 @@ using System.Numerics;
 using ChessBruteforcer.Core;
 using ChessBruteforcer.Core.Endgame;
 using ChessBruteforcer.Core.Game;
+using ChessBruteforcer.Core.Match;
 using ChessBruteforcer.Core.Possibility;
 using ChessBruteforcer.Core.Records;
 
@@ -65,6 +66,9 @@ static class Cli
           game tree <file>...            how much the games share (tree of moves, set of positions); what each file adds
           game endings <file>...         which endgame tables (5 pieces or fewer) the games reach; the 5-piece tables
                                          with pawns not yet in ./tables ranked, in the order they can be built
+          game takeover <file>... [--play N]  where each game enters a table we have (both kinds): what the table
+                                         says at the game's clock against what happened; --play N plays N of them out
+                                         with the engine on both sides (0: all)
         """;
 
     public static int Run(string[] args)
@@ -123,6 +127,8 @@ static class Cli
                 ["game", "tree", .. var files] when files.Length > 0 => GameTree(files),
                 ["game", "idle", .. var files] when files.Length > 0 => GameIdle(files),
                 ["game", "endings", .. var files] when files.Length > 0 => GameEndings(files),
+                ["game", "takeover", .. var files, "--play", var n] when files.Length > 0 => GameTakeover(files, int.Parse(n)),
+                ["game", "takeover", .. var files] when files.Length > 0 => GameTakeover(files, null),
                 _ => Print(Usage, 1),
             };
         }
@@ -1027,6 +1033,188 @@ static class Cli
             Console.WriteLine($"  {material,-8} {counts.Games,8:N0} games  {Pct(counts.Games, stats.Games),5:0.0}%  " +
                               $"{counts.Plies / (double)counts.Games,5:0} plies each  {(have.Contains(material) ? "have" : "not yet")}");
         return 0;
+    }
+
+    private sealed record TakeoverRow(TakeoverPoint Point, Outcome Mate, Outcome Rule, OutcomeKind Actual);
+
+    /// <summary>
+    /// Matthew's early test (2026-10-01): where each game first enters a table
+    /// we have (both kinds on disk), what the table says there at the game's own
+    /// 50-move clock, against what actually happened.  With <paramref name="play"/>,
+    /// that many of them (0: all) are played out by the engine on both sides.
+    /// </summary>
+    private static int GameTakeover(string[] files, int? play)
+    {
+        var watch = Stopwatch.StartNew();
+        // Both kinds on disk.  A 5-piece table counts once compressed: until then a build may be about
+        // to replace its files, which Windows refuses while another process has them open.
+        var covered = new HashSet<Material>();
+        if (Directory.Exists(TableDirectory))
+        {
+            foreach (string path in Directory.EnumerateFiles(TableDirectory, "*.cbt"))
+            {
+                string dtz = Path.ChangeExtension(path, ".cbz");
+                Material material;
+                try { material = Material.Parse(Path.GetFileNameWithoutExtension(path)).Canonical; }
+                catch (FormatException) { continue; }
+                if (File.Exists(dtz) && (material.PieceCount < 5
+                                         || (EndgameTable.IsCompressedFile(path) && EndgameTable.IsCompressedFile(dtz))))
+                    covered.Add(material);
+            }
+        }
+
+        long games = 0;
+        var points = new List<TakeoverPoint>();
+        foreach (string file in files)
+        {
+            foreach (var game in GameFile.Read(file))
+            {
+                games++;
+                if (Takeover.Find(game, covered.Contains) is { } point)
+                    points.Add(point);
+            }
+        }
+
+        // The tables' verdicts, a material at a time (its tables closed after, to keep memory down).
+        var rows = new List<TakeoverRow>();
+        foreach (var group in points.GroupBy(p => p.Material))
+        {
+            using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
+            foreach (var point in group)
+            {
+                if (!tables.TryProbe(point.Position, out var mate) || !tables.TryProbeWithClock(point.Position, out var rule))
+                    continue;
+                bool whiteToMove = point.Position.SideToMove == Colour.White;
+                var actual = point.Game.Result switch
+                {
+                    "1-0" => whiteToMove ? OutcomeKind.Win : OutcomeKind.Loss,
+                    "0-1" => whiteToMove ? OutcomeKind.Loss : OutcomeKind.Win,
+                    "1/2-1/2" => OutcomeKind.Draw,
+                    _ => OutcomeKind.Beyond,   // unfinished
+                };
+                rows.Add(new TakeoverRow(point, mate, rule, actual));
+            }
+        }
+
+        double Pct(long part, long whole) => whole == 0 ? 0 : 100.0 * part / whole;
+        static double Median(IEnumerable<int> values)
+        {
+            var sorted = values.Order().ToList();
+            return sorted.Count == 0 ? 0 : sorted[sorted.Count / 2];
+        }
+        Console.WriteLine($"{games:N0} games in {watch.Elapsed.TotalSeconds:0}s. Tables on disk with both kinds: {covered.Count}.");
+        Console.WriteLine($"{rows.Count:N0} games ({Pct(rows.Count, games):0.0}%) enter a table we have, with a move still to make.");
+        var left = rows.Select(r => r.Point.PliesLeft).Order().ToList();
+        if (left.Count > 0)
+            Console.WriteLine($"Still to play when they get there: median {left[left.Count / 2] / 2.0:0} moves " +
+                              $"(quartiles {left[left.Count / 4] / 2.0:0} and {left[3 * left.Count / 4] / 2.0:0}; the game had ended there " +
+                              $"in {left.Count(p => p == 0):N0})");
+        Console.WriteLine();
+
+        // The table's verdict for the side to move, by the rule at the game's clock, against what happened.
+        string[] names = ["won", "drawn", "lost"];
+        var kinds = new[] { OutcomeKind.Win, OutcomeKind.Draw, OutcomeKind.Loss };
+        Console.WriteLine("The table (50-move rule, the game's clock) for the side to move, against the game's result:");
+        Console.WriteLine($"  {"table says",-11} {"games",8}   {"won",14} {"drawn",14} {"lost",14} {"unfinished",11}");
+        foreach (var (kind, name) in kinds.Zip(names))
+        {
+            var set = rows.Where(r => r.Rule.Kind == kind).ToList();
+            string Cell(OutcomeKind actual) { long n = set.Count(r => r.Actual == actual); return $"{n:N0} ({Pct(n, set.Count):0.0}%)"; }
+            Console.WriteLine($"  {name,-11} {set.Count,8:N0}   {Cell(OutcomeKind.Win),14} {Cell(OutcomeKind.Draw),14} {Cell(OutcomeKind.Loss),14} " +
+                              $"{set.Count(r => r.Actual == OutcomeKind.Beyond),11:N0}");
+        }
+        var finished = rows.Where(r => r.Actual != OutcomeKind.Beyond).ToList();
+        var changed = finished.Where(r => r.Actual != r.Rule.Kind).ToList();
+        Console.WriteLine($"  Ended otherwise than the table says: {changed.Count:N0} of {finished.Count:N0} ({Pct(changed.Count, finished.Count):0.0}%): " +
+                          "the results perfect play from there would have changed.");
+        var wins = rows.Where(r => r.Rule.Kind != OutcomeKind.Draw).ToList();   // someone wins
+        var thrown = wins.Where(r => r.Actual != OutcomeKind.Beyond && r.Actual != r.Rule.Kind).ToList();
+        Console.WriteLine($"  Won endings not won: {thrown.Count:N0} of {wins.Count:N0}; of those, " +
+                          $"{thrown.Count(r => r.Point.Game.Tag("Termination") == "Time forfeit"):N0} on time.");
+        var cursed = rows.Where(r => r.Mate.Kind != OutcomeKind.Draw && r.Rule.Kind == OutcomeKind.Draw).ToList();
+        Console.WriteLine($"  Won or lost with best play but drawn by the 50-move rule at the game's clock: {cursed.Count:N0}");
+        var mated = rows.Where(r => r.Rule.Kind != OutcomeKind.Draw && r.Actual == r.Rule.Kind
+                                    && r.Point.Game.PositionAt(r.Point.Game.Moves.Count).Status() == GameStatus.Checkmate).ToList();
+        if (mated.Count > 0)
+            Console.WriteLine($"  Won endings that ended in mate ({mated.Count:N0}): the players took a median {Median(mated.Select(r => r.Point.PliesLeft)) / 2:0.0} moves, " +
+                              $"best play {Median(mated.Select(r => r.Mate.Plies)) / 2:0.0}; slower than best in " +
+                              $"{Pct(mated.Count(r => r.Point.PliesLeft > r.Mate.Plies), mated.Count):0}% of them.");
+        Console.WriteLine();
+
+        Console.WriteLine("Where they enter, the most common tables:");
+        Console.WriteLine($"  {"table",-8} {"games",7}  {"won for someone",16}  {"...and won",11}  {"drawn",7}  {"...and drawn",13}");
+        foreach (var group in rows.GroupBy(r => r.Point.Material).OrderByDescending(g => g.Count()).Take(15))
+        {
+            var won = group.Where(r => r.Rule.Kind != OutcomeKind.Draw && r.Actual != OutcomeKind.Beyond).ToList();
+            var drawn = group.Where(r => r.Rule.Kind == OutcomeKind.Draw && r.Actual != OutcomeKind.Beyond).ToList();
+            Console.WriteLine($"  {group.Key,-8} {group.Count(),7:N0}  {won.Count,16:N0}  {Pct(won.Count(r => r.Actual == r.Rule.Kind), won.Count),10:0.0}%  " +
+                              $"{drawn.Count,7:N0}  {Pct(drawn.Count(r => r.Actual == OutcomeKind.Draw), drawn.Count),12:0.0}%");
+        }
+
+        if (play is int count)
+            PlayTakeovers(rows, count, Pct);
+        return 0;
+    }
+
+    /// <summary>Play takeover positions out with the engine on both sides, and set the results against the tables' verdicts and the players'.</summary>
+    private static void PlayTakeovers(List<TakeoverRow> rows, int count, Func<long, long, double> Pct)
+    {
+        var chosen = count <= 0 || count >= rows.Count
+            ? rows
+            : Enumerable.Range(0, count).Select(i => rows[(int)((long)i * rows.Count / count)]).ToList();
+        var watch = Stopwatch.StartNew();
+        long agree = 0, beatPlayers = 0, decisive = 0, faster = 0;
+        var byEnd = new Dictionary<string, int>();
+        var surprises = new List<string>();
+        var pliesOurs = new List<int>();
+        var pliesTheirs = new List<int>();
+        int done = 0;
+        foreach (var group in chosen.GroupBy(r => r.Point.Material))
+        {
+            using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
+            foreach (var row in group)
+            {
+                var (result, termination, plies) = Takeover.PlayOut(row.Point.Position, row.Point.Hashes, tables);
+                bool whiteToMove = row.Point.Position.SideToMove == Colour.White;
+                var ours = result switch
+                {
+                    GameResult.Draw => OutcomeKind.Draw,
+                    GameResult.WhiteWins => whiteToMove ? OutcomeKind.Win : OutcomeKind.Loss,
+                    _ => whiteToMove ? OutcomeKind.Loss : OutcomeKind.Win,
+                };
+                string end = termination.StartsWith("tablebase") ? "tablebase" : termination;
+                byEnd[end] = byEnd.GetValueOrDefault(end) + 1;
+                if (ours == row.Rule.Kind)
+                    agree++;
+                else if (surprises.Count < 10)
+                    surprises.Add($"{row.Point.Position.ToFen()}: table {row.Rule}, played out {ours} ({termination}, {plies} plies)");
+                if (ours != row.Actual && row.Actual != OutcomeKind.Beyond && ours == row.Rule.Kind)
+                    beatPlayers++;
+                if (ours != OutcomeKind.Draw && row.Actual == ours)
+                {
+                    decisive++;
+                    pliesOurs.Add(plies);
+                    pliesTheirs.Add(row.Point.PliesLeft);
+                    if (plies < row.Point.PliesLeft)
+                        faster++;
+                }
+                if (++done % 500 == 0)
+                    Console.Error.Write($"\rplayed {done:N0} of {chosen.Count:N0}");
+            }
+        }
+        Console.Error.Write($"\r{"",-40}\r");
+        Console.WriteLine();
+        Console.WriteLine($"Played out with the engine on both sides: {chosen.Count:N0} positions in {watch.Elapsed.TotalSeconds:0}s " +
+                          $"({watch.Elapsed.TotalMilliseconds / Math.Max(1, chosen.Count):0} ms each).");
+        Console.WriteLine($"  ended as the table said: {agree:N0} ({Pct(agree, chosen.Count):0.0}%)");
+        Console.WriteLine($"  how they ended: " + string.Join(", ", byEnd.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {kv.Value:N0}")));
+        Console.WriteLine($"  results different from the players', as the table said: {beatPlayers:N0} ({Pct(beatPlayers, chosen.Count):0.0}%)");
+        if (decisive > 0)
+            Console.WriteLine($"  won both ways ({decisive:N0}): the engine took a median {pliesOurs.Order().ElementAt(pliesOurs.Count / 2) / 2.0:0} moves, " +
+                              $"the players {pliesTheirs.Order().ElementAt(pliesTheirs.Count / 2) / 2.0:0} (they often resigned sooner); " +
+                              $"engine quicker in {Pct(faster, decisive):0}%");
+        foreach (string surprise in surprises)
+            Console.WriteLine($"  NOT AS THE TABLE SAID: {surprise}");
     }
 
     private static PackedBoard ParseBoard(string input)
