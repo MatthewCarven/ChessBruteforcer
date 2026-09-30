@@ -964,3 +964,36 @@ rather than 48-byte boards, because that is the storage that scales.
   error, retries it once after 2 min, and retries a crashed solve or DTZ step
   once after 5 min; a verify mismatch still stops at once (8 cases of the
   rule checked). Takes effect at the script's next start.
+
+## 2026-10-01: taking over real games where they reach our tables
+
+- Matthew: we haven't played any chess with the tables; take over real
+  games once they reach a table that's ready. `game takeover <files>
+  [--play N]` (Takeover.Find / PlayOut): each game's first position in a
+  table we have (both kinds; 121 at the time, the pawn run at 25 of 50),
+  the table's verdict at the game's own 50-move clock against the result,
+  then every one played out by the engine on both sides from there (its
+  clock and history carried over). Five months, 741,349 games, 10 min.
+- **42,755 games (5.8%) reach a table we have.** Median 7 moves left in the
+  game when they get there (quartiles 3 and 13), so the tables come in late.
+
+  | table says, for the side to move | games | won | drawn | lost |
+  |---|---|---|---|---|
+  | won | 10,010 | 81.0% | 16.0% | 2.9% |
+  | drawn | 10,195 | 13.0% | 69.5% | 17.5% |
+  | lost | 22,550 | 0.9% | 13.2% | 85.9% |
+
+  **19.1% of them (8,187) ended otherwise than perfect play from there.**
+  Of 32,560 won endings, 5,077 weren't won (15.6%), 2,189 of those on time.
+  Only 2 were won with best play but drawn by the rule at the game's clock.
+  Games that ended in mate took the players a median 10.5 moves; the
+  fastest mate was 8.0.
+- Most common entries: KRPvKR 5,210 (won ones converted 75.6%, drawn ones
+  held 58.3%), KPvKP 4,640 (77.4%, 68.4%), KRPPvK 3,080, KPPvK 2,953, KPPPvK
+  2,686. The worst held draws: KQPvKQ, 42.4%.
+- Played out, all 42,755 (9 ms each): **every one ended as the table said.**
+  Checkmate 32,560 (exactly the decisive verdicts), threefold repetition
+  6,465, insufficient material 3,587, stalemate 141, 50-move rule 2 (the two
+  cursed ones). The first real games with the new tables and step C's rule.
+- Not yet measured: how much slower the engine's rule-safe play mates than
+  the fastest mate (it heads for the next capture or pawn move first).
