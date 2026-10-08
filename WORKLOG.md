@@ -1052,3 +1052,32 @@ rather than 48-byte boards, because that is the storage that scales.
   the endings being hard for an engine. Where the tables should beat it:
   the hard positions (long DTZ, the longest mates, cursed and blessed
   ones), a weaker or faster opponent, or the moves it takes. Not yet tried.
+
+## 2026-10-09: hard positions from the tables against Stockfish
+
+- Matthew picked (a): positions sampled from the tables themselves. `hard
+  <materials> <per> "<engine>" [ms]`: per table, `per` each of long-DTZ wins
+  (DTZ 50+ plies, or the top fifth of a shorter table's range), cursed wins
+  and blessed losses, all with the count at 0, each played twice against
+  Stockfish 16 (WSL, full strength, no tablebases, 100 ms a move), our
+  engine on each side. 18 tables chosen for long DTZ: KBNvK, KQvKR, KBBvKN,
+  KBNvKN, KRBvKR, KQRvKQ, KBBvKQ, KNNvKQ, KRNvKQ, KQNvKQ, KRNvKR, KQPvKQ,
+  KRPvKQ, KRPvKB, KNNvKP, KBPvKN, KRPvKR, KPPvKP; 6 per kind; sampling took
+  5 min, the 504 games 41 min.
+
+  | kind | positions | our engine | Stockfish |
+  |---|---|---|---|
+  | long-DTZ wins | 108 | converted 108 of 108 | converted 44 of 108 (41%), drew 64 |
+  | cursed wins (drawn by the rule) | 72 | won 67 of 144 games, lost 0 | lost 67 |
+  | blessed losses (drawn by the rule) | 72 | won 68 of 144, lost 0 | lost 68 |
+  | points | | **351.5** (the table's 252) | 152.5 (252) |
+
+- So: in real games' endings Stockfish needs no tables (1,000 games, all as
+  the tables say); in the hard ones it can't convert 59% of long wins (it
+  stalemated, repeated, ran out the 50 moves or gave material away; K+B+N v
+  K among them), and defending a position the rule draws it often lost
+  (two bishops against a knight, mated in 74-118 plies). Our engine never did
+  worse than the table in any of the 1,504 games. The output lists only the
+  first few of Stockfish's slips per kind, not a per-table breakdown.
+- Caveats: 100 ms a move is fast for Stockfish, and in real competition it
+  would have Syzygy tables of its own.
