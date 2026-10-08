@@ -997,3 +997,37 @@ rather than 48-byte boards, because that is the storage that scales.
   cursed ones). The first real games with the new tables and step C's rule.
 - Not yet measured: how much slower the engine's rule-safe play mates than
   the fastest mate (it heads for the next capture or pawn move first).
+
+## 2026-10-05 / 09: step D done, all 50 pawn tables
+
+- The run finished 2026-10-05 09:55, 50 of 50 (Matthew: "Tables are dONE").
+  Summary from its log in FIVE-PIECE-PAWNS.md: 38.8 billion legal positions,
+  107 GB solved -> 8.8 GB compressed (12x), peak 3.9 GB (KRPvKP).
+- 120.5 h of steps in the log, but the laptop slept 48 h inside them (System
+  log: Kernel-Power 42 and back, eight times; 16.5 h, 12.6 h and 14.4 h the
+  longest): **72.6 h of solving**. I'd first put the long ones (KQPvKB's DTZ
+  1,030 min, KQPvKP's mates 907, KBPvKP's 935) down to pawns on both sides;
+  the sleeps account for nearly all of it. Pawns on both sides are slower,
+  but 2-7.5 h, not 15.
+- Two failures, both recovered. KQPPvK's compress (low memory, 2026-09-30,
+  done by hand). KQPvKP's first DTM solve, exit -1 after 91 min on 2026-10-03
+  03:15; a low-virtual-memory event at 01:53 inside it (apreview.exe 7.3 GB,
+  Visual Studio 1 GB), so probably memory again; the new retry finished it.
+  The run also restarted once (2026-10-01 22:32) and carried on.
+- Every table's sample verified as built (every 1009th position, both
+  kinds): 38.4 M positions, all consistent. Lichess
+  (`scripts/pawn-tables-check.py`): longest mate and longest DTZ for each
+  side to move and 3 random positions, 49 tables, 343 positions: **343 agree
+  on the mate distance (Gaviota), 343 on the rule (Syzygy)**. 21 of the 98
+  longest-mate positions are cursed or blessed, and marked so on both sides.
+- Longest mate of any five-piece ending: K+P+P v K+P, 127 moves (253 plies),
+  a cursed win. The rule matters most in K+N+N v K+P (18% of wins cursed,
+  41% of losses blessed: the Troitsky line), then K+B+B v K+P (2%).
+- `game takeover` again with every table (146 with both kinds): 47,842 games
+  (6.5%) reach one, nearly all of the 48,138 that get down to 5 pieces; 21.1%
+  ended otherwise than perfect play from there. KPPvKP is now the commonest
+  way in (8,719 games; drawn ones held only 58.6%). Played out, engine on
+  both sides (18 ms each, 14 min): **47,842 of 47,842 as the table said**:
+  37,345 mates (every decisive one), 7,123 repetitions, 3,216 insufficient
+  material, 155 stalemates, 3 by the 50-move rule (the 3 cursed at the
+  game's clock).

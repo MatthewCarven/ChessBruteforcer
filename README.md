@@ -92,8 +92,9 @@ perft <depth> [fen]            count every move sequence to <depth>
 divide <depth> [fen]           perft split by first move, for tracking down bugs
 ```
 
-Endgame tables (all 36 up to 4 pieces, and 5-piece ones: KQRRvK, KRBvKR so
-far; 5 with pawns by slices, to the end only), saved in `./tables` (or `$CHESS_TABLES`) and reused.
+Endgame tables (every one of 5 pieces or fewer: the 36 up to 4 pieces, the 60
+5-piece ones without pawns and the 50 with; pawns by slices, to the end only),
+saved in `./tables` (or `$CHESS_TABLES`) and reused.
 `scripts/build-tables.sh` solves all 30 four-piece tables in one go
 (restartable, roughly 1-3 hours):
 
@@ -424,6 +425,14 @@ K+B+B v K+N (a fifth of its wins are cursed); the longest mate is K+B+N v
 K+N's 107 moves (213 plies). Every longest mate checked against Lichess
 agrees. Per table: [FIVE-PIECE.md](FIVE-PIECE.md).
 
+**And all 50 with pawns** (2026-10-05): 38.8 billion legal positions, 8.8 GB
+compressed, 72.6 hours of solving, built in the order real games need them
+(`game endings`). The longest mate of all five-piece endings is K+P+P v K+P's
+127 moves (a cursed win: drawn under the rule); the rule matters most in
+K+N+N v K+P, where it takes 18% of the wins. Every table's sample verified as
+it was built, and Lichess agrees on all 343 positions checked (mate distances
+and the rule). Per table: [FIVE-PIECE-PAWNS.md](FIVE-PIECE-PAWNS.md).
+
 **Compressed tables** ("CBC1", 2026-09-30), for the 50 pawn tables, which
 would not fit plain (~115 GB against ~96 GB free). A table's values are cut
 into 64 KB blocks, each compressed on its own with Brotli (quality 10), with
@@ -431,8 +440,8 @@ the blocks' offsets up front, so a probe still goes straight to its position
 and decompresses one block (70-100 us, then cached). On the 60 pawnless
 5-piece tables: **28.7 GB became 3.15 GB (9.1x)**, mate distances 10.1x
 (4.7x for the hardest, 78x for K+N+N v K+N, nearly all draws), DTZ 7.7x;
-48 minutes. At that rate the 50 pawn tables would be ~13 GB instead of ~115. Same names (`.cbt`, `.cbz`); everything that reads a table
-reads either kind. `compress <dir or file>` converts in place, checking every
+48 minutes. The pawn tables did better still: 107 GB became 8.8 GB (12x).
+Same names (`.cbt`, `.cbz`); everything that reads a table reads either kind. `compress <dir or file>` converts in place, checking every
 value against the plain file first, and `scripts\build-five-piece.cmd` now
 compresses each table it finishes. The tables up to 4 pieces are best left
 plain: the engine reads plain tables into memory (up to 1 GB) and probes

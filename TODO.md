@@ -103,7 +103,12 @@ left is a draw.
       engines do), so it prefers progress outside the tables too.
 
 ### Step D: the 50 pawn tables
-- [ ] 49 left (KRPvKR is done): 35 with one pawn, 12 with two, 2 with three.
+- [x] **Done 2026-10-05** (results in FIVE-PIECE-PAWNS.md): all 50, 38.8
+      billion positions, 8.8 GB compressed, 72.6 h of solving over five days
+      (the laptop slept 48 h of them). Every table's sample verified; Lichess
+      agrees on all 343 positions checked, mate distances and the rule. The
+      plan as it was:
+- [x] 49 left (KRPvKR is done): 35 with one pawn, 12 with two, 2 with three.
       A table needs the tables its promotions lead to first. Order from step
       B (`game endings`: most games wholly in the tables per position solved):
       first the 15 "three against a bare king" (KQRPvK, KQQPvK, KQBPvK,
@@ -121,6 +126,11 @@ left is a draw.
       FIVE-PIECE.md after.
 - [ ] 48-square pawns (25% per pawn): with compression it matters little
       for disk (the holes compress to nothing); do it only if it helps.
+- [ ] Keep the laptop awake for long runs: it slept 48 h of this one (System
+      log, Kernel-Power 42). A Windows power setting, so Matthew's to change.
+- [ ] Next with every 5-piece table in: against Stockfish from the takeover
+      positions (WSL); how much slower DTZ-safe play mates than the fastest
+      mate; the evaluation scaled down as the clock rises (step C's maybe).
 
 ## Now: the session plan (5-piece tables and the depth ladder)
 
