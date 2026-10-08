@@ -1031,3 +1031,24 @@ rather than 48-byte boards, because that is the storage that scales.
   37,345 mates (every decisive one), 7,123 repetitions, 3,216 insufficient
   material, 155 stalemates, 3 by the 50-move rule (the 3 cursed at the
   game's clock).
+
+## 2026-10-09: the takeover positions against Stockfish
+
+- Matthew picked (a): our engine against Stockfish from where real games
+  reach the tables. `game takeover ... --versus N "<engine>" [ms]`: N
+  positions spread over all the takeovers (as often as games reach each
+  table), each played twice through the match's game loop, our engine on
+  the side to move and then on the other side. Stockfish 16 in WSL by
+  `wsl.exe -d Ubuntu-24.04 -- /usr/games/stockfish`, full strength, no
+  tablebases. Our engine in-process (SearchPlayer) rather than as a second
+  UCI process: with WSL up, only 2.2-2.5 GB of commit was free.
+- 500 positions, 1,000 games, 100 ms a move, 20.6 min: **every game ended
+  as the table says, for both sides.** Ours: 406 of 406 wins converted, 188
+  of 188 draws held, 406 losses lost. Stockfish exactly the same. Points 500
+  to 500, the tables' figure. Ended by mate 812, insufficient material 117,
+  repetition 54, the 50-move rule 10, stalemate 7.
+- So in the positions real games bring, Stockfish at 100 ms doesn't need the
+  tables: the humans' 21% of results gone wrong comes from people, not from
+  the endings being hard for an engine. Where the tables should beat it:
+  the hard positions (long DTZ, the longest mates, cursed and blessed
+  ones), a weaker or faster opponent, or the moves it takes. Not yet tried.
