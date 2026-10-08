@@ -43,6 +43,8 @@ static class Cli
           compress [dir|file] [--quality N]  compress complete tables in place (13-18x smaller; they load and probe
                                          as before, a block at a time): each is checked value by value against
                                          the plain file before replacing it.  Brotli quality 0-11, default 10
+          hard <material,...> <per> "<engine command>" [ms]  per table, <per> each of long-DTZ wins, cursed wins and
+                                         blessed losses, played twice against a UCI engine (our engine on each side)
 
         Tables live in ./tables, or wherever CHESS_TABLES points.
 
@@ -106,6 +108,8 @@ static class Cli
                 ["upgrade"] => Upgrade(TableDirectory),
                 ["compare", var first, var second] => Compare(first, second),
                 ["upgrade", var directory] => Upgrade(directory),
+                ["hard", var materials, var per, var engine] => Hard(materials, int.Parse(per), engine, 100),
+                ["hard", var materials, var per, var engine, var ms] => Hard(materials, int.Parse(per), engine, int.Parse(ms)),
                 ["compress"] => Compress(TableDirectory, EndgameTable.CompressionQuality),
                 ["compress", "--quality", var quality] => Compress(TableDirectory, int.Parse(quality)),
                 ["compress", var target] => Compress(target, EndgameTable.CompressionQuality),
@@ -1160,26 +1164,31 @@ static class Cli
         if (play is int count)
             PlayTakeovers(rows, count, Pct);
         if (versus is { } match)
-            VersusTakeovers(rows, match.Count, match.Engine, match.MoveMs, Pct);
+            VersusTakeovers(rows, match.Count, match.Engine, match.MoveMs);
         return 0;
     }
 
-    /// <summary>
-    /// Takeover positions against another engine: each played twice, our engine
-    /// (in this process, with every table) on the side to move, then on the
-    /// other side; set against what the table says each side should get.
-    /// </summary>
-    private static void VersusTakeovers(List<TakeoverRow> rows, int count, string command, int moveMs,
-                                        Func<long, long, double> Pct)
+    /// <summary>A position to play against another engine: the table's result for the side to move under the rule, and what kind of position it is.</summary>
+    private sealed record VersusCase(Position Position, Material Material, OutcomeKind Rule, string Kind);
+
+    /// <summary>Takeover positions against another engine (see <see cref="PlayVersus"/>), spread over all of them.</summary>
+    private static void VersusTakeovers(List<TakeoverRow> rows, int count, string command, int moveMs)
     {
         var chosen = count <= 0 || count >= rows.Count
             ? rows
             : Enumerable.Range(0, count).Select(i => rows[(int)((long)i * rows.Count / count)]).ToList();
-        var clock = TimeControl.Parse($"movetime={moveMs}");
-        var watch = Stopwatch.StartNew();
-        // [table verdict for that side, result for that side], for us and for them.
-        var ours = new long[3, 3];
-        var theirs = new long[3, 3];
+        PlayVersus(chosen.Select(r => new VersusCase(r.Point.Position, r.Point.Material, r.Rule.Kind, "real games")).ToList(),
+                   command, moveMs);
+    }
+
+    /// <summary>
+    /// Positions against another engine: each played twice, our engine (in this
+    /// process, with every table) on the side to move, then on the other side;
+    /// set against what the table says each side should get, kind by kind.
+    /// </summary>
+    private static void PlayVersus(List<VersusCase> cases, string command, int moveMs)
+    {
+        static double Pct(long part, long whole) => whole == 0 ? 0 : 100.0 * part / whole;
         static int Index(OutcomeKind kind) => kind switch { OutcomeKind.Win => 0, OutcomeKind.Draw => 1, _ => 2 };
         static OutcomeKind Flip(OutcomeKind kind) => kind switch
         {
@@ -1187,18 +1196,25 @@ static class Cli
             OutcomeKind.Loss => OutcomeKind.Win,
             _ => kind,
         };
-        var endings = new Dictionary<string, int>();
-        var surprises = new List<string>();
+        var clock = TimeControl.Parse($"movetime={moveMs}");
+        var watch = Stopwatch.StartNew();
+        // Per kind: [table verdict for that side, result for that side], for us and for them; how games ended; where each side fell short.
+        var kinds = cases.Select(c => c.Kind).Distinct().ToList();
+        var ours = kinds.ToDictionary(k => k, _ => new long[3, 3]);
+        var theirs = kinds.ToDictionary(k => k, _ => new long[3, 3]);
+        var endings = kinds.ToDictionary(k => k, _ => new Dictionary<string, int>());
+        var ourSlips = new List<string>();
+        var theirSlips = kinds.ToDictionary(k => k, _ => new List<string>());
         int played = 0;
         using var opponent = new UciPlayer(EngineSpec.Parse(["name=opponent", $"cmd={command}"]));
-        foreach (var group in chosen.GroupBy(r => r.Point.Material))
+        foreach (var group in cases.GroupBy(c => c.Material))
         {
             using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
             using var us = new SearchPlayer("ours", tables);
-            foreach (var row in group)
+            foreach (var c in group)
             {
-                string fen = row.Point.Position.ToFen();
-                bool whiteToMove = row.Point.Position.SideToMove == Colour.White;
+                string fen = c.Position.ToFen();
+                bool whiteToMove = c.Position.SideToMove == Colour.White;
                 foreach (bool weMoveFirst in new[] { true, false })
                 {
                     bool weAreWhite = weMoveFirst == whiteToMove;
@@ -1210,43 +1226,120 @@ static class Cli
                         GameResult.WhiteWins => weAreWhite ? OutcomeKind.Win : OutcomeKind.Loss,
                         _ => weAreWhite ? OutcomeKind.Loss : OutcomeKind.Win,
                     };
-                    var verdict = weMoveFirst ? row.Rule.Kind : Flip(row.Rule.Kind);   // the table, for our side
-                    ours[Index(verdict), Index(result)]++;
-                    theirs[Index(Flip(verdict)), Index(Flip(result))]++;
-                    string end = record.Termination.StartsWith("tablebase") ? "tablebase" : record.Termination;
-                    endings[end] = endings.GetValueOrDefault(end) + 1;
-                    if (Index(result) > Index(verdict) && surprises.Count < 10)   // we did worse than the table
-                        surprises.Add($"{fen}: we had {verdict} as {(weAreWhite ? "white" : "black")}, got {result} " +
-                                      $"({record.Termination}, {record.Moves.Count} plies)");
-                    if (played % 50 == 0)
-                        Console.Error.Write($"\rplayed {played:N0} of {chosen.Count * 2:N0}");
+                    var verdict = weMoveFirst ? c.Rule : Flip(c.Rule);   // the table, for our side
+                    ours[c.Kind][Index(verdict), Index(result)]++;
+                    theirs[c.Kind][Index(Flip(verdict)), Index(Flip(result))]++;
+                    endings[c.Kind][record.Termination] = endings[c.Kind].GetValueOrDefault(record.Termination) + 1;
+                    string game = $"{c.Material} {fen}: {(weAreWhite ? "we" : "they")} white; " +
+                                  $"{record.Termination} after {record.Moves.Count} plies";
+                    if (Index(result) > Index(verdict) && ourSlips.Count < 10)
+                        ourSlips.Add($"we had {verdict}, got {result}: {game}");
+                    if (Index(Flip(result)) > Index(Flip(verdict)) && theirSlips[c.Kind].Count < 5)
+                        theirSlips[c.Kind].Add($"they had {Flip(verdict)}, got {Flip(result)}: {game}");
+                    if (played % 20 == 0)
+                        Console.Error.Write($"\rplayed {played:N0} of {cases.Count * 2:N0}");
                 }
             }
         }
         Console.Error.Write($"\r{"",-40}\r");
 
         Console.WriteLine();
-        Console.WriteLine($"Against {command}, {moveMs} ms a move: {chosen.Count:N0} positions, each played twice " +
+        Console.WriteLine($"Against {command}, {moveMs} ms a move: {cases.Count:N0} positions, each played twice " +
                           $"(our engine on each side), {played:N0} games in {watch.Elapsed.TotalMinutes:0.0} min.");
         string[] names = ["won", "drawn", "lost"];
-        foreach (var (title, matrix) in new[] { ("Our engine (every table)", ours), ("The opponent (no tables)", theirs) })
-        {
-            Console.WriteLine($"  {title}: what the table says for its side, against what it got");
-            Console.WriteLine($"    {"table says",-11} {"games",7}   {"won",14} {"drawn",14} {"lost",14}");
-            for (int v = 0; v < 3; v++)
-            {
-                long total = matrix[v, 0] + matrix[v, 1] + matrix[v, 2];
-                string Cell(int r) => $"{matrix[v, r]:N0} ({Pct(matrix[v, r], total):0.0}%)";
-                Console.WriteLine($"    {names[v],-11} {total,7:N0}   {Cell(0),14} {Cell(1),14} {Cell(2),14}");
-            }
-        }
         double Points(long[,] m) => Enumerable.Range(0, 3).Sum(v => m[v, 0] + 0.5 * m[v, 1]);
         double Expected(long[,] m) => Enumerable.Range(0, 3).Sum(v => (m[v, 0] + m[v, 1] + m[v, 2]) * (v == 0 ? 1 : v == 1 ? 0.5 : 0));
-        Console.WriteLine($"  Points: ours {Points(ours):N1} (the table's {Expected(ours):N1}), theirs {Points(theirs):N1} " +
-                          $"(the table's {Expected(theirs):N1}).");
-        Console.WriteLine($"  How they ended: " + string.Join(", ", endings.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {kv.Value:N0}")));
-        foreach (string surprise in surprises)
-            Console.WriteLine($"  WE DID WORSE THAN THE TABLE: {surprise}");
+        foreach (string kind in kinds)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"{kind}: {cases.Count(c => c.Kind == kind):N0} positions");
+            foreach (var (title, matrix) in new[] { ("our engine (every table)", ours[kind]), ("the opponent (no tables)", theirs[kind]) })
+            {
+                Console.WriteLine($"  {title}: what the table says for its side, against what it got");
+                Console.WriteLine($"    {"table says",-11} {"games",7}   {"won",14} {"drawn",14} {"lost",14}");
+                for (int v = 0; v < 3; v++)
+                {
+                    long total = matrix[v, 0] + matrix[v, 1] + matrix[v, 2];
+                    if (total == 0)
+                        continue;
+                    string Cell(int r) => $"{matrix[v, r]:N0} ({Pct(matrix[v, r], total):0.0}%)";
+                    Console.WriteLine($"    {names[v],-11} {total,7:N0}   {Cell(0),14} {Cell(1),14} {Cell(2),14}");
+                }
+            }
+            Console.WriteLine($"  points: ours {Points(ours[kind]):N1} (the table's {Expected(ours[kind]):N1}), " +
+                              $"theirs {Points(theirs[kind]):N1} (the table's {Expected(theirs[kind]):N1})");
+            Console.WriteLine($"  how they ended: " + string.Join(", ", endings[kind].OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {kv.Value:N0}")));
+            foreach (string slip in theirSlips[kind])
+                Console.WriteLine($"  e.g. {slip}");
+        }
+        foreach (string slip in ourSlips)
+            Console.WriteLine($"WE DID WORSE THAN THE TABLE: {slip}");
+    }
+
+    /// <summary>
+    /// Hard positions from the tables themselves, against another engine
+    /// (Matthew's (a), 2026-10-09; real games' positions were no trouble for
+    /// Stockfish).  Per table, <paramref name="per"/> of each: wins whose next
+    /// capture, pawn move or mate lies far off (DTZ at least 50 plies, or the
+    /// top fifth of the table's range if it's shorter), cursed wins (won with
+    /// best play, drawn by the rule) and blessed losses.  All with the count at 0.
+    /// </summary>
+    private static int Hard(string materials, int per, string command, int moveMs)
+    {
+        var watch = Stopwatch.StartNew();
+        var random = new Random(20261009);
+        var cases = new List<VersusCase>();
+        Console.WriteLine($"{"table",-8} {"longest DTZ",11} {"long from",9} {"long wins",14} {"cursed",12} {"blessed",12}");
+        {
+            foreach (string text in materials.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                // A table at a time, closed after: each one scanned fills its block cache.
+                using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
+                var material = Material.Parse(text).Canonical;
+                var dtz = tables.GetDtz(material);
+                var mate = tables.Get(material);
+                // One pass: a sample of wins at each DTZ distance, and of the cursed and the blessed.
+                var wins = new List<long>[EndgameTable.RulePlies + 2];
+                var winsSeen = new long[wins.Length];
+                var cursed = new List<long>();
+                var blessed = new List<long>();
+                long cursedSeen = 0, blessedSeen = 0;
+                void Keep(List<long> sample, ref long seen, long index)
+                {
+                    seen++;
+                    if (sample.Count < per)
+                        sample.Add(index);
+                    else if (random.NextInt64(seen) is var j && j < per)
+                        sample[(int)j] = index;
+                }
+                for (long i = 0; i < dtz.Size; i++)
+                {
+                    if (dtz[i] is not { } rule)
+                        continue;
+                    if (rule.Kind == OutcomeKind.Win)
+                        Keep(wins[rule.Plies] ??= new List<long>(), ref winsSeen[rule.Plies], i);
+                    else if (rule.Kind == OutcomeKind.Draw && mate[i] is { Kind: OutcomeKind.Win or OutcomeKind.Loss } best)
+                    {
+                        if (best.Kind == OutcomeKind.Win)
+                            Keep(cursed, ref cursedSeen, i);
+                        else
+                            Keep(blessed, ref blessedSeen, i);
+                    }
+                }
+                int longest = Array.FindLastIndex(winsSeen, n => n > 0);
+                int from = Math.Min(50, (int)Math.Ceiling(longest * 0.8));
+                var longWins = Enumerable.Range(from, longest - from + 1).Where(d => wins[d] is not null)
+                    .SelectMany(d => wins[d]).OrderBy(_ => random.Next()).Take(per).ToList();
+                long longSeen = winsSeen.Skip(from).Sum();
+                Console.WriteLine($"{material,-8} {longest,11} {from,9} {longSeen,14:N0} {cursedSeen,12:N0} {blessedSeen,12:N0}");
+                cases.AddRange(longWins.Select(i => new VersusCase(dtz.PositionAt(i), material, OutcomeKind.Win, "long DTZ wins")));
+                cases.AddRange(cursed.Select(i => new VersusCase(dtz.PositionAt(i), material, OutcomeKind.Draw, "cursed wins")));
+                cases.AddRange(blessed.Select(i => new VersusCase(dtz.PositionAt(i), material, OutcomeKind.Draw, "blessed losses")));
+            }
+        }
+        Console.WriteLine($"(sampled in {watch.Elapsed.TotalSeconds:0}s; counts are positions, either side to move)");
+        PlayVersus(cases, command, moveMs);
+        return 0;
     }
 
     /// <summary>Play takeover positions out with the engine on both sides, and set the results against the tables' verdicts and the players'.</summary>
