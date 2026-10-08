@@ -69,6 +69,8 @@ static class Cli
           game takeover <file>... [--play N]  where each game enters a table we have (both kinds): what the table
                                          says at the game's clock against what happened; --play N plays N of them out
                                          with the engine on both sides (0: all)
+          game takeover <file>... --versus N "<engine command>" [ms]  N of those positions, each played twice
+                                         against a UCI engine (our engine on each side in turn), ms a move (100)
         """;
 
     public static int Run(string[] args)
@@ -128,6 +130,10 @@ static class Cli
                 ["game", "idle", .. var files] when files.Length > 0 => GameIdle(files),
                 ["game", "endings", .. var files] when files.Length > 0 => GameEndings(files),
                 ["game", "takeover", .. var files, "--play", var n] when files.Length > 0 => GameTakeover(files, int.Parse(n)),
+                ["game", "takeover", .. var files, "--versus", var n, var engine] when files.Length > 0 =>
+                    GameTakeover(files, null, (int.Parse(n), engine, 100)),
+                ["game", "takeover", .. var files, "--versus", var n, var engine, var ms] when files.Length > 0 =>
+                    GameTakeover(files, null, (int.Parse(n), engine, int.Parse(ms))),
                 ["game", "takeover", .. var files] when files.Length > 0 => GameTakeover(files, null),
                 _ => Print(Usage, 1),
             };
@@ -1043,7 +1049,7 @@ static class Cli
     /// 50-move clock, against what actually happened.  With <paramref name="play"/>,
     /// that many of them (0: all) are played out by the engine on both sides.
     /// </summary>
-    private static int GameTakeover(string[] files, int? play)
+    private static int GameTakeover(string[] files, int? play, (int Count, string Engine, int MoveMs)? versus = null)
     {
         var watch = Stopwatch.StartNew();
         // Both kinds on disk.  A 5-piece table counts once compressed: until then a build may be about
@@ -1153,7 +1159,94 @@ static class Cli
 
         if (play is int count)
             PlayTakeovers(rows, count, Pct);
+        if (versus is { } match)
+            VersusTakeovers(rows, match.Count, match.Engine, match.MoveMs, Pct);
         return 0;
+    }
+
+    /// <summary>
+    /// Takeover positions against another engine: each played twice, our engine
+    /// (in this process, with every table) on the side to move, then on the
+    /// other side; set against what the table says each side should get.
+    /// </summary>
+    private static void VersusTakeovers(List<TakeoverRow> rows, int count, string command, int moveMs,
+                                        Func<long, long, double> Pct)
+    {
+        var chosen = count <= 0 || count >= rows.Count
+            ? rows
+            : Enumerable.Range(0, count).Select(i => rows[(int)((long)i * rows.Count / count)]).ToList();
+        var clock = TimeControl.Parse($"movetime={moveMs}");
+        var watch = Stopwatch.StartNew();
+        // [table verdict for that side, result for that side], for us and for them.
+        var ours = new long[3, 3];
+        var theirs = new long[3, 3];
+        static int Index(OutcomeKind kind) => kind switch { OutcomeKind.Win => 0, OutcomeKind.Draw => 1, _ => 2 };
+        static OutcomeKind Flip(OutcomeKind kind) => kind switch
+        {
+            OutcomeKind.Win => OutcomeKind.Loss,
+            OutcomeKind.Loss => OutcomeKind.Win,
+            _ => kind,
+        };
+        var endings = new Dictionary<string, int>();
+        var surprises = new List<string>();
+        int played = 0;
+        using var opponent = new UciPlayer(EngineSpec.Parse(["name=opponent", $"cmd={command}"]));
+        foreach (var group in chosen.GroupBy(r => r.Point.Material))
+        {
+            using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
+            using var us = new SearchPlayer("ours", tables);
+            foreach (var row in group)
+            {
+                string fen = row.Point.Position.ToFen();
+                bool whiteToMove = row.Point.Position.SideToMove == Colour.White;
+                foreach (bool weMoveFirst in new[] { true, false })
+                {
+                    bool weAreWhite = weMoveFirst == whiteToMove;
+                    var record = GamePlayer.Play(weAreWhite ? us : opponent, weAreWhite ? opponent : us,
+                                                 Array.Empty<string>(), clock, ++played, null, fen);
+                    var result = record.Result switch
+                    {
+                        GameResult.Draw => OutcomeKind.Draw,
+                        GameResult.WhiteWins => weAreWhite ? OutcomeKind.Win : OutcomeKind.Loss,
+                        _ => weAreWhite ? OutcomeKind.Loss : OutcomeKind.Win,
+                    };
+                    var verdict = weMoveFirst ? row.Rule.Kind : Flip(row.Rule.Kind);   // the table, for our side
+                    ours[Index(verdict), Index(result)]++;
+                    theirs[Index(Flip(verdict)), Index(Flip(result))]++;
+                    string end = record.Termination.StartsWith("tablebase") ? "tablebase" : record.Termination;
+                    endings[end] = endings.GetValueOrDefault(end) + 1;
+                    if (Index(result) > Index(verdict) && surprises.Count < 10)   // we did worse than the table
+                        surprises.Add($"{fen}: we had {verdict} as {(weAreWhite ? "white" : "black")}, got {result} " +
+                                      $"({record.Termination}, {record.Moves.Count} plies)");
+                    if (played % 50 == 0)
+                        Console.Error.Write($"\rplayed {played:N0} of {chosen.Count * 2:N0}");
+                }
+            }
+        }
+        Console.Error.Write($"\r{"",-40}\r");
+
+        Console.WriteLine();
+        Console.WriteLine($"Against {command}, {moveMs} ms a move: {chosen.Count:N0} positions, each played twice " +
+                          $"(our engine on each side), {played:N0} games in {watch.Elapsed.TotalMinutes:0.0} min.");
+        string[] names = ["won", "drawn", "lost"];
+        foreach (var (title, matrix) in new[] { ("Our engine (every table)", ours), ("The opponent (no tables)", theirs) })
+        {
+            Console.WriteLine($"  {title}: what the table says for its side, against what it got");
+            Console.WriteLine($"    {"table says",-11} {"games",7}   {"won",14} {"drawn",14} {"lost",14}");
+            for (int v = 0; v < 3; v++)
+            {
+                long total = matrix[v, 0] + matrix[v, 1] + matrix[v, 2];
+                string Cell(int r) => $"{matrix[v, r]:N0} ({Pct(matrix[v, r], total):0.0}%)";
+                Console.WriteLine($"    {names[v],-11} {total,7:N0}   {Cell(0),14} {Cell(1),14} {Cell(2),14}");
+            }
+        }
+        double Points(long[,] m) => Enumerable.Range(0, 3).Sum(v => m[v, 0] + 0.5 * m[v, 1]);
+        double Expected(long[,] m) => Enumerable.Range(0, 3).Sum(v => (m[v, 0] + m[v, 1] + m[v, 2]) * (v == 0 ? 1 : v == 1 ? 0.5 : 0));
+        Console.WriteLine($"  Points: ours {Points(ours):N1} (the table's {Expected(ours):N1}), theirs {Points(theirs):N1} " +
+                          $"(the table's {Expected(theirs):N1}).");
+        Console.WriteLine($"  How they ended: " + string.Join(", ", endings.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {kv.Value:N0}")));
+        foreach (string surprise in surprises)
+            Console.WriteLine($"  WE DID WORSE THAN THE TABLE: {surprise}");
     }
 
     /// <summary>Play takeover positions out with the engine on both sides, and set the results against the tables' verdicts and the players'.</summary>

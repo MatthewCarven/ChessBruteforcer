@@ -366,6 +366,19 @@ public class TakeoverTests : IClassFixture<RookEndgame>
     }
 
     [Fact]
+    public void TwoInProcessPlayersPlayATableEndingThroughTheGameLoop()
+    {
+        // As in a match: a start FEN, a clock, the rules deciding the end.
+        using var white = new SearchPlayer("white", _tables);
+        using var black = new SearchPlayer("black", _tables);
+        var record = GamePlayer.Play(white, black, Array.Empty<string>(), TimeControl.Parse("movetime=50"), 1,
+                                     startFen: "8/8/8/8/8/2k5/1R6/K7 w - - 0 1");
+        Assert.Equal(GameResult.WhiteWins, record.Result);
+        Assert.Equal("checkmate", record.Termination);
+        Assert.Equal(31, record.Moves.Count);   // the table's distance: both sides played it perfectly
+    }
+
+    [Fact]
     public void PlayedOutFromALateClockTheRuleDrawsIt()
     {
         var position = Position.FromFen("8/8/8/8/8/2k5/1R6/K7 w - - 80 1");   // 31 plies of mate, 20 left on the count
