@@ -1205,6 +1205,8 @@ static class Cli
         var endings = kinds.ToDictionary(k => k, _ => new Dictionary<string, int>());
         var ourSlips = new List<string>();
         var theirSlips = kinds.ToDictionary(k => k, _ => new List<string>());
+        var byTable = new Dictionary<(Material, string), long[,]>();   // the opponent's side, table by table
+        var tableOrder = new List<Material>();
         int played = 0;
         using var opponent = new UciPlayer(EngineSpec.Parse(["name=opponent", $"cmd={command}"]));
         foreach (var group in cases.GroupBy(c => c.Material))
@@ -1229,6 +1231,11 @@ static class Cli
                     var verdict = weMoveFirst ? c.Rule : Flip(c.Rule);   // the table, for our side
                     ours[c.Kind][Index(verdict), Index(result)]++;
                     theirs[c.Kind][Index(Flip(verdict)), Index(Flip(result))]++;
+                    if (!byTable.TryGetValue((c.Material, c.Kind), out var cell))
+                        byTable[(c.Material, c.Kind)] = cell = new long[3, 3];
+                    cell[Index(Flip(verdict)), Index(Flip(result))]++;
+                    if (!tableOrder.Contains(c.Material))
+                        tableOrder.Add(c.Material);
                     endings[c.Kind][record.Termination] = endings[c.Kind].GetValueOrDefault(record.Termination) + 1;
                     string game = $"{c.Material} {fen}: {(weAreWhite ? "we" : "they")} white; " +
                                   $"{record.Termination} after {record.Moves.Count} plies";
@@ -1271,6 +1278,37 @@ static class Cli
             Console.WriteLine($"  how they ended: " + string.Join(", ", endings[kind].OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {kv.Value:N0}")));
             foreach (string slip in theirSlips[kind])
                 Console.WriteLine($"  e.g. {slip}");
+        }
+        // Table by table, from the opponent's side: its wins converted, its draws held; and our points.
+        Console.WriteLine();
+        Console.WriteLine("By table, the opponent's side: wins it should convert, draws it should hold; our points against the table's.");
+        Console.WriteLine($"  {"table",-8} " + string.Join(" ", kinds.Select(k => $"{k,22}")) + $" {"our points",18}");
+        foreach (var material in tableOrder)
+        {
+            var cells = new List<string>();
+            double points = 0, expected = 0;
+            foreach (string kind in kinds)
+            {
+                if (!byTable.TryGetValue((material, kind), out var m))
+                {
+                    cells.Add($"{"-",22}");
+                    continue;
+                }
+                long wins = m[0, 0] + m[0, 1] + m[0, 2], draws = m[1, 0] + m[1, 1] + m[1, 2];
+                var parts = new List<string>();
+                if (wins > 0)
+                    parts.Add($"won {m[0, 0]} of {wins}");
+                if (draws > 0)
+                    parts.Add($"held {m[1, 1] + m[1, 0]} of {draws}");
+                cells.Add($"{string.Join(", ", parts),22}");
+                // Ours is the other side of each of their games.
+                for (int v = 0; v < 3; v++)
+                {
+                    points += m[v, 2] + 0.5 * m[v, 1];
+                    expected += (m[v, 0] + m[v, 1] + m[v, 2]) * (v == 2 ? 1 : v == 1 ? 0.5 : 0);
+                }
+            }
+            Console.WriteLine($"  {material,-8} " + string.Join(" ", cells) + $" {$"{points:0.#} ({expected:0.#})",18}");
         }
         foreach (string slip in ourSlips)
             Console.WriteLine($"WE DID WORSE THAN THE TABLE: {slip}");

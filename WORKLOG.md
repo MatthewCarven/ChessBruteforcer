@@ -1081,3 +1081,40 @@ rather than 48-byte boards, because that is the storage that scales.
   first few of Stockfish's slips per kind, not a per-table breakdown.
 - Caveats: 100 ms a move is fast for Stockfish, and in real competition it
   would have Syzygy tables of its own.
+- Matthew asked for it table by table: same command and seed (same
+  positions), PlayVersus now counting per table; run on battery (Matthew),
+  so Stockfish had a slower CPU in its 100 ms. 504 games, none ended by a
+  missing answer or illegal move. Stockfish converted 29 of 108 long wins
+  this time (44 before), lost 67 of 72 cursed defences and 70 of 72
+  blessed ones (67, 68 before); we scored 360 of 504 (the table's 252).
+
+  | table | Stockfish's long wins converted | its cursed / blessed defences held |
+  |---|---|---|
+  | KBNvK | 0 of 6 | - |
+  | KQvKR | 1 of 6 | - |
+  | KBBvKN | 2 of 6 | 0 of 6 / 0 of 6 |
+  | KBNvKN | 0 of 6 | 0 / 0 |
+  | KRBvKR | 0 of 6 | 0 / 0 |
+  | KQRvKQ | 1 of 6 | 0 / 0 |
+  | KBBvKQ | 0 of 6 | 0 / 0 |
+  | KNNvKQ | 2 of 6 | 0 / 0 |
+  | KRNvKQ | 0 of 6 | - |
+  | KQNvKQ | 0 of 6 | - |
+  | KRNvKR | 6 of 6 | - |
+  | KQPvKQ | 2 of 6 | 1 / 0 |
+  | KRPvKQ | 0 of 6 | 0 / 0 |
+  | KRPvKB | 3 of 6 | 0 / 0 |
+  | KNNvKP | 1 of 6 | 4 / 2 |
+  | KBPvKN | 0 of 6 | 0 / 0 |
+  | KRPvKR | 5 of 6 | - |
+  | KPPvKP | 6 of 6 | 0 / 0 |
+
+  (Each defence is the game where we attack; in the other game of each pair
+  Stockfish attacks and our defence holds, always.)
+- Losing nearly every defence of a position the rule draws looked too clean,
+  so I checked examples on Lichess: all genuinely cursed or blessed, but
+  only just: DTZ 105-120 against the rule's 100. The defender must be all
+  but perfect; any slack brings the conversion inside the count. Several of
+  our mates came after more than 100 plies, so Stockfish had let its piece be
+  taken, which restarts the count. K+N+N v K+P, where the cursed positions
+  run much longer, is the one Stockfish defends.
