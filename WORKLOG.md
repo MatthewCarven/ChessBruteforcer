@@ -1118,3 +1118,34 @@ rather than 48-byte boards, because that is the storage that scales.
   our mates came after more than 100 plies, so Stockfish had let its piece be
   taken, which restarts the count. K+N+N v K+P, where the cursed positions
   run much longer, is the one Stockfish defends.
+
+## 2026-10-12: recent games, and who gets the endings wrong
+
+- Matthew asked for recent games. The September 2026 file is 29.2 GB (89.6 M
+  games); with his OK, only its first 1 GB by a range request
+  (`games/lichess_db_standard_rated_2026-09.first-1GB.pgn.zst`, 16 min at
+  ~1 MB/s), unpacked across its many Zstandard frames up to the cut
+  (`zstd.open`, keeping complete games only): 3,284,165 games of 1
+  September, 7.1 GB of PGN with clock comments, imported in 26 min into
+  `games/2026-09-part.cbg` (1.28 GB). The PGN was deleted after.
+- `game takeover` now breaks the scorecard down by the players' average
+  rating and by Lichess's time-control class (base + 40 x increment).
+
+  | | 2013, 5 months | 2026, 1 day |
+  |---|---|---|
+  | games | 741,349 | 3,284,165 |
+  | reaching a table we have | 47,842 (6.5%) | 189,886 (5.8%) |
+  | ended otherwise than the tables | 21.1% | 26.7% |
+  | won endings not won | 17.1% | 22.8% |
+  | of those, lost on time | 42% | 54% |
+
+  By rating (2026): ended otherwise 27.1% (under 1500), 25.5%, 28.7%,
+  27.2% (2400 and up), flat; but the share of those lost on time climbs
+  38% -> 59% -> 73% -> 80%, so the errors in the moves themselves fall
+  16.9% -> 10.4% -> 7.6% -> 5.5%. 2013 the same shape (16.2%, 10.0%, 8.6%).
+  By time control (2026): ended otherwise 41.8% (ultrabullet, 435 games),
+  32.6% bullet, 26.0% blitz, 21.2% rapid, 17.7% classical; on time 90%,
+  76%, 55%, 26%, 12% of those. Strong players know these endings and lose
+  them to the clock; slower games lose them to the moves.
+- KPPvKP is the commonest way in again (35,101 games); drawn KRPvKR held
+  54%. Outputs: scripts/takeover-2026-09.txt, scripts/takeover-2013.txt.
