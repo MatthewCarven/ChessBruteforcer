@@ -49,7 +49,13 @@ config["greeting"] = {
     "hello_spectators": "Hi! I'm {me}. Once 5 pieces or fewer are left, every move I make comes from solved tables.",
     "goodbye_spectators": "Thanks for watching!",
 }
-config["matchmaking"]["allow_matchmaking"] = False            # it doesn't challenge anyone yet
+matchmaking = config["matchmaking"]                           # it challenges other bots when idle (2026-10-13)
+matchmaking["allow_matchmaking"] = True
+matchmaking["challenge_timeout"] = 1                          # minutes idle before it sends a challenge
+matchmaking["challenge_initial_time"] = [180, 300]            # blitz: 3+2 or 5+3, chosen at random
+matchmaking["challenge_increment"] = [2, 3]
+matchmaking["challenge_mode"] = "casual"
+matchmaking["challenge_filter"] = "coarse"                    # don't keep asking bots that said no
 config["pgn_directory"] = os.path.join(here, "games")         # every game it plays, for `game takeover --moves`
 config["pgn_file_grouping"] = "game"
 
