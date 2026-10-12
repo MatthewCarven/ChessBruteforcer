@@ -4,7 +4,49 @@ If you're asking "where are we?", this is the answer. Top to bottom is
 roughly the order of work. Tick items off here and log them in
 [WORKLOG.md](WORKLOG.md).
 
-## Now: compression, then the pawn tables (agreed 2026-09-29/30)
+## Now: playing with the tables, and the games that reach them (from 2026-10-12)
+
+Every table of 5 pieces or fewer is done (FIVE-PIECE.md, FIVE-PIECE-PAWNS.md),
+and the engine plays them by the 50-move rule. Where things stand:
+- Done: real games' endings against Stockfish 16 (1,000 games, all as the
+  tables say for both); hard positions from the tables (`hard`: we scored
+  351.5 and 360 of 504 where the tables give 252; per table in WORKLOG);
+  `game takeover` by rating and time control on 3.28 M games of September
+  2026 and on 2013 (2013-06 held out: 21.7% against 21.1%).
+- [ ] **Running when this was written:** the rest of September 2026
+      (`scripts/download-lichess-month.cmd 2026-09`, own window, ~10 h from
+      18:43 on 2026-10-12; games/download-2026-09.log ends "=== finished"
+      when done; run it again to carry on if it stopped). Then the whole
+      month (89.6 M games) with `--moves` (Matthew's (b); remind him), in
+      three steps:
+      1. `python -I scripts/table-games.py games/lichess_db_standard_rated_2026-09.pgn.zst
+         games/2026-09-tables.pgn` (~50 min; ~5.4 M games, ~5.6 GB, clocks
+         kept), then `game import games/2026-09-tables.cbg
+         games/2026-09-tables.pgn` (~70 min; ~1.8 GB) and delete the .pgn.
+      2. Code first: `game takeover` holds every entry in memory (1.8 GB
+         peak for 190k; the month is ~28x that). Make it stream in batches
+         (verdicts and the move walk per batch, keeping only light rows for
+         the scorecard), and check the output against
+         scripts/takeover-moves-2026-09-clocks.txt, line for line.
+      3. Run it (~3 h: finding ~1 h, the walk ~2 h), in its own window.
+      Thin rows to watch: classical, 2400 and up. The month replaces
+      2026-09-part.cbg (and the -tables sample).
+- [x] The clock and the kinds of mistake (2026-10-12): `table-games.py`
+      keeps the clock; under 5 s left, 4.6 mistakes per 100 moves, from 20 s
+      up ~3 whatever the clock. Kinds: king steps 33%, hung 21%, stalemate
+      9% (59% in K+Q v K). Examples and Matthew's page: WORKLOG.
+- [x] Move by move inside the tables (`game takeover ... --moves`,
+      2026-10-12): 1 move in 31 that could go wrong does (2026; 1 in 32 in
+      2013), and 20% of games have at least one. Half the endings that go
+      wrong do it on the clock. WORKLOG has the tables.
+- [ ] The hard positions at 1 s a move: `scripts\hard-vs-stockfish.cmd`
+      (~7 h, plugged in; Matthew starts it). Compare with the 100 ms runs.
+- [ ] How much slower the engine's rule-safe play mates than the fastest
+      mate; the evaluation scaled down as the clock rises (step C's maybe).
+- [ ] Matthew's: a second pull request from `compression` into `main` (PR
+      #1 took only the first commit).
+
+## Then: compression, then the pawn tables (agreed 2026-09-29/30, all done)
 
 All 60 pawnless 5-piece tables are done (FIVE-PIECE.md). Next are the 50
 5-piece tables with pawns, but they don't fit: 115 GB as stored (81.5 GB
@@ -128,9 +170,8 @@ left is a draw.
       for disk (the holes compress to nothing); do it only if it helps.
 - [ ] Keep the laptop awake for long runs: it slept 48 h of this one (System
       log, Kernel-Power 42). A Windows power setting, so Matthew's to change.
-- [ ] Next with every 5-piece table in: against Stockfish from the takeover
-      positions (WSL); how much slower DTZ-safe play mates than the fastest
-      mate; the evaluation scaled down as the clock rises (step C's maybe).
+- [x] Next with every 5-piece table in: against Stockfish from the takeover
+      positions (WSL), done 2026-10-09 (see "Now" at the top for the rest).
 
 ## Now: the session plan (5-piece tables and the depth ladder)
 

@@ -1,0 +1,128 @@
+3,284,165 games in 845s. Tables on disk with both kinds: 146.
+189,886 games (5.8%) enter a table we have, with a move still to make.
+Still to play when they get there: median 7 moves (quartiles 3 and 13; the game had ended there in 9,712)
+
+The table (50-move rule, the game's clock) for the side to move, against the game's result:
+  table says     games              won          drawn           lost  unfinished
+  won           61,677   46,023 (74.6%) 12,089 (19.6%)   3,565 (5.8%)           0
+  drawn         42,235    7,583 (18.0%) 25,219 (59.7%)  9,433 (22.3%)           0
+  lost          85,974     2,938 (3.4%) 15,011 (17.5%) 68,023 (79.1%)           2
+  Ended otherwise than the table says: 50,619 of 189,884 (26.7%): the results perfect play from there would have changed.
+  Won endings not won: 33,603 of 147,651; of those, 18,260 on time.
+  Won or lost with best play but drawn by the 50-move rule at the game's clock: 10
+  Won endings that ended in mate (42,809): the players took a median 11.5 moves, best play 8.5; slower than best in 71% of them.
+
+Where they enter, the most common tables:
+  table      games   won for someone   ...and won    drawn   ...and drawn
+  KPPvKP    35,101            27,878        75.3%    7,223          57.0%
+  KRPvKR    20,845             8,373        70.0%   12,472          54.4%
+  KRPvKP    13,483            11,715        79.3%    1,768          65.8%
+  KRPPvK    11,969            11,958        83.9%       11          63.6%
+  KPPPvK    10,874            10,857        79.3%       17          82.4%
+  KQPvKP    10,082             9,426        83.0%      656          57.0%
+  KQPPvK     8,482             8,481        84.6%        1         100.0%
+  KBPvKP     7,492             5,490        72.8%    2,001          71.1%
+  KPPvKR     7,234             5,567        68.9%    1,667          51.8%
+  KNPvKP     5,471             3,955        67.5%    1,516          70.0%
+  KBPPvK     5,091             5,053        76.9%       38          76.3%
+  KNPPvK     3,780             3,775        76.3%        5         100.0%
+  KPPvKQ     3,420             3,297        74.8%      123          53.7%
+  KQRPvK     2,636             2,636        88.1%        0           0.0%
+  KPPvKB     2,635               921        75.8%    1,714          70.0%
+
+By the players' average rating:
+                  games  ended otherwise  wins won  draws held  of the otherwise, on time
+  under 1500     56,916            27.1%     76.1%       59.1%                      37.7%
+  1500-1999      89,371            25.5%     78.8%       60.1%                      59.4%
+  2000-2399      35,062            28.7%     75.4%       58.5%                      73.4%
+  2400 and up     8,537            27.2%     76.4%       63.4%                      79.7%
+
+By time control (Lichess's classes: base + 40 x increment):
+                  games  ended otherwise  wins won  draws held  of the otherwise, on time
+  ultrabullet       435            41.8%     64.4%       16.1%                      90.1%
+  bullet         47,734            32.6%     71.1%       48.7%                      75.8%
+  blitz         101,752            26.0%     78.4%       60.2%                      54.9%
+  rapid          38,580            21.2%     82.4%       67.6%                      25.5%
+  classical       1,319            17.7%     84.7%       73.9%                      11.5%
+  other              66            14.1%     83.0%       94.1%                      11.1%
+
+Move by move inside the tables (189,886 games, 216s): the table's verdict (50-move rule, the game's clock) for the side moving, before each move and after.
+  Moves played: 3,444,228 in 180,174 games (median 15 a game); from a won position 1,352,738, drawn 810,646, lost 1,280,844 (a lost side can't make it worse).
+  Mistakes, moves that made the verdict worse for the side making them:
+    won -> drawn      36,284    2.7% of moves from won positions
+    won -> lost        2,492    0.2%
+    drawn -> lost     31,107    3.8% of moves from drawn positions (1 in 26)
+    all               69,883    3.2% of the moves that could go wrong (1 in 31); won ones thrown 1 in 35
+  Checks: moves that made it better for the side moving 0 (should be 0); games stopped at a position no table read 0.
+
+The 180,174 games with moves played in the tables:
+  no mistake 143,501 (79.6%); at least one 36,673 (20.4%), where our engine, moving by the tables, would have played better.
+  mistakes in a game: none 143,501, one 21,751, two 7,024, three or more 7,898
+  the first mistake threw away a win in 21,688 (59.1%), a draw in 14,985 (40.9%)
+  ended as the table said at entry, with mistakes on the way that came back: 8,810 of 131,180 (6.7%)
+  with at least one mistake, by average rating: under 1500 25%, 1500-1999 19%, 2000-2399 18%, 2400 and up 17%
+  by time control: ultrabullet 23%, bullet 19%, blitz 21%, rapid 22%, classical 19%, other 16%
+
+How the 50,619 games that ended otherwise than the table at entry went wrong:
+                                                                    games  share  with a mistake
+  the moves (the last position's verdict is the result)            23,588  46.6%          100.0%
+  a flag fell, the last position not as the result                 25,200  49.8%           15.8%
+  resigned, the last position not lost                                592   1.2%           19.6%
+  drawn by repetition while someone was winning                     1,111   2.2%           15.2%
+  drawn otherwise while someone was winning (agreed, claimed)          49   0.1%           10.2%
+  abandoned or other                                                   79   0.2%            6.3%
+
+Mistakes per 100 moves that could go wrong, by the rating of the player moving:
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  under 1500    1,150,119         688,343    26,299     3.82        3.20%       5.23%
+  1500-1999     1,532,895         970,931    29,823     3.07        2.71%       3.63%
+  2000-2399       582,855         378,224    10,738     2.84        2.61%       3.18%
+  2400 and up     178,359         125,886     3,023     2.40        2.72%       2.11%
+
+By time control:
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  ultrabullet       5,399           3,134       173     5.52        4.37%       9.42%
+  bullet          783,065         466,590    15,627     3.35        2.78%       4.76%
+  blitz         1,848,600       1,179,046    38,124     3.23        2.92%       3.71%
+  rapid           778,656         496,286    15,487     3.12        2.84%       3.54%
+  classical        27,503          17,645       457     2.59        2.56%       2.63%
+  other             1,005             683        15     2.20        2.92%       1.47%
+
+By how far into the ending (the player's own moves since the game entered the tables):
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  1-5           1,483,418         930,263    34,869     3.75        3.20%       4.67%
+  6-10            910,143         564,653    17,893     3.17        2.70%       4.01%
+  11-20           754,039         466,427    12,625     2.71        2.46%       3.18%
+  21-40           251,412         165,321     3,743     2.26        2.50%       1.97%
+  41 and on        45,216          36,720       753     2.05        5.19%       1.01%
+
+The tables most moves are made in:
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  KPvK            242,687         184,286     7,346     3.99        5.15%       3.21%
+  KRPvKR          219,528         184,145    13,296     7.22       12.46%       5.40%
+  KQvK            288,889         145,796     2,511     1.72        1.51%      12.02%
+  KRvK            206,160         106,791     1,144     1.07        0.85%       4.32%
+  KRvKR            99,477          98,879     1,814     1.83       13.62%       1.38%
+  KPPvKP          154,007          98,308     6,269     6.38        5.31%       8.83%
+  KPPvK           156,168          80,841     1,245     1.54        1.40%       5.24%
+  KPvKP            88,310          74,687     2,843     3.81        4.10%       3.67%
+  KQPvK           119,167          58,427       430     0.74        0.67%      13.22%
+  KQvKP            98,715          56,215     2,332     4.15        3.82%       5.37%
+  KRPvK            88,648          43,804       269     0.61        0.54%       4.53%
+  KRvKP            55,817          40,790     2,155     5.28        6.95%       3.96%
+  KBPvK            63,334          39,808       665     1.67        1.98%       1.20%
+  KQPPvK           80,505          39,101       210     0.54        0.53%      25.00%
+  KRPPvK           80,420          39,078       115     0.29        0.29%       0.00%
+
+The hardest tables (1,000 or more moves that could go wrong), most mistakes per 100:
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  KQPvKQ           33,064          29,013     3,002    10.35       17.54%       7.98%
+  KRPvKQ           10,846           7,948       809    10.18       10.24%      10.11%
+  KPPvKR           43,177          29,241     2,845     9.73        8.29%      12.00%
+  KNPvKQ            4,109           2,377       190     7.99        7.37%      11.58%
+  KQBvKQ            1,457           1,414       103     7.28       24.18%       4.79%
+  KRPvKN           11,007           6,189       448     7.24        5.78%      14.87%
+  KRPvKB           11,579           6,703       485     7.24        5.40%      14.13%
+  KRPvKR          219,528         184,145    13,296     7.22       12.46%       5.40%
+  KBNvKP            2,102           1,168        79     6.76        5.01%      18.54%
+  KQvKR            17,837          10,412       704     6.76        5.25%      12.81%

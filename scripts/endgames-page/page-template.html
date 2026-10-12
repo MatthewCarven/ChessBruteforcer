@@ -1,0 +1,196 @@
+<title>Endgames Thrown Away</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;600;800&family=Chivo+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column for the story, widening to a grid of diagram cards; boards keep their own colours in both themes. */
+:root {
+  --bg: #f4f6f2;
+  --surface: #ffffff;
+  --fg: #17201a;
+  --muted: #56625a;
+  --rule: #d6dcd3;
+  --bar: #2a78d6;
+  --played: #eb6834;
+  --best: #2a78d6;
+  --arrow-played: #e0561f;
+  --arrow-best: #1f63c2;
+  --sq-light: #e7eadf;
+  --sq-dark: #9cae8b;
+  --coord: #4d5c45;
+  --piece-white: #fbfbf7;
+  --piece-black: #1b221d;
+  --font-display: "Chivo", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Chivo", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Chivo Mono", "Cascadia Mono", Consolas, monospace;
+  --font-pieces: "Segoe UI Symbol", "DejaVu Sans", "Noto Sans Symbols 2", "Arial Unicode MS", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111613; --surface: #19201b; --fg: #edf1ec; --muted: #a6b1a9; --rule: #2c352f;
+    --bar: #3987e5; --played: #f07a45; --best: #5b9cf0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111613; --surface: #19201b; --fg: #edf1ec; --muted: #a6b1a9; --rule: #2c352f;
+  --bar: #3987e5; --played: #f07a45; --best: #5b9cf0;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 56px; display: grid; gap: 56px; }
+.prose { max-width: 66ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(36px, 6vw, 60px); line-height: 1.02; letter-spacing: -.02em; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 800; font-size: 26px; line-height: 1.15; margin: 0 0 10px; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-weight: 600; font-size: 17px; line-height: 1.3; margin: 0; text-wrap: balance; }
+p { margin: 0 0 12px; }
+.lede { font-size: 19px; }
+.lede strong, .num { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; }
+section { display: grid; gap: 20px; }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 28px; }
+.chart-box { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.chart-box h3 { font-size: 16px; }
+.chart-box p { color: var(--muted); font-size: 15px; }
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart .grid { stroke: var(--rule); stroke-width: 1; }
+.chart .grid.base { stroke: var(--muted); }
+.chart .tick, .chart .cat, .chart .axis-note { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+.chart .value { fill: var(--fg); font-family: var(--font-mono); font-size: 12px; font-weight: 600; }
+.chart .bar { fill: var(--bar); }
+.chart .hit { fill: transparent; }
+.chart .col { outline: none; cursor: default; }
+.chart .col:hover .bar, .chart .col:focus-visible .bar { fill: var(--fg); }
+.chart .col:focus-visible .hit { stroke: var(--fg); stroke-width: 1; }
+.numbers summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+.scroll { overflow-x: auto; }
+.numbers table { border-collapse: collapse; font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; margin-top: 8px; }
+.numbers th, .numbers td { padding: 4px 12px 4px 0; text-align: right; border-bottom: 1px solid var(--rule); }
+.numbers th:first-child, .numbers td:first-child { text-align: left; }
+#tip { position: fixed; pointer-events: none; background: var(--fg); color: var(--bg); font-family: var(--font-mono); font-size: 12px; padding: 6px 9px; border-radius: 6px; max-width: 280px; z-index: 5; }
+.kinds { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; max-width: 760px; }
+.kinds li { display: grid; grid-template-columns: minmax(0, 15em) minmax(60px, 1fr) 3.5em 5.5em; gap: 12px; align-items: center; }
+.k-name { font-size: 15px; }
+.k-track { height: 14px; }
+.k-bar { display: block; height: 100%; background: var(--bar); border-radius: 0 4px 4px 0; }
+.k-val { font-family: var(--font-mono); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.k-n { font-family: var(--font-mono); font-size: 13px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .kinds li { grid-template-columns: minmax(0, 1fr) 3.5em; } .k-track, .k-n { display: none; } }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 15px; color: var(--muted); align-items: center; }
+.legend svg { vertical-align: middle; margin-right: 6px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 22px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.card header { display: grid; gap: 2px; }
+.kind { font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--played); margin: 0; }
+svg.board { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 4px; }
+.board .sq-light { fill: var(--sq-light); }
+.board .sq-dark { fill: var(--sq-dark); }
+.board .coord { fill: var(--coord); font-family: var(--font-mono); font-size: 9px; font-weight: 600; }
+.board .piece { font-family: var(--font-pieces); font-size: 33px; paint-order: stroke; }
+.board .piece.white { fill: var(--piece-white); stroke: var(--piece-black); stroke-width: 1.3px; }
+.board .piece.black { fill: var(--piece-black); stroke: var(--piece-white); stroke-width: .6px; }
+.board .arrow line { stroke-width: 7; stroke-linecap: round; }
+.board .arrow { opacity: .88; }
+.board .arrow.played line { stroke: var(--arrow-played); stroke-dasharray: 9 6; }
+.board .arrow.played polygon { fill: var(--arrow-played); }
+.board .arrow.best line { stroke: var(--arrow-best); }
+.board .arrow.best polygon { fill: var(--arrow-best); }
+.verdicts { font-size: 15px; margin: 0; }
+.was { font-weight: 600; }
+.mv { font-family: var(--font-mono); font-weight: 600; padding: 0 4px; border-radius: 3px; white-space: nowrap; }
+.mv.played { color: var(--played); border: 1px dashed var(--played); }
+.mv.best { color: var(--best); border: 1px solid var(--best); }
+.note { font-size: 15px; color: var(--muted); margin: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); margin: 0; }
+.meta a { color: var(--fg); }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--bar); outline-offset: 2px; }
+footer { color: var(--muted); font-size: 14px; border-top: 1px solid var(--rule); padding-top: 18px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="prose">
+    <p class="eyebrow">Chess Bruteforcer · Lichess, 1 September 2026</p>
+    <h1>Endgames thrown away</h1>
+    <p class="lede">Once a game is down to five pieces, our tables know the right answer for every position. We checked
+      <strong>{{MOVES}}</strong> moves that real players made there, in <strong>{{GAMES}}</strong> games. A move from a won
+      or drawn position can throw it away, and <strong>1 in {{ONE_IN}}</strong> of those did: {{MISTAKES}} in all.
+      Our engine, playing by the tables, never does.</p>
+  </header>
+
+  <section aria-labelledby="clock">
+    <div class="prose">
+      <h2 id="clock">When the clock runs down</h2>
+      <p>Every Lichess move carries the player's clock, so each mistake can be set against the seconds that player had left.</p>
+    </div>
+    <div class="charts">
+      <div class="chart-box">
+        <h3>Mistakes per 100 moves, by seconds left</h3>
+        <p>Under 5 seconds, 4.6. From 20 seconds up it sits near 3 whatever the clock says: more time stops helping.</p>
+        {{LEFT_CHART}}
+      </div>
+      <div class="chart-box">
+        <h3>Mistakes per 100 moves, by time taken over the move</h3>
+        <p>Quick moves go wrong least, long thinks most. People stop to think where the position is hard, so this shows where
+          the hard moves are; it doesn't mean thinking causes mistakes.</p>
+        {{TAKEN_CHART}}
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="kinds">
+    <div class="prose">
+      <h2 id="kinds">What the mistakes were</h2>
+      <p>Each mistake sorted by the first of these that fits it. A wrong king step is the commonest by far.</p>
+    </div>
+    <ul class="kinds">
+      {{KINDS}}
+    </ul>
+    <p class="prose">Some endings have a signature mistake. In king and queen against king, 59% of the mistakes were
+      stalemates. In rook against rook, 46% left a rook to be taken. In king and pawn against king, 66% were a wrong king step.</p>
+  </section>
+
+  <section aria-labelledby="examples">
+    <div class="prose">
+      <h2 id="examples">Thirteen real ones</h2>
+      <p>For each ending and kind of mistake, the strongest player who made it with 20 seconds or more on the clock.
+        Boards are drawn from the side of the player to move.</p>
+    </div>
+    <div class="legend">
+      <span><svg width="44" height="12" aria-hidden="true"><line x1="2" y1="6" x2="34" y2="6" stroke="var(--arrow-played)" stroke-width="5" stroke-dasharray="7 5" stroke-linecap="round"/><polygon points="43,6 33,1 33,11" fill="var(--arrow-played)"/></svg>the move played</span>
+      <span><svg width="44" height="12" aria-hidden="true"><line x1="2" y1="6" x2="34" y2="6" stroke="var(--arrow-best)" stroke-width="5" stroke-linecap="round"/><polygon points="43,6 33,1 33,11" fill="var(--arrow-best)"/></svg>the tables' move</span>
+    </div>
+    <div class="cards">
+      {{CARDS}}
+    </div>
+  </section>
+
+  <footer class="prose">
+    <p>Verdicts come from our own tables of every position with five pieces or fewer, under the 50-move rule at the game's own
+      count. Mate distances are in moves. Games: the Lichess open database (CC0), the first 3.28 million rated games of
+      September 2026.</p>
+  </footer>
+</div>
+<div id="tip" hidden></div>
+<script>
+(function () {
+  var tip = document.getElementById('tip');
+  function show(el) {
+    var r = el.getBoundingClientRect();
+    tip.textContent = el.getAttribute('data-tip');
+    tip.hidden = false;
+    var w = tip.offsetWidth;
+    var x = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
+    tip.style.left = x + 'px';
+    tip.style.top = Math.max(8, r.top - tip.offsetHeight - 6) + 'px';
+  }
+  function hide() { tip.hidden = true; }
+  document.querySelectorAll('.col').forEach(function (el) {
+    el.addEventListener('mouseenter', function () { show(el); });
+    el.addEventListener('focus', function () { show(el); });
+    el.addEventListener('mouseleave', hide);
+    el.addEventListener('blur', hide);
+  });
+  window.addEventListener('scroll', hide, { passive: true });
+})();
+</script>

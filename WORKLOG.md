@@ -1149,3 +1149,123 @@ rather than 48-byte boards, because that is the storage that scales.
   them to the clock; slower games lose them to the moves.
 - KPPvKP is the commonest way in again (35,101 games); drawn KRPvKR held
   54%. Outputs: scripts/takeover-2026-09.txt, scripts/takeover-2013.txt.
+- The check month Matthew asked for, 2013-06 (32.9 MB, 224,679 games by
+  Lichess's count): imported 224,678 in 1 min 46 s into `games/2013-06.cbg`
+  (the unpack script trimmed the last game of a whole file too; fixed, now
+  `scripts/unzst.py`, which trims only after a cut). Its scorecard: 13,872
+  games reach a table, **21.7% ended otherwise** (the five months: 21.1%),
+  and the same shapes by rating and time control (bullet 29.1%, rapid
+  16.5%). So the 2013 figures hold on a month nothing had been tuned on.
+  Output: scripts/takeover-2013-06.txt.
+- Matthew asked to finish the September 2026 download (he kept the first
+  1 GB for it). `scripts/download-lichess-month.cmd 2026-09` carries on from
+  those bytes (renamed to `.part`, the server's Last-Modified recorded and
+  checked so two versions of the file can't be spliced), retries on a
+  dropped connection, and renames the file when its size matches the
+  server's 29,224,520,887 bytes. Started 18:43 in its own window, ~750 KB/s:
+  ~10 h. Log: games/download-2026-09.log.
+- Not yet possible as it stands, so for the next session: importing the
+  whole month. Unpacked it is ~150 GB, so unpack and import in chunks,
+  deleting each; and as .cbg it would be ~35 GB (389 bytes a game, 83% of it
+  tags) against ~39 GB free once the download is in. Either keep only the
+  tags the scorecards use (Result, WhiteElo, BlackElo, TimeControl,
+  Termination: ~12 GB) or score straight from the stream without storing.
+
+## 2026-10-12: move by move, the mistakes inside the tables
+
+- Matthew asked for the human failure rate: how many games our engine would
+  play better. `game takeover <files> --moves`: from where each game enters
+  a table to its end, every move with the table's verdict (50-move rule, the
+  game's clock) for the side moving, before and after. A move from a won
+  position that leaves it drawn or lost, or from a drawn one that leaves it
+  lost, is a mistake. A lost side can't make it worse, and the engine,
+  moving by the tables, never makes one. Check: no move of the 4.6 M came
+  out better than the table allows, and every position was read.
+
+  | | 2013, Jan-Jun | 2026-09, 1 day |
+  |---|---|---|
+  | games reaching a table | 61,714 | 189,886 |
+  | moves played in the tables | 1,156,298 | 3,444,228 |
+  | mistakes, of the moves that could go wrong | 3.1% (1 in 32) | 3.2% (1 in 31) |
+  | wins thrown, per move from a won position | 1 in 37 | 1 in 35 |
+  | draws lost, per move from a drawn position | 1 in 26 | 1 in 26 |
+  | games with at least one mistake | 19.3% | 20.4% |
+  | ended as the table said, after mistakes that came back | 6.0% | 6.7% |
+
+- How the games that ended otherwise than the table went wrong (2026,
+  50,619): through the moves 46.6%; a flag fell with the last position not
+  as the result 49.8%; resigned a position not lost 1.2%; drawn by
+  repetition while someone was winning 2.2%; other 0.3%. (2013: 58.5%,
+  37.7%, 1.8%, 0.7%, 1.3%.)
+- Per 100 moves that could go wrong, by the rating of the player moving
+  (2026): 3.82 under 1500, 3.07, 2.84, 2.40 at 2400 and up. By time control:
+  ultrabullet 5.5, bullet 3.35, blitz 3.23, rapid 3.12, classical 2.59. So
+  the moves barely get worse from rapid to bullet; the gap in results
+  between them (21.2% against 32.6% ended otherwise) is the clock.
+- By how far into the ending: 3.75 per 100 in a player's first 5 moves in
+  the tables, falling to 2.05 after 40. But the winning side's rate climbs
+  again after 40 moves (5.2% of its moves throw the win): the 50-move count
+  running out.
+- Hardest tables (2026, 1,000 moves or more): KQPvKQ 10.4 per 100 (17.5% of
+  moves from a won position throw it), KRPvKQ 10.2, KPPvKR 9.7. The
+  commonest, KRPvKR, 7.2 (12.5% of its won moves throw the win). Even KPvK
+  throws a win once in 19 moves.
+- Points: from the scorecard, results that differed from the tables cost
+  the side that lost out 28,561.5 points over 189,884 endings in 2026, 0.15
+  an ending.
+- Outputs: scripts/takeover-moves-2026-09.txt and
+  scripts/takeover-moves-2013.txt (all six 2013 months). 18 min and 6 min,
+  peak 1.8 and 1.7 GB, run from a copy of the build with the heap capped at
+  1.75 GB: commit was 1-2 GB free with the download running.
+- Not measurable yet: mistakes against the time left on the clock. The .cbg
+  files keep no clock comments; the whole-month import could keep `%clk` for
+  the moves inside the tables.
+
+## 2026-10-12: the clock, the kinds of mistake, and real examples
+
+- Matthew picked (a) the clock and (c) examples. `scripts/table-games.py`
+  streams a Lichess .pgn.zst and keeps only the games with 27 captures or
+  more: exactly those that get down to 5 pieces (32 - captures; SAN marks
+  every capture with an x). Seven tags kept, comments dropped, and the
+  clock readings from two plies before the 27th capture on, as two tags
+  `game import` keeps (`ClockPly`, `Clocks`: whole seconds, the mover's
+  time after the move with the increment added). ~30,000 games a second.
+  The first 1 GiB of September: 3,284,678 games read, 191,110 kept (5.82%)
+  in 99 s; 200 MB of PGN, 64 MB as `games/2026-09-part-tables.cbg`. So the
+  whole month comes to ~1.8 GB as .cbg with no ~150 GB unpack.
+- `game takeover` on that file gives the morning's scorecard again: 189,913
+  games enter a table against 189,886 (the cut came later this time, 513
+  more games read). `--moves` now sets each move against the mover's clock
+  as it starts to think (its reading after its last move), and the time
+  taken (that, plus the increment, less its reading after this move):
+
+  | seconds left | 0-4 | 5-9 | 10-19 | 20-29 | 30-59 | 1-2 min | 2-5 min | 5 min+ |
+  |---|---|---|---|---|---|---|---|---|
+  | mistakes per 100 | 4.62 | 3.34 | 2.93 | 2.71 | 2.92 | 3.03 | 3.07 | 2.96 |
+
+  | time taken | under 1 s | 1 s | 2-3 s | 4-9 s | 10-29 s | 30 s+ |
+  |---|---|---|---|---|---|---|
+  | mistakes per 100 | 2.83 | 2.86 | 3.47 | 4.76 | 5.65 | 5.15 |
+
+  Below 10 s left the rate climbs (1.6x the plateau under 5 s); from 20 s
+  up, more time doesn't lower it. The long thinks go wrong most, but that's
+  where the hard positions are: it doesn't show that thinking causes
+  mistakes.
+- Each mistake classified (`KindOfMistake`), the first that fits:
+  stalemated the other side; too slow (still a mate, outside the 50-move
+  count); hung (the other side's way out is a capture); missed a capture
+  that kept it; else the piece moved. 2026: a wrong king step 33%, hung
+  21%, another piece 20%, pawn 10%, stalemate 9%, missed 7%, too slow 1%.
+  Signature mistakes: K+Q v K 59% stalemates (K+P+P v K 38%), K+R v K+R
+  46% hung, K+P v K 66% king steps. 2013-01 the same shape (king 38%).
+- Examples: per table and kind, the strongest player with 20 s or more on
+  the clock, printed tab-separated (FEN, both moves as SAN and squares, the
+  verdicts in words, the Lichess link at the ply). Among them: a 2693 with
+  49 s missed mate in one (K+Q+P v K+Q); a 2299 in check from a queen it
+  could take walked away; a 2854 and a 2831 swapped mistakes on consecutive
+  moves (K+P v K+P). Matthew's page, "Endgames Thrown Away", is built from
+  the output by `scripts/endgames-page/make_page.py` (13 boards with the
+  move played and the tables' move as arrows, the two clock charts, the
+  kinds): https://claude.ai/artifact/AC7GVV8rmuefFj1AEEJEE6 (private).
+- Output: scripts/takeover-moves-2026-09-clocks.txt (6 min, peak 1.77 GB,
+  heap capped). Tests: 296 pass, 2 skipped.
