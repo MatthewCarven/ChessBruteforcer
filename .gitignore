@@ -500,3 +500,4 @@ games/
 # The Lichess bot: the lichess-bot download, its Python environment, and its config (which holds the token)
 bot/lichess-bot/
 
+bot/books/

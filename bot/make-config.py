@@ -34,6 +34,17 @@ engine["uci_options"] = {
     "Move Overhead": 100,
 }
 engine["online_moves"]["online_egtb"]["enabled"] = False      # our own tables, not Lichess's
+# The opening book from our own games (scripts/make-book.py): what 2200+ players chose in September 2026,
+# weighted by how often and how well; played instantly for the first 12 moves while the book has the position.
+book = os.path.join(here, "books", "lichess-2026-09-2200.bin")
+engine["polyglot"] = {
+    "enabled": os.path.exists(book),
+    "book": {"standard": [book]},
+    "min_weight": 1,
+    "selection": "weighted_random",
+    "max_depth": 12,                                          # moves (lichess-bot doubles it into plies)
+    "normalization": "none",
+}
 for kind in ("syzygy", "gaviota"):
     engine["lichess_bot_tbs"][kind]["enabled"] = False
 engine["draw_or_resign"]["resign_enabled"] = False            # play every game out (for now)
