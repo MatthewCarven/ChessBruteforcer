@@ -28,6 +28,9 @@ dotnet run --project src/ChessBruteforcer.Cli -- ranges
 dotnet run --project src/ChessBruteforcer.Cli -- check "4k3/8/8/8/8/8/PPPPPPPP/QQ2K3"
 ```
 
+## Early analysis
+https://claude.ai/artifact/AC7GVV8rmuefFj1AEEJEE6
+
 ## The ranges
 
 `ranges` prints how many 48-byte boards survive each tier of checks. The
