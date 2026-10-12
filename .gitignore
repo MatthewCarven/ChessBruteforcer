@@ -496,3 +496,7 @@ engines/
 # Downloaded game databases and imported .cbg files (see README: Game files)
 games/
 *.cbg
+
+# The Lichess bot: the lichess-bot download, its Python environment, and its config (which holds the token)
+bot/lichess-bot/
+
