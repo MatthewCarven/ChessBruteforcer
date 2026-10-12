@@ -1,0 +1,46 @@
+224,678 games in 60s. Tables on disk with both kinds: 146.
+13,872 games (6.2%) enter a table we have, with a move still to make.
+Still to play when they get there: median 7 moves (quartiles 3 and 13; the game had ended there in 658)
+
+The table (50-move rule, the game's clock) for the side to move, against the game's result:
+  table says     games              won          drawn           lost  unfinished
+  won            4,612    3,711 (80.5%)    715 (15.5%)     186 (4.0%)           0
+  drawn          3,073      474 (15.4%)  1,979 (64.4%)    620 (20.2%)           0
+  lost           6,187       162 (2.6%)    849 (13.7%)  5,176 (83.7%)           0
+  Ended otherwise than the table says: 3,006 of 13,872 (21.7%): the results perfect play from there would have changed.
+  Won endings not won: 1,912 of 10,799; of those, 917 on time.
+  Won or lost with best play but drawn by the 50-move rule at the game's clock: 1
+  Won endings that ended in mate (3,274): the players took a median 11.5 moves, best play 8.5; slower than best in 69% of them.
+
+Where they enter, the most common tables:
+  table      games   won for someone   ...and won    drawn   ...and drawn
+  KPPvKP     2,694             2,176        80.7%      518          63.1%
+  KRPvKR     1,499               628        75.3%      871          55.1%
+  KRPvKP     1,023               877        83.9%      146          71.9%
+  KRPPvK       841               840        88.1%        1           0.0%
+  KPPPvK       814               812        85.8%        2          50.0%
+  KQPvKP       668               625        86.4%       43          62.8%
+  KBPvKP       592               428        75.9%      164          76.8%
+  KQPPvK       527               527        87.3%        0           0.0%
+  KPPvKR       526               407        73.5%      119          47.9%
+  KNPvKP       407               306        78.1%      101          69.3%
+  KBPPvK       383               381        84.0%        2         100.0%
+  KNPPvK       295               293        83.3%        2          50.0%
+  KPPvKQ       228               224        80.4%        4          75.0%
+  KPPvKB       196                79        84.8%      117          86.3%
+  KPPvKN       184                69        84.1%      115          77.4%
+
+By the players' average rating:
+                  games  ended otherwise  wins won  draws held  of the otherwise, on time
+  under 1500      3,220            22.5%     80.6%       64.8%                      31.1%
+  1500-1999      10,181            21.0%     83.2%       64.8%                      51.5%
+  2000-2399         446            29.1%     76.6%       55.4%                      73.1%
+  unrated            25            40.0%     59.1%       66.7%                      10.0%
+
+By time control (Lichess's classes: base + 40 x increment):
+                  games  ended otherwise  wins won  draws held  of the otherwise, on time
+  bullet          3,132            29.1%     75.0%       52.8%                      68.9%
+  blitz           5,846            21.8%     82.7%       62.6%                      49.1%
+  rapid           4,581            16.5%     87.1%       72.0%                      21.6%
+  classical         270            17.0%     85.6%       73.8%                      13.0%
+  other              43            32.6%     68.6%       62.5%                       0.0%

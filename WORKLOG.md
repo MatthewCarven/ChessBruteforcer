@@ -1149,3 +1149,24 @@ rather than 48-byte boards, because that is the storage that scales.
   them to the clock; slower games lose them to the moves.
 - KPPvKP is the commonest way in again (35,101 games); drawn KRPvKR held
   54%. Outputs: scripts/takeover-2026-09.txt, scripts/takeover-2013.txt.
+- The check month Matthew asked for, 2013-06 (32.9 MB, 224,679 games by
+  Lichess's count): imported 224,678 in 1 min 46 s into `games/2013-06.cbg`
+  (the unpack script trimmed the last game of a whole file too; fixed, now
+  `scripts/unzst.py`, which trims only after a cut). Its scorecard: 13,872
+  games reach a table, **21.7% ended otherwise** (the five months: 21.1%),
+  and the same shapes by rating and time control (bullet 29.1%, rapid
+  16.5%). So the 2013 figures hold on a month nothing had been tuned on.
+  Output: scripts/takeover-2013-06.txt.
+- Matthew asked to finish the September 2026 download (he kept the first
+  1 GB for it). `scripts/download-lichess-month.cmd 2026-09` carries on from
+  those bytes (renamed to `.part`, the server's Last-Modified recorded and
+  checked so two versions of the file can't be spliced), retries on a
+  dropped connection, and renames the file when its size matches the
+  server's 29,224,520,887 bytes. Started 18:43 in its own window, ~750 KB/s:
+  ~10 h. Log: games/download-2026-09.log.
+- Not yet possible as it stands, so for the next session: importing the
+  whole month. Unpacked it is ~150 GB, so unpack and import in chunks,
+  deleting each; and as .cbg it would be ~35 GB (389 bytes a game, 83% of it
+  tags) against ~39 GB free once the download is in. Either keep only the
+  tags the scorecards use (Result, WhiteElo, BlackElo, TimeControl,
+  Termination: ~12 GB) or score straight from the stream without storing.

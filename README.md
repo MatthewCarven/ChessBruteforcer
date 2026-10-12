@@ -433,6 +433,18 @@ K+N+N v K+P, where it takes 18% of the wins. Every table's sample verified as
 it was built, and Lichess agrees on all 343 positions checked (mate distances
 and the rule). Per table: [FIVE-PIECE-PAWNS.md](FIVE-PIECE-PAWNS.md).
 
+**Playing them** (2026-10). `game takeover` finds where real games reach a
+table and sets what happened against what the table says: about one game in
+five that gets there ends otherwise (21% of Lichess games from 2013, 27% of
+3.3 million from September 2026). Strong players lose theirs mostly on the
+clock: the errors in the moves themselves fall from 17% under 1500 to 5.5%
+at 2400 and up. Played out by our engine, every one of 47,842 ends as the
+table says. Against Stockfish 16 without tables (100 ms a move), real games'
+endings are no trouble for it (1,000 games, all as the tables say), but
+positions sampled from the tables (`hard`: long wins, and wins and losses the
+rule draws) are: it converted only 29-44 of 108 long wins, and our engine
+scored 351.5 and 360 of 504 where the tables give 252. Details in WORKLOG.
+
 **Compressed tables** ("CBC1", 2026-09-30), for the 50 pawn tables, which
 would not fit plain (~115 GB against ~96 GB free). A table's values are cut
 into 64 KB blocks, each compressed on its own with Brotli (quality 10), with
