@@ -39,6 +39,27 @@ and the engine plays them by the 50-move rule. Where things stand:
       2026-10-12): 1 move in 31 that could go wrong does (2026; 1 in 32 in
       2013), and 20% of games have at least one. Half the endings that go
       wrong do it on the clock. WORKLOG has the tables.
+- [ ] **A Lichess bot** (Matthew, 2026-10-13; plan only so far). The engine
+      already speaks UCI with the clock (wtime/btime/winc/binc), Move Overhead
+      and EndgameTables, so this is mostly plumbing: the lichess-bot bridge
+      (github.com/lichess-bot-devs/lichess-bot, Python) runs any UCI engine.
+      Matthew's part first: a new Lichess account that has never played a
+      game, and an API token with the bot:play scope (he types it into the
+      config himself; the config stays out of git). Upgrading to BOT is
+      permanent for that account.
+      1. Setup (one session): clone lichess-bot (his yes for the download),
+         config pointing at a copy of the engine build with `--tables`, one
+         game at a time, Lichess's online tablebase off, read Lichess's
+         current bot rules; he upgrades the account, then challenges it from
+         his own account, casual.
+      2. Make it hold up (one session): a start script and logs, Move
+         Overhead for network lag (test at bullet), table-based draw claims
+         and resigning, restart after a crash, which challenges to accept,
+         matchmaking against other bots.
+      3. Learn from it: its Lichess rating is the engine's first real one;
+         `game takeover --moves` on its own games should find no mistakes.
+      Running it all day needs the laptop awake, or a small Linux server
+      later (his call; .NET 8 and ~12 GB of tables).
 - [ ] The hard positions at 1 s a move: `scripts\hard-vs-stockfish.cmd`
       (~7 h, plugged in; Matthew starts it). Compare with the 100 ms runs.
 - [ ] How much slower the engine's rule-safe play mates than the fastest
