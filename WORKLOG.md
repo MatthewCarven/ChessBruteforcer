@@ -1269,3 +1269,21 @@ rather than 48-byte boards, because that is the storage that scales.
   kinds): https://claude.ai/artifact/AC7GVV8rmuefFj1AEEJEE6 (private).
 - Output: scripts/takeover-moves-2026-09-clocks.txt (6 min, peak 1.77 GB,
   heap capped). Tests: 296 pass, 2 skipped.
+
+## 2026-10-13: the Lichess bot, session 1
+
+- lichess-bot (2026.10.11.1, AGPL) in `bot/lichess-bot` with its own venv
+  (out of git, with config.yml and the token). Our settings in
+  `bot/make-config.py`; `bot/start-bot.cmd` refreshes a copy of the engine
+  build, rewrites the config (keeping the token) and runs it with a dated
+  log in bot/logs; games go to bot/games. Engine over UCI with the tables:
+  ready in 1.5 s (292 tables, 796 MB in memory), table moves instant.
+- The account is Matthew's own, **matthewcarven** (made 2026-10-13 for
+  this, no games; he chose it over a separate BruteForceBot). Upgraded to
+  BOT at 04:15; Lichess shows it online with the BOT title.
+- One snag: lichess-bot `-u` carries on as the bot after upgrading, so
+  start-bot.cmd made a second copy, and Lichess rate-limited its event
+  stream (one per account) until the first was closed; it recovered alone.
+- Settings for now: casual only, one game at a time, no resigning, draws
+  offered as lichess-bot's default, no matchmaking. Next: its first games
+  (a challenger, or matchmaking against other bots), then rated.
