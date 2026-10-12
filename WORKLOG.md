@@ -1287,3 +1287,13 @@ rather than 48-byte boards, because that is the storage that scales.
 - Settings for now: casual only, one game at a time, no resigning, draws
   offered as lichess-bot's default, no matchmaking. Next: its first games
   (a challenger, or matchmaking against other bots), then rated.
+- Matchmaking on (casual blitz, 3+2 or 5+3). Lichess starts a new bot at a
+  provisional 3000 in every speed, and casual games never move it, so
+  lichess-bot's "within 300 of our rating" only picked 2700-3300 bots
+  (grail-bot and caiporaBot ignored us). Now a fixed band, 1800-2400.
+- **First game** (https://lichess.org/Ifx8xL7J, 5+2 casual, 04:28-04:40):
+  Bongaclang (2389, the top of the band, opened with the Bongcloud) beat us
+  with Black, mate on move 56. Behind on material from the middlegame; 40 s
+  left at the end, so not the clock. Nothing went wrong in the plumbing: no
+  crash, no illegal move, saved to bot/games. The Stockfish run was going
+  on alongside (single-threaded engines on a 16-thread laptop).
