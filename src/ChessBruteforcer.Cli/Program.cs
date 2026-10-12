@@ -1161,6 +1161,43 @@ static class Cli
                               $"{drawn.Count,7:N0}  {Pct(drawn.Count(r => r.Actual == OutcomeKind.Draw), drawn.Count),12:0.0}%");
         }
 
+        // By who played and how fast: the players' average rating, and Lichess's time-control classes.
+        static string RatingBand(StoredGame game)
+        {
+            double rating = AverageRating(game);
+            return rating <= 0 ? "unrated" : rating < 1500 ? "under 1500" : rating < 2000 ? "1500-1999"
+                 : rating < 2400 ? "2000-2399" : "2400 and up";
+        }
+        static string Speed(StoredGame game)
+        {
+            string[] parts = (game.Tag("TimeControl") ?? "-").Split('+');
+            if (parts.Length != 2 || !int.TryParse(parts[0], out int seconds) || !int.TryParse(parts[1], out int increment))
+                return "other";
+            int estimate = seconds + 40 * increment;   // Lichess's estimate of a game's length
+            return estimate < 29 ? "ultrabullet" : estimate < 180 ? "bullet" : estimate < 480 ? "blitz"
+                 : estimate < 1500 ? "rapid" : "classical";
+        }
+        void Breakdown(string title, Func<StoredGame, string> key, string[] order)
+        {
+            Console.WriteLine();
+            Console.WriteLine(title);
+            Console.WriteLine($"  {"",-12} {"games",8} {"ended otherwise",16} {"wins won",9} {"draws held",11} {"of the otherwise, on time",26}");
+            foreach (var group in rows.GroupBy(r => key(r.Point.Game)).OrderBy(g => Array.IndexOf(order, g.Key)))
+            {
+                var done = group.Where(r => r.Actual != OutcomeKind.Beyond).ToList();
+                var won = done.Where(r => r.Rule.Kind != OutcomeKind.Draw).ToList();
+                var drawn = done.Where(r => r.Rule.Kind == OutcomeKind.Draw).ToList();
+                var otherwise = done.Where(r => r.Actual != r.Rule.Kind).ToList();
+                Console.WriteLine($"  {group.Key,-12} {group.Count(),8:N0} {Pct(otherwise.Count, done.Count),15:0.0}% " +
+                                  $"{Pct(won.Count(r => r.Actual == r.Rule.Kind), won.Count),8:0.0}% " +
+                                  $"{Pct(drawn.Count(r => r.Actual == OutcomeKind.Draw), drawn.Count),10:0.0}% " +
+                                  $"{Pct(otherwise.Count(r => r.Point.Game.Tag("Termination") == "Time forfeit"), otherwise.Count),25:0.0}%");
+            }
+        }
+        Breakdown("By the players' average rating:", RatingBand, ["under 1500", "1500-1999", "2000-2399", "2400 and up", "unrated"]);
+        Breakdown("By time control (Lichess's classes: base + 40 x increment):", Speed,
+                  ["ultrabullet", "bullet", "blitz", "rapid", "classical", "other"]);
+
         if (play is int count)
             PlayTakeovers(rows, count, Pct);
         if (versus is { } match)
