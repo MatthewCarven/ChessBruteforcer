@@ -40,7 +40,7 @@ engine["draw_or_resign"]["resign_enabled"] = False            # play every game 
 
 challenge = config["challenge"]
 challenge["concurrency"] = 1                                  # one game at a time on the laptop
-challenge["modes"] = ["casual"]                               # casual only until it has been watched; then add "rated"
+challenge["modes"] = ["casual", "rated"]                      # rated from 2026-10-13 (six clean casual games first)
 challenge["time_controls"] = ["bullet", "blitz", "rapid", "classical"]
 
 config["greeting"] = {
@@ -54,10 +54,11 @@ matchmaking["allow_matchmaking"] = True
 matchmaking["challenge_timeout"] = 1                          # minutes idle before it sends a challenge
 matchmaking["challenge_initial_time"] = [180, 300]            # blitz: 3+2 or 5+3, chosen at random
 matchmaking["challenge_increment"] = [2, 3]
-matchmaking["challenge_mode"] = "casual"
+matchmaking["challenge_mode"] = "rated"                       # its challenges count for rating (some bots refuse casual)
 matchmaking["challenge_filter"] = "coarse"                    # don't keep asking bots that said no
 # Lichess starts a new bot at a provisional 3000, and casual games never move it, so "within 300 of our
 # rating" would only ever pick 2700-3300 bots. A fixed band round our estimate (~2100) instead.
+# Once rated games have settled its rating (20 or so), go back to opponent_rating_difference: 300.
 matchmaking["opponent_rating_difference"] = None
 matchmaking["opponent_min_rating"] = 1800
 matchmaking["opponent_max_rating"] = 2400
