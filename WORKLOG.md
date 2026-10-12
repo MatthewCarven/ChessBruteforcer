@@ -1314,3 +1314,33 @@ rather than 48-byte boards, because that is the storage that scales.
   kept 5,260,601 (5.87%) in 46 min, 5.5 GB of PGN; imported in 66 min into
   `games/2026-09-tables.cbg` (1.86 GB, 669.9 M moves). Next: make `game
   takeover` stream in batches, then `--moves` on it (TODO).
+- By 08:48: 11 rated games, 5 won, 5 lost, 1 drawn; blitz 2092
+  (provisional), close to the ~2100 estimated from Stockfish matches. Every
+  game that reached the tables had its result settled before it got there
+  (checked by probing the entry position). One loss on time (Voigtsbach,
+  aWLxeu2F) was the network: the connection to Lichess failed from 08:04:15
+  for about a minute while our clock ran. And every move re-makes the
+  connection ("Resetting dropped connection", 586 times overnight, ~1.2 s
+  each from Australia to Lichess's servers), which lichess-bot's 2 s move
+  overhead absorbs. A server nearer Lichess would remove both.
+
+## 2026-10-13: the hard positions at 1 s a move
+
+- `scripts\hard-vs-stockfish.cmd` (Matthew, 01:57-08:18, plugged in, with
+  the bot and the September import running alongside on other threads):
+  the same 252 positions as the 100 ms runs, 504 games in 381 min.
+
+  | | 100 ms (2026-10-09) | 100 ms, battery | **1 s** |
+  |---|---|---|---|
+  | Stockfish's long wins converted (of 108) | 44 | 29 | **76** |
+  | its defences of cursed wins held (of 72) | 5 | 5 | **19** |
+  | its defences of blessed losses held (of 72) | 4 | 2 | **16** |
+  | our points (the tables' 252) | 351.5 | 360 | **322.5** |
+
+- Ten times the time helps Stockfish a lot (41% -> 70% of long wins, and a
+  quarter of the knife-edge defences held instead of a few), but it still
+  can't do what the tables do, and we still score 70.5 points over the
+  tables' figure. Our engine again never did worse than its table in any of
+  the 504 games. Hardest for Stockfish still: K+B+N v K+N (0 of 6 long wins
+  converted at both speeds), K+R+N v K+Q (1 of 6), K+N+N v K+Q (2 of 6).
+  Output: scripts/hard-vs-stockfish-1000ms.txt.

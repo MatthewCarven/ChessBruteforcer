@@ -68,8 +68,9 @@ and the engine plays them by the 50-move rule. Where things stand:
          `game takeover --moves` on its own games should find no mistakes.
       Running it all day needs the laptop awake, or a small Linux server
       later (his call; .NET 8 and ~12 GB of tables).
-- [ ] The hard positions at 1 s a move: `scripts\hard-vs-stockfish.cmd`
-      (~7 h, plugged in; Matthew starts it). Compare with the 100 ms runs.
+- [x] The hard positions at 1 s a move (2026-10-13): Stockfish converts 76
+      of 108 long wins (44 at 100 ms) and holds a quarter of the knife-edge
+      defences; we score 322.5 of 504 against the tables' 252. WORKLOG.
 - [ ] How much slower the engine's rule-safe play mates than the fastest
       mate; the evaluation scaled down as the clock rises (step C's maybe).
 - [ ] Matthew's: a second pull request from `compression` into `main` (PR
