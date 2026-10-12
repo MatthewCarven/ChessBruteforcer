@@ -73,6 +73,9 @@ static class Cli
                                          with the engine on both sides (0: all)
           game takeover <file>... --versus N "<engine command>" [ms]  N of those positions, each played twice
                                          against a UCI engine (our engine on each side in turn), ms a move (100)
+          game takeover <file>... --moves  and every move the players made inside the tables: the ones that threw
+                                         away a win or a draw, by rating, time control, table and how far in; and how
+                                         the games that ended otherwise went wrong (the moves, the clock, resigning)
         """;
 
     public static int Run(string[] args)
@@ -138,6 +141,7 @@ static class Cli
                     GameTakeover(files, null, (int.Parse(n), engine, 100)),
                 ["game", "takeover", .. var files, "--versus", var n, var engine, var ms] when files.Length > 0 =>
                     GameTakeover(files, null, (int.Parse(n), engine, int.Parse(ms))),
+                ["game", "takeover", .. var files, "--moves"] when files.Length > 0 => GameTakeover(files, null, moves: true),
                 ["game", "takeover", .. var files] when files.Length > 0 => GameTakeover(files, null),
                 _ => Print(Usage, 1),
             };
@@ -872,6 +876,26 @@ static class Cli
         int.TryParse(game.Tag("WhiteElo"), out int white) && int.TryParse(game.Tag("BlackElo"), out int black)
             ? (white + black) / 2.0 : 0;
 
+    private static readonly string[] Bands = ["under 1500", "1500-1999", "2000-2399", "2400 and up", "unrated"];
+
+    /// <summary>The rating bands the scorecards use (0 or less: unrated).</summary>
+    private static string Band(double rating) =>
+        rating <= 0 ? "unrated" : rating < 1500 ? "under 1500" : rating < 2000 ? "1500-1999"
+        : rating < 2400 ? "2000-2399" : "2400 and up";
+
+    private static readonly string[] Speeds = ["ultrabullet", "bullet", "blitz", "rapid", "classical", "other"];
+
+    /// <summary>Lichess's time-control class from the TimeControl tag: base + 40 x increment seconds.</summary>
+    private static string Speed(StoredGame game)
+    {
+        string[] parts = (game.Tag("TimeControl") ?? "-").Split('+');
+        if (parts.Length != 2 || !int.TryParse(parts[0], out int seconds) || !int.TryParse(parts[1], out int increment))
+            return "other";
+        int estimate = seconds + 40 * increment;   // Lichess's estimate of a game's length
+        return estimate < 29 ? "ultrabullet" : estimate < 180 ? "bullet" : estimate < 480 ? "blitz"
+             : estimate < 1500 ? "rapid" : "classical";
+    }
+
     /// <summary>
     /// How much the games share, stored as one tree of moves (and as one set of
     /// positions).  With several files, each is added on top of the ones before,
@@ -1053,7 +1077,7 @@ static class Cli
     /// 50-move clock, against what actually happened.  With <paramref name="play"/>,
     /// that many of them (0: all) are played out by the engine on both sides.
     /// </summary>
-    private static int GameTakeover(string[] files, int? play, (int Count, string Engine, int MoveMs)? versus = null)
+    private static int GameTakeover(string[] files, int? play, (int Count, string Engine, int MoveMs)? versus = null, bool moves = false)
     {
         var watch = Stopwatch.StartNew();
         // Both kinds on disk.  A 5-piece table counts once compressed: until then a build may be about
@@ -1162,21 +1186,7 @@ static class Cli
         }
 
         // By who played and how fast: the players' average rating, and Lichess's time-control classes.
-        static string RatingBand(StoredGame game)
-        {
-            double rating = AverageRating(game);
-            return rating <= 0 ? "unrated" : rating < 1500 ? "under 1500" : rating < 2000 ? "1500-1999"
-                 : rating < 2400 ? "2000-2399" : "2400 and up";
-        }
-        static string Speed(StoredGame game)
-        {
-            string[] parts = (game.Tag("TimeControl") ?? "-").Split('+');
-            if (parts.Length != 2 || !int.TryParse(parts[0], out int seconds) || !int.TryParse(parts[1], out int increment))
-                return "other";
-            int estimate = seconds + 40 * increment;   // Lichess's estimate of a game's length
-            return estimate < 29 ? "ultrabullet" : estimate < 180 ? "bullet" : estimate < 480 ? "blitz"
-                 : estimate < 1500 ? "rapid" : "classical";
-        }
+        static string RatingBand(StoredGame game) => Band(AverageRating(game));
         void Breakdown(string title, Func<StoredGame, string> key, string[] order)
         {
             Console.WriteLine();
@@ -1194,10 +1204,11 @@ static class Cli
                                   $"{Pct(otherwise.Count(r => r.Point.Game.Tag("Termination") == "Time forfeit"), otherwise.Count),25:0.0}%");
             }
         }
-        Breakdown("By the players' average rating:", RatingBand, ["under 1500", "1500-1999", "2000-2399", "2400 and up", "unrated"]);
-        Breakdown("By time control (Lichess's classes: base + 40 x increment):", Speed,
-                  ["ultrabullet", "bullet", "blitz", "rapid", "classical", "other"]);
+        Breakdown("By the players' average rating:", RatingBand, Bands);
+        Breakdown("By time control (Lichess's classes: base + 40 x increment):", Speed, Speeds);
 
+        if (moves)
+            TakeoverMoves(rows, Pct);
         if (play is int count)
             PlayTakeovers(rows, count, Pct);
         if (versus is { } match)
@@ -1429,6 +1440,221 @@ static class Cli
         Console.WriteLine($"(sampled in {watch.Elapsed.TotalSeconds:0}s; counts are positions, either side to move)");
         PlayVersus(cases, command, moveMs);
         return 0;
+    }
+
+    /// <summary>Moves inside the tables, for one group: how many were made from a won or drawn position, and how many of those made it worse.</summary>
+    private sealed class MoveTally
+    {
+        public long Moves, FromWon, FromDrawn, WonToDrawn, WonToLost, DrawnToLost;
+
+        public long CouldGoWrong => FromWon + FromDrawn;
+
+        public long Mistakes => WonToDrawn + WonToLost + DrawnToLost;
+
+        public void Add(OutcomeKind before, OutcomeKind after)
+        {
+            Moves++;
+            if (before == OutcomeKind.Win)
+            {
+                FromWon++;
+                if (after == OutcomeKind.Draw) WonToDrawn++;
+                else if (after == OutcomeKind.Loss) WonToLost++;
+            }
+            else if (before == OutcomeKind.Draw)
+            {
+                FromDrawn++;
+                if (after == OutcomeKind.Loss) DrawnToLost++;
+            }
+        }
+    }
+
+    /// <summary>One game's moves inside the tables: how many, how many were mistakes and what the first one threw away
+    /// (a win or a draw), and the last position's verdict for the side to move at entry (null: a position no table read).</summary>
+    private sealed record GameWalk(TakeoverRow Row, int Moves, int Mistakes, OutcomeKind? FirstThrown, OutcomeKind? Final, bool Repeated);
+
+    /// <summary>
+    /// Matthew (2026-10-12): how often people go wrong inside the tables, and where.  Every move the
+    /// players made from where a game enters a table to its end, with the table's verdict for the side
+    /// moving (the 50-move rule at the game's clock) before the move and after: a move from a won
+    /// position that leaves it drawn or lost, or from a drawn one that leaves it lost, is a mistake.  A
+    /// losing side can't make it worse, and our engine, moving by the tables, never makes one.  Then how
+    /// the games that ended otherwise than the verdict at entry went wrong: through the moves (the last
+    /// position's verdict is the result), or with the result coming from elsewhere (a flag falling,
+    /// resigning, a draw agreed or repeated while someone was winning).
+    /// </summary>
+    private static void TakeoverMoves(List<TakeoverRow> rows, Func<long, long, double> Pct)
+    {
+        var watch = Stopwatch.StartNew();
+        static OutcomeKind Negate(OutcomeKind kind) =>
+            kind switch { OutcomeKind.Win => OutcomeKind.Loss, OutcomeKind.Loss => OutcomeKind.Win, _ => kind };
+        static int Score(OutcomeKind kind) => kind switch { OutcomeKind.Win => 2, OutcomeKind.Draw => 1, _ => 0 };
+        static OutcomeKind? Verdict(Position position, Tablebase tables)
+        {
+            switch (position.Status())
+            {
+                case GameStatus.Checkmate: return OutcomeKind.Loss;
+                case GameStatus.Stalemate: return OutcomeKind.Draw;
+            }
+            if (GamePlayer.InsufficientMaterial(position))
+                return OutcomeKind.Draw;
+            return tables.TryProbeWithClock(position, out var outcome) ? outcome.Kind : null;
+        }
+        static MoveTally Get<TKey>(Dictionary<TKey, MoveTally> map, TKey key) where TKey : notnull =>
+            map.TryGetValue(key, out var tally) ? tally : map[key] = new MoveTally();
+
+        var all = new MoveTally();
+        var byRating = new Dictionary<string, MoveTally>();   // the rating of the player moving
+        var bySpeed = new Dictionary<string, MoveTally>();
+        var byTable = new Dictionary<Material, MoveTally>();   // the table the move was made in
+        string[] stages = ["1-5", "6-10", "11-20", "21-40", "41 and on"];
+        static string Stage(int ownMove) => ownMove <= 5 ? "1-5" : ownMove <= 10 ? "6-10" : ownMove <= 20 ? "11-20"
+                                          : ownMove <= 40 ? "21-40" : "41 and on";
+        var byStage = stages.ToDictionary(s => s, _ => new MoveTally());
+        long better = 0;
+        var walks = new List<GameWalk>();
+        foreach (var group in rows.GroupBy(r => r.Point.Material))
+        {
+            using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
+            foreach (var row in group)
+            {
+                var game = row.Point.Game;
+                var position = game.PositionAt(row.Point.Ply);
+                var entrySide = position.SideToMove;
+                var seen = new Dictionary<ulong, int>();
+                foreach (ulong hash in row.Point.Hashes)
+                    seen[hash] = seen.GetValueOrDefault(hash) + 1;
+                string speed = Speed(game);
+                int moves = 0, mistakes = 0;
+                OutcomeKind? firstThrown = null;
+                var before = Verdict(position, tables);
+                for (int ply = row.Point.Ply; ply < game.Moves.Count; ply++)
+                {
+                    if (before is not { } was)
+                        break;
+                    var material = Material.FromPosition(position).Canonical;
+                    string rating = Band(int.TryParse(game.Tag(position.SideToMove == Colour.White ? "WhiteElo" : "BlackElo"),
+                                                      out int elo) ? elo : 0);
+                    position.MakeMove(game.Moves[ply]);
+                    seen[position.Hash] = seen.GetValueOrDefault(position.Hash) + 1;
+                    before = Verdict(position, tables);   // now for the other side
+                    if (before is not { } next)
+                        break;
+                    var after = Negate(next);   // for the side that moved
+                    moves++;
+                    if (Score(after) > Score(was))
+                        better++;
+                    else if (Score(after) < Score(was))
+                    {
+                        mistakes++;
+                        firstThrown ??= was;
+                    }
+                    all.Add(was, after);
+                    Get(byRating, rating).Add(was, after);
+                    Get(bySpeed, speed).Add(was, after);
+                    Get(byTable, material).Add(was, after);
+                    byStage[Stage((ply - row.Point.Ply) / 2 + 1)].Add(was, after);
+                }
+                OutcomeKind? final = before is { } last ? (position.SideToMove == entrySide ? last : Negate(last)) : null;
+                walks.Add(new GameWalk(row, moves, mistakes, firstThrown, final, seen[position.Hash] >= 3));
+                if (walks.Count % 5000 == 0)
+                    Console.Error.Write($"\rwalked {walks.Count:N0} of {rows.Count:N0}");
+            }
+        }
+        Console.Error.Write($"\r{"",-40}\r");
+
+        string OneIn(long part, long whole) => part == 0 ? "-" : $"1 in {whole / (double)part:0}";
+        var played = walks.Where(w => w.Moves > 0).ToList();
+        var counts = played.Select(w => w.Moves).Order().ToList();
+        Console.WriteLine();
+        Console.WriteLine($"Move by move inside the tables ({walks.Count:N0} games, {watch.Elapsed.TotalSeconds:0}s): the table's verdict " +
+                          "(50-move rule, the game's clock) for the side moving, before each move and after.");
+        Console.WriteLine($"  Moves played: {all.Moves:N0} in {played.Count:N0} games (median {(counts.Count == 0 ? 0 : counts[counts.Count / 2])} " +
+                          $"a game); from a won position {all.FromWon:N0}, drawn {all.FromDrawn:N0}, lost {all.Moves - all.CouldGoWrong:N0} " +
+                          "(a lost side can't make it worse).");
+        Console.WriteLine("  Mistakes, moves that made the verdict worse for the side making them:");
+        Console.WriteLine($"    won -> drawn   {all.WonToDrawn,9:N0}  {Pct(all.WonToDrawn, all.FromWon),5:0.0}% of moves from won positions");
+        Console.WriteLine($"    won -> lost    {all.WonToLost,9:N0}  {Pct(all.WonToLost, all.FromWon),5:0.0}%");
+        Console.WriteLine($"    drawn -> lost  {all.DrawnToLost,9:N0}  {Pct(all.DrawnToLost, all.FromDrawn),5:0.0}% of moves from drawn positions " +
+                          $"({OneIn(all.DrawnToLost, all.FromDrawn)})");
+        Console.WriteLine($"    all            {all.Mistakes,9:N0}  {Pct(all.Mistakes, all.CouldGoWrong),5:0.0}% of the moves that could go wrong " +
+                          $"({OneIn(all.Mistakes, all.CouldGoWrong)}); won ones thrown {OneIn(all.WonToDrawn + all.WonToLost, all.FromWon)}");
+        Console.WriteLine($"  Checks: moves that made it better for the side moving {better:N0} (should be 0); " +
+                          $"games stopped at a position no table read {walks.Count(w => w.Final is null):N0}.");
+
+        int withMistake = played.Count(w => w.Mistakes > 0);
+        Console.WriteLine();
+        Console.WriteLine($"The {played.Count:N0} games with moves played in the tables:");
+        Console.WriteLine($"  no mistake {played.Count - withMistake:N0} ({Pct(played.Count - withMistake, played.Count):0.0}%); at least one " +
+                          $"{withMistake:N0} ({Pct(withMistake, played.Count):0.0}%), where our engine, moving by the tables, would have played better.");
+        Console.WriteLine($"  mistakes in a game: none {played.Count(w => w.Mistakes == 0):N0}, one {played.Count(w => w.Mistakes == 1):N0}, " +
+                          $"two {played.Count(w => w.Mistakes == 2):N0}, three or more {played.Count(w => w.Mistakes >= 3):N0}");
+        long wonFirst = played.Count(w => w.FirstThrown == OutcomeKind.Win);
+        Console.WriteLine($"  the first mistake threw away a win in {wonFirst:N0} ({Pct(wonFirst, withMistake):0.0}%), a draw in " +
+                          $"{withMistake - wonFirst:N0} ({Pct(withMistake - wonFirst, withMistake):0.0}%)");
+        var asSaid = played.Where(w => w.Row.Actual == w.Row.Rule.Kind).ToList();
+        Console.WriteLine($"  ended as the table said at entry, with mistakes on the way that came back: {asSaid.Count(w => w.Mistakes > 0):N0} " +
+                          $"of {asSaid.Count:N0} ({Pct(asSaid.Count(w => w.Mistakes > 0), asSaid.Count):0.0}%)");
+        void GamesBy(string title, Func<StoredGame, string> key, string[] order)
+        {
+            Console.WriteLine($"  {title}: " + string.Join(", ", played.GroupBy(w => key(w.Row.Point.Game)).OrderBy(g => Array.IndexOf(order, g.Key))
+                .Select(g => $"{g.Key} {Pct(g.Count(w => w.Mistakes > 0), g.Count()):0}%")));
+        }
+        GamesBy("with at least one mistake, by average rating", g => Band(AverageRating(g)), Bands);
+        GamesBy("by time control", Speed, Speeds);
+
+        // The games whose result differs from the table's verdict at entry: what made the difference.
+        var otherwise = walks.Where(w => w.Row.Actual != OutcomeKind.Beyond && w.Row.Actual != w.Row.Rule.Kind).ToList();
+        string[] causes =
+        [
+            "the moves (the last position's verdict is the result)",
+            "a flag fell, the last position not as the result",
+            "resigned, the last position not lost",
+            "drawn by repetition while someone was winning",
+            "drawn otherwise while someone was winning (agreed, claimed)",
+            "abandoned or other",
+            "a position no table read",
+        ];
+        string Cause(GameWalk walk)
+        {
+            if (walk.Final is null)
+                return causes[6];
+            if (walk.Final == walk.Row.Actual)
+                return causes[0];
+            string termination = walk.Row.Point.Game.Tag("Termination") ?? "";
+            if (termination == "Time forfeit")
+                return causes[1];
+            if (termination != "Normal")
+                return causes[5];
+            if (walk.Row.Actual != OutcomeKind.Draw)
+                return causes[2];
+            return walk.Repeated ? causes[3] : causes[4];
+        }
+        Console.WriteLine();
+        Console.WriteLine($"How the {otherwise.Count:N0} games that ended otherwise than the table at entry went wrong:");
+        Console.WriteLine($"  {"",-62} {"games",8} {"share",6}  {"with a mistake",14}");
+        foreach (var group in otherwise.GroupBy(Cause).OrderBy(g => Array.IndexOf(causes, g.Key)))
+            Console.WriteLine($"  {group.Key,-62} {group.Count(),8:N0} {Pct(group.Count(), otherwise.Count),5:0.0}%  " +
+                              $"{Pct(group.Count(w => w.Mistakes > 0), group.Count()),13:0.0}%");
+
+        void Rates(string title, IEnumerable<(string Name, MoveTally Tally)> lines)
+        {
+            Console.WriteLine();
+            Console.WriteLine(title);
+            Console.WriteLine($"  {"",-12} {"moves",10} {"could go wrong",15} {"mistakes",9} {"per 100",8} {"wins thrown",12} {"draws lost",11}");
+            foreach (var (name, t) in lines)
+                Console.WriteLine($"  {name,-12} {t.Moves,10:N0} {t.CouldGoWrong,15:N0} {t.Mistakes,9:N0} {Pct(t.Mistakes, t.CouldGoWrong),8:0.00} " +
+                                  $"{Pct(t.WonToDrawn + t.WonToLost, t.FromWon),11:0.00}% {Pct(t.DrawnToLost, t.FromDrawn),10:0.00}%");
+        }
+        Rates("Mistakes per 100 moves that could go wrong, by the rating of the player moving:",
+              Bands.Where(byRating.ContainsKey).Select(b => (b, byRating[b])));
+        Rates("By time control:", Speeds.Where(bySpeed.ContainsKey).Select(s => (s, bySpeed[s])));
+        Rates("By how far into the ending (the player's own moves since the game entered the tables):",
+              stages.Select(s => (s, byStage[s])));
+        Rates("The tables most moves are made in:",
+              byTable.OrderByDescending(kv => kv.Value.CouldGoWrong).Take(15).Select(kv => (kv.Key.ToString(), kv.Value)));
+        Rates("The hardest tables (1,000 or more moves that could go wrong), most mistakes per 100:",
+              byTable.Where(kv => kv.Value.CouldGoWrong >= 1000).OrderByDescending(kv => Pct(kv.Value.Mistakes, kv.Value.CouldGoWrong))
+                     .Take(10).Select(kv => (kv.Key.ToString(), kv.Value)));
     }
 
     /// <summary>Play takeover positions out with the engine on both sides, and set the results against the tables' verdicts and the players'.</summary>

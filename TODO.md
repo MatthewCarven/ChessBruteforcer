@@ -23,7 +23,13 @@ and the engine plays them by the 50-move rule. Where things stand:
       use (Result, WhiteElo, BlackElo, TimeControl, Termination; ~12 GB), or
       score from the stream without storing. It replaces 2026-09-part.cbg.
       Then the scorecard by rating and time control on the whole month (the
-      thin rows: classical, 2400 and up).
+      thin rows: classical, 2400 and up), with `--moves`. While importing,
+      keep the clock (`%clk`) for the moves inside the tables: then mistakes
+      can be set against the seconds left, which nothing on disk can do now.
+- [x] Move by move inside the tables (`game takeover ... --moves`,
+      2026-10-12): 1 move in 31 that could go wrong does (2026; 1 in 32 in
+      2013), and 20% of games have at least one. Half the endings that go
+      wrong do it on the clock. WORKLOG has the tables.
 - [ ] The hard positions at 1 s a move: `scripts\hard-vs-stockfish.cmd`
       (~7 h, plugged in; Matthew starts it). Compare with the 100 ms runs.
 - [ ] How much slower the engine's rule-safe play mates than the fastest

@@ -1170,3 +1170,53 @@ rather than 48-byte boards, because that is the storage that scales.
   tags) against ~39 GB free once the download is in. Either keep only the
   tags the scorecards use (Result, WhiteElo, BlackElo, TimeControl,
   Termination: ~12 GB) or score straight from the stream without storing.
+
+## 2026-10-12: move by move, the mistakes inside the tables
+
+- Matthew asked for the human failure rate: how many games our engine would
+  play better. `game takeover <files> --moves`: from where each game enters
+  a table to its end, every move with the table's verdict (50-move rule, the
+  game's clock) for the side moving, before and after. A move from a won
+  position that leaves it drawn or lost, or from a drawn one that leaves it
+  lost, is a mistake. A lost side can't make it worse, and the engine,
+  moving by the tables, never makes one. Check: no move of the 4.6 M came
+  out better than the table allows, and every position was read.
+
+  | | 2013, Jan-Jun | 2026-09, 1 day |
+  |---|---|---|
+  | games reaching a table | 61,714 | 189,886 |
+  | moves played in the tables | 1,156,298 | 3,444,228 |
+  | mistakes, of the moves that could go wrong | 3.1% (1 in 32) | 3.2% (1 in 31) |
+  | wins thrown, per move from a won position | 1 in 37 | 1 in 35 |
+  | draws lost, per move from a drawn position | 1 in 26 | 1 in 26 |
+  | games with at least one mistake | 19.3% | 20.4% |
+  | ended as the table said, after mistakes that came back | 6.0% | 6.7% |
+
+- How the games that ended otherwise than the table went wrong (2026,
+  50,619): through the moves 46.6%; a flag fell with the last position not
+  as the result 49.8%; resigned a position not lost 1.2%; drawn by
+  repetition while someone was winning 2.2%; other 0.3%. (2013: 58.5%,
+  37.7%, 1.8%, 0.7%, 1.3%.)
+- Per 100 moves that could go wrong, by the rating of the player moving
+  (2026): 3.82 under 1500, 3.07, 2.84, 2.40 at 2400 and up. By time control:
+  ultrabullet 5.5, bullet 3.35, blitz 3.23, rapid 3.12, classical 2.59. So
+  the moves barely get worse from rapid to bullet; the gap in results
+  between them (21.2% against 32.6% ended otherwise) is the clock.
+- By how far into the ending: 3.75 per 100 in a player's first 5 moves in
+  the tables, falling to 2.05 after 40. But the winning side's rate climbs
+  again after 40 moves (5.2% of its moves throw the win): the 50-move count
+  running out.
+- Hardest tables (2026, 1,000 moves or more): KQPvKQ 10.4 per 100 (17.5% of
+  moves from a won position throw it), KRPvKQ 10.2, KPPvKR 9.7. The
+  commonest, KRPvKR, 7.2 (12.5% of its won moves throw the win). Even KPvK
+  throws a win once in 19 moves.
+- Points: from the scorecard, results that differed from the tables cost
+  the side that lost out 28,561.5 points over 189,884 endings in 2026, 0.15
+  an ending.
+- Outputs: scripts/takeover-moves-2026-09.txt and
+  scripts/takeover-moves-2013.txt (all six 2013 months). 18 min and 6 min,
+  peak 1.8 and 1.7 GB, run from a copy of the build with the heap capped at
+  1.75 GB: commit was 1-2 GB free with the download running.
+- Not measurable yet: mistakes against the time left on the clock. The .cbg
+  files keep no clock comments; the whole-month import could keep `%clk` for
+  the moves inside the tables.

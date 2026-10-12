@@ -439,7 +439,11 @@ five that gets there ends otherwise (21% of Lichess games from 2013, 27% of
 3.3 million from September 2026). Strong players lose theirs mostly on the
 clock: the errors in the moves themselves fall from 17% under 1500 to 5.5%
 at 2400 and up. Played out by our engine, every one of 47,842 ends as the
-table says. Against Stockfish 16 without tables (100 ms a move), real games'
+table says. Move by move (`--moves`), 1 move in 31 that could throw away a
+win or a draw does (3.4 million moves from 2026; 1 in 32 in 2013), and 20% of
+those games have at least one such move. The rate falls with rating (3.8 per
+100 under 1500, 2.4 at 2400 and up) but hardly with time control (bullet
+3.35, rapid 3.12): faster games go wrong on the clock, not in the moves. Against Stockfish 16 without tables (100 ms a move), real games'
 endings are no trouble for it (1,000 games, all as the tables say), but
 positions sampled from the tables (`hard`: long wins, and wins and losses the
 rule draws) are: it converted only 29-44 of 108 long wins, and our engine
