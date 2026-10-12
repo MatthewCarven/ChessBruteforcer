@@ -1,0 +1,344 @@
+table	kind	fen	ours mate	ours rule	lichess category	dtz	precise dtz	dtm	mate agrees	rule agrees
+KQRPvK	longest mate	6Q1/8/8/8/8/8/6Pk/K5R1 w - - 0 1	win 13	win 1	win	1	1	13	yes	yes
+KQRPvK	longest mate	8/8/1R6/2QP4/1k6/8/8/K7 b - - 0 1	loss -32	loss -2	loss	-2	-2	-32	yes	yes
+KQRPvK	longest dtz	RQ6/P7/8/8/8/8/2k5/K7 w - - 0 1	win 7	win 5	win	5	5	7	yes	yes
+KQRPvK	longest dtz	RQ6/P7/8/8/8/8/8/K1k5 b - - 0 1	loss -8	loss -6	loss	-6	-6	-8	yes	yes
+KQRPvK	random	5Q2/5P2/5R2/8/6k1/8/4K3/8 b - - 0 1	loss -4	loss -4	loss	-4	-4	-4	yes	yes
+KQRPvK	random	6R1/8/5P2/1K6/8/3Q1k2/8/8 b - - 0 1	loss -6	loss -2	loss	-2	-2	-6	yes	yes
+KQRPvK	random	8/1K5Q/2R5/8/6k1/8/2P5/8 b - - 0 1	loss -8	loss -2	loss	-2	-2	-8	yes	yes
+KQQPvK	longest mate	3Q4/3Q4/8/8/8/3P4/8/K1k5 w - - 0 1	win 7	win 1	win	1	1	7	yes	yes
+KQQPvK	longest mate	8/8/8/3Q4/2k5/4P3/8/K1Q5 b - - 0 1	loss -20	loss -2	loss	-2	-2	-20	yes	yes
+KQQPvK	longest dtz	QQ6/PK6/8/8/8/8/1k6/8 w - - 0 1	win 7	win 5	win	5	5	7	yes	yes
+KQQPvK	longest dtz	QQ6/PK6/8/8/8/8/8/k7 b - - 0 1	loss -8	loss -6	loss	-6	-6	-8	yes	yes
+KQQPvK	random	8/3K4/8/8/4QQ2/5P2/4k3/8 b - - 0 1	loss -4	loss -4	loss	-4	-4	-4	yes	yes
+KQQPvK	random	8/7k/3K4/P2Q4/5Q2/8/8/8 b - - 0 1	loss -4	loss -2	loss	-2	-2	-4	yes	yes
+KQQPvK	random	5K2/8/4Q3/2k3Q1/6P1/8/8/8 b - - 0 1	loss -4	loss -3	loss	-3	-3	-4	yes	yes
+KQBPvK	longest mate	8/8/8/8/8/8/k1PK4/2QB4 w - - 0 1	win 17	win 2	win	2	2	17	yes	yes
+KQBPvK	longest mate	8/3P4/KBQ5/2k5/8/8/8/8 b - - 0 1	loss -62	loss -2	loss	-2	-2	-62	yes	yes
+KQBPvK	longest dtz	B7/PQ6/8/8/8/8/2k5/K7 w - - 0 1	win 9	win 5	win	5	5	9	yes	yes
+KQBPvK	longest dtz	B7/PQ6/8/8/8/8/8/K1k5 b - - 0 1	loss -10	loss -6	loss	-6	-6	-10	yes	yes
+KQBPvK	random	8/8/1Q6/2P5/3k4/8/4K3/B7 b - - 0 1	loss -10	loss -2	loss	-2	-2	-10	yes	yes
+KQBPvK	random	6Q1/8/8/2B5/1K5P/8/8/1k6 b - - 0 1	loss -6	loss -2	loss	-2	-2	-6	yes	yes
+KQBPvK	random	8/6B1/1k5P/8/8/8/Q6K/8 b - - 0 1	loss -10	loss -2	loss	-2	-2	-10	yes	yes
+KRBPvK	longest mate	8/8/8/8/BR6/kP6/8/K7 w - - 0 1	win 31	win 2	win	2	2	31	yes	yes
+KRBPvK	longest mate	8/3P4/KBR5/2k5/8/8/8/8 b - - 0 1	loss -62	loss -2	loss	-2	-2	-62	yes	yes
+KRBPvK	longest dtz	RB6/P1K5/8/8/8/8/8/k7 w - - 0 1	win 11	win 7	win	7	7	11	yes	yes
+KRBPvK	longest dtz	RB6/P1K5/8/8/8/8/8/k7 b - - 0 1	loss -14	loss -8	loss	-8	-8	-14	yes	yes
+KRBPvK	random	5k2/8/8/8/6K1/7R/4P3/2B5 b - - 0 1	loss -14	loss -2	loss	-2	-2	-14	yes	yes
+KRBPvK	random	2B5/8/8/P5K1/8/3k4/6R1/8 w - - 0 1	win 13	win 1	win	1	1	13	yes	yes
+KRBPvK	random	7k/8/8/1KR5/8/8/P7/7B w - - 0 1	win 11	win 1	win	1	1	11	yes	yes
+KQNPvK	longest mate	NQ6/8/8/8/4k3/8/1P6/K7 w - - 0 1	win 17	win 1	win	1	1	17	yes	yes
+KQNPvK	longest mate	8/7N/8/8/8/5Q2/4k2P/K7 b - - 0 1	loss -54	loss -2	loss	-2	-2	-54	yes	yes
+KQNPvK	longest dtz	8/8/2N5/8/kP6/8/K7/1Q6 w - - 0 1	win 7	win 5	win	5	5	7	yes	yes
+KQNPvK	longest dtz	8/8/2N5/k7/1P6/8/K7/1Q6 b - - 0 1	loss -12	loss -6	loss	-6	-6	-12	yes	yes
+KQNPvK	random	8/8/3k3N/6K1/P7/8/Q7/8 b - - 0 1	loss -12	loss -2	loss	-2	-2	-12	yes	yes
+KQNPvK	random	7k/K7/NP6/8/4Q3/8/8/8 w - - 0 1	win 5	win 1	win	1	1	5	yes	yes
+KQNPvK	random	3Q4/2K4P/8/8/6N1/8/8/3k4 b - - 0 1	loss -8	loss -2	loss	-2	-2	-8	yes	yes
+KRNPvK	longest mate	6k1/6NR/7P/8/8/8/8/K7 w - - 0 1	win 33	win 3	win	3	3	33	yes	yes
+KRNPvK	longest mate	8/7N/8/8/8/5R2/4k2P/K7 b - - 0 1	loss -54	loss -2	loss	-2	-2	-54	yes	yes
+KRNPvK	longest dtz	K7/P1k5/8/8/8/8/8/RN6 w - - 0 1	win 13	win 7	win	7	7	13	yes	yes
+KRNPvK	longest dtz	K7/P7/1k6/8/8/8/8/RN6 b - - 0 1	loss -14	loss -8	loss	-8	-8	-14	yes	yes
+KRNPvK	random	8/8/P7/3k4/6K1/8/8/2R4N b - - 0 1	loss -10	loss -2	loss	-2	-2	-10	yes	yes
+KRNPvK	random	R7/8/3N4/8/3P1k2/8/1K6/8 w - - 0 1	win 17	win 1	win	1	1	17	yes	yes
+KRNPvK	random	8/7R/3K4/k6N/8/2P5/8/8 w - - 0 1	win 13	win 1	win	1	1	13	yes	yes
+KRRPvK	longest mate	8/K7/8/8/5k2/4RPR1/8/8 w - - 0 1	win 27	win 2	win	2	2	27	yes	yes
+KRRPvK	longest mate	8/8/1R6/2RP4/1k6/8/8/K7 b - - 0 1	loss -32	loss -2	loss	-2	-2	-32	yes	yes
+KRRPvK	longest dtz	RR6/P7/8/8/8/8/8/K1k5 w - - 0 1	win 5	win 5	win	5	5	5	yes	yes
+KRRPvK	longest dtz	RR6/P7/8/8/8/8/8/K1k5 b - - 0 1	loss -10	loss -6	loss	-6	-6	-10	yes	yes
+KRRPvK	random	7k/8/4P3/4R3/R4K2/8/8/8 b - - 0 1	loss -8	loss -2	loss	-2	-2	-8	yes	yes
+KRRPvK	random	3R4/1k4P1/8/2K5/8/5R2/8/8 w - - 0 1	win 3	win 1	win	1	1	3	yes	yes
+KRRPvK	random	8/8/8/2P5/2R5/8/1R1K4/k7 b - - 0 1	loss -10	loss -1	loss	-1	-1	-10	yes	yes
+KBNPvK	longest mate	K1k5/2P5/8/7B/8/8/8/N7 w - - 0 1	win 65	win 2	win	2	2	65	yes	yes
+KBNPvK	longest mate	8/8/8/8/8/8/3P4/K1kB3N b - - 0 1	loss -66	loss -1	loss	-1	-1	-66	yes	yes
+KBNPvK	longest dtz	k7/B7/1P6/8/8/8/8/K5N1 w - - 0 1	win 23	win 9	win	9	9	23	yes	yes
+KBNPvK	longest dtz	8/Bk6/1P6/8/8/8/8/K5N1 b - - 0 1	loss -24	loss -10	loss	-10	-10	-24	yes	yes
+KBNPvK	random	4k3/2K3P1/8/8/8/8/2B5/2N5 b - - 0 1	loss -50	loss -2	loss	-2	-2	-50	yes	yes
+KBNPvK	random	8/3k4/2P4B/5N2/8/2K5/8/8 b - - 0 1	loss -52	loss -4	loss	-4	-4	-52	yes	yes
+KBNPvK	random	8/2K5/8/8/8/B2k4/1P4N1/8 w - - 0 1	win 23	win 1	win	1	1	23	yes	yes
+KBBPvK	longest mate	4B3/6P1/7k/8/8/8/K7/1B6 w - - 0 1	win 59	win 1	win	1	1	59	yes	yes
+KBBPvK	longest mate	8/3P4/KBB5/2k5/8/8/8/8 b - - 0 1	loss -62	loss -2	loss	-2	-2	-62	yes	yes
+KBBPvK	longest dtz	6B1/8/8/8/8/3k3P/1K6/3B4 w - - 0 1	win 41	win 23	win	23	23	41	yes	yes
+KBBPvK	longest dtz	B5B1/1K6/8/8/8/7P/4k3/8 b - - 0 1	loss -40	loss -24	loss	-24	-24	-40	yes	yes
+KBBPvK	random	B7/8/8/8/8/8/5P1k/KB6 b - - 0 1	loss -28	loss -2	loss	-2	-2	-28	yes	yes
+KBBPvK	random	8/1B1P1k2/8/8/8/B7/2K5/8 w - - 0 1	win 9	win 1	win	1	1	9	yes	yes
+KBBPvK	random	8/1K6/2P5/8/8/6B1/B7/6k1 w - - 0 1	win 9	win 1	win	1	1	9	yes	yes
+KNNPvK	longest mate	N1N5/8/8/8/8/4k2P/8/K7 w - - 0 1	win 55	win 13	win	13	13	55	yes	yes
+KNNPvK	longest mate	N1N5/8/8/8/8/7P/3k4/K7 b - - 0 1	loss -56	loss -14	loss	-14	-14	-56	yes	yes
+KNNPvK	longest dtz	N7/8/8/8/8/4k2P/N7/K7 w - - 0 1	win 37	win 15	win	15	15	37	yes	yes
+KNNPvK	longest dtz	N7/8/8/8/8/7P/N2k4/K7 b - - 0 1	loss -38	loss -16	loss	-16	-16	-38	yes	yes
+KNNPvK	random	8/8/8/5P1N/8/2K2N2/5k2/8 w - - 0 1	win 13	win 1	win	1	1	13	yes	yes
+KNNPvK	random	k7/8/7N/8/6N1/K7/6P1/8 w - - 0 1	win 21	win 1	win	1	1	21	yes	yes
+KNNPvK	random	8/3N4/N7/8/5K2/8/5k1P/8 w - - 0 1	win 17	win 1	win	1	1	17	yes	yes
+KRPPvK	longest mate	8/8/8/8/2kP4/8/1R1P4/K7 w - - 0 1	win 29	win 1	win	1	1	29	yes	yes
+KRPPvK	longest mate	8/8/8/8/8/2R3P1/2k3P1/K7 b - - 0 1	loss -64	loss -2	loss	-2	-2	-64	yes	yes
+KRPPvK	longest dtz	1k6/R7/P7/P7/8/8/8/K7 w - - 0 1	win 13	win 5	win	5	5	13	yes	yes
+KRPPvK	longest dtz	8/R1k5/P7/P7/8/8/8/K7 b - - 0 1	loss -16	loss -6	loss	-6	-6	-16	yes	yes
+KRPPvK	random	8/8/5R2/8/4PP2/K6k/8/8 b - - 0 1	loss -18	loss -2	loss	-2	-2	-18	yes	yes
+KRPPvK	random	8/3K4/8/4P3/5P2/7R/1k6/8 w - - 0 1	win 11	win 1	win	1	1	11	yes	yes
+KRPPvK	random	k7/8/8/7P/8/KR6/2P5/8 b - - 0 1	loss -8	loss -2	loss	-2	-2	-8	yes	yes
+KQPPvK	longest mate	8/8/8/8/8/3kP3/3P4/K1Q5 w - - 0 1	win 17	win 1	win	1	1	17	yes	yes
+KQPPvK	longest mate	8/8/8/8/8/2Q3P1/2k3P1/K7 b - - 0 1	loss -64	loss -2	loss	-2	-2	-64	yes	yes
+KQPPvK	longest dtz	8/8/8/Q7/K1k5/P7/P7/8 w - - 0 1	win 9	win 5	win	5	5	9	yes	yes
+KQPPvK	longest dtz	8/8/8/Q7/K7/P1k5/P7/8 b - - 0 1	loss -14	loss -6	loss	-6	-6	-14	yes	yes
+KQPPvK	random	5Q2/8/k7/8/3K1P2/8/P7/8 w - - 0 1	win 5	win 1	win	1	1	5	yes	yes
+KQPPvK	random	1k6/1P6/K7/1Q6/5P2/8/8/8 w - - 0 1	win 1	win 1	win	1	1	1	yes	yes
+KQPPvK	random	Q7/8/2P5/8/1k4PK/8/8/8 w - - 0 1	win 9	win 1	win	1	1	9	yes	yes
+KBPPvK	longest mate	B7/1K6/8/8/8/3k3P/7P/8 w - - 0 1	win 49	win 11	win	11	11	49	yes	yes
+KBPPvK	longest mate	8/8/8/8/8/2B3P1/2k3P1/K7 b - - 0 1	loss -64	loss -2	loss	-2	-2	-64	yes	yes
+KBPPvK	longest dtz	2k5/8/PB6/P7/8/8/8/K7 w - - 0 1	win 29	win 17	win	17	17	29	yes	yes
+KBPPvK	longest dtz	8/3k4/PB6/P7/8/8/8/K7 b - - 0 1	loss -30	loss -18	loss	-18	-18	-30	yes	yes
+KBPPvK	random	8/3P4/8/2B4K/8/8/1P5k/8 w - - 0 1	win 7	win 1	win	1	1	7	yes	yes
+KBPPvK	random	8/P7/1k6/8/B1P5/K7/8/8 b - - 0 1	loss -24	loss -2	loss	-2	-2	-24	yes	yes
+KBPPvK	random	8/8/8/3k4/2B1P3/8/P4K2/8 b - - 0 1	loss -30	loss -2	loss	-2	-2	-30	yes	yes
+KNPPvK	longest mate	7N/K5k1/8/8/8/6P1/6P1/8 w - - 0 1	win 63	win 9	win	9	9	63	yes	yes
+KNPPvK	longest mate	8/8/8/8/8/2N3P1/2k3P1/K7 b - - 0 1	loss -64	loss -2	loss	-2	-2	-64	yes	yes
+KNPPvK	longest dtz	8/5k1N/5P1P/8/8/8/8/K7 w - - 0 1	win 23	win 11	win	11	11	23	yes	yes
+KNPPvK	longest dtz	8/7N/4kP1P/8/8/8/8/K7 b - - 0 1	loss -24	loss -12	loss	-12	-12	-24	yes	yes
+KNPPvK	random	2K5/5k2/8/P2P4/8/8/8/3N4 b - - 0 1	loss -20	loss -2	loss	-2	-2	-20	yes	yes
+KNPPvK	random	8/6K1/1P6/8/8/P4k2/8/3N4 b - - 0 1	loss -20	loss -2	loss	-2	-2	-20	yes	yes
+KNPPvK	random	8/8/6k1/8/3KP3/8/2P4N/8 w - - 0 1	win 23	win 1	win	1	1	23	yes	yes
+KPPPvK	longest mate	K7/8/8/8/2k3P1/6P1/6P1/8 w - - 0 1	win 65	win 11	win	11	11	65	yes	yes
+KPPPvK	longest mate	K7/8/8/8/6P1/1k4P1/6P1/8 b - - 0 1	loss -66	loss -12	loss	-12	-12	-66	yes	yes
+KPPPvK	longest dtz	8/kP6/P7/P7/8/8/8/K7 w - - 0 1	win 19	win 14	win	14	14	19	yes	yes
+KPPPvK	longest dtz	8/1P6/Pk6/P7/8/8/8/K7 b - - 0 1	loss -20	loss -15	loss	-15	-15	-20	yes	yes
+KPPPvK	random	8/4k3/6PK/8/P5P1/8/8/8 b - - 0 1	loss -18	loss -2	loss	-2	-2	-18	yes	yes
+KPPPvK	random	8/4P2K/8/4PP2/7k/8/8/8 w - - 0 1	win 13	win 1	win	1	1	13	yes	yes
+KPPPvK	random	7k/8/8/5P2/4K2P/5P2/8/8 w - - 0 1	win 21	win 1	win	1	1	21	yes	yes
+KQPvKQ	longest mate	4Q3/8/7q/8/8/8/k3P3/2K5 w - - 0 1	win 247	win 49	win	49	49	247	yes	yes
+KQPvKQ	longest mate	4Q3/8/7q/8/8/8/k1K1P3/8 b - - 0 1	loss -246	loss -48	loss	-48	-48	-246	yes	yes
+KQPvKQ	longest dtz	8/8/6q1/4Q3/4P3/8/8/K2k4 w - - 0 1	win 179	win 99	win	99	99	179	yes	yes
+KQPvKQ	longest dtz	8/4Q2P/8/8/8/8/7q/K2k4 b - - 0 1	loss -128	loss -100	loss	-100	-100	-128	yes	yes
+KQPvKQ	random	8/8/8/7k/3K4/8/7P/1Q1q4 w - - 0 1	win 11	win 1	win	1	1	11	yes	yes
+KQPvKQ	random	8/8/3Q4/K7/7P/3q4/8/6k1 w - - 0 1	win 13	win 1	win	1	1	13	yes	yes
+KQPvKQ	random	4K3/q7/8/4PQ2/8/8/3k4/8 b - - 0 1	loss -64	loss -10	loss	-10	-10	-64	yes	yes
+KQRvKP	longest mate	8/Q7/R7/8/8/8/1p6/K1k5 w - - 0 1	win 79	win 5	win	5	5	79	yes	yes
+KQRvKP	longest mate	Q7/2k5/8/8/8/8/R2p4/K7 b - - 0 1	loss -134	draw 0	blessed-loss	-101	-101	-134	yes	yes
+KQRvKP	longest dtz	8/8/8/8/5R2/5Q2/1p6/K1k5 w - - 0 1	win 37	win 5	win	5	5	37	yes	yes
+KQRvKP	longest dtz	8/R3Q3/8/8/8/8/5p2/K4k2 b - - 0 1	loss -8	loss -6	loss	-6	-6	-8	yes	yes
+KQRvKP	random	8/8/1K6/1R1k4/8/6Qp/8/8 b - - 0 1	loss -6	loss -2	loss	-2	-2	-6	yes	yes
+KQRvKP	random	8/8/1Q5k/8/8/p7/4RK2/8 b - - 0 1	loss -6	loss -4	loss	-4	-4	-6	yes	yes
+KQRvKP	random	8/4p3/8/8/2K5/1Q6/3R4/2k5 w - - 0 1	win 1	win 1	win	1	1	1	yes	yes
+KQPvKR	longest mate	8/8/P7/3k4/r7/8/8/KQ6 w - - 0 1	win 73	win 7	win	7	7	73	yes	yes
+KQPvKR	longest mate	8/5Q2/2PK1k2/5r2/8/8/8/8 b - - 0 1	loss -86	loss -2	loss	-2	-2	-86	yes	yes
+KQPvKR	longest dtz	2k5/Q3P3/8/8/8/8/8/Kr6 w - - 0 1	win 51	win 33	win	33	33	51	yes	yes
+KQPvKR	longest dtz	2k5/Q3P3/8/8/8/8/1r6/K7 b - - 0 1	loss -52	loss -34	loss	-34	-34	-52	yes	yes
+KQPvKR	random	6k1/8/6P1/6r1/Q7/8/K7/8 w - - 0 1	win 5	win 1	win	1	1	5	yes	yes
+KQPvKR	random	8/8/8/8/4Q3/K7/2r2P2/6k1 b - - 0 1	loss -46	loss -4	loss	-4	-4	-46	yes	yes
+KQPvKR	random	7K/6Q1/r7/8/8/8/3k1P2/8 b - - 0 1	loss -36	loss -4	loss	-4	-4	-36	yes	yes
+KBPvKB	longest mate	8/8/6B1/8/2P5/8/2K5/k4b2 w - - 0 1	win 101	win 1	win	1	1	101	yes	yes
+KBPvKB	longest mate	8/8/6B1/2P5/8/8/2K5/k4b2 b - - 0 1	loss -100	loss -40	loss	-40	-40	-100	yes	yes
+KBPvKB	longest dtz	7b/5P2/8/8/8/8/8/K3Bk2 w - - 0 1	win 71	win 49	win	49	49	71	yes	yes
+KBPvKB	longest dtz	8/5P2/8/8/1B6/8/8/K4kb1 b - - 0 1	loss -72	loss -50	loss	-50	-50	-72	yes	yes
+KBPvKB	random	8/7P/8/8/1B6/8/8/2bk1K2 w - - 0 1	win 13	win 1	win	1	1	13	yes	yes
+KBPvKB	random	8/5P2/1B6/8/b3K3/8/8/7k b - - 0 1	loss -12	loss -4	loss	-4	-4	-12	yes	yes
+KBPvKB	random	8/2BKb3/8/6P1/3k4/8/8/8 w - - 0 1	win 19	win 1	win	1	1	19	yes	yes
+KBPvKR	longest mate	8/r1k5/5P2/3K4/B7/8/8/8 w - - 0 1	win 89	win 1	win	1	1	89	yes	yes
+KBPvKR	longest mate	8/r1k2P2/8/3K4/B7/8/8/8 b - - 0 1	loss -88	loss -8	loss	-8	-8	-88	yes	yes
+KBPvKR	longest dtz	6r1/8/8/K1k5/8/8/6BP/8 w - - 0 1	loss -76	loss -36	loss	-36	-36	-76	yes	yes
+KBPvKR	longest dtz	6r1/8/2B5/K7/2k5/8/7P/8 b - - 0 1	win 77	win 37	win	37	37	77	yes	yes
+KBPvKR	random	B7/8/8/6PK/3r4/8/4k3/8 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KBPvKR	random	7r/7P/8/8/K7/4k3/8/5B2 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KBPvKR	random	3r4/4k3/8/8/1BP5/6K1/8/8 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KNPvKN	longest mate	k7/3P4/2n5/K7/8/8/3N4/8 w - - 0 1	win 193	draw 0	cursed-win	103	None	193	yes	yes
+KNPvKN	longest mate	k7/3P4/K7/8/3n4/8/3N4/8 b - - 0 1	loss -194	draw 0	blessed-loss	-104	None	-194	yes	yes
+KNPvKN	longest dtz	8/1n6/8/K7/7P/k7/8/N7 w - - 0 1	win 109	win 59	win	59	59	109	yes	yes
+KNPvKN	longest dtz	8/8/8/Kn6/7P/k7/8/3N4 b - - 0 1	loss -108	loss -58	loss	-58	-58	-108	yes	yes
+KNPvKN	random	1k5n/8/8/7K/8/6P1/8/2N5 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KNPvKN	random	8/4PK2/n7/8/N7/8/2k5/8 b - - 0 1	loss -32	loss -10	loss	-10	-10	-32	yes	yes
+KNPvKN	random	8/N3k3/2P5/2n3K1/8/8/8/8 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KQQvKP	longest mate	8/8/8/3Q4/7Q/2k5/1p6/K7 w - - 0 1	win 43	win 3	win	3	3	43	yes	yes
+KQQvKP	longest mate	1Q6/Q7/8/8/8/8/2k2p2/K7 b - - 0 1	loss -60	loss -2	loss	-2	-2	-60	yes	yes
+KQQvKP	longest dtz	8/8/8/8/4Q3/5Q2/1p6/K1k5 w - - 0 1	win 5	win 5	win	5	5	5	yes	yes
+KQQvKP	longest dtz	8/8/8/QQ6/8/8/5p2/K4k2 b - - 0 1	loss -6	loss -6	loss	-6	-6	-6	yes	yes
+KQQvKP	random	8/6p1/1Q1Q4/8/K7/8/k7/8 b - - 0 1	loss -2	loss -2	loss	-2	-2	-2	yes	yes
+KQQvKP	random	1Q1Q4/1k6/p7/8/8/8/K7/8 b - - 0 1	loss -2	loss -2	loss	-2	-2	-2	yes	yes
+KQQvKP	random	8/4p3/6Q1/8/2K5/7Q/1k6/8 b - - 0 1	loss -4	loss -3	loss	-3	-3	-4	yes	yes
+KRPvKB	longest mate	8/8/R7/8/8/1k1P4/6b1/K7 w - - 0 1	win 145	win 25	win	25	25	145	yes	yes
+KRPvKB	longest mate	8/8/R7/8/8/k2P4/6b1/K7 b - - 0 1	loss -146	loss -26	loss	-26	-26	-146	yes	yes
+KRPvKB	longest dtz	8/K7/8/3P4/4k3/R7/7b/8 w - - 0 1	win 125	win 99	win	99	99	125	yes	yes
+KRPvKB	longest dtz	8/K7/8/3P4/8/R3k3/7b/8 b - - 0 1	loss -126	loss -100	loss	-100	-100	-126	yes	yes
+KRPvKB	random	8/8/5bk1/3RK3/8/8/1P6/8 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KRPvKB	random	7b/6RK/7P/8/k7/8/8/8 w - - 0 1	win 17	win 1	win	1	1	17	yes	yes
+KRPvKB	random	4R1b1/8/8/8/1kP5/5K2/8/8 w - - 0 1	win 25	win 1	win	1	1	25	yes	yes
+KQBvKP	longest mate	8/Q7/2K3k1/8/8/8/7p/2B5 w - - 0 1	win 63	win 5	win	5	5	63	yes	yes
+KQBvKP	longest mate	4k3/8/8/1K6/Q7/8/7p/2B5 b - - 0 1	loss -66	loss -4	loss	-4	-4	-66	yes	yes
+KQBvKP	longest dtz	1B6/2K5/8/8/8/8/2p4Q/1k6 w - - 0 1	win 29	win 22	win	22	22	29	yes	yes
+KQBvKP	longest dtz	1B5Q/2K5/8/8/8/8/2p5/k7 b - - 0 1	loss -30	loss -23	loss	-23	-23	-30	yes	yes
+KQBvKP	random	7k/8/5p2/6K1/1B6/8/8/4Q3 w - - 0 1	win 3	win 1	win	1	1	3	yes	yes
+KQBvKP	random	8/8/7Q/1k3p2/8/3B4/6K1/8 b - - 0 1	loss -14	loss -2	loss	-2	-2	-14	yes	yes
+KQBvKP	random	8/7k/8/8/5Q2/6p1/8/4B1K1 w - - 0 1	win 3	win 1	win	1	1	3	yes	yes
+KRPvKQ	longest mate	8/1K6/8/2P5/2R5/7k/1q6/8 w - - 0 1	loss -206	draw 0	blessed-loss	-150	None	-206	yes	yes
+KRPvKQ	longest mate	8/1K6/8/2P5/2R5/7k/7q/8 b - - 0 1	win 207	draw 0	cursed-win	151	None	207	yes	yes
+KRPvKQ	longest dtz	8/8/8/2P4q/8/R7/8/K6k w - - 0 1	loss -156	loss -100	loss	-100	-100	-156	yes	yes
+KRPvKQ	longest dtz	8/8/8/2P4q/8/2R5/8/K6k b - - 0 1	win 155	win 99	win	99	99	155	yes	yes
+KRPvKQ	random	2k5/6R1/8/8/PK6/6q1/8/8 b - - 0 1	win 21	win 1	win	1	1	21	yes	yes
+KRPvKQ	random	8/P7/1q6/4R3/8/8/4K3/2k5 b - - 0 1	win 63	win 1	win	1	1	63	yes	yes
+KRPvKQ	random	4q3/8/8/3K4/8/8/R3Pk2/8 w - - 0 1	loss -60	loss -8	loss	-8	-8	-60	yes	yes
+KNPvKR	longest mate	8/r7/8/8/8/8/P7/K3k1N1 w - - 0 1	loss -132	loss -24	loss	-24	-24	-132	yes	yes
+KNPvKR	longest mate	7N/4r3/8/8/8/8/P7/K4k2 b - - 0 1	win 133	win 25	win	25	25	133	yes	yes
+KNPvKR	longest dtz	8/5r2/N7/8/P2k4/8/K7/8 w - - 0 1	loss -130	loss -78	loss	-78	-78	-130	yes	yes
+KNPvKR	longest dtz	8/5r2/N7/8/P7/4k3/K7/8 b - - 0 1	win 131	win 79	win	79	79	131	yes	yes
+KNPvKR	random	8/8/5N2/8/5P2/2k4r/8/K7 w - - 0 1	loss -90	loss -38	loss	-38	-38	-90	yes	yes
+KNPvKR	random	8/5P2/8/5K2/8/6kN/8/2r5 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KNPvKR	random	8/6N1/8/8/8/8/4P1K1/kr6 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KRPvKN	longest mate	8/5n2/8/8/8/7k/7P/3K3R w - - 0 1	win 107	win 17	win	17	17	107	yes	yes
+KRPvKN	longest mate	8/5n2/8/8/6k1/8/7P/3K3R b - - 0 1	loss -108	loss -18	loss	-18	-18	-108	yes	yes
+KRPvKN	longest dtz	8/4R3/8/8/6nP/7k/8/K7 w - - 0 1	win 101	win 61	win	61	61	101	yes	yes
+KRPvKN	longest dtz	8/4R3/8/8/6nP/8/6k1/K7 b - - 0 1	loss -102	loss -62	loss	-62	-62	-102	yes	yes
+KRPvKN	random	8/6P1/8/8/1K6/3k4/3n4/1R6 b - - 0 1	loss -32	loss -2	loss	-2	-2	-32	yes	yes
+KRPvKN	random	3R4/1P3Kn1/8/8/8/8/8/7k b - - 0 1	loss -12	loss -2	loss	-2	-2	-12	yes	yes
+KRPvKN	random	2K5/8/5k2/2R1n3/1P6/8/8/8 b - - 0 1	loss -34	loss -4	loss	-4	-4	-34	yes	yes
+KQNvKP	longest mate	8/8/2K4N/8/8/5Q2/p1k5/8 w - - 0 1	win 59	win 8	win	8	8	59	yes	yes
+KQNvKP	longest mate	3Nk3/8/2K5/8/Q7/8/6p1/8 b - - 0 1	loss -82	loss -4	loss	-4	-4	-82	yes	yes
+KQNvKP	longest dtz	1NQ5/8/8/2K5/8/8/k1p5/8 w - - 0 1	win 47	win 33	win	33	33	47	yes	yes
+KQNvKP	longest dtz	1NQ5/8/2K5/8/2k5/8/2p5/8 b - - 0 1	loss -48	loss -34	loss	-34	-34	-48	yes	yes
+KQNvKP	random	1K6/8/2p5/1k1N3Q/8/8/8/8 b - - 0 1	loss -14	loss -4	loss	-4	-4	-14	yes	yes
+KQNvKP	random	8/8/5k2/8/Q7/3p4/1K6/6N1 w - - 0 1	win 17	win 3	win	3	3	17	yes	yes
+KQNvKP	random	7Q/8/2k3K1/2N5/8/8/3p4/8 w - - 0 1	win 17	win 3	win	3	3	17	yes	yes
+KNPvKB	longest mate	8/8/8/8/2K5/b7/1k5P/2N5 w - - 0 1	win 85	win 5	win	5	5	85	yes	yes
+KNPvKB	longest mate	8/8/8/8/2K5/b2N4/1k5P/8 b - - 0 1	loss -84	loss -4	loss	-4	-4	-84	yes	yes
+KNPvKB	longest dtz	8/6bP/8/8/8/8/N7/k2K4 w - - 0 1	win 71	win 47	win	47	47	71	yes	yes
+KNPvKB	longest dtz	8/7P/7b/8/8/8/N7/k2K4 b - - 0 1	loss -72	loss -48	loss	-48	-48	-72	yes	yes
+KNPvKB	random	2b4N/5K1k/P7/8/8/8/8/8 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KNPvKB	random	1b6/8/8/8/P7/k7/8/3K2N1 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KNPvKB	random	8/N7/8/8/3K4/8/1k1b1P2/8 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KRBvKP	longest mate	8/8/1B5R/8/8/8/1p6/K1k5 w - - 0 1	loss -130	loss -2	loss	-2	-2	-130	yes	yes
+KRBvKP	longest mate	6B1/3k4/8/K7/8/4R3/3p4/8 b - - 0 1	win 139	win 1	win	1	1	139	yes	yes
+KRBvKP	longest dtz	2K1R3/8/8/8/8/3k4/p7/4B3 w - - 0 1	win 39	win 21	win	21	21	39	yes	yes
+KRBvKP	longest dtz	2K1R3/8/8/8/8/8/p2k4/4B3 b - - 0 1	loss -40	loss -22	loss	-22	-22	-40	yes	yes
+KRBvKP	random	8/8/6k1/5R1B/8/3K4/6p1/8 b - - 0 1	win 23	win 1	win	1	1	23	yes	yes
+KRBvKP	random	B1R2K2/8/4p3/8/8/8/k7/8 b - - 0 1	loss -18	loss -4	loss	-4	-4	-18	yes	yes
+KRBvKP	random	8/8/R2K4/8/4p3/8/8/2k4B b - - 0 1	loss -16	loss -2	loss	-2	-2	-16	yes	yes
+KBPvKN	longest mate	1n6/3P4/8/8/1K6/7B/8/k7 w - - 0 1	win 199	draw 0	cursed-win	101	101	199	yes	yes
+KBPvKN	longest mate	8/5P2/2n5/2K5/k7/8/6B1/8 b - - 0 1	loss -192	draw 0	blessed-loss	-102	-102	-192	yes	yes
+KBPvKN	longest dtz	8/8/2n5/8/8/P2B4/8/K2k4 w - - 0 1	win 103	win 59	win	59	59	103	yes	yes
+KBPvKN	longest dtz	8/8/2n5/8/8/P2B4/8/K4k2 b - - 0 1	loss -104	loss -60	loss	-60	-60	-104	yes	yes
+KBPvKN	random	7K/n7/7P/8/8/4B3/7k/8 b - - 0 1	loss -28	loss -2	loss	-2	-2	-28	yes	yes
+KBPvKN	random	k7/8/4n3/8/7K/8/2P5/B7 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KBPvKN	random	8/1n6/8/8/6P1/4K3/8/k6B w - - 0 1	win 19	win 1	win	1	1	19	yes	yes
+KQPvKN	longest mate	8/Q7/2n5/1k6/3K4/8/7P/8 w - - 0 1	win 59	win 5	win	5	5	59	yes	yes
+KQPvKN	longest mate	8/Q7/8/1k6/1n1K4/8/7P/8 b - - 0 1	loss -60	loss -6	loss	-6	-6	-60	yes	yes
+KQPvKN	longest dtz	K7/2k5/1n6/3P4/8/8/8/Q7 w - - 0 1	win 33	win 11	win	11	11	33	yes	yes
+KQPvKN	longest dtz	K7/2k5/8/3P4/n7/8/8/Q7 b - - 0 1	loss -34	loss -12	loss	-12	-12	-34	yes	yes
+KQPvKN	random	5kn1/8/8/8/8/3Q3P/8/4K3 w - - 0 1	win 23	win 1	win	1	1	23	yes	yes
+KQPvKN	random	8/k7/7K/7P/4Q3/8/8/4n3 b - - 0 1	loss -16	loss -2	loss	-2	-2	-16	yes	yes
+KQPvKN	random	5k2/8/1P6/5K2/4n3/6Q1/8/8 w - - 0 1	win 9	win 1	win	1	1	9	yes	yes
+KQPvKB	longest mate	8/8/k7/8/1Q6/2K5/6P1/4b3 w - - 0 1	win 55	win 5	win	5	5	55	yes	yes
+KQPvKB	longest mate	8/8/8/Q7/k7/b7/K5P1/8 b - - 0 1	loss -58	loss -1	loss	-1	-1	-58	yes	yes
+KQPvKB	longest dtz	8/8/8/8/8/k1b5/2P5/K5Q1 w - - 0 1	win 27	win 9	win	9	9	27	yes	yes
+KQPvKB	longest dtz	8/8/8/8/8/k7/2P5/K3b1Q1 b - - 0 1	loss -28	loss -10	loss	-10	-10	-28	yes	yes
+KQPvKB	random	8/2k5/2Q5/4P2b/8/8/3K4/8 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KQPvKB	random	1Q6/6Pk/8/7b/8/6K1/8/8 b - - 0 1	loss -16	loss -2	loss	-2	-2	-16	yes	yes
+KQPvKB	random	1Q6/8/6b1/8/8/1K2P3/5k2/8 w - - 0 1	win 19	win 1	win	1	1	19	yes	yes
+KBPvKQ	longest mate	8/1P1B4/K5q1/8/8/8/8/4k3 w - - 0 1	loss -100	loss -84	loss	-84	-84	-100	yes	yes
+KBPvKQ	longest mate	8/KP1B4/8/8/8/8/8/4k2q b - - 0 1	win 99	win 83	win	83	83	99	yes	yes
+KBPvKQ	longest dtz	8/1P1B4/K5q1/8/8/8/8/4k3 w - - 0 1	loss -100	loss -84	loss	-84	-84	-100	yes	yes
+KBPvKQ	longest dtz	8/KP1B4/8/8/8/8/8/4k2q b - - 0 1	win 99	win 83	win	83	83	99	yes	yes
+KBPvKQ	random	8/8/3P4/3B4/8/4q2k/K7/8 b - - 0 1	win 21	win 3	win	3	3	21	yes	yes
+KBPvKQ	random	8/3q2B1/8/8/1k6/7P/8/6K1 b - - 0 1	win 17	win 1	win	1	1	17	yes	yes
+KBPvKQ	random	8/8/K7/1P6/8/8/1q6/k3B3 b - - 0 1	win 29	win 7	win	7	7	29	yes	yes
+KRNvKP	longest mate	8/7k/2R5/8/1K6/8/1p5N/8 w - - 0 1	loss -126	loss -12	loss	-12	-12	-126	yes	yes
+KRNvKP	longest mate	8/6R1/3K4/8/8/8/3p4/5kN1 b - - 0 1	win 135	win 1	win	1	1	135	yes	yes
+KRNvKP	longest dtz	3N4/2R5/1K6/8/8/8/1p6/1k6 w - - 0 1	win 51	win 29	win	29	29	51	yes	yes
+KRNvKP	longest dtz	8/2R5/1K2N3/8/8/8/1p6/1k6 b - - 0 1	loss -50	loss -28	loss	-28	-28	-50	yes	yes
+KRNvKP	random	8/8/N7/3K4/3p4/1R6/8/1k6 b - - 0 1	loss -16	loss -4	loss	-4	-4	-16	yes	yes
+KRNvKP	random	7N/8/7K/Rp6/8/8/7k/8 b - - 0 1	loss -24	loss -2	loss	-2	-2	-24	yes	yes
+KRNvKP	random	8/6R1/4N3/8/7k/2p5/8/1K6 b - - 0 1	loss -16	loss -4	loss	-4	-4	-16	yes	yes
+KNPvKQ	longest mate	1k1K4/4P1N1/8/8/8/6q1/8/8 w - - 0 1	loss -124	draw 0	blessed-loss	-101	-101	-124	yes	yes
+KNPvKQ	longest mate	8/1P6/1K6/8/8/1N6/6q1/7k b - - 0 1	win 109	win 85	win	85	85	109	yes	yes
+KNPvKQ	longest dtz	8/1P6/2K5/8/8/1N6/6q1/7k w - - 0 1	loss -110	loss -86	loss	-86	-86	-110	yes	yes
+KNPvKQ	longest dtz	8/1P6/1K6/8/8/1N6/6q1/7k b - - 0 1	win 109	win 85	win	85	85	109	yes	yes
+KNPvKQ	random	8/3N4/2P2k2/8/8/8/3K4/5q2 b - - 0 1	win 27	win 5	win	5	5	27	yes	yes
+KNPvKQ	random	8/5K1k/8/q5P1/8/8/8/3N4 w - - 0 1	loss -24	loss -4	loss	-4	-4	-24	yes	yes
+KNPvKQ	random	4K3/8/k4P2/8/8/8/2N5/1q6 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KRRvKP	longest mate	8/4R3/8/8/5R2/8/1p6/K1k5 w - - 0 1	loss -80	loss -2	loss	-2	-2	-80	yes	yes
+KRRvKP	longest mate	R7/8/8/8/8/3K2R1/3p4/4k3 b - - 0 1	win 99	win 1	win	1	1	99	yes	yes
+KRRvKP	longest dtz	8/8/8/KRR5/8/8/p7/3k4 w - - 0 1	win 27	win 17	win	17	17	27	yes	yes
+KRRvKP	longest dtz	8/8/8/KRR5/8/8/p7/2k5 b - - 0 1	loss -28	loss -18	loss	-18	-18	-28	yes	yes
+KRRvKP	random	8/8/5k1K/8/R7/8/R3p3/8 w - - 0 1	win 5	win 1	win	1	1	5	yes	yes
+KRRvKP	random	8/8/R3R3/8/pk6/8/K7/8 w - - 0 1	win 7	win 1	win	1	1	7	yes	yes
+KRRvKP	random	8/8/R7/8/2k5/1p6/1R6/K7 w - - 0 1	win 11	win 1	win	1	1	11	yes	yes
+KBNvKP	longest mate	8/8/3K4/8/8/1p6/k7/5B1N w - - 0 1	win 207	draw 0	cursed-win	103	None	207	yes	yes
+KBNvKP	longest mate	8/8/3K4/8/1p6/8/k7/5B1N b - - 0 1	loss -208	draw 0	blessed-loss	-101	-101	-208	yes	yes
+KBNvKP	longest dtz	8/8/1K6/2N3k1/8/B7/6p1/8 w - - 0 1	win 81	win 40	win	40	40	81	yes	yes
+KBNvKP	longest dtz	N7/K7/8/k7/8/2B5/6p1/8 b - - 0 1	loss -84	loss -40	loss	-40	-40	-84	yes	yes
+KBNvKP	random	4N2K/8/8/8/5p2/2k5/4B3/8 b - - 0 1	loss -74	loss -14	loss	-14	-14	-74	yes	yes
+KBNvKP	random	8/7k/5p2/1K2B3/8/8/8/3N4 w - - 0 1	win 45	win 1	win	1	1	45	yes	yes
+KBNvKP	random	1BK5/8/1p6/1k6/7N/8/8/8 b - - 0 1	loss -68	loss -6	loss	-6	-6	-68	yes	yes
+KBBvKP	longest mate	8/8/8/8/8/2K5/7p/2B2Bk1 w - - 0 1	loss -164	draw 0	blessed-loss	-101	None	-164	yes	yes
+KBBvKP	longest mate	8/8/8/8/8/2K4p/8/2B2Bk1 b - - 0 1	win 165	draw 0	cursed-win	101	101	165	yes	yes
+KBBvKP	longest dtz	K7/8/8/8/6B1/8/6p1/B4k2 w - - 0 1	win 57	win 41	win	41	41	57	yes	yes
+KBBvKP	longest dtz	K7/8/8/8/6B1/2B5/6p1/4k3 b - - 0 1	loss -58	loss -42	loss	-42	-42	-58	yes	yes
+KBBvKP	random	8/8/8/4p3/3K1k2/8/B7/B7 w - - 0 1	win 31	win 3	win	3	3	31	yes	yes
+KBBvKP	random	8/8/8/8/3B3k/8/1p5K/7B w - - 0 1	win 27	win 1	win	1	1	27	yes	yes
+KBBvKP	random	8/1K6/2p5/4B3/5k2/1B6/8/8 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KNNvKP	longest mate	1N6/8/p7/8/8/8/2k1N3/K7 w - - 0 1	win 229	draw 0	cursed-win	132	None	229	yes	yes
+KNNvKP	longest mate	1N6/8/p7/8/8/8/K1k1N3/8 b - - 0 1	loss -228	draw 0	blessed-loss	-131	None	-228	yes	yes
+KNNvKP	longest dtz	8/8/1p6/8/8/5N2/8/K1k3N1 w - - 0 1	win 109	win 100	win	100	100	109	yes	yes
+KNNvKP	longest dtz	8/8/1p6/8/8/5N2/4N3/K1k5 b - - 0 1	loss -108	loss -99	loss	-99	-99	-108	yes	yes
+KNNvKP	random	1k6/5p2/8/8/8/8/3NK1N1/8 b - - 0 1	loss -74	loss -37	loss	-37	-37	-74	yes	yes
+KNNvKP	random	8/2N5/7k/8/3K4/1p6/N7/8 b - - 0 1	win 39	win 1	win	1	1	39	yes	yes
+KNNvKP	random	8/3K1k2/2N5/p7/8/8/7N/8 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KQPvKP	longest mate	8/8/8/8/3P2Q1/8/1p6/K1k5 w - - 0 1	win 209	draw 0	cursed-win	101	None	209	yes	yes
+KQPvKP	longest mate	4Q3/8/8/8/8/4P3/kp6/3K4 b - - 0 1	loss -244	draw 0	blessed-loss	-101	-101	-244	yes	yes
+KQPvKP	longest dtz	8/8/8/8/k7/1p6/KP6/1Q6 w - - 0 1	win 21	win 9	win	9	9	21	yes	yes
+KQPvKP	longest dtz	6Q1/8/8/8/3K4/6P1/k5p1/8 b - - 0 1	loss -22	loss -10	loss	-10	-10	-22	yes	yes
+KQPvKP	random	8/3p4/8/3P2Q1/6k1/K7/8/8 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KQPvKP	random	8/8/p1K3Q1/8/2k5/8/5P2/8 w - - 0 1	win 15	win 1	win	1	1	15	yes	yes
+KQPvKP	random	8/8/3k4/6P1/6pQ/4K3/8/8 w - - 0 1	win 13	win 1	win	1	1	13	yes	yes
+KRPvKP	longest mate	8/8/8/1R3P2/2K5/8/5p2/k7 w - - 0 1	loss -200	draw 0	blessed-loss	-103	None	-200	yes	yes
+KRPvKP	longest mate	8/8/8/2K2P2/8/4R3/7p/k7 b - - 0 1	win 205	draw 0	cursed-win	101	101	205	yes	yes
+KRPvKP	longest dtz	8/8/8/8/R7/2k5/K2p2P1/8 w - - 0 1	loss -88	loss -20	loss	-20	-20	-88	yes	yes
+KRPvKP	longest dtz	8/8/8/8/8/R1k5/K2p2P1/8 b - - 0 1	win 87	win 19	win	19	19	87	yes	yes
+KRPvKP	random	8/8/P7/3K4/8/2k5/p7/R7 w - - 0 1	win 11	win 1	win	1	1	11	yes	yes
+KRPvKP	random	8/7p/3k4/P4K2/4R3/8/8/8 b - - 0 1	loss -16	loss -2	loss	-2	-2	-16	yes	yes
+KRPvKP	random	8/3k4/8/8/4p3/4P3/1K5R/8 w - - 0 1	win 23	win 3	win	3	3	23	yes	yes
+KBPvKP	longest mate	8/7p/8/8/8/1B6/K6P/2k5 w - - 0 1	win 133	win 17	win	17	17	133	yes	yes
+KBPvKP	longest mate	8/7p/8/8/8/K7/7P/1k1B4 b - - 0 1	loss -134	loss -18	loss	-18	-18	-134	yes	yes
+KBPvKP	longest dtz	8/8/K7/8/7p/7P/1k6/3B4 w - - 0 1	win 101	win 73	win	73	73	101	yes	yes
+KBPvKP	longest dtz	8/8/K7/8/7p/7P/8/k2B4 b - - 0 1	loss -102	loss -74	loss	-74	-74	-102	yes	yes
+KBPvKP	random	5B2/K7/2P5/8/6p1/8/8/6k1 w - - 0 1	win 19	win 1	win	1	1	19	yes	yes
+KBPvKP	random	8/8/8/1k6/1P2p3/3K4/B7/8 w - - 0 1	win 31	win 5	win	5	5	31	yes	yes
+KBPvKP	random	5B2/8/4P3/6K1/8/8/4p3/1k6 b - - 0 1	win 41	win 1	win	1	1	41	yes	yes
+KPPvKR	longest mate	3K4/8/8/4P3/8/2r5/5P2/2k5 w - - 0 1	win 107	win 1	win	1	1	107	yes	yes
+KPPvKR	longest mate	3K4/8/4P3/8/8/2r5/5P2/2k5 b - - 0 1	loss -106	loss -14	loss	-14	-14	-106	yes	yes
+KPPvKR	longest dtz	8/8/8/P7/1P6/8/6k1/K2r4 w - - 0 1	loss -68	loss -30	loss	-30	-30	-68	yes	yes
+KPPvKR	longest dtz	8/8/3rP3/5P2/k7/8/8/1K6 b - - 0 1	win 53	win 29	win	29	29	53	yes	yes
+KPPvKR	random	8/1k6/4K3/8/2P1P3/8/2r5/8 b - - 0 1	win 33	win 1	win	1	1	33	yes	yes
+KPPvKR	random	8/8/4P3/1k1r1P2/3K4/8/8/8 w - - 0 1	win 15	win 1	win	1	1	15	yes	yes
+KPPvKR	random	8/1K6/6r1/3P4/8/k7/3P4/8 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KPPvKQ	longest mate	8/4P3/7q/8/8/8/k1K1P3/8 w - - 0 1	win 247	win 1	win	1	1	247	yes	yes
+KPPvKQ	longest mate	8/P7/6q1/k1K5/1P6/8/8/8 b - - 0 1	loss -200	draw 0	blessed-loss	-101	None	-200	yes	yes
+KPPvKQ	longest dtz	8/K1P3q1/8/8/8/8/5P2/6k1 w - - 0 1	loss -64	loss -59	loss	-59	-59	-64	yes	yes
+KPPvKQ	longest dtz	8/2P5/2K5/8/8/8/5P1q/6k1 b - - 0 1	win 63	win 58	win	58	58	63	yes	yes
+KPPvKQ	random	8/8/8/8/8/3P1K2/2k3P1/2q5 b - - 0 1	win 15	win 1	win	1	1	15	yes	yes
+KPPvKQ	random	8/5P2/1K2Pq2/8/8/2k5/8/8 b - - 0 1	win 15	win 1	win	1	1	15	yes	yes
+KPPvKQ	random	8/4q1P1/6K1/8/6P1/4k3/8/8 b - - 0 1	win 29	win 5	win	5	5	29	yes	yes
+KNPvKP	longest mate	K7/8/8/N7/7p/8/1P2k3/8 w - - 0 1	loss -114	loss -2	loss	-2	-2	-114	yes	yes
+KNPvKP	longest mate	K7/8/8/N6p/8/8/1P2k3/8 b - - 0 1	win 115	win 1	win	1	1	115	yes	yes
+KNPvKP	longest dtz	8/1p6/1P6/8/8/5k2/5N2/K7 w - - 0 1	win 65	win 45	win	45	45	65	yes	yes
+KNPvKP	longest dtz	8/1p6/1P6/8/6k1/8/5N2/K7 b - - 0 1	loss -66	loss -46	loss	-46	-46	-66	yes	yes
+KNPvKP	random	8/2P5/2p3K1/8/8/2k5/1N6/8 w - - 0 1	win 15	win 1	win	1	1	15	yes	yes
+KNPvKP	random	8/7p/5K2/P7/3k4/8/8/4N3 w - - 0 1	win 21	win 1	win	1	1	21	yes	yes
+KNPvKP	random	5N2/2p5/8/8/6k1/K2P4/8/8 b - - 0 1	loss -38	loss -6	loss	-6	-6	-38	yes	yes
+KPPvKN	longest mate	3n4/5P2/8/8/3K2P1/8/k7/8 w - - 0 1	win 99	win 1	win	1	1	99	yes	yes
+KPPvKN	longest mate	8/1n3P2/8/8/3K2P1/8/k7/8 b - - 0 1	loss -100	loss -2	loss	-2	-2	-100	yes	yes
+KPPvKN	longest dtz	8/8/5P1k/1P6/8/8/8/2K1n3 w - - 0 1	win 59	win 27	win	27	27	59	yes	yes
+KPPvKN	longest dtz	8/6k1/P7/8/8/8/4P3/3K1n2 b - - 0 1	loss -66	loss -26	loss	-26	-26	-66	yes	yes
+KPPvKN	random	5n2/8/5K2/3P4/1k6/1P6/8/8 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KPPvKN	random	8/3k1K2/8/8/7P/8/7P/6n1 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KPPvKN	random	8/8/5K2/6P1/6n1/1P4k1/8/8 w - - 0 1	win 47	win 5	win	5	5	47	yes	yes
+KPPvKB	longest mate	8/6P1/7k/8/6P1/1K6/8/1b6 w - - 0 1	win 85	win 1	win	1	1	85	yes	yes
+KPPvKB	longest mate	8/6P1/8/7k/6P1/1K6/8/1b6 b - - 0 1	loss -86	loss -2	loss	-2	-2	-86	yes	yes
+KPPvKB	longest dtz	b7/8/2P5/3P4/8/8/8/1K2k3 w - - 0 1	win 49	win 23	win	23	23	49	yes	yes
+KPPvKB	longest dtz	8/1b6/2P5/3P4/8/8/8/1K2k3 b - - 0 1	loss -50	loss -24	loss	-24	-24	-50	yes	yes
+KPPvKB	random	8/1b6/8/1k5P/8/8/P1K5/8 b - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KPPvKB	random	1b6/5k2/2P5/2P5/8/1K6/8/8 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KPPvKB	random	8/7b/8/7k/5P2/3P4/8/2K5 w - - 0 1	draw 0	draw 0	draw	0	0	0	yes	yes
+KPPvKP	longest mate	8/8/8/8/1p2P3/4P3/1k6/3K4 w - - 0 1	win 253	draw 0	cursed-win	101	101	253	yes	yes
+KPPvKP	longest mate	8/8/8/1p6/4P3/4P3/1k6/3K4 b - - 0 1	loss -254	draw 0	blessed-loss	-102	-102	-254	yes	yes
+KPPvKP	longest dtz	K7/8/k7/8/2Pp4/3P4/8/8 w - - 0 1	win 73	win 41	win	41	41	73	yes	yes
+KPPvKP	longest dtz	K7/8/8/k7/2Pp4/3P4/8/8 b - - 0 1	loss -74	loss -42	loss	-42	-42	-74	yes	yes
+KPPvKP	random	8/8/5P2/8/2pK2P1/8/2k5/8 w - - 0 1	win 13	win 1	win	1	1	13	yes	yes
+KPPvKP	random	8/8/8/8/8/P5p1/1kP5/4K3 w - - 0 1	win 29	win 1	win	1	1	29	yes	yes
+KPPvKP	random	3k4/7K/6P1/8/3p4/P7/8/8 b - - 0 1	loss -24	loss -2	loss	-2	-2	-24	yes	yes

@@ -162,9 +162,10 @@ public sealed class UciEngine
     {
         if (_tablesLoaded || _tablebase is null)
             return;
-        var (tables, bytes) = _tablebase.Preload();
+        var (tables, bytes, onDisk) = _tablebase.Preload();
         _tablesLoaded = true;
-        Send($"info string loaded {tables} endgame tables ({bytes / (1024 * 1024)} MB)");
+        Send($"info string loaded {tables} endgame tables ({bytes / (1024 * 1024)} MB in memory, " +
+             $"{onDisk} read from disk as probed)");
     }
 
     /// <summary>position [startpos | fen &lt;fen&gt;] [moves &lt;move&gt;...]</summary>

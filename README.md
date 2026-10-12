@@ -92,8 +92,9 @@ perft <depth> [fen]            count every move sequence to <depth>
 divide <depth> [fen]           perft split by first move, for tracking down bugs
 ```
 
-Endgame tables (all 36 up to 4 pieces, and 5-piece ones: KQRRvK, KRBvKR so
-far; 5 with pawns by slices, to the end only), saved in `./tables` (or `$CHESS_TABLES`) and reused.
+Endgame tables (every one of 5 pieces or fewer: the 36 up to 4 pieces, the 60
+5-piece ones without pawns and the 50 with; pawns by slices, to the end only),
+saved in `./tables` (or `$CHESS_TABLES`) and reused.
 `scripts/build-tables.sh` solves all 30 four-piece tables in one go
 (restartable, roughly 1-3 hours):
 
@@ -104,6 +105,7 @@ dtz <material>                 solve under the 50-move rule; wins, draws, losses
 dtz <material> verify [stride] check the DTZ table against its moves
 upgrade [dir]                  rewrite older table files in the current format (they load either way)
 compare <file> <file>          two table files of one material, value by value
+compress [dir|file] [--quality N]  compress complete tables in place, each checked value by value first
 probe <fen>                    the outcome, and every move ranked best first
 probe <fen> --rule             the same under the 50-move rule only (needs just the DTZ tables)
 line <fen>                     best play from here to mate
@@ -423,6 +425,28 @@ K+B+B v K+N (a fifth of its wins are cursed); the longest mate is K+B+N v
 K+N's 107 moves (213 plies). Every longest mate checked against Lichess
 agrees. Per table: [FIVE-PIECE.md](FIVE-PIECE.md).
 
+**And all 50 with pawns** (2026-10-05): 38.8 billion legal positions, 8.8 GB
+compressed, 72.6 hours of solving, built in the order real games need them
+(`game endings`). The longest mate of all five-piece endings is K+P+P v K+P's
+127 moves (a cursed win: drawn under the rule); the rule matters most in
+K+N+N v K+P, where it takes 18% of the wins. Every table's sample verified as
+it was built, and Lichess agrees on all 343 positions checked (mate distances
+and the rule). Per table: [FIVE-PIECE-PAWNS.md](FIVE-PIECE-PAWNS.md).
+
+**Compressed tables** ("CBC1", 2026-09-30), for the 50 pawn tables, which
+would not fit plain (~115 GB against ~96 GB free). A table's values are cut
+into 64 KB blocks, each compressed on its own with Brotli (quality 10), with
+the blocks' offsets up front, so a probe still goes straight to its position
+and decompresses one block (70-100 us, then cached). On the 60 pawnless
+5-piece tables: **28.7 GB became 3.15 GB (9.1x)**, mate distances 10.1x
+(4.7x for the hardest, 78x for K+N+N v K+N, nearly all draws), DTZ 7.7x;
+48 minutes. The pawn tables did better still: 107 GB became 8.8 GB (12x).
+Same names (`.cbt`, `.cbz`); everything that reads a table reads either kind. `compress <dir or file>` converts in place, checking every
+value against the plain file first, and `scripts\build-five-piece.cmd` now
+compresses each table it finishes. The tables up to 4 pieces are best left
+plain: the engine reads plain tables into memory (up to 1 GB) and probes
+compressed ones from disk.
+
 Wins the rule turns into draws are "cursed wins", and losses it saves are
 "blessed losses". **Up to 4 pieces there are none**: every table has the same
 wins, draws and losses under the rule as without it. The longest stretch
@@ -561,9 +585,12 @@ dotnet run -c Release --project src/ChessBruteforcer.Engine -- selfplay 4 100   
   simplified evaluation), the king moving from shelter to centre as pieces
   come off, and a bishop pair bonus. It's a baseline to improve on through
   matches.
-- **Endgame tables:** with 4 or fewer pieces left, positions are looked up
+- **Endgame tables:** with few pieces left, positions are looked up
   in our solved tables (only ones already on disk, never solved mid-game). At the
-  root it just plays the table's best move.
+  root it just plays the table's best move, by the 50-move rule at the game's
+  own clock when the DTZ tables are there: winning, the win nearest its next
+  capture, pawn move or mate that the clock still allows; a win the clock
+  would run out on counts as a draw, in the search and in adjudication too.
 - **Checked:** the search's mate distances match the K+R v K table exactly
   on positions it has never seen, which means two independent methods (search
   forwards, retrograde backwards) agree.

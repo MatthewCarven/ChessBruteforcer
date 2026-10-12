@@ -51,6 +51,13 @@ public sealed class EndgameTable : IDisposable
     /// <summary>The 50-move rule, in plies: a draw once 100 go by without a capture or pawn move.</summary>
     public const int RulePlies = 100;
 
+    /// <summary>
+    /// Brotli's quality (0-11) for <see cref="SaveCompressed"/>.  Measured on
+    /// KRBvKR.cbt and KRPvKR.cbz (2026-09-30): 5 gives 13x / 11x, 10 gives
+    /// 18x / 13x, 11 gives 20x / 14x at four times 10's time.  Reading is the same speed for all.
+    /// </summary>
+    public const int CompressionQuality = 10;
+
     // Either the values are in memory (just solved) or read from the file on demand (loaded).
     // A mapped file stays locked on Windows until the table is disposed.
     private readonly short[]? _values;
@@ -125,6 +132,9 @@ public sealed class EndgameTable : IDisposable
 
     /// <summary>Read from a compressed file (see <see cref="SaveCompressed"/>).</summary>
     public bool IsCompressed => _compressed is not null;
+
+    /// <summary>True for a table file written by <see cref="SaveCompressed"/> ("CBC1").</summary>
+    public static bool IsCompressedFile(string path) => CompressedTable.IsCompressedFile(path);
 
     /// <summary>Release a loaded table's file mapping (nothing to do for one held in memory).</summary>
     public void Dispose()
@@ -316,13 +326,14 @@ public sealed class EndgameTable : IDisposable
     }
 
     /// <summary>
-    /// Write the table compressed (see <see cref="CompressedTable"/>): ~10x
+    /// Write the table compressed (see <see cref="CompressedTable"/>): 13-18x
     /// smaller on disk, each probe decompressing one 64 KB block (cached).
     /// Only a complete table.  The file is written as given; to replace the
     /// file this table was read from, write elsewhere, dispose, then move.
-    /// Returns the compressed size.
+    /// <paramref name="quality"/> is Brotli's, 0-11: it changes only the size
+    /// and the time to write, not how the file is read.  Returns the compressed size.
     /// </summary>
-    public long SaveCompressed(string file, int quality = 5)
+    public long SaveCompressed(string file, int quality = CompressionQuality)
     {
         if (Cap is not null)
             throw new InvalidOperationException($"{Material} is capped at {Cap} plies: only complete tables are compressed.");
@@ -384,16 +395,10 @@ public sealed class EndgameTable : IDisposable
         if (CompressedTable.IsCompressedFile(path))
         {
             var compressed = CompressedTable.Open(path);
-            var table = new EndgameTable(new TableIndex(compressed.Material), compressed) { FilePath = path };
             if (!intoMemory)
-                return table;
-            using (table)
-            {
-                var values = new short[table.Size];
-                for (long i = 0; i < values.LongLength; i++)
-                    values[i] = table.Raw(i);
-                return new EndgameTable(table._index, values, null, table.IsDtz);
-            }
+                return new EndgameTable(new TableIndex(compressed.Material), compressed) { FilePath = path };
+            using (compressed)
+                return new EndgameTable(new TableIndex(compressed.Material), compressed.ReadAll(), null, compressed.IsDtz);
         }
         var header = ReadHeader(path);
         var (material, count, dataOffset, legacy, cap, dtz, width, ordered) = header;

@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using ChessBruteforcer.Core.Endgame;
+using ChessBruteforcer.Core.Engine;
 using ChessBruteforcer.Core.Game;
 
 namespace ChessBruteforcer.Core.Match;
@@ -42,6 +44,51 @@ public sealed record EngineSpec(string Name, string Command, IReadOnlyDictionary
         if (command is null)
             throw new FormatException("Each engine needs cmd=<command>.");
         return new EngineSpec(name ?? Path.GetFileNameWithoutExtension(command.Split(' ')[0]), command, options);
+    }
+}
+
+/// <summary>
+/// Our engine in this process: the search, with a tablebase if given, and no
+/// UCI in between.  Lighter than a second engine process when memory is short.
+/// </summary>
+public sealed class SearchPlayer : IPlayer
+{
+    private readonly TranspositionTable _table;
+    private readonly Search _search;
+
+    public SearchPlayer(string name, Tablebase? tables, int hashMegabytes = 16)
+    {
+        Name = name;
+        _table = new TranspositionTable(hashMegabytes);
+        _search = new Search(_table, tables);
+    }
+
+    public string Name { get; }
+
+    public void NewGame() => _table.Clear();
+
+    public string? ChooseMove(MoveRequest request, TimeSpan timeout)
+    {
+        // The game so far, for repetitions: the start and every position before this one.
+        var position = Position.FromFen(request.StartFen);
+        var earlier = new List<ulong>();
+        foreach (string uci in request.Moves)
+        {
+            earlier.Add(position.Hash);
+            position.MakeMove(position.ParseUciMove(uci) ?? throw new ArgumentException($"Illegal move {uci}."));
+        }
+        var limits = request.MoveTimeMs is int moveTime
+            ? new SearchLimits { MoveTimeMs = moveTime }
+            : new SearchLimits
+            {
+                WhiteTimeMs = request.WhiteTimeMs, BlackTimeMs = request.BlackTimeMs,
+                WhiteIncrementMs = request.WhiteIncrementMs, BlackIncrementMs = request.BlackIncrementMs,
+            };
+        return _search.Run(position, limits, earlier).BestMove?.ToUci();
+    }
+
+    public void Dispose()
+    {
     }
 }
 

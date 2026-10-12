@@ -155,7 +155,8 @@ public sealed class Search
             beta = Math.Min(beta, Mate - ply - 1);
             if (alpha >= beta)
                 return alpha;
-            if (_tablebase is not null && _tablebase.TryProbe(position, out var outcome))
+            // A table result, with the 50-move rule at this node's clock: a win too slow for it is a draw.
+            if (_tablebase is not null && _tablebase.TryProbeWithClock(position, out var outcome))
                 return ScoreFromOutcome(outcome, ply);
         }
         if (ply >= MaxPly - 2)
@@ -438,24 +439,52 @@ public sealed class Search
     /// <summary>
     /// The best move by the endgame tables, if the root and every position
     /// one move from it are covered by tables on hand.
+    ///
+    /// With the DTZ tables too, the 50-move rule decides, at the game's own
+    /// clock (Matthew's "wanderer": an opponent who knows the tables can run
+    /// the clock up and turn a slow win into a draw).  Winning, play the win
+    /// that reaches its next capture, pawn move or mate soonest, since that
+    /// starts the count again (ties: the quicker mate).  Losing, the loss
+    /// furthest from the opponent's next one, where the clock may yet save
+    /// us.  A win that the clock would run out on counts as a draw.  Without
+    /// DTZ tables, the quickest mate, as before.
     /// </summary>
     private (Move Move, int Score)? TablebaseMove(Position root, List<Move> legal)
     {
         if (_tablebase is null || !_tablebase.TryProbe(root, out _))
             return null;
-        (Move Move, int Score)? best = null;
+        bool rule = _tablebase.TryProbeDtz(root, out _);
+        (Move Move, int Rule, int Mate, int Score)? best = null;
         foreach (var move in legal)
         {
+            bool zeroing = move.IsCapture || move.IsPromotion || root[move.From].Type == PieceType.Pawn;
             var undo = root.MakeMove(move);
             bool covered = _tablebase.TryProbe(root, out var reply);
+            var dtz = Outcome.Draw;
+            if (covered && rule)
+                covered = _tablebase.TryProbeDtz(root, out dtz);
+            int clock = root.HalfmoveClock;
             root.UnmakeMove(move, undo);
             if (!covered)
                 return null;
-            int score = ScoreFromOutcome(reply.ForPreviousMover(), 0);
-            if (best is null || score > best.Value.Score)
-                best = (move, score);
+
+            int mate = ScoreFromOutcome(reply.ForPreviousMover(), 0);
+            int ruleScore = 0, score = mate;
+            if (rule)
+            {
+                // For us after this move: the opponent's result, a draw if it comes too late for the
+                // count, one ply further off (or one ply away for a capture or pawn move: the count restarts).
+                var ours = !Tablebase.DecisiveInTime(dtz, clock) ? Outcome.Draw
+                           : zeroing ? new Outcome(dtz.Kind, 0).ForPreviousMover()
+                           : dtz.ForPreviousMover();
+                ruleScore = ours.Score;
+                if (ours.Kind == OutcomeKind.Draw)
+                    score = 0;   // (among draws the mate distance still breaks ties: a slip by them may revive it)
+            }
+            if (best is null || ruleScore > best.Value.Rule || (ruleScore == best.Value.Rule && mate > best.Value.Mate))
+                best = (move, ruleScore, mate, score);
         }
-        return best;
+        return best is { } chosen ? (chosen.Move, chosen.Score) : null;
     }
 
     private static int ScoreFromOutcome(Outcome outcome, int ply) => outcome.Kind switch

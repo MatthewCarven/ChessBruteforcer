@@ -819,3 +819,333 @@ rather than 48-byte boards, because that is the storage that scales.
   64 KB block, offsets up front, a 1024-block cache), loading and
   `SaveCompressed` in EndgameTable. Builds, 266 tests pass; the new code
   isn't tested yet. Next steps listed in TODO, step A.
+
+## 2026-09-30: compression, step A (all but compressing `tables/`)
+
+- Brotli quality measured per 64 KB block (a sample of 1 in 4 or 8 blocks):
+
+  | quality | KRBvKR.cbt | KRPvKR.cbz | whole file, 16 threads |
+  |---|---|---|---|
+  | 5 | 13.1x | 11.0x | 1 s / 3 s |
+  | 9 | 14.6x | 11.4x | 4 s / 13 s |
+  | **10** | **18.0x** | **13.1x** | 23 s / 36 s |
+  | 11 | 19.7x | 14.2x | 97 s / 113 s |
+
+  Chose 10: most of 11's gain at a quarter of its time. Decompressing a
+  block takes 70-100 us at any quality. Two byte planes for mate distances
+  (low bytes, then high) gained nothing: Brotli already models them.
+- `compress [dir|file] [--quality N]`: temporary file, read back, every
+  value compared with the plain table, then moved over. The four DTZ tables
+  KRPvKR promotes into: KQRvKR 9.8x, KRRvKR 6.5x, KRBvKR 15.9x, KRNvKR
+  17.5x, ~25 s each (compressing and checking).
+- The question that decided the plan: is a solve slower when the tables it
+  reads are compressed? KRPvKR's DTZ solved twice at the same time (so both
+  saw the same machine), promotion tables plain in one, compressed in the
+  other: **1,990 s plain, 2,055 s compressed, 3% slower**; process peak
+  1.93 GB v 1.62 GB. Both came out byte for byte the KRPvKR.cbz already on
+  disk. The solver's probes land near each
+  other, so the 1024-block cache mostly hits. So the pawn tables can be
+  solved from compressed smaller tables, and each compressed as it finishes.
+- `Tablebase.Preload` (the engine) now reads plain tables into memory,
+  smallest first, within 1 GB, and leaves compressed ones (and plain ones
+  past 1 GB) on disk. Before, with the 5-piece tables in the folder, it would
+  have tried to read ~31 GB.
+- `build-five-piece.ps1` compresses both files of every finished table
+  (`-Plain` to skip), including ones it finds already done: run as it is, it
+  compresses the 60 pawnless tables. `-List` shows which are compressed.
+- 13 new tests (CompressedTableTests); 279 pass, 1 skipped, 46 s (was 20 s:
+  mostly solving K+R+R v K, both kinds, and again from compressed tables). A deliberately broken cache
+  lookup fails the eviction test.
+- Left for Matthew: compress `tables/` (replaces his plain files, so his go).
+  He ran build-five-piece.cmd himself, 02:30-03:18: all 120 files of the 60
+  pawnless tables, every one checked value by value, none failed. 28.7 GB ->
+  3.15 GB (9.1x): mate distances 19.1 -> 1.90 GB (10.1x), DTZ 9.6 -> 1.24 GB
+  (7.7x). From 3.6x (KBNvKQ.cbz) to 78x (KNNvKN.cbt, nearly all draws), so
+  KRBvKR's 18x, which set my estimate of ~8 GB for everything, was on the
+  kind side: expect ~13 GB for the pawn tables. Free space 96 -> 122 GB.
+
+## 2026-09-30: step B, which pawn endings real games reach
+
+- `game endings <file>...` (EndingStats): replays every game and records
+  each material of 5 pieces or fewer it passes through. 741,349 games in
+  231 s.
+- First run said 40% of games went through a table outside the plan: the
+  Windows `tables/` had never had 8 of the 36 small tables (KQPvK, KBPvK,
+  KNPvK, KPPvK, KQvKP, KBvKP, KNvKP, KPvKP, both kinds; they were solved in
+  WSL before). Solved here in 9 min; 7 byte for byte `tables-baseline/`,
+  KPPvK (pawns stored once now) equal value for value. Longest mates as
+  published: KPvKP 33 moves, KQvKP 28, KBPvK 31, KNPvK 27.
+- With all 36: **48,138 games (6.5%) get down to 5 pieces or fewer**. Of
+  those, 6,879 (14.3%) stay in tables we have; 41,259 (85.7%) pass through a
+  5-piece pawn table we don't, and 66% of those are back in our tables by
+  the end (the pawn promoted or taken). One game held castling rights at 5
+  pieces.
+- Most reached pawn tables (games, share of all games): KPPvKP 8,719
+  (1.18%), KQPvKP 4,014, KRPvKP 3,464, KRPPvK 3,197, KQPPvK 2,756, KPPPvK
+  2,698, KBPvKP 1,963, KPPvKR 1,765, KPPvKQ 1,571, KQRPvK 1,417. Pawn
+  endings are brief: KPPvKP games stay 5 plies on average (races).
+- The build order (EndingStats.BuildOrder): greedy, each round the table
+  that with the tables its promotions need brings the most games wholly into
+  the tables per position solved. Milestones:
+
+  | after | tables | work (positions) | games wholly in tables |
+  |---|---|---|---|
+  | today | 0 | 0% | 14.3% |
+  | the 15 "three v a bare king" | 15 | 25.5% | 41.9% |
+  | the 25 one-pawn "two v one" | 40 | 83.7% | 54.3% |
+  | the 8 two-pawn "two v one" | 48 | 98.8% | 81.9% |
+  | K+P+P v K+P | 49 | 100% | 100% |
+
+  KPPvKP comes last because its promotions lead into all 8 two-pawn tables,
+  which lead into most of the one-pawn ones: 18% of these games wait for
+  nearly all the work. Order in TODO step D.
+- 7 tests (EndingStatsTests); 286 pass.
+
+## 2026-09-30: step C, the engine plays the tables by the 50-move rule
+
+- Matthew's "wanderer" (an opponent who knows the tables runs the clock up):
+  before, the engine chose table moves by mate distance alone, so a shortest
+  mate longer than the plies left on the clock was a draw it thought a win.
+- Root (`Search.TablebaseMove`), with DTZ tables on hand: each move's result
+  for us is the reply position's DTZ result at its clock (0 after a capture or
+  pawn move), a draw if clock + DTZ passes 100. Winning, the win nearest its
+  next capture, pawn move or mate (the count restarts there), ties by mate
+  distance; losing, the furthest loss; draws broken by mate distance too.
+- In the search and in match adjudication, `Tablebase.TryProbeWithClock`:
+  the mate distance, but a draw where the DTZ table says the rule makes it
+  one at that node's clock. `RankMovesUnderRule` (and `probe --rule`) now
+  count from the position's own clock, not 0.
+- The engine now preloads the `.cbz` tables too; both kinds up to 4 pieces
+  take ~850 MB in memory, inside Preload's 1 GB.
+- Tests: K+R v K at the last clock that still wins and one ply later, both
+  sides; K+P v K at 99 (only a pawn move wins, though king moves win without
+  the rule); DTZ-optimal play move after move; adjudication; a cursed K+B+B v
+  K+N position (slow test, run on the real tables: passes). Three mutations
+  (root ignores the clock; probe ignores DTZ; ranking ignores the clock)
+  each fail at least one test. 291 pass, 2 skipped (the slow ones).
+- Not done: scaling the evaluation down as the clock rises outside the
+  tables (the "maybe" in TODO).
+
+## 2026-09-30: step D started, the 49 pawn tables
+
+- `build-five-piece.ps1 -Pawns`: step B's order written out (checked by a
+  script: all 50 pawn tables, none before a table it promotes into); after
+  each table, `verify` and `dtz verify` on every 1009th position, and a
+  failure or mismatch stops the run; it runs from a copy of the build
+  (tables\.cli). First start at 03:27 stopped at "build failed" (the build
+  was fine a minute later; the error wasn't kept, so now it is logged).
+  Restarted 03:28, in its own window.
+- KRPvKR.cbt had been compressed at 03:27, outside the run: Matthew ran the
+  `compress` command I'd given him (confirmed), and a CLI running from
+  bin\Release locks its files, hence the first start's build failure at
+  03:27:56. The run found it done and compressed KRPvKR.cbz (12.6x); he ran
+  the .cbz command too, around then. Checked afterwards: both files read
+  end to end with KRPvKR's original counts, to the position.
+- First two new tables, ~75 min each with checks:
+
+  | table | positions | DTM solve | DTZ solve | verified (both) | compressed |
+  |---|---|---|---|---|---|
+  | KQRPvK | 947 M | 37.5 min | 34.8 min | 459,351, consistent | 2.7 GB -> 97 MB (28x) |
+  | KQQPvK | 466 M | 35.3 min | 42.7 min | 216,413, consistent | 1.3 GB -> 50 MB (27x) |
+
+  Pawn tables compress 25-34x, three times the pawnless ones: expect ~5 GB
+  for all 49, not ~13. At this pace (~3.8% of the work in 2.6 h) the run
+  is ~60-70 h, not 49.
+- Lichess (Syzygy) on both: longest DTZ each side and 3 random positions
+  each, 10 of 10 agree (`scripts/syzygy-check-pawns.tsv`). Both easy
+  tables (longest DTZ 5-6 plies: the pawn runs).
+- 18:33, 13 of 50 done (15.1 h): both compresses of KQPPvK failed with exit
+  1 in the same second, leaving it plain (the run went on, as it should).
+  Matthew guessed low memory, and Windows agrees: Resource-Exhaustion-
+  Detector 2004 at 18:33:11, "low virtual memory", vmmem (the Cowork VM, not
+  WSL) 4.3 GB and the Claude app ~5 GB across its processes; commit free
+  was still 1.7 of 21.8 GB half an hour later. Compressed by hand then:
+  25.8x and 57.7x, each checked. The script now logs a failed compress's
+  error, retries it once after 2 min, and retries a crashed solve or DTZ step
+  once after 5 min; a verify mismatch still stops at once (8 cases of the
+  rule checked). Takes effect at the script's next start.
+
+## 2026-10-01: taking over real games where they reach our tables
+
+- Matthew: we haven't played any chess with the tables; take over real
+  games once they reach a table that's ready. `game takeover <files>
+  [--play N]` (Takeover.Find / PlayOut): each game's first position in a
+  table we have (both kinds; 121 at the time, the pawn run at 25 of 50),
+  the table's verdict at the game's own 50-move clock against the result,
+  then every one played out by the engine on both sides from there (its
+  clock and history carried over). Five months, 741,349 games, 10 min.
+- **42,755 games (5.8%) reach a table we have.** Median 7 moves left in the
+  game when they get there (quartiles 3 and 13), so the tables come in late.
+
+  | table says, for the side to move | games | won | drawn | lost |
+  |---|---|---|---|---|
+  | won | 10,010 | 81.0% | 16.0% | 2.9% |
+  | drawn | 10,195 | 13.0% | 69.5% | 17.5% |
+  | lost | 22,550 | 0.9% | 13.2% | 85.9% |
+
+  **19.1% of them (8,187) ended otherwise than perfect play from there.**
+  Of 32,560 won endings, 5,077 weren't won (15.6%), 2,189 of those on time.
+  Only 2 were won with best play but drawn by the rule at the game's clock.
+  Games that ended in mate took the players a median 10.5 moves; the
+  fastest mate was 8.0.
+- Most common entries: KRPvKR 5,210 (won ones converted 75.6%, drawn ones
+  held 58.3%), KPvKP 4,640 (77.4%, 68.4%), KRPPvK 3,080, KPPvK 2,953, KPPPvK
+  2,686. The worst held draws: KQPvKQ, 42.4%.
+- Played out, all 42,755 (9 ms each): **every one ended as the table said.**
+  Checkmate 32,560 (exactly the decisive verdicts), threefold repetition
+  6,465, insufficient material 3,587, stalemate 141, 50-move rule 2 (the two
+  cursed ones). The first real games with the new tables and step C's rule.
+- Not yet measured: how much slower the engine's rule-safe play mates than
+  the fastest mate (it heads for the next capture or pawn move first).
+
+## 2026-10-05 / 09: step D done, all 50 pawn tables
+
+- The run finished 2026-10-05 09:55, 50 of 50 (Matthew: "Tables are dONE").
+  Summary from its log in FIVE-PIECE-PAWNS.md: 38.8 billion legal positions,
+  107 GB solved -> 8.8 GB compressed (12x), peak 3.9 GB (KRPvKP).
+- 120.5 h of steps in the log, but the laptop slept 48 h inside them (System
+  log: Kernel-Power 42 and back, eight times; 16.5 h, 12.6 h and 14.4 h the
+  longest): **72.6 h of solving**. I'd first put the long ones (KQPvKB's DTZ
+  1,030 min, KQPvKP's mates 907, KBPvKP's 935) down to pawns on both sides;
+  the sleeps account for nearly all of it. Pawns on both sides are slower,
+  but 2-7.5 h, not 15.
+- Two failures, both recovered. KQPPvK's compress (low memory, 2026-09-30,
+  done by hand). KQPvKP's first DTM solve, exit -1 after 91 min on 2026-10-03
+  03:15; a low-virtual-memory event at 01:53 inside it (apreview.exe 7.3 GB,
+  Visual Studio 1 GB), so probably memory again; the new retry finished it.
+  The run also restarted once (2026-10-01 22:32) and carried on.
+- Every table's sample verified as built (every 1009th position, both
+  kinds): 38.4 M positions, all consistent. Lichess
+  (`scripts/pawn-tables-check.py`): longest mate and longest DTZ for each
+  side to move and 3 random positions, 49 tables, 343 positions: **343 agree
+  on the mate distance (Gaviota), 343 on the rule (Syzygy)**. 21 of the 98
+  longest-mate positions are cursed or blessed, and marked so on both sides.
+- Longest mate of any five-piece ending: K+P+P v K+P, 127 moves (253 plies),
+  a cursed win. The rule matters most in K+N+N v K+P (18% of wins cursed,
+  41% of losses blessed: the Troitsky line), then K+B+B v K+P (2%).
+- `game takeover` again with every table (146 with both kinds): 47,842 games
+  (6.5%) reach one, nearly all of the 48,138 that get down to 5 pieces; 21.1%
+  ended otherwise than perfect play from there. KPPvKP is now the commonest
+  way in (8,719 games; drawn ones held only 58.6%). Played out, engine on
+  both sides (18 ms each, 14 min): **47,842 of 47,842 as the table said**:
+  37,345 mates (every decisive one), 7,123 repetitions, 3,216 insufficient
+  material, 155 stalemates, 3 by the 50-move rule (the 3 cursed at the
+  game's clock).
+
+## 2026-10-09: the takeover positions against Stockfish
+
+- Matthew picked (a): our engine against Stockfish from where real games
+  reach the tables. `game takeover ... --versus N "<engine>" [ms]`: N
+  positions spread over all the takeovers (as often as games reach each
+  table), each played twice through the match's game loop, our engine on
+  the side to move and then on the other side. Stockfish 16 in WSL by
+  `wsl.exe -d Ubuntu-24.04 -- /usr/games/stockfish`, full strength, no
+  tablebases. Our engine in-process (SearchPlayer) rather than as a second
+  UCI process: with WSL up, only 2.2-2.5 GB of commit was free.
+- 500 positions, 1,000 games, 100 ms a move, 20.6 min: **every game ended
+  as the table says, for both sides.** Ours: 406 of 406 wins converted, 188
+  of 188 draws held, 406 losses lost. Stockfish exactly the same. Points 500
+  to 500, the tables' figure. Ended by mate 812, insufficient material 117,
+  repetition 54, the 50-move rule 10, stalemate 7.
+- So in the positions real games bring, Stockfish at 100 ms doesn't need the
+  tables: the humans' 21% of results gone wrong comes from people, not from
+  the endings being hard for an engine. Where the tables should beat it:
+  the hard positions (long DTZ, the longest mates, cursed and blessed
+  ones), a weaker or faster opponent, or the moves it takes. Not yet tried.
+
+## 2026-10-09: hard positions from the tables against Stockfish
+
+- Matthew picked (a): positions sampled from the tables themselves. `hard
+  <materials> <per> "<engine>" [ms]`: per table, `per` each of long-DTZ wins
+  (DTZ 50+ plies, or the top fifth of a shorter table's range), cursed wins
+  and blessed losses, all with the count at 0, each played twice against
+  Stockfish 16 (WSL, full strength, no tablebases, 100 ms a move), our
+  engine on each side. 18 tables chosen for long DTZ: KBNvK, KQvKR, KBBvKN,
+  KBNvKN, KRBvKR, KQRvKQ, KBBvKQ, KNNvKQ, KRNvKQ, KQNvKQ, KRNvKR, KQPvKQ,
+  KRPvKQ, KRPvKB, KNNvKP, KBPvKN, KRPvKR, KPPvKP; 6 per kind; sampling took
+  5 min, the 504 games 41 min.
+
+  | kind | positions | our engine | Stockfish |
+  |---|---|---|---|
+  | long-DTZ wins | 108 | converted 108 of 108 | converted 44 of 108 (41%), drew 64 |
+  | cursed wins (drawn by the rule) | 72 | won 67 of 144 games, lost 0 | lost 67 |
+  | blessed losses (drawn by the rule) | 72 | won 68 of 144, lost 0 | lost 68 |
+  | points | | **351.5** (the table's 252) | 152.5 (252) |
+
+- So: in real games' endings Stockfish needs no tables (1,000 games, all as
+  the tables say); in the hard ones it can't convert 59% of long wins (it
+  stalemated, repeated, ran out the 50 moves or gave material away; K+B+N v
+  K among them), and defending a position the rule draws it often lost
+  (two bishops against a knight, mated in 74-118 plies). Our engine never did
+  worse than the table in any of the 1,504 games. The output lists only the
+  first few of Stockfish's slips per kind, not a per-table breakdown.
+- Caveats: 100 ms a move is fast for Stockfish, and in real competition it
+  would have Syzygy tables of its own.
+- Matthew asked for it table by table: same command and seed (same
+  positions), PlayVersus now counting per table; run on battery (Matthew),
+  so Stockfish had a slower CPU in its 100 ms. 504 games, none ended by a
+  missing answer or illegal move. Stockfish converted 29 of 108 long wins
+  this time (44 before), lost 67 of 72 cursed defences and 70 of 72
+  blessed ones (67, 68 before); we scored 360 of 504 (the table's 252).
+
+  | table | Stockfish's long wins converted | its cursed / blessed defences held |
+  |---|---|---|
+  | KBNvK | 0 of 6 | - |
+  | KQvKR | 1 of 6 | - |
+  | KBBvKN | 2 of 6 | 0 of 6 / 0 of 6 |
+  | KBNvKN | 0 of 6 | 0 / 0 |
+  | KRBvKR | 0 of 6 | 0 / 0 |
+  | KQRvKQ | 1 of 6 | 0 / 0 |
+  | KBBvKQ | 0 of 6 | 0 / 0 |
+  | KNNvKQ | 2 of 6 | 0 / 0 |
+  | KRNvKQ | 0 of 6 | - |
+  | KQNvKQ | 0 of 6 | - |
+  | KRNvKR | 6 of 6 | - |
+  | KQPvKQ | 2 of 6 | 1 / 0 |
+  | KRPvKQ | 0 of 6 | 0 / 0 |
+  | KRPvKB | 3 of 6 | 0 / 0 |
+  | KNNvKP | 1 of 6 | 4 / 2 |
+  | KBPvKN | 0 of 6 | 0 / 0 |
+  | KRPvKR | 5 of 6 | - |
+  | KPPvKP | 6 of 6 | 0 / 0 |
+
+  (Each defence is the game where we attack; in the other game of each pair
+  Stockfish attacks and our defence holds, always.)
+- Losing nearly every defence of a position the rule draws looked too clean,
+  so I checked examples on Lichess: all genuinely cursed or blessed, but
+  only just: DTZ 105-120 against the rule's 100. The defender must be all
+  but perfect; any slack brings the conversion inside the count. Several of
+  our mates came after more than 100 plies, so Stockfish had let its piece be
+  taken, which restarts the count. K+N+N v K+P, where the cursed positions
+  run much longer, is the one Stockfish defends.
+
+## 2026-10-12: recent games, and who gets the endings wrong
+
+- Matthew asked for recent games. The September 2026 file is 29.2 GB (89.6 M
+  games); with his OK, only its first 1 GB by a range request
+  (`games/lichess_db_standard_rated_2026-09.first-1GB.pgn.zst`, 16 min at
+  ~1 MB/s), unpacked across its many Zstandard frames up to the cut
+  (`zstd.open`, keeping complete games only): 3,284,165 games of 1
+  September, 7.1 GB of PGN with clock comments, imported in 26 min into
+  `games/2026-09-part.cbg` (1.28 GB). The PGN was deleted after.
+- `game takeover` now breaks the scorecard down by the players' average
+  rating and by Lichess's time-control class (base + 40 x increment).
+
+  | | 2013, 5 months | 2026, 1 day |
+  |---|---|---|
+  | games | 741,349 | 3,284,165 |
+  | reaching a table we have | 47,842 (6.5%) | 189,886 (5.8%) |
+  | ended otherwise than the tables | 21.1% | 26.7% |
+  | won endings not won | 17.1% | 22.8% |
+  | of those, lost on time | 42% | 54% |
+
+  By rating (2026): ended otherwise 27.1% (under 1500), 25.5%, 28.7%,
+  27.2% (2400 and up), flat; but the share of those lost on time climbs
+  38% -> 59% -> 73% -> 80%, so the errors in the moves themselves fall
+  16.9% -> 10.4% -> 7.6% -> 5.5%. 2013 the same shape (16.2%, 10.0%, 8.6%).
+  By time control (2026): ended otherwise 41.8% (ultrabullet, 435 games),
+  32.6% bullet, 26.0% blitz, 21.2% rapid, 17.7% classical; on time 90%,
+  76%, 55%, 26%, 12% of those. Strong players know these endings and lose
+  them to the clock; slower games lose them to the moves.
+- KPPvKP is the commonest way in again (35,101 games); drawn KRPvKR held
+  54%. Outputs: scripts/takeover-2026-09.txt, scripts/takeover-2013.txt.

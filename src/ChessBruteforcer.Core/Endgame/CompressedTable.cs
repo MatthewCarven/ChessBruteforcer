@@ -7,9 +7,10 @@ namespace ChessBruteforcer.Core.Endgame;
 /// <summary>
 /// A table file compressed in blocks ("CBC1"), for disk: the values cut into
 /// blocks of 64 KB, each compressed on its own with Brotli, so a probe
-/// decompresses only the block it needs.  Measured on the 5-piece tables,
-/// ~10x smaller than the plain file (draws, holes and runs of one value
-/// squeeze well).
+/// decompresses only the block it needs (~80-100 us a block, cached after).
+/// Measured on the 5-piece tables, 13-18x smaller than the plain file at
+/// quality 10 (draws, holes and runs of one value squeeze well).  Putting a
+/// block's low and high bytes in two planes gained nothing with Brotli.
 ///
 ///   "CBC1", kind (0 = mate distances, 2 bytes a value; 1 = DTZ, 1 byte),
 ///   material, value count, values per block, block count,
@@ -22,15 +23,16 @@ internal sealed class CompressedTable : IDisposable
 {
     public const string Magic = "CBC1";
     private const int BlockBytes = 1 << 16;
-    private const int CacheSlots = 1024;   // decompressed blocks kept: 64 MB at most per table
+    public const int CacheSlots = 1024;   // decompressed blocks kept: 64 MB at most per table
 
     private readonly MemoryMappedFile _file;
     private readonly MemoryMappedViewAccessor _view;
     private readonly long[] _offsets;
     private readonly long _dataStart;
     private readonly int _valuesPerBlock;
-    private readonly byte[]?[] _cache = new byte[CacheSlots][];
-    private readonly int[] _cachedBlock = new int[CacheSlots];
+    private readonly byte[]?[] _cache;
+    private readonly int[] _cachedBlock;   // the block in each slot, -1 for none
+    private byte[] _packed = Array.Empty<byte>();   // a block as stored, read under the lock
     private readonly object _lock = new();
 
     public Material Material { get; }
@@ -39,7 +41,7 @@ internal sealed class CompressedTable : IDisposable
     public int Width => IsDtz ? 1 : 2;
 
     private CompressedTable(string path, Material material, bool dtz, long size, int valuesPerBlock,
-                            long[] offsets, long dataStart)
+                            long[] offsets, long dataStart, int cacheSlots)
     {
         Material = material;
         IsDtz = dtz;
@@ -47,6 +49,8 @@ internal sealed class CompressedTable : IDisposable
         _valuesPerBlock = valuesPerBlock;
         _offsets = offsets;
         _dataStart = dataStart;
+        _cache = new byte[cacheSlots][];
+        _cachedBlock = new int[cacheSlots];
         Array.Fill(_cachedBlock, -1);
         _file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         _view = _file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
@@ -59,7 +63,7 @@ internal sealed class CompressedTable : IDisposable
         return stream.Read(magic) == magic.Length && Encoding.ASCII.GetString(magic) == Magic;
     }
 
-    public static CompressedTable Open(string path)
+    public static CompressedTable Open(string path, int cacheSlots = CacheSlots)
     {
         using var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII);
         if (Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length)) != Magic)
@@ -71,13 +75,16 @@ internal sealed class CompressedTable : IDisposable
         int blocks = reader.ReadInt32();
         if (size != EndgameTable.TableSize(material))
             throw new InvalidDataException($"{path} has {size} values; {material} needs {EndgameTable.TableSize(material)}.");
+        int width = dtz ? 1 : 2;
+        if (valuesPerBlock != BlockBytes / width || blocks != (size + valuesPerBlock - 1) / valuesPerBlock)
+            throw new InvalidDataException($"{path} has {blocks} blocks of {valuesPerBlock} values; expected blocks of {BlockBytes / width}.");
         var offsets = new long[blocks + 1];
         for (int i = 0; i <= blocks; i++)
             offsets[i] = reader.ReadInt64();
         long dataStart = reader.BaseStream.Position;
         if (reader.BaseStream.Length < dataStart + offsets[blocks])
             throw new InvalidDataException($"{path} is truncated.");
-        return new CompressedTable(path, material, dtz, size, valuesPerBlock, offsets, dataStart);
+        return new CompressedTable(path, material, dtz, size, valuesPerBlock, offsets, dataStart, cacheSlots);
     }
 
     /// <summary>The stored value at an index (as the plain table would hold it).</summary>
@@ -99,14 +106,17 @@ internal sealed class CompressedTable : IDisposable
     /// <summary>A block, decompressed: from the cache, or read and put in its slot.</summary>
     private byte[] Block(int block)
     {
-        int slot = block % CacheSlots;
+        int slot = block % _cache.Length;
         if (_cachedBlock[slot] == block)
             return _cache[slot]!;
-        long start = _offsets[block], length = _offsets[block + 1] - start;
-        var packed = new byte[length];
-        _view.ReadArray(_dataStart + start, packed, 0, packed.Length);
+        long start = _offsets[block];
+        int length = (int)(_offsets[block + 1] - start);
+        if (_packed.Length < length)
+            _packed = new byte[length];
+        _view.ReadArray(_dataStart + start, _packed, 0, length);
+        _cachedBlock[slot] = -1;   // (the slot's old block is overwritten below, even if this one fails)
         var bytes = _cache[slot] ??= new byte[BlockBytes];
-        if (!BrotliDecoder.TryDecompress(packed, bytes, out int written) || written != BlockLength(block))
+        if (!BrotliDecoder.TryDecompress(_packed.AsSpan(0, length), bytes, out int written) || written != BlockLength(block))
             throw new InvalidDataException($"{Material}: block {block} doesn't decompress.");
         _cachedBlock[slot] = block;
         return bytes;
@@ -114,6 +124,46 @@ internal sealed class CompressedTable : IDisposable
 
     private int BlockLength(int block) =>
         (int)(Math.Min(_valuesPerBlock, Size - (long)block * _valuesPerBlock) * Width);
+
+    /// <summary>Every value, decompressed into memory (blocks in parallel, past the cache).</summary>
+    public short[] ReadAll()
+    {
+        var values = new short[Size];
+        int blocks = _offsets.Length - 1;
+        try
+        {
+            ReadBlocks();
+        }
+        catch (AggregateException e) when (e.InnerException is InvalidDataException inner)
+        {
+            throw inner;   // as a probe would report it
+        }
+        return values;
+
+        void ReadBlocks() => Parallel.For(0, blocks, () => (Packed: Array.Empty<byte>(), Bytes: new byte[BlockBytes]), (block, _, buffers) =>
+        {
+            long start = _offsets[block];
+            int length = (int)(_offsets[block + 1] - start);
+            if (buffers.Packed.Length < length)
+                buffers.Packed = new byte[length];
+            _view.ReadArray(_dataStart + start, buffers.Packed, 0, length);
+            if (!BrotliDecoder.TryDecompress(buffers.Packed.AsSpan(0, length), buffers.Bytes, out int written)
+                || written != BlockLength(block))
+                throw new InvalidDataException($"{Material}: block {block} doesn't decompress.");
+            long first = (long)block * _valuesPerBlock;
+            if (IsDtz)
+            {
+                for (int i = 0; i < written; i++)
+                    values[first + i] = EndgameTable.FromByte((sbyte)buffers.Bytes[i]);
+            }
+            else
+            {
+                System.Runtime.InteropServices.MemoryMarshal.Cast<byte, short>(buffers.Bytes.AsSpan(0, written))
+                    .CopyTo(values.AsSpan((int)first));
+            }
+            return buffers;
+        }, _ => { });
+    }
 
     /// <summary>
     /// Write a table compressed into <paramref name="file"/>.  Every block is
