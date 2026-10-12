@@ -1208,13 +1208,18 @@ static class Cli
         var byTable = new Dictionary<(Material, string), long[,]>();   // the opponent's side, table by table
         var tableOrder = new List<Material>();
         int played = 0;
+        string? broken = null;   // set if a player fails: then the run stops, rather than count its failures as losses
         using var opponent = new UciPlayer(EngineSpec.Parse(["name=opponent", $"cmd={command}"]));
         foreach (var group in cases.GroupBy(c => c.Material))
         {
+            if (broken is not null)
+                break;
             using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
             using var us = new SearchPlayer("ours", tables);
             foreach (var c in group)
             {
+                if (broken is not null)
+                    break;
                 string fen = c.Position.ToFen();
                 bool whiteToMove = c.Position.SideToMove == Colour.White;
                 foreach (bool weMoveFirst in new[] { true, false })
@@ -1222,6 +1227,13 @@ static class Cli
                     bool weAreWhite = weMoveFirst == whiteToMove;
                     var record = GamePlayer.Play(weAreWhite ? us : opponent, weAreWhite ? opponent : us,
                                                  Array.Empty<string>(), clock, ++played, null, fen);
+                    if (record.Termination.Contains("did not answer") || record.Termination.Contains("illegal move"))
+                    {
+                        // An engine process dying (WSL has, when memory ran out) isn't a result: stop, keep what came before.
+                        broken = $"game {played}, {record.Termination} ({c.Material} {fen})";
+                        played--;
+                        break;
+                    }
                     var result = record.Result switch
                     {
                         GameResult.Draw => OutcomeKind.Draw,
@@ -1253,6 +1265,8 @@ static class Cli
         Console.WriteLine();
         Console.WriteLine($"Against {command}, {moveMs} ms a move: {cases.Count:N0} positions, each played twice " +
                           $"(our engine on each side), {played:N0} games in {watch.Elapsed.TotalMinutes:0.0} min.");
+        if (broken is not null)
+            Console.WriteLine($"STOPPED EARLY at {broken}: the results below are only the {played:N0} games before it.");
         string[] names = ["won", "drawn", "lost"];
         double Points(long[,] m) => Enumerable.Range(0, 3).Sum(v => m[v, 0] + 0.5 * m[v, 1]);
         double Expected(long[,] m) => Enumerable.Range(0, 3).Sum(v => (m[v, 0] + m[v, 1] + m[v, 2]) * (v == 0 ? 1 : v == 1 ? 0.5 : 0));
