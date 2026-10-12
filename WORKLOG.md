@@ -1344,3 +1344,24 @@ rather than 48-byte boards, because that is the storage that scales.
   the 504 games. Hardest for Stockfish still: K+B+N v K+N (0 of 6 long wins
   converted at both speeds), K+R+N v K+Q (1 of 6), K+N+N v K+Q (2 of 6).
   Output: scripts/hard-vs-stockfish-1000ms.txt.
+
+## 2026-10-13: an opening book from our own games
+
+- Matthew: use the human games for an advantage early on ("solid positions
+  to set sail from"). `scripts/make-book.py` streams a month: rated games
+  from the start position, both players 2200+, blitz or slower; every
+  move of the first 24 plies with how the game went for the side playing
+  it; moves played 10+ times scoring 40%+ go in a Polyglot .bin, weighted
+  2 x wins + draws. Two parsing traps found on the 100 MB trial: clock
+  comments split into tokens, and analysed games' move marks (f4?!).
+- September 2026: 89,616,462 games read, **1,594,859 kept**, 54 min (one
+  thread); 12.7 M position-moves seen once dropped along the way (memory a
+  few hundred MB). **Book: 190,079 moves in 128,425 positions, 3.0 MB**
+  (`bot/books/lichess-2026-09-2200.bin`, out of git; rebuild with the
+  script). Read back as lichess-bot reads it: 1.e4 48%, 1.d4 32%, 1.Nf3
+  9%; 1.e4 c5 36%, e5 21%; the Najdorf (5...a6) 65% in the Open Sicilian;
+  even 2.Ke2 has an answer (Nf6 74%). Both sides following it at random,
+  it lasts a median 14 plies (quartiles 11 and 18); 5% reach all 24.
+- The bot's config turns it on when the file exists (weighted random,
+  12 moves). To measure: clock saved from its games, and later a match
+  with and without it against Stockfish (a few hundred games, overnight).
