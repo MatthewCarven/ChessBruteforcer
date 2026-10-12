@@ -19,10 +19,10 @@ and the engine plays them by the 50-move rule. Where things stand:
       when done; run it again to carry on if it stopped). Then the whole
       month (89.6 M games) with `--moves` (Matthew's (b); remind him), in
       three steps:
-      1. `python -I scripts/table-games.py games/lichess_db_standard_rated_2026-09.pgn.zst
-         games/2026-09-tables.pgn` (~50 min; ~5.4 M games, ~5.6 GB, clocks
-         kept), then `game import games/2026-09-tables.cbg
-         games/2026-09-tables.pgn` (~70 min; ~1.8 GB) and delete the .pgn.
+      1. Done 2026-10-13 (`scripts/month-tables.cmd 2026-09`): 5,260,601
+         games in `games/2026-09-tables.cbg` (1.86 GB). The 5.5 GB
+         `games/2026-09-tables.pgn` can go once step 3 has read the .cbg
+         (Matthew's to delete).
       2. Code first: `game takeover` holds every entry in memory (1.8 GB
          peak for 190k; the month is ~28x that). Make it stream in batches
          (verdicts and the move walk per batch, keeping only light rows for
@@ -39,7 +39,15 @@ and the engine plays them by the 50-move rule. Where things stand:
       2026-10-12): 1 move in 31 that could go wrong does (2026; 1 in 32 in
       2013), and 20% of games have at least one. Half the endings that go
       wrong do it on the clock. WORKLOG has the tables.
-- [ ] **A Lichess bot** (Matthew, 2026-10-13; plan only so far). The engine
+- [ ] **Next for the bot: an opening book from our own games** (Matthew
+      picked it, 2026-10-13). Stream the September .zst for games where both
+      players are 2200+, count each move's games and score over the first
+      ~10-12 moves, write a Polyglot .bin (lichess-bot reads it:
+      engine.polyglot), and measure it: a match against Stockfish with and
+      without. After that, maybe tuning the evaluation from game results
+      (Texel), 2-3 sessions. And once ~20 rated games are in, matchmaking
+      back to opponent_rating_difference: 300.
+- [x] **A Lichess bot**: live 2026-10-13 as matthewcarven (WORKLOG). The engine
       already speaks UCI with the clock (wtime/btime/winc/binc), Move Overhead
       and EndgameTables, so this is mostly plumbing: the lichess-bot bridge
       (github.com/lichess-bot-devs/lichess-bot, Python) runs any UCI engine.

@@ -1297,3 +1297,20 @@ rather than 48-byte boards, because that is the storage that scales.
   left at the end, so not the clock. Nothing went wrong in the plumbing: no
   crash, no illegal move, saved to bot/games. The Stockfish run was going
   on alongside (single-threaded engines on a 16-thread laptop).
+- Casual, overnight: 4 won, 4 lost, 1 drawn (wins over MinibruteforceBot
+  2014, StockfishLowDepth 1975, agentc313 2204, sseh-c 1950; losses to
+  Bongaclang 2389, CalciumEngine 1856, bot64jaques 2330). Search depth a
+  median 12-14 plies. Some bots refuse casual challenges, so rated from
+  06:04 (a restart between games; a restart mid-game would forfeit it).
+- Rated, the first three: won on time v Iskelt-Corax 1854 (+2), lost v
+  VidBot 2243 (-700: the provisional 3000 falling), won v Botkingteam33
+  2153 by mate in 32 (+148): 2450 provisional at 06:50. The VidBot game
+  reached 4 pieces (K+B v K+R+N) already lost by the tables (mate or a
+  zeroing move against us in 28 plies, the 50-move rule counted), so it was
+  lost before the tables, as every loss so far has been.
+- The whole of September 2026 for (b): `scripts/month-tables.cmd 2026-09`,
+  04:44-06:37. The filter read 89,616,462 games, exactly Lichess's
+  counts.txt, so the download (resumed across three restarts) is intact; it
+  kept 5,260,601 (5.87%) in 46 min, 5.5 GB of PGN; imported in 66 min into
+  `games/2026-09-tables.cbg` (1.86 GB, 669.9 M moves). Next: make `game
+  takeover` stream in batches, then `--moves` on it (TODO).
