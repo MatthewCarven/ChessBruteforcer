@@ -16,16 +16,25 @@ and the engine plays them by the 50-move rule. Where things stand:
 - [ ] **Running when this was written:** the rest of September 2026
       (`scripts/download-lichess-month.cmd 2026-09`, own window, ~10 h from
       18:43 on 2026-10-12; games/download-2026-09.log ends "=== finished"
-      when done; run it again to carry on if it stopped). Then import the
-      whole month (89.6 M games): it won't fit as the 3.28 M were done
-      (~150 GB unpacked, ~35 GB as .cbg against ~39 GB free), so unpack and
-      import in chunks, deleting each, keeping only the tags the scorecards
-      use (Result, WhiteElo, BlackElo, TimeControl, Termination; ~12 GB), or
-      score from the stream without storing. It replaces 2026-09-part.cbg.
-      Then the scorecard by rating and time control on the whole month (the
-      thin rows: classical, 2400 and up), with `--moves`. While importing,
-      keep the clock (`%clk`) for the moves inside the tables: then mistakes
-      can be set against the seconds left, which nothing on disk can do now.
+      when done; run it again to carry on if it stopped). Then the whole
+      month (89.6 M games) with `--moves` (Matthew's (b); remind him), in
+      three steps:
+      1. `python -I scripts/table-games.py games/lichess_db_standard_rated_2026-09.pgn.zst
+         games/2026-09-tables.pgn` (~50 min; ~5.4 M games, ~5.6 GB, clocks
+         kept), then `game import games/2026-09-tables.cbg
+         games/2026-09-tables.pgn` (~70 min; ~1.8 GB) and delete the .pgn.
+      2. Code first: `game takeover` holds every entry in memory (1.8 GB
+         peak for 190k; the month is ~28x that). Make it stream in batches
+         (verdicts and the move walk per batch, keeping only light rows for
+         the scorecard), and check the output against
+         scripts/takeover-moves-2026-09-clocks.txt, line for line.
+      3. Run it (~3 h: finding ~1 h, the walk ~2 h), in its own window.
+      Thin rows to watch: classical, 2400 and up. The month replaces
+      2026-09-part.cbg (and the -tables sample).
+- [x] The clock and the kinds of mistake (2026-10-12): `table-games.py`
+      keeps the clock; under 5 s left, 4.6 mistakes per 100 moves, from 20 s
+      up ~3 whatever the clock. Kinds: king steps 33%, hung 21%, stalemate
+      9% (59% in K+Q v K). Examples and Matthew's page: WORKLOG.
 - [x] Move by move inside the tables (`game takeover ... --moves`,
       2026-10-12): 1 move in 31 that could go wrong does (2026; 1 in 32 in
       2013), and 20% of games have at least one. Half the endings that go

@@ -1220,3 +1220,52 @@ rather than 48-byte boards, because that is the storage that scales.
 - Not measurable yet: mistakes against the time left on the clock. The .cbg
   files keep no clock comments; the whole-month import could keep `%clk` for
   the moves inside the tables.
+
+## 2026-10-12: the clock, the kinds of mistake, and real examples
+
+- Matthew picked (a) the clock and (c) examples. `scripts/table-games.py`
+  streams a Lichess .pgn.zst and keeps only the games with 27 captures or
+  more: exactly those that get down to 5 pieces (32 - captures; SAN marks
+  every capture with an x). Seven tags kept, comments dropped, and the
+  clock readings from two plies before the 27th capture on, as two tags
+  `game import` keeps (`ClockPly`, `Clocks`: whole seconds, the mover's
+  time after the move with the increment added). ~30,000 games a second.
+  The first 1 GiB of September: 3,284,678 games read, 191,110 kept (5.82%)
+  in 99 s; 200 MB of PGN, 64 MB as `games/2026-09-part-tables.cbg`. So the
+  whole month comes to ~1.8 GB as .cbg with no ~150 GB unpack.
+- `game takeover` on that file gives the morning's scorecard again: 189,913
+  games enter a table against 189,886 (the cut came later this time, 513
+  more games read). `--moves` now sets each move against the mover's clock
+  as it starts to think (its reading after its last move), and the time
+  taken (that, plus the increment, less its reading after this move):
+
+  | seconds left | 0-4 | 5-9 | 10-19 | 20-29 | 30-59 | 1-2 min | 2-5 min | 5 min+ |
+  |---|---|---|---|---|---|---|---|---|
+  | mistakes per 100 | 4.62 | 3.34 | 2.93 | 2.71 | 2.92 | 3.03 | 3.07 | 2.96 |
+
+  | time taken | under 1 s | 1 s | 2-3 s | 4-9 s | 10-29 s | 30 s+ |
+  |---|---|---|---|---|---|---|
+  | mistakes per 100 | 2.83 | 2.86 | 3.47 | 4.76 | 5.65 | 5.15 |
+
+  Below 10 s left the rate climbs (1.6x the plateau under 5 s); from 20 s
+  up, more time doesn't lower it. The long thinks go wrong most, but that's
+  where the hard positions are: it doesn't show that thinking causes
+  mistakes.
+- Each mistake classified (`KindOfMistake`), the first that fits:
+  stalemated the other side; too slow (still a mate, outside the 50-move
+  count); hung (the other side's way out is a capture); missed a capture
+  that kept it; else the piece moved. 2026: a wrong king step 33%, hung
+  21%, another piece 20%, pawn 10%, stalemate 9%, missed 7%, too slow 1%.
+  Signature mistakes: K+Q v K 59% stalemates (K+P+P v K 38%), K+R v K+R
+  46% hung, K+P v K 66% king steps. 2013-01 the same shape (king 38%).
+- Examples: per table and kind, the strongest player with 20 s or more on
+  the clock, printed tab-separated (FEN, both moves as SAN and squares, the
+  verdicts in words, the Lichess link at the ply). Among them: a 2693 with
+  49 s missed mate in one (K+Q+P v K+Q); a 2299 in check from a queen it
+  could take walked away; a 2854 and a 2831 swapped mistakes on consecutive
+  moves (K+P v K+P). Matthew's page, "Endgames Thrown Away", is built from
+  the output by `scripts/endgames-page/make_page.py` (13 boards with the
+  move played and the tables' move as arrows, the two clock charts, the
+  kinds): https://claude.ai/artifact/AC7GVV8rmuefFj1AEEJEE6 (private).
+- Output: scripts/takeover-moves-2026-09-clocks.txt (6 min, peak 1.77 GB,
+  heap capped). Tests: 296 pass, 2 skipped.
