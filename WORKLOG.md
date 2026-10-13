@@ -1365,3 +1365,20 @@ rather than 48-byte boards, because that is the storage that scales.
 - The bot's config turns it on when the file exists (weighted random,
   12 moves). To measure: clock saved from its games, and later a match
   with and without it against Stockfish (a few hundred games, overnight).
+- First book game (10:20, rated 3+3 v lamprook 1817, Black): the book
+  played our first 8 moves (a Grünfeld), our clock went 180 -> 198 s over
+  them (before the book the engine spent ~7-8 s a move there), and we won,
+  mate in 36 (+16).
+- Matthew asked for more data and 10-15 moves. Measured on the 1 GB sample:
+  15 moves instead of 12 adds 35 moves of 6,785 (no position past ply 24
+  has 10 games); 2000+ or 1800+ make it 3x or 7.5x wider but a line lasts
+  9-10 plies all the same; a whole month (29x the games) took the median
+  line from 9 to 14 plies. So about one ply per doubling of the games.
+- Depth needs more months, so (his pick, no drive): `make-book.py count`
+  saves a month's counts (~50 MB) so its 30 GB download can go, and
+  `make-book.py book` merges every counts file into
+  `bot/books/lichess-2200.bin`; `scripts/month-book.cmd <month>` does the
+  lot. Running from 11:28: September's count, and August 2026 (30.1 GB,
+  91.9 M games) downloading at ~1 MB/s, then counted and merged (~20:00).
+  Disk: 38.8 GB free before August, ~8.7 GB after; each later month needs
+  the last one's .zst deleted first (his), or 6.8 GB of spare files.
