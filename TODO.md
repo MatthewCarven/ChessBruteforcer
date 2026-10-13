@@ -13,16 +13,34 @@ and the engine plays them by the 50-move rule. Where things stand:
   351.5 and 360 of 504 where the tables give 252; per table in WORKLOG);
   `game takeover` by rating and time control on 3.28 M games of September
   2026 and on 2013 (2013-06 held out: 21.7% against 21.1%).
-- [ ] **Running when this was written:** the rest of September 2026
-      (`scripts/download-lichess-month.cmd 2026-09`, own window, ~10 h from
-      18:43 on 2026-10-12; games/download-2026-09.log ends "=== finished"
-      when done; run it again to carry on if it stopped). Then the whole
-      month (89.6 M games) with `--moves` (Matthew's (b); remind him), in
-      three steps:
+- [ ] **Running when this was written (2026-10-13, 20:00):** August 2026's
+      count (`scripts/month-book.cmd 2026-08`, own window), which then
+      rebuilds `bot/books/lichess-2200.bin` from September + August
+      (~20:45; bot/books/month-book-2026-08.log ends "finished"). Then:
+      Matthew restarts the bot once between games (it still has the first
+      book file, lichess-2026-09-2200.bin, from its 10:18 start; the
+      restart moves it to lichess-2200.bin, which later months update live,
+      and brings in matchmaking within 300 of its rating), and runs
+      `pwsh -File scripts\clean-up.ps1` to free September's and August's
+      .zst (57 GB; their counts are kept). Check the August line in the
+      log: games kept, and how much the book grew.
+- [ ] **The book's worth, measured** (Matthew asked for it): an overnight
+      `scripts/book-match.py` run, e.g. `--games 400 --tc 180+2
+      --concurrency 3` (3+2 like the bot's games; ~1.2 GB per engine
+      copy, so check commit first). Smoke-tested (6 games, exits cleanly).
+      Watch: against UCI_LimitStrength Stockfish the book lasted only ~4
+      of our moves a game (it plays odd moves); Lichess bots kept us in
+      book ~8. If that dilutes it, give Stockfish the book too, or use a
+      full-strength Stockfish at a short movetime. Before that, the bot's
+      own rated games: 34% in 19 before the book, 46% in 42 with it
+      (+-10 points each).
+- [ ] **More months for the book** (Matthew's (c)): `scripts\month-book.cmd
+      2026-07`, then 06, ... one a night (~8 h download at ~1 MB/s, ~1 h
+      count; 30 GB free needed, so clean up the last month first). Each
+      doubling of the games adds about a ply to a typical book line.
+- [ ] **The whole of September with `--moves`** (Matthew's (b); remind him):
       1. Done 2026-10-13 (`scripts/month-tables.cmd 2026-09`): 5,260,601
-         games in `games/2026-09-tables.cbg` (1.86 GB). The 5.5 GB
-         `games/2026-09-tables.pgn` can go once step 3 has read the .cbg
-         (Matthew's to delete).
+         games in `games/2026-09-tables.cbg` (1.86 GB; its .pgn deleted).
       2. Code first: `game takeover` holds every entry in memory (1.8 GB
          peak for 190k; the month is ~28x that). Make it stream in batches
          (verdicts and the move walk per batch, keeping only light rows for
@@ -39,14 +57,13 @@ and the engine plays them by the 50-move rule. Where things stand:
       2026-10-12): 1 move in 31 that could go wrong does (2026; 1 in 32 in
       2013), and 20% of games have at least one. Half the endings that go
       wrong do it on the clock. WORKLOG has the tables.
-- [ ] **Next for the bot: an opening book from our own games** (Matthew
-      picked it, 2026-10-13). Stream the September .zst for games where both
-      players are 2200+, count each move's games and score over the first
-      ~10-12 moves, write a Polyglot .bin (lichess-bot reads it:
-      engine.polyglot), and measure it: a match against Stockfish with and
-      without. After that, maybe tuning the evaluation from game results
-      (Texel), 2-3 sessions. And once ~20 rated games are in, matchmaking
-      back to opponent_rating_difference: 300.
+- [x] **An opening book from our own games** (2026-10-13): 2200+ players,
+      blitz or slower, the first 12 moves; September alone 193,322 moves in
+      130,617 positions. WORKLOG.
+- [ ] Later for the bot: tuning the evaluation from game results (Texel),
+      2-3 sessions, measured by a match like the book's. And a server near
+      Lichess (Europe) if it should run all day: from Australia every move
+      costs ~1.2 s of connection, and a dropped minute lost one game.
 - [x] **A Lichess bot**: live 2026-10-13 as matthewcarven (WORKLOG). The engine
       already speaks UCI with the clock (wtime/btime/winc/binc), Move Overhead
       and EndgameTables, so this is mostly plumbing: the lichess-bot bridge

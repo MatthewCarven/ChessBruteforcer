@@ -70,12 +70,9 @@ matchmaking["challenge_initial_time"] = [180, 300]            # blitz: 3+2 or 5+
 matchmaking["challenge_increment"] = [2, 3]
 matchmaking["challenge_mode"] = "rated"                       # its challenges count for rating (some bots refuse casual)
 matchmaking["challenge_filter"] = "coarse"                    # don't keep asking bots that said no
-# Lichess starts a new bot at a provisional 3000, and casual games never move it, so "within 300 of our
-# rating" would only ever pick 2700-3300 bots. A fixed band round our estimate (~2100) instead.
-# Once rated games have settled its rating (20 or so), go back to opponent_rating_difference: 300.
-matchmaking["opponent_rating_difference"] = None
-matchmaking["opponent_min_rating"] = 1800
-matchmaking["opponent_max_rating"] = 2400
+# Opponents within 300 of its own blitz rating. (Lichess starts a new bot at a provisional 3000, so for its
+# first rated games this was a fixed 1800-2400 band instead; settled at 1974 after 61 games, 2026-10-13.)
+matchmaking["opponent_rating_difference"] = 300
 config["pgn_directory"] = os.path.join(here, "games")         # every game it plays, for `game takeover --moves`
 config["pgn_file_grouping"] = "game"
 

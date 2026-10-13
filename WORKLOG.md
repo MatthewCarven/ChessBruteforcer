@@ -1382,3 +1382,20 @@ rather than 48-byte boards, because that is the storage that scales.
   91.9 M games) downloading at ~1 MB/s, then counted and merged (~20:00).
   Disk: 38.8 GB free before August, ~8.7 GB after; each later month needs
   the last one's .zst deleted first (his), or 6.8 GB of spare files.
+- September counted 11:28-12:19: 4,547,455 position-moves saved (95 MB;
+  fewer dropped than the first build, the threshold being 6 M not 4 M),
+  book 193,322 moves in 130,617 positions. August downloaded 11:28-19:29
+  (30.1 GB, ~1 MB/s), counting from 19:29. `scripts/clean-up.ps1` offers
+  only imported PGNs, unpacked copies and counted downloads, deleting on a
+  typed YES; Matthew ran it (5.84 GB).
+- The bot by 19:50: blitz **1974**, settled after 61 rated games. Rated
+  before the book 6-12-1 (34%, 19 games), with it 17-20-5 (46%, 42 games),
+  each +-10 points or so. One win (v simpleEval 2100, PwB9TEEz) promoted
+  twice and mated with two queens once the tables had it. Matchmaking back
+  to within 300 of its own rating from its next restart.
+- `scripts/book-match.py`: our engine (the bot's copy, with tables) v
+  Stockfish (WSL, UCI_LimitStrength), alternating book / no book and
+  colours, real clocks, each game appended to a .jsonl, summary with 95%
+  intervals and the arms' difference. Smoke test (6 games at 5-8 s): it
+  first hung on exit (engines never quit keep Python alive; fixed), and
+  the book lasted only ~4 of our moves a game against weakened Stockfish.
