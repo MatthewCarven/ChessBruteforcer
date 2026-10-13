@@ -13,15 +13,14 @@ and the engine plays them by the 50-move rule. Where things stand:
   351.5 and 360 of 504 where the tables give 252; per table in WORKLOG);
   `game takeover` by rating and time control on 3.28 M games of September
   2026 and on 2013 (2013-06 held out: 21.7% against 21.1%).
-- [ ] August 2026 counted (done 20:24): the book is September + August,
-      363,447 moves, median line 15 plies (was 14). Then:
-      Matthew restarts the bot once between games (it still has the first
-      book file, lichess-2026-09-2200.bin, from its 10:18 start; the
-      restart moves it to lichess-2200.bin, which later months update live,
-      and brings in matchmaking within 300 of its rating), and runs
-      `pwsh -File scripts\clean-up.ps1` to free September's and August's
-      .zst (57 GB; their counts are kept). Check the August line in the
-      log: games kept, and how much the book grew.
+- [x] August 2026 counted (done 20:24): the book is September + August,
+      363,447 moves, median line 15 plies (was 14). The bot restarted
+      20:42 on lichess-2200.bin with matchmaking within 300; September's
+      and August's .zst cleaned up.
+- [ ] **Where the book runs out against bots** (Matthew, 2026-10-13
+      evening: "it went off after move 4"; plan in WORKLOG): bots leave
+      the human book with rare moves, so width matters more than depth
+      there. Options measured on the bot's 76 games; his pick pending.
 - [ ] **The book's worth, measured** (Matthew asked for it): an overnight
       `scripts/book-match.py` run, e.g. `--games 400 --tc 180+2
       --concurrency 3` (3+2 like the bot's games; ~1.2 GB per engine

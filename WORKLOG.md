@@ -1405,3 +1405,36 @@ rather than 48-byte boards, because that is the storage that scales.
   Depth, both sides following it at random (4,000 lines): median 14 -> 15
   plies, average 14.4 -> 15.1, all 24 plies 5.9% -> 7.0%. Doubling the
   games gave one more ply, as the samples predicted.
+
+## 2026-10-13 evening: where the book runs out against bots
+
+- The bot restarted 20:42 on the two-month book (lichess-2200.bin) with
+  matchmaking within 300. Its first game on it (v uSunfish 1768, Black,
+  5+2): the book played our first two moves, then uSunfish played a move
+  at its third that the 2200+ games don't have; one more book move by
+  transposition, then the engine from our move 5 (7-15 s a move).
+- Matthew's idea: record our own games into the book, in the background,
+  loaded lazily after each game. Measured on the bot's 76 games so far (the
+  first 12 moves each; the 2-month book as it is now): our moves the book
+  couldn't answer 447; **met before in an earlier game: 9 (2%)**; games
+  whose first out-of-book position had come up before: **3 of 74**. Our
+  book picks at random and the opponents vary, so positions rarely repeat
+  (17 opponents met more than once, every one of them at a different exit).
+- Where the book first ran out, by our move: 2-4: 12 games, 5-6: 15,
+  7-8: 33, 9-12: 14, never in 12: 2. Bots leave it with rare moves, so
+  what's missing is width (rare replies), not depth.
+- The same counts with lower thresholds (built in 7 s each, nothing new
+  downloaded), the first exits each would have answered:
+
+  | book (2200+, 2 months, score 40%+) | moves | first exits answered |
+  |---|---|---|
+  | played 10+ times (the bot's now) | 363,447 | 0 of 74 |
+  | 5+ | 640,568 | 19 |
+  | 3+ | 940,807 | 33 |
+  | 2+ | 1,478,677 | 39 |
+
+- lichess-bot (engine_wrapper.get_book_move) tries the listed books in
+  order and reopens each file every move, so a second or third book file
+  is picked up live, with no change to lichess-bot; the engine is one
+  thread, on 16 logical cores, so a background job on one more costs the
+  live game no CPU.
