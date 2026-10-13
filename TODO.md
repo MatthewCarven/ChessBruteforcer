@@ -48,8 +48,12 @@ and the engine plays them by the 50-move rule. Where things stand:
       (+-10 points each).
 - [ ] **More months for the book** (Matthew's (c)): `scripts\month-book.cmd
       2026-07`, then 06, ... one a night (~8 h download at ~1 MB/s, ~1 h
-      count; 30 GB free needed, so clean up the last month first). Each
-      doubling of the games adds about a ply to a typical book line.
+      count). From 2026-10-13 the months are kept on Matthew's desktop
+      (`\\id10terror-desktop\chessbruteforcer\lichess`, his Z:, 1.4 TB free,
+      ~10 MB/s), with Lichess's SHA-256 beside each; the laptop keeps only
+      counts and books. Each doubling of the games adds about a ply to a
+      typical book line. August and September's .zst were deleted before
+      the share existed: fetch them again only if a recount needs them.
 - [ ] **The whole of September with `--moves`** (Matthew's (b); remind him):
       1. Done 2026-10-13 (`scripts/month-tables.cmd 2026-09`): 5,260,601
          games in `games/2026-09-tables.cbg` (1.86 GB; its .pgn deleted).

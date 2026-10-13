@@ -1,22 +1,30 @@
-# Download (or finish downloading) one month of Lichess's standard rated games into games\.
+# Download (or finish downloading) one month of Lichess's standard rated games into games\, or -Dir.
 #
 #   scripts\download-lichess-month.cmd 2026-09
+#   pwsh -File scripts\download-lichess-month.ps1 2026-07 -Dir \\id10terror-desktop\chessbruteforcer\lichess
 #
-# Resumes from whatever is already there: games\lichess_db_standard_rated_<month>.pgn.zst.part,
+# Resumes from whatever is already there: <Dir>\lichess_db_standard_rated_<month>.pgn.zst.part,
 # or the first-1GB file of 2026-10-12 (bytes 0 .. 1,073,741,823 of the same file), which it
 # continues, so nothing is downloaded twice.  Retries when the connection drops.  When the
 # size matches the server's, the file gets its proper name.  If Lichess has replaced the file
 # since the part was started (its Last-Modified changed), it stops rather than splice two files.
-# Everything goes to games\download-<month>.log.
-param([Parameter(Mandatory)] [string] $Month)
+# Lichess's SHA-256 for the month goes beside it as <name>.sha256 (make-book.py count checks it).
+#
+# -Dir can be a network share (the months live on Matthew's desktop from 2026-10-13).  While it
+# can't be reached the script waits, up to 6 hours, without using up attempts; a write cut off by
+# a drop is picked up by the next attempt from the bytes that reached the share (curl -C - only
+# ever appends), and anything that went wrong in the middle shows up in the checksum.  The log
+# stays on this machine: games\download-<month>.log.
+param([Parameter(Mandatory)] [string] $Month, [string] $Dir = 'games')
 $ErrorActionPreference = 'Continue'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $name = "lichess_db_standard_rated_$Month.pgn.zst"
 $url = "https://database.lichess.org/standard/$name"
-$final = "games\$name"
+$final = Join-Path $Dir $name
 $part = "$final.part"
-$first = "games\lichess_db_standard_rated_$Month.first-1GB.pgn.zst"
+$first = Join-Path $Dir "lichess_db_standard_rated_$Month.first-1GB.pgn.zst"
 $stamp = "$part.last-modified"
+$sums = "$final.sha256"
 $log = "games\download-$Month.log"
 
 function Log([string] $text) {
@@ -25,7 +33,19 @@ function Log([string] $text) {
     Add-Content -Path $log -Value $line
 }
 
-if (Test-Path $final) { Log "$final is already here: nothing to do"; return }
+function Wait-Dir {
+    # Until $Dir can be reached again (a share dropping out), or 6 hours.
+    $since = $null
+    while (-not (Test-Path -LiteralPath $Dir)) {
+        if (-not $since) { $since = Get-Date; Log "can't reach $Dir; waiting for it (up to 6 hours)" }
+        if (((Get-Date) - $since).TotalHours -ge 6) { Log "STOPPING: $Dir unreachable for 6 hours (run this again to carry on)"; exit 1 }
+        Start-Sleep -Seconds 30
+    }
+    if ($since) { Log ('{0} is back after {1:N0} min' -f $Dir, ((Get-Date) - $since).TotalMinutes) }
+}
+
+Wait-Dir
+if (Test-Path -LiteralPath $final) { Log "$final is already here: nothing to do"; return }
 if (-not (Test-Path $part) -and (Test-Path $first)) {
     Rename-Item $first (Split-Path $part -Leaf)
     Set-Content $stamp 'Sat, 03 Oct 2026 05:06:59 GMT'   # the server's date when the first 1 GB was fetched
@@ -42,19 +62,27 @@ if (Test-Path $stamp) {
     Set-Content $stamp $modified
 }
 Log "=== $name`: $expected bytes on the server ($modified)"
+if (-not (Test-Path -LiteralPath $sums)) {
+    $line = curl.exe -sS https://database.lichess.org/standard/sha256sums.txt |
+        Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($name))$" } | Select-Object -First 1
+    if ($line) { Set-Content -LiteralPath $sums -Value $line -Encoding ascii; Log "Lichess's SHA-256: $($line.Substring(0, 64))" }
+    else { Log "no SHA-256 for $name on Lichess's list (yet?); the count will say it couldn't check" }
+}
 
 for ($try = 1; $try -le 100; $try++) {
-    $have = if (Test-Path $part) { (Get-Item $part).Length } else { 0 }
+    Wait-Dir
+    $have = if (Test-Path -LiteralPath $part) { (Get-Item -LiteralPath $part).Length } else { 0 }
     if ($have -ge $expected) { break }
     Log ('attempt {0}: {1:N2} of {2:N2} GB' -f $try, ($have / 1GB), ($expected / 1GB))
     curl.exe -sS -C - -o $part $url
     if ($LASTEXITCODE -ne 0) { Log "curl exit $LASTEXITCODE; again in a minute"; Start-Sleep -Seconds 60 }
 }
 
-$have = (Get-Item $part).Length
+Wait-Dir
+$have = (Get-Item -LiteralPath $part).Length
 if ($have -eq $expected) {
-    Rename-Item $part $name
-    Remove-Item $stamp
+    Rename-Item -LiteralPath $part $name
+    Remove-Item -LiteralPath $stamp
     Log "=== finished: $final, $have bytes"
 } else {
     Log "=== not finished: $have of $expected bytes (run it again to carry on)"

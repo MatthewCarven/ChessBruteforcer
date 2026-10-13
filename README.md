@@ -466,7 +466,10 @@ month (`scripts/make-book.py`, `scripts/month-book.cmd <month>`), September
 deeper by about one half-move per doubling of the games: real games part
 company early. Bots leave it mostly with rare moves, so where it has nothing
 a wider book answers (moves played 3 times or more, not 10). `scripts/book-match.py`
-measures it against Stockfish, with and without.
+measures it against Stockfish, with and without. The months themselves (~30 GB
+each) are kept on a desktop's disks over the network (`MONTHS` in
+`month-book.cmd`), each with Lichess's SHA-256: the download and the count
+ride out the share dropping, and the count checks every byte against it.
 
 **Compressed tables** ("CBC1", 2026-09-30), for the 50 pawn tables, which
 would not fit plain (~115 GB against ~96 GB free). A table's values are cut

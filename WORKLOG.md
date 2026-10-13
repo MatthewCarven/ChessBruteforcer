@@ -1452,3 +1452,29 @@ rather than 48-byte boards, because that is the storage that scales.
   questions) needs the month's .zst again: a re-count is ~1 h, a
   re-download ~8 h. He may map a network drive to his desktop (a few hard
   disks) to keep the .zst files there (~30 GB a month).
+- Storage, Matthew's (a): the months stay on his desktop, mapped as Z:
+  (`\id10terror-desktop\chessbruteforcer`, 1.8 TB, 1.4 TB free). The share
+  first refused writes (a new share is read-only; his account given Change).
+  Speed: ~10 MB/s each way, about what counting reads (~9 MB/s), so a month
+  is counted straight from there. The six 2013 months copied to
+  `Z:\lichess` and checked byte for byte, each with Lichess's SHA-256
+  beside it (`<name>.sha256`, from database.lichess.org/standard/sha256sums.txt;
+  all six match).
+- Hardened against the share dropping (his ask): `make-book.py count` reads
+  through `Steady`, which on a failed or empty read waits (5 s doubling to
+  60 s), reopens and carries on from the same byte, for up to 30 min in a
+  row; it hashes as it reads and checks the whole file against the
+  `.sha256` (a mismatch stops with nothing written; the hash goes in the
+  counts header). Test (scratch): 2013-01 counted plain, then through a
+  reader failing 2% of reads and reading nothing 1%: 11 failures, counts
+  byte for byte the same; from the share, same records and the checksum
+  checked; a wrong checksum stops; a share that never returns gives up.
+  `download-lichess-month.ps1 -Dir`: waits for the share (up to 6 h) without
+  using attempts, saves the month's SHA-256, logs on the laptop.
+  `month-book.cmd`: `MONTHS` (default the share), waits up to 10 min for it,
+  checks free space there. Counts and books stay on the laptop, so the bot
+  never depends on the desktop.
+- The bot since the 20:42 restart: won v uSunfish 1768 (the out-of-book
+  game: it ended with our pawn promoting), lost v AetherBot 2022, won v
+  sseh-c 1945, TopasBot 1870, Axiom_BOT 1816 (4-1). The wide book is live
+  from its next restart.

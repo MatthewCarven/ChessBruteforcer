@@ -14,7 +14,10 @@ first --plies positions, the move played and how the game went for the side that
 sorted by position and move, about 50 MB a month. Position-moves seen only once are dropped whenever
 the count passes 6 M, to keep memory under a gigabyte; a move near the book's edge (--min-games) can
 lose the odd game that way, nothing more. Reads across the file's Zstandard frames and stops at a cut
-(a partial download); --max-bytes reads only the start.
+(a partial download); --max-bytes reads only the start. The file can be on a network share (the months
+live on Matthew's desktop): if the share drops, the read waits and carries on from the same byte, for up
+to 30 minutes at a time. A whole file read is checked against Lichess's SHA-256 (<file>.sha256 beside it,
+which the download saves); a mismatch stops the count with nothing written.
 
 book: the counts files merged a record at a time (memory stays flat however many months). A move goes
 in if it was played --min-games times or more and scored --min-score or better for the side playing
@@ -23,7 +26,7 @@ position so the largest fits 65,535: lichess-bot's "weighted_random" then plays 
 successful moves most often. Written to a temporary file and moved over the old book, so a running
 bot (which opens the book afresh each move) never reads half a file.
 """
-import array, heapq, io, json, os, re, struct, sys, time
+import array, hashlib, heapq, io, json, os, re, struct, sys, time
 from compression import zstd
 
 MAGIC = b"CBCOUNT1"
@@ -42,6 +45,72 @@ def options(args, spec):
             values[name] = kind(args[i + 1])
             del args[i:i + 2]
     return values, args
+
+
+class Steady(io.RawIOBase):
+    """A file read from start to end that rides out its network share dropping for a while (the months live on
+    Matthew's desktop from 2026-10-13): a failed read, or one that finds nothing before the file's end, waits,
+    reopens the file and carries on from the same byte, giving up after `patience` seconds of failures in a
+    row. It also hashes what it reads, so the whole file can be checked against Lichess's SHA-256."""
+    opener = staticmethod(open)   # tests swap in a flaky one
+    first_pause, longest_pause, patience = 5, 60, 30 * 60
+
+    def __init__(self, path):
+        self.path, self.offset, self.file, self.drops = path, 0, None, 0
+        self.size = os.path.getsize(path)
+        self.sha256 = hashlib.sha256()
+
+    def readable(self):
+        return True
+
+    def readinto(self, buffer):
+        waited, pause = 0, self.first_pause
+        while True:
+            try:
+                if self.file is None:
+                    self.file = self.opener(self.path, "rb")
+                    self.file.seek(self.offset)
+                got = self.file.readinto(buffer)
+                if not got and self.offset < self.size:
+                    raise OSError(f"read nothing at byte {self.offset:,} of {self.size:,}")
+                break
+            except OSError as e:
+                try:
+                    if self.file is not None:
+                        self.file.close()
+                except OSError:
+                    pass
+                self.file = None
+                if waited >= self.patience:
+                    raise
+                if not waited:
+                    self.drops += 1
+                print(f"lost {self.path} at byte {self.offset:,} ({e}); trying again in {pause}s", file=sys.stderr, flush=True)
+                time.sleep(pause)
+                waited += pause
+                pause = min(2 * pause, self.longest_pause)
+        if waited:
+            print(f"back at byte {self.offset:,} after {waited}s", file=sys.stderr, flush=True)
+        if got:
+            self.sha256.update(memoryview(buffer)[:got])
+            self.offset += got
+        return got
+
+    def close(self):
+        if self.file is not None:
+            self.file.close()
+            self.file = None
+        super().close()
+
+
+def expected_sha256(path):
+    """Lichess's SHA-256 for a month, from the <name>.sha256 the download saved beside it (sha256sum's
+    format: the hash, two spaces, the name), or None."""
+    try:
+        with open(path + ".sha256", encoding="ascii") as f:
+            return f.read().split()[0].lower()
+    except (OSError, IndexError):
+        return None
 
 
 class Limited(io.RawIOBase):
@@ -132,9 +201,8 @@ def count(args):
         if len(index) > PRUNE_AT:
             prune()
 
-    source = open(src, "rb")
-    if opts["max-bytes"]:
-        source = Limited(source, opts["max-bytes"])
+    steady = Steady(src)
+    source = Limited(steady, opts["max-bytes"]) if opts["max-bytes"] else steady
     tags, movetext, cut = [], [], False
     with zstd.open(source, "rb") as packed:
         text = io.TextIOWrapper(packed, encoding="utf-8", newline="\n")
@@ -159,9 +227,29 @@ def count(args):
             print(f"stopped at the cut ({e}); the game it was in dropped", file=sys.stderr)
             cut = True
 
+    # The whole file read: check it against Lichess's checksum, so a copy damaged in a download or on a disk
+    # can't quietly become counts.
+    sha256, checked = None, False
+    if not cut and not opts["max-bytes"]:
+        while steady.read(1 << 20):   # anything the decompressor didn't need to see
+            pass
+        sha256, expected = steady.sha256.hexdigest(), expected_sha256(src)
+        if expected is None:
+            print(f"no {os.path.basename(src)}.sha256 beside it, so not checked (SHA-256 {sha256})", file=sys.stderr)
+        elif sha256 != expected:
+            raise SystemExit(f"STOPPING: {src} doesn't match Lichess's SHA-256 ({sha256}, should be {expected}); "
+                             f"it's damaged, so no counts written: download it again")
+        else:
+            checked = True
+            print(f"SHA-256 matches Lichess's ({sha256})", file=sys.stderr)
+    steady.close()
+    if steady.drops:
+        print(f"the file dropped out {steady.drops} times and was picked up again each time", file=sys.stderr)
+
     index, w, d, l = state["index"], state["w"], state["d"], state["l"]
     header = json.dumps({"source": os.path.basename(src), "games": games, "kept": kept, "min_elo": min_elo, "plies": plies,
-                         "cut": cut, "pruned": state["pruned"], "records": len(index)}).encode()
+                         "cut": cut, "pruned": state["pruned"], "records": len(index),
+                         "sha256": sha256, "sha256_checked": checked}).encode()
     temp = dst + ".tmp"
     with open(temp, "wb") as out:
         out.write(MAGIC + struct.pack(">I", len(header)) + header)
