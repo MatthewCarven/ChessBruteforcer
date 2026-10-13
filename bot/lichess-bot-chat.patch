@@ -1,0 +1,21 @@
+diff --git a/lib/conversation.py b/lib/conversation.py
+index 3341dc2..2ae6209 100644
+--- a/lib/conversation.py
++++ b/lib/conversation.py
+@@ -67,6 +67,16 @@ class Conversation:
+         :param cmd: The command to react to.
+         """
+         from_self = line.username == self.game.username
++        try:  # ChessBruteforcer's own commands first (bot/chat_commands.py); a fault there never stops the game
++            from lib import bruteforcer_chat
++            replies = bruteforcer_chat.reply(self, line, cmd)
++        except Exception:
++            logger.exception("bruteforcer_chat failed")
++            replies = None
++        if replies is not None:
++            for reply in replies:
++                self.send_reply(line, reply)
++            return
+         is_eval = cmd.startswith("eval")
+         if cmd in ("commands", "help"):
+             self.send_reply(line,

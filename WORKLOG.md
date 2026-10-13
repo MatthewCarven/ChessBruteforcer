@@ -1524,3 +1524,34 @@ rather than 48-byte boards, because that is the storage that scales.
   - frames are independent, so a month can be worked on 16 threads at once,
     a frame each. That is what makes (a) and (b) affordable: replaying every
     move of a month (~6 B moves) on one thread would take most of a day.
+
+## 2026-10-14: chat commands for the bot
+
+- The VPS idea (download and pack in Europe, fetch home): four downloads at
+  once came to ~0.95 MB/s, the same as two, so the home line is what's full
+  (shared with the family's streaming). A VPS would only help by sending
+  fewer bytes home (counts only, or slimmed games); Matthew: we can just
+  wait. If ever, the desktop fetches from it; no reverse proxy into it.
+- Matthew: `!help` listing `!info`, which says how many tables we have and
+  whether we're in them now. lichess-bot's commands are written into its
+  lib/conversation.py with no hook, so `bot/chat_commands.py` holds ours and
+  `bot/lichess-bot-chat.patch` (10 lines) makes Conversation.command ask it
+  first; anything it doesn't answer, or any fault in it, goes on to
+  lichess-bot's own. `start-bot.cmd` copies it in as lib/bruteforcer_chat.py
+  and applies the patch unless it's in (or says it couldn't, and starts
+  without), and sets BRUTEFORCER_TABLES.
+- `!info`: "Tables: 146 endings, all with 5 pieces or fewer. Now 30 pieces on
+  the board: not yet. Book: out since my move 4." (or "Now 4 pieces: every
+  move I make comes from them."); the book from the source lichess-bot
+  records for each of our moves. To spectators and the bot's own account
+  (Matthew's (a), as with !eval) a second line: "The tables say: I win, mate
+  in 6." / "I lose, mated in 4." / "a draw" (a 0 includes wins the 50-move
+  rule runs out on), or "no say yet" when a capture has only just brought
+  the game into them. Greetings mention !help / !info (122 and 128 chars).
+- Tested in a scratch copy of lichess-bot (no token) with its real
+  Conversation and Game, Lichess faked: 13 checks (both colours, restarted
+  mid-game, the verdict's three kinds and who sees it, !queue still
+  lichess-bot's, a fault in ours falls back to its !help, every message
+  <= 140 chars). The start block: skips when the patch is in, applies it
+  fresh, and on a changed lichess-bot says so and starts without. Live from
+  the next restart.

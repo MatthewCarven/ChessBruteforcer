@@ -458,6 +458,10 @@ converts 76 of 108, and we still score 322.5. Details in WORKLOG.
 [matthewcarven](https://lichess.org/@/matthewcarven) through lichess-bot
 (`bot/`: `make-config.py` holds the settings, `start-bot.cmd` runs it; the
 lichess-bot download and its config, which holds the token, stay out of git).
+In the game chat, `!info` says how many tables it has, whether the game is in
+them yet and where its book ran out, and spectators also get what the tables
+say about the result (`bot/chat_commands.py`, which `start-bot.cmd` plugs into
+lichess-bot with `bot/lichess-bot-chat.patch`).
 Rated blitz against other bots, it settled at 1974 after 61 games; every game
 that reached the tables had its result settled before it got there. Its
 opening book is our own: what 2200+ players chose in Lichess's games, month by

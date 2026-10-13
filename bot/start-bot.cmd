@@ -22,6 +22,15 @@ if %errorlevel%==0 (
     pause
     exit /b 1
 )
+rem Our chat commands (!info, and !help listing it): bot\chat_commands.py into lichess-bot, and the small change
+rem to its lib\conversation.py that asks it first (bot\lichess-bot-chat.patch), unless that's in already.
+copy /y bot\chat_commands.py bot\lichess-bot\lib\bruteforcer_chat.py >nul
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-chat.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-chat.patch"
+    if errorlevel 1 echo The chat commands didn't go in ^(lichess-bot changed?^): starting without !info.
+)
+set BRUTEFORCER_TABLES=%CD%\tables
 cd /d "%~dp0lichess-bot"
 for /f %%d in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd"') do set TODAY=%%d
 "%PY%" lichess-bot.py -l "%~dp0logs\bot-%TODAY%.log"

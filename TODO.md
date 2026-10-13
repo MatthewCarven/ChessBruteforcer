@@ -46,6 +46,10 @@ and the engine plays them by the 50-move rule. Where things stand:
       full-strength Stockfish at a short movetime. Before that, the bot's
       own rated games: 34% in 19 before the book, 46% in 42 with it
       (+-10 points each).
+- [x] **Chat commands** (Matthew, 2026-10-14): `!info` (tables, whether
+      we're in them, where the book ran out; the tables' verdict to
+      spectators only, his (a)) and `!help` listing it. Live from the bot's
+      next restart; check in a casual game from his own account.
 - [ ] **The month queue** (Matthew, 2026-10-13 22:36: "queue the lot up"):
       `scripts\month-queue.cmd` in its own window, newest first, stopping
       before the share has < 100 GB free: 2026-09 back to 2022-12 (46
