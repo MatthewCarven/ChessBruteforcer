@@ -458,6 +458,9 @@ converts 76 of 108, and we still score 322.5. Details in WORKLOG.
 [matthewcarven](https://lichess.org/@/matthewcarven) through lichess-bot
 (`bot/`: `make-config.py` holds the settings, `start-bot.cmd` runs it; the
 lichess-bot download and its config, which holds the token, stay out of git).
+`start.cmd`, in the repo's folder, starts the bot and the month queue, each in
+a window of its own (so they outlive the Claude app's terminal), and leaves
+alone whichever is already running.
 In the game chat, `!info` says how many tables it has, whether the game is in
 them yet and where its book ran out, and spectators also get what the tables
 say about the result (`bot/chat_commands.py`, which `start-bot.cmd` plugs into
