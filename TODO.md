@@ -46,6 +46,18 @@ and the engine plays them by the 50-move rule. Where things stand:
       full-strength Stockfish at a short movetime. Before that, the bot's
       own rated games: 34% in 19 before the book, 46% in 42 with it
       (+-10 points each).
+- [ ] **The month queue** (Matthew, 2026-10-13 22:36: "queue the lot up"):
+      `scripts\month-queue.cmd` in its own window, newest first, stopping
+      before the share has < 100 GB free: 2026-09 back to 2022-12 (46
+      months, ~1.4 TB, ~4.3 B games; ~16 days at ~1 MB/s; restartable, and
+      the laptop must stay awake). The whole archive is 165 months, 2.6 TB,
+      8.22 B games. Later: (1) his spill-over drive: `-Dir` a list, filled
+      in turn, and readers looking in each; (2) two downloads at once ran
+      1.30 MB/s together v ~0.85 alone, so `-Parallel 2` would cut ~16 days
+      to ~11.
+- [ ] **An index over the games** (Matthew, planning 2026-10-13): offsets
+      by moves played, and the board as a sorted list of pieces; streamed
+      from the desktop or cached. Plan in WORKLOG; measure on July first.
 - [ ] **More months for the book** (Matthew's (c)): `scripts\month-book.cmd
       2026-07`, then 06, ... one a night (~8 h download at ~1 MB/s, ~1 h
       count). From 2026-10-13 the months are kept on Matthew's desktop

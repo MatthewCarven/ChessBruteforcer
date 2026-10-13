@@ -1478,3 +1478,17 @@ rather than 48-byte boards, because that is the storage that scales.
   game: it ended with our pawn promoting), lost v AetherBot 2022, won v
   sseh-c 1945, TopasBot 1870, Axiom_BOT 1816 (4-1). The wide book is live
   from its next restart.
+- July started 22:26 (month-book.cmd, its own window, to the share), then
+  Matthew: "queue the lot up, even the ones I deleted". Lichess's archive
+  (list.txt, counts.txt, sizes by HEAD): 165 months, **2.6 TB, 8.22 B
+  games** (2013 0.5 GB; 2017 41 GB; 2020 243 GB; 2021-2025 ~360 GB a year;
+  2026 so far 263 GB). The share has 1.5 TB (decimal) free, so
+  `scripts/month-queue.ps1` goes newest first and stops before leaving
+  < 100 GB: dry run, 2026-09 back to 2022-12, 46 months. Months counted
+  before (08, 09) are downloaded again and checked (`make-book.py verify`);
+  the rest are counted and the books rebuilt after each. A month another
+  window is downloading (July) is left for the end. Tested: verify on a
+  good file, one already checked by its count, a damaged one (exit 1); a
+  child script's `exit` doesn't end the queue. Started 22:36.
+- Two downloads at once: July 0.72 + September 0.59 = 1.30 MB/s, against
+  ~0.85 for one alone, so ~1.4x. Matthew may add a spill-over drive later.
