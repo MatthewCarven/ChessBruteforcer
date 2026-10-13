@@ -4,6 +4,7 @@ Two steps, so a month's download can go once it has been counted (Matthew, 2026-
 
     python -I scripts/make-book.py count <in .pgn.zst> <out .counts> [--min-elo 2200] [--plies 24] [--max-bytes N]
     python -I scripts/make-book.py book <out .bin> <counts>... [--min-games 10] [--min-score 0.40]
+    python -I scripts/make-book.py verify <.pgn.zst> [--counts <its .counts>]
 
 (python: the bot's venv, bot\\lichess-bot\\.venv\\Scripts\\python.exe, which has python-chess for the
 Polyglot keys.)
@@ -277,6 +278,35 @@ def read_counts(path):
     return header, records()
 
 
+def verify(args):
+    """Check a month against Lichess's SHA-256 without counting it (a month counted before it was kept: August
+    and September 2026). With --counts, a month whose count already checked this same hash passes at once."""
+    opts, args = options(args, {"counts": (None, str)})
+    src = args[0]
+    expected = expected_sha256(src)
+    if expected is None:
+        raise SystemExit(f"no {os.path.basename(src)}.sha256 beside {src}: nothing to check it against")
+    if opts["counts"] and os.path.exists(opts["counts"]):
+        with open(opts["counts"], "rb") as f:
+            if f.read(len(MAGIC)) == MAGIC:
+                (length,) = struct.unpack(">I", f.read(4))
+                header = json.loads(f.read(length))
+                if header.get("sha256_checked") and header.get("sha256") == expected:
+                    print(f"{src}: checked when it was counted (SHA-256 {expected})")
+                    return
+    steady, start, report = Steady(src), time.time(), 5 * 10**9
+    while steady.read(1 << 20):
+        if steady.offset >= report:
+            print(f"{steady.offset / 1e9:.0f} of {steady.size / 1e9:.0f} GB, {time.time() - start:.0f}s", file=sys.stderr, flush=True)
+            report += 5 * 10**9
+    steady.close()
+    sha256 = steady.sha256.hexdigest()
+    if sha256 != expected:
+        raise SystemExit(f"DAMAGED: {src} doesn't match Lichess's SHA-256 ({sha256}, should be {expected}): download it again")
+    print(f"{src}: SHA-256 matches Lichess's ({sha256}), {steady.size:,} bytes in {time.time() - start:.0f}s"
+          + (f", the share dropped out {steady.drops} times" if steady.drops else ""))
+
+
 def book(args):
     opts, args = options(args, {"min-games": (10, int), "min-score": (0.40, float)})
     import glob
@@ -339,6 +369,8 @@ if __name__ == "__main__":
         count(rest)
     elif command == "book":
         book(rest)
+    elif command == "verify":
+        verify(rest)
     else:
         print(__doc__)
         sys.exit(1)
