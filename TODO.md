@@ -57,7 +57,24 @@ and the engine plays them by the 50-move rule. Where things stand:
       to ~11.
 - [ ] **An index over the games** (Matthew, planning 2026-10-13): offsets
       by moves played, and the board as a sorted list of pieces; streamed
-      from the desktop or cached. Plan in WORKLOG; measure on July first.
+      from the desktop or cached. Plan in WORKLOG. His order: c, a, b.
+      Lichess's months are 32 MiB pzstd frames (~4.7 MB packed, ~14,400
+      games each, each unpacks alone in ~90 ms), so pointers go straight
+      into their files and a month can be worked a frame per thread.
+      - [ ] Session 1, (c) game pointers (July, once it lands): per month a
+        frame table (offset, first game in it) and each game's plies; fetch
+        random games by number and check them against a straight read.
+      - [ ] Session 2, the measurement for (a) and (b), on 16 threads (a
+        frame each; C#, since replaying ~6 B moves a month needs it): per
+        ply, positions, distinct, seen 2+ / 10+ times; materials passed
+        through; positions with <= 5 / 6 / 7 pieces and their repeats. Then
+        pick the cut-offs (12-24 plies; 5-7 pieces) from the sizes.
+      - [ ] Session 3, (a) the opening layer: sorted, 64 KB compressed
+        blocks with an index up front (like the CBC1 tables), a block cache;
+        all ratings, results, next moves; a book from it for the bot.
+      - [ ] Session 4, (b) the endgame layer: material -> games and the ply
+        they reach it; exact positions with few pieces, joined to the tables.
+      - Then the queue's count step becomes count + index, one read a month.
 - [ ] **More months for the book** (Matthew's (c)): `scripts\month-book.cmd
       2026-07`, then 06, ... one a night (~8 h download at ~1 MB/s, ~1 h
       count). From 2026-10-13 the months are kept on Matthew's desktop
