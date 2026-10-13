@@ -18,9 +18,24 @@ and the engine plays them by the 50-move rule. Where things stand:
       20:42 on lichess-2200.bin with matchmaking within 300; September's
       and August's .zst cleaned up.
 - [ ] **Where the book runs out against bots** (Matthew, 2026-10-13
-      evening: "it went off after move 4"; plan in WORKLOG): bots leave
-      the human book with rare moves, so width matters more than depth
-      there. Options measured on the bot's 76 games; his pick pending.
+      evening: "it went off after move 4"; measured in WORKLOG): bots leave
+      the human book with rare moves, so width matters more than depth.
+      He picked (a) now, (c) after.
+      - [x] (a) A wide book, `bot/books/lichess-2200-wide.bin` (moves
+        played 3+ times, 940,807), after the main one in the bot's list;
+        `month-book.cmd` rebuilds both, `book-match.py` uses both. Takes
+        effect at the bot's next restart (Matthew's, between games).
+      - [ ] (c) The background job (one session): its own window, low
+        priority, an engine copy without tables. Watches bot/games; after
+        each game, the positions in our first ~15 moves where neither book
+        had a move get ~60 s each (about 6x a game's), and positions where
+        only the wide book answered get its move checked (dropped if the
+        engine thinks it loses something). Results kept in a small file;
+        `bot/books/ours.bin` rebuilt from it to a temporary file and moved
+        over (retry if lichess-bot has it open), listed between the main
+        and wide books. Measure after a week: how often it answers, and
+        moves of the wide book it vetoed. Today's numbers: 9 of 447 out-of-
+        book positions had come up before (2%), so it grows slowly.
 - [ ] **The book's worth, measured** (Matthew asked for it): an overnight
       `scripts/book-match.py` run, e.g. `--games 400 --tc 180+2
       --concurrency 3` (3+2 like the bot's games; ~1.2 GB per engine

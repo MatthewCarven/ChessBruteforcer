@@ -1438,3 +1438,17 @@ rather than 48-byte boards, because that is the storage that scales.
   is picked up live, with no change to lichess-bot; the engine is one
   thread, on 16 logical cores, so a background job on one more costs the
   live game no CPU.
+- Matthew picked (a) now with 3+, then (c). Done: `bot/books/lichess-2200-wide.bin`
+  (moves played 3+ times, 40%+: 940,807 moves in 663,859 positions, 15 MB,
+  7 s), listed after the main book in bot/make-config.py (lichess-bot's
+  list, tried in order); `month-book.cmd` rebuilds both books each month;
+  `book-match.py --book` takes a comma-separated list, by default the bot's
+  two. Config checked by generating it into a scratch file (the real
+  config.yml, with the token, untouched). Live from the bot's next restart.
+- Matthew asked whether to keep the raw months for when the goalposts move.
+  What we keep is the counts (~105 MB a month): any threshold or weighting
+  of 2200+, blitz-or-slower, first 24 plies is a 7 s rebuild; anything
+  outside that (other ratings, bullet, later plies, clocks, per-game
+  questions) needs the month's .zst again: a re-count is ~1 h, a
+  re-download ~8 h. He may map a network drive to his desktop (a few hard
+  disks) to keep the .zst files there (~30 GB a month).

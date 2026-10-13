@@ -37,12 +37,15 @@ engine["online_moves"]["online_egtb"]["enabled"] = False      # our own tables, 
 # The opening book from our own games (scripts/make-book.py, scripts/month-book.cmd): what 2200+ players
 # chose, from every month counted, weighted by how often and how well; played instantly for the first 12
 # moves while the book has the position. (lichess-2026-09-2200.bin: September alone, the first build.)
+# lichess-bot tries the books in order: the wide one (moves played 3+ times, not 10+) answers only where the
+# main one can't, which is mostly a bot's rare move; it would have answered 33 of the first 74 games' exits.
 book = os.path.join(here, "books", "lichess-2200.bin")
 if not os.path.exists(book):
     book = os.path.join(here, "books", "lichess-2026-09-2200.bin")
+books = [b for b in (book, os.path.join(here, "books", "lichess-2200-wide.bin")) if os.path.exists(b)]
 engine["polyglot"] = {
-    "enabled": os.path.exists(book),
-    "book": {"standard": [book]},
+    "enabled": bool(books),
+    "book": {"standard": books},
     "min_weight": 1,
     "selection": "weighted_random",
     "max_depth": 12,                                          # moves (lichess-bot doubles it into plies)

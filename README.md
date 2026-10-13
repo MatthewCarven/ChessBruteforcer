@@ -464,8 +464,9 @@ opening book is our own: what 2200+ players chose in Lichess's games, month by
 month (`scripts/make-book.py`, `scripts/month-book.cmd <month>`), September
 2026 alone giving 193,322 moves in 130,617 positions. More months make it
 deeper by about one half-move per doubling of the games: real games part
-company early. `scripts/book-match.py` measures it against Stockfish, with
-and without.
+company early. Bots leave it mostly with rare moves, so where it has nothing
+a wider book answers (moves played 3 times or more, not 10). `scripts/book-match.py`
+measures it against Stockfish, with and without.
 
 **Compressed tables** ("CBC1", 2026-09-30), for the 50 pawn tables, which
 would not fit plain (~115 GB against ~96 GB free). A table's values are cut

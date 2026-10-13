@@ -1,12 +1,13 @@
 """Is the opening book worth anything? Our engine against Stockfish, half the games with the book and half without.
 
     bot\\lichess-bot\\.venv\\Scripts\\python.exe -I scripts/book-match.py <results .jsonl>
-        [--games 400] [--tc 60+1] [--sf-elo 2200] [--concurrency 3] [--book bot/books/lichess-2200.bin]
+        [--games 400] [--tc 60+1] [--sf-elo 2200] [--concurrency 3] [--book main.bin,wide.bin]
 
 Games alternate between the arms ("book", "no book"), and our colour alternates every two games, so each
 arm gets as many Whites as Blacks. With the book, our moves come from it while it has the position, for
-the first 12 moves, chosen as lichess-bot chooses (weighted random) and played instantly (the increment
-still counts); then the engine. Without it, the engine from move 1. Stockfish 16 (WSL, UCI_LimitStrength
+the first 12 moves, chosen as lichess-bot chooses (weighted random, from the first book in --book that
+has the position: by default the bot's two, lichess-2200.bin then lichess-2200-wide.bin) and played
+instantly (the increment still counts); then the engine. Without it, the engine from move 1. Stockfish 16 (WSL, UCI_LimitStrength
 at --sf-elo, its weakened play varies the games) never uses a book. Real clocks: a side whose time runs
 out loses. Our engine is a copy of the bot's (bot/lichess-bot/engines/bruteforcer) with our tables.
 
@@ -23,6 +24,9 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OURS = os.path.join(REPO, "bot", "lichess-bot", "engines", "bruteforcer", "ChessBruteforcer.Engine.exe")
 STOCKFISH = ["wsl.exe", "-d", "Ubuntu-24.04", "--", "/usr/games/stockfish"]
 BOOK_MOVES = 12
+# As the bot has them (bot/make-config.py): the wide book answers only where the main one can't.
+BOOKS = [b for b in (os.path.join(REPO, "bot", "books", name) for name in ("lichess-2200.bin", "lichess-2200-wide.bin"))
+         if os.path.exists(b)]
 
 
 def options(args, spec):
@@ -70,7 +74,7 @@ def summary(path):
 
 def main():
     opts, args = options(sys.argv[1:], {"games": (400, int), "tc": ("60+1", str), "sf-elo": (2200, int),
-                                        "concurrency": (3, int), "book": (os.path.join(REPO, "bot", "books", "lichess-2200.bin"), str),
+                                        "concurrency": (3, int), "book": (",".join(BOOKS), str),
                                         "summary": (False, bool)})
     path = args[0]
     if opts["summary"]:
@@ -90,12 +94,12 @@ def main():
             local.sf.configure({"UCI_LimitStrength": True, "UCI_Elo": opts["sf-elo"]})
             with lock:
                 opened.extend([local.ours, local.sf])
-            local.book = chess.polyglot.open_reader(opts["book"])
+            local.books = [chess.polyglot.open_reader(b) for b in opts["book"].split(",")]
             local.random = random.Random()
-        return local.ours, local.sf, local.book
+        return local.ours, local.sf, local.books
 
     def play(number):
-        ours, sf, book = engines()
+        ours, sf, books = engines()
         arm = "book" if number % 2 == 0 else "no book"
         we_white = (number // 2) % 2 == 0
         board = chess.Board()
@@ -105,11 +109,13 @@ def main():
             ours_to_move = board.turn == (chess.WHITE if we_white else chess.BLACK)
             move = None
             if ours_to_move and arm == "book" and board.ply() < 2 * BOOK_MOVES:
-                try:
-                    move = book.weighted_choice(board, random=local.random).move
-                    book_moves += 1
-                except IndexError:
-                    pass
+                for book in books:
+                    try:
+                        move = book.weighted_choice(board, random=local.random).move
+                        book_moves += 1
+                        break
+                    except IndexError:
+                        pass
             if move is None:
                 limit = chess.engine.Limit(white_clock=max(0.01, clock[chess.WHITE]), black_clock=max(0.01, clock[chess.BLACK]),
                                            white_inc=inc, black_inc=inc)

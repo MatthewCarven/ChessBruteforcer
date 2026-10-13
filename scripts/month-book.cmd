@@ -4,8 +4,8 @@ rem the book from every month counted so far.
 rem   scripts\month-book.cmd 2026-08
 rem The download is games\lichess_db_standard_rated_<month>.pgn.zst (about 30 GB, about 10 hours here;
 rem it resumes if stopped).  The count goes to bot\books\counts\<month>.counts (about 50 MB, about an hour),
-rem and the book to bot\books\lichess-2200.bin, which a running bot picks up at its next move.  Once a
-rem month is counted its .zst isn't needed for the book any more (Matthew's to delete).
+rem and the books to bot\books\lichess-2200.bin and lichess-2200-wide.bin, which a running bot picks up at
+rem its next move.  Once a month is counted its .zst isn't needed for the books any more (Matthew's to delete).
 rem Progress: games\download-<month>.log, then bot\books\month-book-<month>.log.
 setlocal
 set MONTH=%1
@@ -57,6 +57,8 @@ if not exist %COUNTS% (
 :book
 echo %date% %time%: rebuilding the book from every counts file >> %LOG%
 "%PY%" -I scripts\make-book.py book bot\books\lichess-2200.bin "bot\books\counts\*.counts" >> %LOG% 2>&1
+rem The wide book, which the bot falls back on where the main one has nothing: moves played 3+ times, not 10+.
+"%PY%" -I scripts\make-book.py book bot\books\lichess-2200-wide.bin "bot\books\counts\*.counts" --min-games 3 >> %LOG% 2>&1
 type %LOG% | findstr /c:"book:"
 echo %date% %time%: finished >> %LOG%
 echo %date% %time%: finished.  %ZST% can go now if you like (the counts are kept).
