@@ -1555,3 +1555,36 @@ rather than 48-byte boards, because that is the storage that scales.
   <= 140 chars). The start block: skips when the patch is in, applies it
   fresh, and on a changed lichess-bot says so and starts without. Live from
   the next restart.
+
+## 2026-10-14: what 6-piece tables would be worth
+
+- Matthew asked how much disk 6 pieces would take. Estimated from our own
+  5-piece numbers: 365 tables (110 now), each ~50-64x bigger; ~2-3 TB
+  compressed, up to ~0.2 TB uncompressed while solving the biggest, and
+  ~100+ GB of memory for the pawnless ones (which every pawn table leads
+  into by promotion): years on the laptop, and memory, not disk, is the
+  wall. Syzygy's 6-piece set is ~150 GB (it stores far less). He picked
+  (b): measure what they would be worth first.
+- `game reach <files> [--sample N <tsv>]`: the fewest pieces each game gets
+  down to, time at exactly 6 pieces, how games that stop at 6 end, the
+  6-piece materials games enter by, and a sample of first 6-piece positions.
+  `scripts/six-piece-check.py` judges such positions with Lichess's
+  tablebase (Syzygy, to 7 pieces), under the 50-move rule at the game's
+  count, as `game takeover` does with ours.
+- 1 September 2026, 3,284,165 games (800 s): down to 5 or fewer 5.8%, 6
+  2.4%, 7 2.7%. **6-piece tables would reach 8.2% of games (5.8% now)**;
+  of games reaching 6, 70.6% go on to 5 anyway, after a median 1.5 moves
+  at 6 (quartiles 0.5 and 4). Those that stop at 6 end on time 36%,
+  resigned 30%, mate 25%. The commonest ways in: KPPvKPP 8.7%, KPPPvKP
+  8.0%, KRPPvKR 7.5%, KRPvKRP 6.6%; the top 20 of 319 materials 70%.
+  January 2013 the same shape (9.1% v 6.6%).
+- 600 first 6-piece positions judged: **29.5% ended otherwise than perfect
+  play** (26.7% at 5 pieces, same games), 58% of those on time; bullet
+  34%, blitz 30%, rapid 22%.
+- **The bot (111 games): 30% get down to 5 pieces** (bots play on to mate),
+  6-piece tables would add 4.5%. Its first 6-piece positions: 38 of 38
+  ended as the tablebase says; first 7-piece positions: 49 of 49. Bigger
+  tables would have gained it 0 points: its results are settled before 7
+  pieces, so its strength is in the middlegame (and the book).
+- Outputs: scripts/six-piece-2026-10-14.txt, the 600 judged positions in
+  scripts/six-piece-check-2026-09-part.tsv.

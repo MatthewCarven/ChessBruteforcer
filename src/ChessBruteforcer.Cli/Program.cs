@@ -74,6 +74,8 @@ static class Cli
                                          with the engine on both sides (0: all)
           game takeover <file>... --versus N "<engine command>" [ms]  N of those positions, each played twice
                                          against a UCI engine (our engine on each side in turn), ms a move (100)
+          game reach <file>... [--sample N <tsv>]  how far down games get (5, 6, 7 pieces...), the 6-piece materials
+                                         they enter by; --sample writes N first 6-piece positions to check
           game takeover <file>... --moves  and every move the players made inside the tables: the ones that threw
                                          away a win or a draw, by rating, time control, table and how far in; and how
                                          the games that ended otherwise went wrong (the moves, the clock, resigning)
@@ -137,6 +139,8 @@ static class Cli
                 ["game", "tree", .. var files] when files.Length > 0 => GameTree(files),
                 ["game", "idle", .. var files] when files.Length > 0 => GameIdle(files),
                 ["game", "endings", .. var files] when files.Length > 0 => GameEndings(files),
+                ["game", "reach", .. var files, "--sample", var n, var output] when files.Length > 0 => GameReach(files, output, int.Parse(n)),
+                ["game", "reach", .. var files] when files.Length > 0 => GameReach(files, null, 0),
                 ["game", "takeover", .. var files, "--play", var n] when files.Length > 0 => GameTakeover(files, int.Parse(n)),
                 ["game", "takeover", .. var files, "--versus", var n, var engine] when files.Length > 0 =>
                     GameTakeover(files, null, (int.Parse(n), engine, 100)),
@@ -1214,6 +1218,127 @@ static class Cli
             PlayTakeovers(rows, count, Pct);
         if (versus is { } match)
             VersusTakeovers(rows, match.Count, match.Engine, match.MoveMs);
+        return 0;
+    }
+
+    /// <summary>
+    /// Matthew (2026-10-14): what would 6-piece tables be worth? How far down each game gets (the fewest
+    /// pieces it reaches), how long games that reach 5 pieces spent at 6 first, how the ones that stop at 6
+    /// end, and which 6-piece materials they enter by. With <paramref name="sample"/>, every game's first
+    /// position with 6 pieces is a candidate, and <paramref name="count"/> of them, spread evenly, are written
+    /// tab-separated to that file (FEN, the result for the side to move, how it ended, plies left, rating
+    /// band, speed, link), for a 7-piece tablebase to judge (scripts/six-piece-check.py).
+    /// </summary>
+    private static int GameReach(string[] files, string? sample, int count)
+    {
+        var watch = Stopwatch.StartNew();
+        long games = 0;
+        var fewest = new long[33];
+        var at6Before5 = new List<int>();   // plies with exactly 6 pieces, in games that went on to 5 or fewer
+        var at6Stopped = new List<int>();   // the same, in games that stopped at 6
+        var stoppedHow = new Dictionary<string, long>();
+        var entries = new Dictionary<Material, (long Games, long OnTo5)>();
+        var candidates = new List<string>();
+        foreach (string file in files)
+        {
+            foreach (var game in GameFile.Read(file))
+            {
+                games++;
+                var position = game.StartPosition();
+                int pieces = 0;
+                for (int square = 0; square < 64; square++)
+                    if (!position[square].IsEmpty)
+                        pieces++;
+                int least = pieces, plies6 = 0;
+                Material? entry6 = null;
+                string? row = null;
+                for (int ply = 0; ply <= game.Moves.Count; ply++)
+                {
+                    if (pieces == 6)
+                    {
+                        if (entry6 is null)
+                        {
+                            entry6 = Material.FromPosition(position).Canonical;
+                            if (position.Castling == CastlingRights.None && game.Result != "*")
+                            {
+                                bool whiteToMove = position.SideToMove == Colour.White;
+                                string result = game.Result switch
+                                {
+                                    "1-0" => whiteToMove ? "win" : "loss",
+                                    "0-1" => whiteToMove ? "loss" : "win",
+                                    _ => "draw",
+                                };
+                                row = string.Join('\t', position.ToFen(), result, game.Tag("Termination") ?? "", game.Moves.Count - ply,
+                                                  Band(AverageRating(game)), Speed(game), (game.Tag("Site") ?? "") + "#" + ply);
+                            }
+                        }
+                        if (ply < game.Moves.Count)
+                            plies6++;
+                    }
+                    if (ply == game.Moves.Count)
+                        break;
+                    var move = game.Moves[ply];
+                    if (move.IsCapture)
+                        pieces--;
+                    position.MakeMove(move);
+                    least = Math.Min(least, pieces);
+                }
+                fewest[Math.Min(least, 32)]++;
+                if (entry6 is { } material)
+                {
+                    var (g, on) = entries.GetValueOrDefault(material);
+                    entries[material] = (g + 1, on + (least <= 5 ? 1 : 0));
+                    if (least <= 5)
+                        at6Before5.Add(plies6);
+                    else
+                    {
+                        at6Stopped.Add(plies6);
+                        var end = game.PositionAt(game.Moves.Count).Status();
+                        string how = end == GameStatus.Checkmate ? "checkmate" : end == GameStatus.Stalemate ? "stalemate"
+                                   : game.Result == "1/2-1/2" ? "drawn (agreed, repetition, 50 moves, material)"
+                                   : game.Tag("Termination") == "Time forfeit" ? "on time" : game.Result == "*" ? "unfinished" : "resigned";
+                        stoppedHow[how] = stoppedHow.GetValueOrDefault(how) + 1;
+                    }
+                    if (row is not null)
+                        candidates.Add(row);
+                }
+            }
+        }
+
+        double Pct(long part, long whole) => whole == 0 ? 0 : 100.0 * part / whole;
+        string Quartiles(List<int> plies)
+        {
+            if (plies.Count == 0) return "-";
+            var s = plies.Order().ToList();
+            return $"median {s[s.Count / 2] / 2.0:0.#} moves (quartiles {s[s.Count / 4] / 2.0:0.#} and {s[3 * s.Count / 4] / 2.0:0.#})";
+        }
+        long reach5 = fewest.Take(6).Sum(), reach6 = reach5 + fewest[6], reach7 = reach6 + fewest[7];
+        Console.WriteLine($"{games:N0} games in {watch.Elapsed.TotalSeconds:0}s. The fewest pieces each game got down to:");
+        Console.WriteLine($"  5 or fewer {reach5,10:N0} {Pct(reach5, games),6:0.0}%   (the tables we have)");
+        Console.WriteLine($"  6          {fewest[6],10:N0} {Pct(fewest[6], games),6:0.0}%");
+        Console.WriteLine($"  7          {fewest[7],10:N0} {Pct(fewest[7], games),6:0.0}%");
+        Console.WriteLine($"  8 to 10    {fewest.Skip(8).Take(3).Sum(),10:N0} {Pct(fewest.Skip(8).Take(3).Sum(), games),6:0.0}%");
+        Console.WriteLine($"  11 or more {fewest.Skip(11).Sum(),10:N0} {Pct(fewest.Skip(11).Sum(), games),6:0.0}%");
+        Console.WriteLine($"  So 6-piece tables would reach {Pct(reach6, games):0.0}% of games (now {Pct(reach5, games):0.0}%), 7-piece {Pct(reach7, games):0.0}%.");
+        Console.WriteLine($"  Games reaching 6 pieces: {reach6:N0}; of those, {Pct(reach5, reach6):0.0}% go on down to 5 or fewer.");
+        Console.WriteLine($"  Time at exactly 6 pieces, in games that went on to 5: {Quartiles(at6Before5)}: how much sooner 6-piece tables take over.");
+        Console.WriteLine($"  ... in games that stopped at 6: {Quartiles(at6Stopped)}. How they ended: " +
+                          string.Join(", ", stoppedHow.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {Pct(kv.Value, fewest[6]):0}%")));
+        Console.WriteLine();
+        Console.WriteLine("The 6-piece materials games enter by (their first position with 6 pieces), most common first:");
+        Console.WriteLine($"  {"material",-10} {"games",9} {"of 6-piece entries",19} {"went on to 5",13}");
+        foreach (var (material, (g, on)) in entries.OrderByDescending(kv => kv.Value.Games).Take(20))
+            Console.WriteLine($"  {material,-10} {g,9:N0} {Pct(g, reach6),18:0.0}% {Pct(on, g),12:0}%");
+        long top20 = entries.OrderByDescending(kv => kv.Value.Games).Take(20).Sum(kv => kv.Value.Games);
+        Console.WriteLine($"  the top 20 of {entries.Count} materials: {Pct(top20, reach6):0.0}% of 6-piece entries");
+        if (sample is not null)
+        {
+            var chosen = count <= 0 || count >= candidates.Count
+                ? candidates
+                : Enumerable.Range(0, count).Select(i => candidates[(int)((long)i * candidates.Count / count)]).ToList();
+            File.WriteAllLines(sample, chosen.Prepend("fen\tresult for the side to move\ttermination\tplies left\trating\tspeed\tlink"));
+            Console.WriteLine($"Wrote {chosen.Count:N0} of {candidates.Count:N0} first 6-piece positions (finished games, no castling rights) to {sample}.");
+        }
         return 0;
     }
 

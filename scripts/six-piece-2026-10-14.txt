@@ -1,0 +1,65 @@
+# What 6-piece tables would be worth (2026-10-14)
+
+## game reach games/2026-09-part.cbg --sample 600 (1 September 2026, every rated game)
+3,284,165 games in 800s. The fewest pieces each game got down to:
+  5 or fewer    191,082    5.8%   (the tables we have)
+  6              79,639    2.4%
+  7              88,019    2.7%
+  8 to 10       323,579    9.9%
+  11 or more  2,601,846   79.2%
+  So 6-piece tables would reach 8.2% of games (now 5.8%), 7-piece 10.9%.
+  Games reaching 6 pieces: 270,721; of those, 70.6% go on down to 5 or fewer.
+  Time at exactly 6 pieces, in games that went on to 5: median 1.5 moves (quartiles 0.5 and 4): how much sooner 6-piece tables take over.
+  ... in games that stopped at 6: median 3 moves (quartiles 0.5 and 7). How they ended: on time 36%, resigned 30%, checkmate 25%, drawn (agreed, repetition, 50 moves, material) 7%, stalemate 3%
+
+The 6-piece materials games enter by (their first position with 6 pieces), most common first:
+  material       games  of 6-piece entries  went on to 5
+  KPPvKPP       23,430                8.7%           83%
+  KPPPvKP       21,621                8.0%           76%
+  KRPPvKR       20,384                7.5%           75%
+  KRPvKRP       17,748                6.6%           83%
+  KRPPvKP       15,840                5.9%           75%
+  KRPvKPP       11,513                4.3%           80%
+  KQPPvKP       10,379                3.8%           71%
+  KRPPPvK        9,627                3.6%           40%
+  KBPPvKP        8,736                3.2%           71%
+  KBPvKPP        6,878                2.5%           81%
+  KQPvKPP        6,833                2.5%           74%
+  KNPPvKP        6,179                2.3%           78%
+  KNPvKPP        5,195                1.9%           84%
+  KQPPPvK        5,184                1.9%           32%
+  KPPPPvK        4,508                1.7%           51%
+  KBPPPvK        3,570                1.3%           39%
+  KPPPvKR        3,483                1.3%           81%
+  KRPvKBP        3,301                1.2%           81%
+  KRBPPvK        3,253                1.2%           33%
+  KQRPPvK        2,690                1.0%           22%
+  the top 20 of 319 materials: 70.3% of 6-piece entries
+Wrote 600 of 270,709 first 6-piece positions (finished games, no castling rights) to C:\Users\Admin\AppData\Local\Temp\claude\C--Users-Admin-Desktop---Programming---Chess-Bruteforcer\2ddd0e50-3db8-418c-97bd-0df46ecce6aa\scratchpad\reach-2026.tsv.
+
+## scripts/six-piece-check.py on those 600 (Lichess's tablebase, Syzygy)
+600 positions, 600 judged (0 unknown)
+The table's verdict (50-move rule, the game's count) for the side to move, against the game's result:
+  win     192   won  71.9%  drawn  21.4%  lost   6.8%
+  draw    123   won  25.2%  drawn  47.2%  lost  27.6%
+  loss    285   won   5.6%  drawn  14.7%  lost  79.6%
+  ended otherwise than the table says: 177 of 600 (29.5%)
+  of those, on time: 103 (58%)
+  by speed: blitz 30% of 319, bullet 34% of 147, rapid 22% of 129, classical 0% of 3, ultrabullet 50% of 2
+
+## The bot's 111 games (bot/games, to 2026-10-14 07:30): game reach
+111 games in 0s. The fewest pieces each game got down to:
+  5 or fewer         33   29.7%   (the tables we have)
+  6                   5    4.5%
+  7                  11    9.9%
+  8 to 10            26   23.4%
+  11 or more         36   32.4%
+  So 6-piece tables would reach 34.2% of games (now 29.7%), 7-piece 44.1%.
+  Games reaching 6 pieces: 38; of those, 86.8% go on down to 5 or fewer.
+  Time at exactly 6 pieces, in games that went on to 5: median 2.5 moves (quartiles 0.5 and 5): how much sooner 6-piece tables take over.
+  ... in games that stopped at 6: median 4 moves (quartiles 2.5 and 4). How they ended: checkmate 80%, drawn (agreed, repetition, 50 moves, material) 20%
+
+
+## Its first 6-piece positions (38) and first 7-piece positions (49), judged
+6 pieces: 38 of 38 ended as the tablebase says (13 wins, 5 draws, 20 losses for the side to move); the bot lost 0 points to perfect play there and gained 0.
+7 pieces: 49 of 49 ended as the tablebase says (15 wins, 6 draws, 28 losses); 0 points either way.

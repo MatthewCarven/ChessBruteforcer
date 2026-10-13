@@ -109,6 +109,12 @@ and the engine plays them by the 50-move rule. Where things stand:
 - [x] **An opening book from our own games** (2026-10-13): 2200+ players,
       blitz or slower, the first 12 moves; September alone 193,322 moves in
       130,617 positions. WORKLOG.
+- [x] What 6-piece tables would be worth (2026-10-14): 8.2% of human games
+      reach 6 (5.8% reach 5); 29.5% of those 6-piece endings go wrong; but
+      the bot's games ended as perfect play says in 38 of 38 at 6 pieces and
+      49 of 49 at 7, so for the bot they'd gain nothing. For the thesis: the
+      Syzygy 6-piece set (~150 GB) to judge human games; our own 6-piece
+      build needs a machine with ~128 GB of memory. WORKLOG.
 - [ ] Later for the bot: tuning the evaluation from game results (Texel),
       2-3 sessions, measured by a match like the book's. And a server near
       Lichess (Europe) if it should run all day: from Australia every move
