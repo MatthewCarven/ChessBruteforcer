@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
 using ChessBruteforcer.Core;
 using ChessBruteforcer.Core.Endgame;
@@ -74,6 +75,8 @@ static class Cli
                                          with the engine on both sides (0: all)
           game takeover <file>... --versus N "<engine command>" [ms]  N of those positions, each played twice
                                          against a UCI engine (our engine on each side in turn), ms a move (100)
+          tune positions <out .tsv> <file>... [--min-elo 2000 --per-game 8]  quiet positions from strong games, with results
+          tune fit <positions .tsv> <out params> [--start <params>] [--epochs 1500 --rate 1]  Texel tuning of the evaluation
           game reach <file>... [--sample N <tsv>]  how far down games get (5, 6, 7 pieces...), the 6-piece materials
                                          they enter by; --sample writes N first 6-piece positions to check
           game takeover <file>... --moves  and every move the players made inside the tables: the ones that threw
@@ -139,6 +142,15 @@ static class Cli
                 ["game", "tree", .. var files] when files.Length > 0 => GameTree(files),
                 ["game", "idle", .. var files] when files.Length > 0 => GameIdle(files),
                 ["game", "endings", .. var files] when files.Length > 0 => GameEndings(files),
+                ["tune", "positions", var output, .. var files] when files.Length > 0 && !files.Contains("--min-elo") =>
+                    TunePositions(output, files, 2000, 8),
+                ["tune", "positions", var output, .. var files, "--min-elo", var elo, "--per-game", var per] when files.Length > 0 =>
+                    TunePositions(output, files, int.Parse(elo), int.Parse(per)),
+                ["tune", "fit", var positions, var output] => TuneFit(positions, output, null, 1500, 1.0),
+                ["tune", "fit", var positions, var output, "--epochs", var e, "--rate", var r] =>
+                    TuneFit(positions, output, null, int.Parse(e), double.Parse(r, CultureInfo.InvariantCulture)),
+                ["tune", "fit", var positions, var output, "--start", var from, "--epochs", var e, "--rate", var r] =>
+                    TuneFit(positions, output, from, int.Parse(e), double.Parse(r, CultureInfo.InvariantCulture)),
                 ["game", "reach", .. var files, "--sample", var n, var output] when files.Length > 0 => GameReach(files, output, int.Parse(n)),
                 ["game", "reach", .. var files] when files.Length > 0 => GameReach(files, null, 0),
                 ["game", "takeover", .. var files, "--play", var n] when files.Length > 0 => GameTakeover(files, int.Parse(n)),
@@ -1339,6 +1351,96 @@ static class Cli
             File.WriteAllLines(sample, chosen.Prepend("fen\tresult for the side to move\ttermination\tplies left\trating\tspeed\tlink"));
             Console.WriteLine($"Wrote {chosen.Count:N0} of {candidates.Count:N0} first 6-piece positions (finished games, no castling rights) to {sample}.");
         }
+        return 0;
+    }
+
+    /// <summary>
+    /// Texel tuning's positions (2026-10-14): from rated games with both players at <paramref name="minElo"/>
+    /// or more, blitz or slower, ended normally (not on time: the result then says little about the board),
+    /// up to <paramref name="perGame"/> positions a game, chosen at random among the quiet ones: after move 8,
+    /// side to move not in check, the move before and the move played neither a capture nor a promotion, and
+    /// more than 5 pieces (the tables have the rest). Written as "FEN \t white's result \t game number".
+    /// </summary>
+    private static int TunePositions(string output, string[] files, int minElo, int perGame)
+    {
+        var watch = Stopwatch.StartNew();
+        var random = new Random(20261014);
+        long games = 0, used = 0, written = 0;
+        using var writer = new StreamWriter(output);
+        foreach (string file in files)
+        {
+            foreach (var game in GameFile.Read(file))
+            {
+                games++;
+                if (!(game.Tag("Event") ?? "").Contains("Rated") || game.Tag("FEN") is not null
+                    || game.Tag("Termination") != "Normal" || Speed(game) is not ("blitz" or "rapid" or "classical")
+                    || !int.TryParse(game.Tag("WhiteElo"), out int whiteElo) || !int.TryParse(game.Tag("BlackElo"), out int blackElo)
+                    || whiteElo < minElo || blackElo < minElo)
+                    continue;
+                string result = game.Result switch { "1-0" => "1", "0-1" => "0", "1/2-1/2" => "0.5", _ => "" };
+                if (result == "")
+                    continue;
+                var quiet = new List<string>();
+                var position = game.StartPosition();
+                int pieces = 32;
+                for (int ply = 0; ply < game.Moves.Count; ply++)
+                {
+                    var move = game.Moves[ply];
+                    bool before = ply > 0 && (game.Moves[ply - 1].IsCapture || game.Moves[ply - 1].IsPromotion);
+                    if (ply >= 16 && pieces > 5 && !before && !move.IsCapture && !move.IsPromotion && !position.InCheck())
+                        quiet.Add(position.ToFen());
+                    if (move.IsCapture)
+                        pieces--;
+                    position.MakeMove(move);
+                }
+                if (quiet.Count == 0)
+                    continue;
+                used++;
+                foreach (string fen in quiet.OrderBy(_ => random.Next()).Take(perGame))
+                {
+                    writer.WriteLine($"{fen}\t{result}\t{games}");
+                    written++;
+                }
+            }
+        }
+        Console.WriteLine($"{games:N0} games read in {watch.Elapsed.TotalSeconds:0}s; {used:N0} used (rated, both {minElo}+, blitz or slower, " +
+                          $"ended normally); {written:N0} quiet positions written to {output}");
+        return 0;
+    }
+
+    /// <summary>
+    /// Texel tuning: fit the evaluation's numbers to the positions' results (see <see cref="Tuner"/>), from the
+    /// built-in numbers or <paramref name="startFile"/>. A tenth of the games are held back to judge by; the
+    /// numbers kept are those that judge best there. Reports the error before and after, and the pieces'
+    /// average values.
+    /// </summary>
+    private static int TuneFit(string positions, string output, string? startFile, int epochs, double rate)
+    {
+        var watch = Stopwatch.StartNew();
+        var tuner = Tuner.Load(positions);
+        Console.WriteLine($"{tuner.Count:N0} positions ({tuner.TrainingCount:N0} to tune on, {tuner.ValidationCount:N0} held back) in {watch.Elapsed.TotalSeconds:0}s");
+        var startParams = startFile is null ? EvalParams.Original() : EvalParams.Load(startFile);
+        var start = startParams.ToVector();
+        double k = tuner.FitK(start);
+        double before = tuner.Error(start, k, true);
+        Console.WriteLine($"K = {k:0.0000}; error held back, starting numbers: {before:0.000000}");
+        var best = tuner.Fit(start, k, epochs, rate, Math.Max(1, epochs / 20), (epoch, train, held) =>
+            Console.WriteLine($"  epoch {epoch,5}: error tuned-on {train:0.000000}, held back {held:0.000000}  ({watch.Elapsed.TotalSeconds:0}s)"));
+        var tuned = EvalParams.FromVector(best);
+        double after = tuner.Error(tuned.ToVector(), k, true);
+        Console.WriteLine($"Held back, whole centipawns: {before:0.000000} -> {after:0.000000} ({100 * (before - after) / before:0.00}% less)");
+        string[] names = { "", "pawn", "knight", "bishop", "rook", "queen", "king" };
+        Console.WriteLine("Average values (centipawns; pawns over ranks 2-7):   middlegame   endgame   (were)");
+        for (int type = 1; type <= 5; type++)
+        {
+            var squares = Enumerable.Range(type == 1 ? 8 : 0, type == 1 ? 48 : 64).ToList();
+            Console.WriteLine($"  {names[type],-7} {squares.Average(i => tuned.Mg[type][i]),40:0} {squares.Average(i => tuned.Eg[type][i]),9:0}   " +
+                              $"({squares.Average(i => startParams.Mg[type][i]):0} / {squares.Average(i => startParams.Eg[type][i]):0})");
+        }
+        Console.WriteLine($"  bishop pair {tuned.BishopPairMg,36} {tuned.BishopPairEg,9}   ({startParams.BishopPairMg} / {startParams.BishopPairEg})");
+        tuned.Save(output, $"Texel-tuned {DateTime.Now:yyyy-MM-dd} on {positions}: {tuner.Count:N0} positions, K {k:0.0000}, " +
+                           $"{epochs} epochs at rate {rate}; held-back error {before:0.000000} -> {after:0.000000}");
+        Console.WriteLine($"Written to {output} ({watch.Elapsed.TotalSeconds:0}s).");
         return 0;
     }
 
