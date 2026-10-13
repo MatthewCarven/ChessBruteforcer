@@ -13,10 +13,8 @@ and the engine plays them by the 50-move rule. Where things stand:
   351.5 and 360 of 504 where the tables give 252; per table in WORKLOG);
   `game takeover` by rating and time control on 3.28 M games of September
   2026 and on 2013 (2013-06 held out: 21.7% against 21.1%).
-- [ ] **Running when this was written (2026-10-13, 20:00):** August 2026's
-      count (`scripts/month-book.cmd 2026-08`, own window), which then
-      rebuilds `bot/books/lichess-2200.bin` from September + August
-      (~20:45; bot/books/month-book-2026-08.log ends "finished"). Then:
+- [ ] August 2026 counted (done 20:24): the book is September + August,
+      363,447 moves, median line 15 plies (was 14). Then:
       Matthew restarts the bot once between games (it still has the first
       book file, lichess-2026-09-2200.bin, from its 10:18 start; the
       restart moves it to lichess-2200.bin, which later months update live,

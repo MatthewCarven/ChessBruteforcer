@@ -1399,3 +1399,9 @@ rather than 48-byte boards, because that is the storage that scales.
   intervals and the arms' difference. Smoke test (6 games at 5-8 s): it
   first hung on exit (engines never quit keep Python alive; fixed), and
   the book lasted only ~4 of our moves a game against weakened Stockfish.
+- August 2026 counted 19:29-20:24: 91,912,325 games read, 1,650,345 kept,
+  4,999,063 position-moves (105 MB). **The book from both months: 363,447
+  moves in 243,720 positions from 3,245,204 games** (5.5 MB, built in 6 s).
+  Depth, both sides following it at random (4,000 lines): median 14 -> 15
+  plies, average 14.4 -> 15.1, all 24 plies 5.9% -> 7.0%. Doubling the
+  games gave one more ply, as the samples predicted.
