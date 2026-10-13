@@ -1492,3 +1492,35 @@ rather than 48-byte boards, because that is the storage that scales.
   child script's `exit` doesn't end the queue. Started 22:36.
 - Two downloads at once: July 0.72 + September 0.59 = 1.30 MB/s, against
   ~0.85 for one alone, so ~1.4x. Matthew may add a spill-over drive later.
+
+## 2026-10-13 late: planning an index over the games
+
+- Matthew's idea: index files with offsets (a) by moves played, (b) by the
+  board's pieces as a sorted list; every game and position "on the map",
+  streamed from the desktop or cached. The numbers for the 46 months the
+  queue fetches: ~4.3 B games, ~290 B positions passed through (~68 plies a
+  game, as in 2013). Every position as an 8-byte key: ~1.9 TB of keys alone,
+  ~80% saying "one game went here" (2013: 84% of positions distinct, the
+  sharing in the first ~10 plies, one ply deeper per doubling). Every game
+  as a path at 1 byte a move: ~290 GB. So the games themselves are the
+  cheapest map; positions get their own entries only where they repeat (the
+  opening) and by material in the endgame (where the tables are).
+- His order: **(c) game pointers, then (a) the opening layer, then (b) the
+  endgame layer (material, and exact positions with few pieces)**; "on the
+  map" means games and positions (not usernames).
+- (c)'s first question answered on the first 1.24 GB of July already on the
+  share (scratch scripts frames.py, frame_games.py): Lichess's 2026 files
+  are pzstd's layout, a skippable note of each frame's size, then the frame;
+  264 frames there, **4.65-4.73 MB compressed, each exactly 32 MiB of PGN**
+  (7.2x), ~14,400 games starting in each, each decompressed on its own in
+  ~90 ms. The cuts fall at 32 MiB, not between games (frame 1 begins
+  mid-game), so a game can run into the next frame. 2013-01 is 3 frames of
+  4.9-6.4 MB. So:
+  - pointers go straight into Lichess's files, no second copy: per month a
+    frame table (offset, first game starting in it: ~6,200 rows, ~75 KB),
+    and per game what we filter on (moves played: 1-2 bytes, ~180 MB a
+    month). Reaching game g: one frame read (~0.5 s over the share) and
+    ~90 ms to unpack.
+  - frames are independent, so a month can be worked on 16 threads at once,
+    a frame each. That is what makes (a) and (b) affordable: replaying every
+    move of a month (~6 B moves) on one thread would take most of a day.
