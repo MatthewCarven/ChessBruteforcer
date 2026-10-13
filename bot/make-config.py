@@ -34,9 +34,12 @@ engine["uci_options"] = {
     "Move Overhead": 100,
 }
 engine["online_moves"]["online_egtb"]["enabled"] = False      # our own tables, not Lichess's
-# The opening book from our own games (scripts/make-book.py): what 2200+ players chose in September 2026,
-# weighted by how often and how well; played instantly for the first 12 moves while the book has the position.
-book = os.path.join(here, "books", "lichess-2026-09-2200.bin")
+# The opening book from our own games (scripts/make-book.py, scripts/month-book.cmd): what 2200+ players
+# chose, from every month counted, weighted by how often and how well; played instantly for the first 12
+# moves while the book has the position. (lichess-2026-09-2200.bin: September alone, the first build.)
+book = os.path.join(here, "books", "lichess-2200.bin")
+if not os.path.exists(book):
+    book = os.path.join(here, "books", "lichess-2026-09-2200.bin")
 engine["polyglot"] = {
     "enabled": os.path.exists(book),
     "book": {"standard": [book]},
