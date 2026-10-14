@@ -1722,3 +1722,27 @@ rather than 48-byte boards, because that is the storage that scales.
   failed build after 20 s. Matthew had stopped everything at 21:26-21:31
   (the bot cleanly, between games); restarted 21:42-21:44: bot (guard,
   sf1, our book listed), learner, queue, September's Texel positions.
+
+## 2026-10-14 (late): `game takeover` in batches; the whole of September running
+
+- Matthew picked (a): the code for the month's `--moves` run tonight, the
+  Texel fit tomorrow. `game takeover` held every game that enters a table
+  whole (moves, tags, hashes): 1.8 GB for one day's 190k, ~50 GB for the
+  month. Now it reads in batches (100,000; `--batch N`): each batch gets
+  the tables' verdicts and its moves walked, then each game keeps only a
+  small summary (table, both verdicts, result, plies left, termination,
+  rating band, speed, ended in mate) and the move tallies carry on.
+  Examples go to the first met among equals in the old single pass (the
+  entry table's first appearance, then the game, then the ply), so the
+  batch size can't change them; ties in the report's rankings go by name.
+  --play and --versus still take everything at once.
+- Check on games/2026-09-part-tables.cbg: batches of 20,000 and 100,000
+  both reproduce scripts/takeover-moves-2026-09-clocks.txt line for line,
+  the examples included, apart from the two timing lines (the walk 187 s
+  and 218 s against 234 s).
+- `scripts\takeover-month.cmd 2026-09` started 22:08 in its own window
+  (build copied to games\.cli-takeover): output
+  scripts/takeover-moves-2026-09-month.txt, log games/takeover-2026-09.log.
+- The bot lost to latrunculi-bot (2329, blitz, we challenged it):
+  https://lichess.org/SrwnQEj5, mated on move 57. Our engine had us +1.1
+  at move 17; it turned between moves 21 and 24 (-0.5 to -2.6).

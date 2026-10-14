@@ -91,17 +91,21 @@ and the engine plays them by the 50-move rule. Where things stand:
       counts and books. Each doubling of the games adds about a ply to a
       typical book line. August and September's .zst were deleted before
       the share existed: fetch them again only if a recount needs them.
-- [ ] **The whole of September with `--moves`** (Matthew's (b); remind him):
+- [ ] **The whole of September with `--moves`** (Matthew's (b); he picked
+      it 2026-10-14 night):
       1. Done 2026-10-13 (`scripts/month-tables.cmd 2026-09`): 5,260,601
          games in `games/2026-09-tables.cbg` (1.86 GB; its .pgn deleted).
-      2. Code first: `game takeover` holds every entry in memory (1.8 GB
-         peak for 190k; the month is ~28x that). Make it stream in batches
-         (verdicts and the move walk per batch, keeping only light rows for
-         the scorecard), and check the output against
-         scripts/takeover-moves-2026-09-clocks.txt, line for line.
-      3. Run it (~3 h: finding ~1 h, the walk ~2 h), in its own window.
-      Thin rows to watch: classical, 2400 and up. The month replaces
-      2026-09-part.cbg (and the -tables sample).
+      2. Done 2026-10-14: `game takeover` reads in batches (100,000;
+         `--batch N`), keeping a small summary per game; batches of 20,000
+         and 100,000 both give scripts/takeover-moves-2026-09-clocks.txt
+         line for line (timings aside).
+      3. Running from 22:08 on 2026-10-14 (`scripts\takeover-month.cmd
+         2026-09`, its own window, ~3 h): output
+         scripts/takeover-moves-2026-09-month.txt (.tmp until it finishes),
+         log games/takeover-2026-09.log. Then: the month against the day
+         (thin rows: classical, 2400 and up, ultrabullet, rarer tables),
+         and new examples for "Endgames Thrown Away". The month replaces
+         2026-09-part.cbg (and the -tables sample).
 - [x] The clock and the kinds of mistake (2026-10-12): `table-games.py`
       keeps the clock; under 5 s left, 4.6 mistakes per 100 moves, from 20 s
       up ~3 whatever the clock. Kinds: king steps 33%, hung 21%, stalemate
