@@ -196,6 +196,23 @@ var found = new List<byte[]>();
     return (count, sum);
 }
 
+// The same trie through TryGetPrefixRange (added for this trial on Matthew's branch prefix-range): only the
+// first and last line with the prefix, and the games are the one run between them, as for the sorted array.
+(long Games, long Sum) TrieRangeQuery(ushort[] prefix)
+{
+    var bytes = new byte[prefix.Length * 2];
+    for (int m = 0; m < prefix.Length; m++)
+        BinaryPrimitives.WriteUInt16BigEndian(bytes.AsSpan(m * 2), prefix[m]);
+    if (!trie.TryGetPrefixRange(bytes, out var firstKey, out var lastKey))
+        return (0, 0);
+    int from = runStart[BinaryPrimitives.ReadInt32BigEndian(firstKey.AsSpan(plies * 2))];
+    int to = runStart[BinaryPrimitives.ReadInt32BigEndian(lastKey.AsSpan(plies * 2)) + 1];
+    long sum = 0;
+    foreach (int g in order.AsSpan(from, to - from))
+        sum += g;
+    return (to - from, sum);
+}
+
 (long Games, long Sum) ScanQuery(ushort[] prefix)
 {
     long count = 0, sum = 0;
@@ -230,10 +247,12 @@ var found = new List<byte[]>();
 }
 var sorted = Run(SortedQuery, queryCount);
 var trieRun = Run(TrieQuery, queryCount);
+var trieRange = Run(TrieRangeQuery, queryCount);
 var scan = Run(ScanQuery, Math.Min(scanQueries, queryCount));
 int disagree = 0;
 for (int q = 0; q < queryCount; q++)
-    if (sorted.Answers[q] != trieRun.Answers[q] || (q < scan.Answers.Length && scan.Answers[q] != sorted.Answers[q]))
+    if (sorted.Answers[q] != trieRun.Answers[q] || sorted.Answers[q] != trieRange.Answers[q] ||
+        (q < scan.Answers.Length && scan.Answers[q] != sorted.Answers[q]))
         disagree++;
 
 static double Median(IEnumerable<double> values)
@@ -247,17 +266,19 @@ Console.WriteLine($"{"sorted array",-14} {sortedBytes / 1e6,9:N1} MB {"(the sort
 Console.WriteLine($"{"burst trie",-14} {trieBytes / 1e6,9:N1} MB {trieSeconds,9:N1}s   (its keys included; {trie.Shape})");
 Console.WriteLine($"{"scan",-14} {"none",12}");
 Console.WriteLine();
-Console.WriteLine($"median microseconds a query ({queryCount:N0} queries; the scan on the first {scan.Answers.Length:N0}), and games found:");
-Console.WriteLine($"{"first k moves",13} {"games found",14} {"sorted array",13} {"burst trie",11} {"scan",12}");
+Console.WriteLine($"median microseconds a query ({queryCount:N0} queries; the scan on the first {scan.Answers.Length:N0}), and games found;");
+Console.WriteLine("the trie two ways: every matching line (CollectPrefix), and the first and last only (TryGetPrefixRange):");
+Console.WriteLine($"{"first k moves",13} {"games found",14} {"sorted array",13} {"trie, every",12} {"trie, ends",11} {"scan",12}");
 foreach (int k in lengths.Where(k => k <= plies).Distinct())
 {
     var which = Enumerable.Range(0, queryCount).Where(q => queries[q].K == k).ToArray();
     var scanWhich = which.Where(q => q < scan.Answers.Length).ToArray();
     Console.WriteLine($"{k,13} {Median(which.Select(q => (double)sorted.Answers[q].Games)),14:N0} {Median(which.Select(q => sorted.Micros[q])),13:N2} " +
-                      $"{Median(which.Select(q => trieRun.Micros[q])),11:N2} {Median(scanWhich.Select(q => scan.Micros[q])),12:N0}");
+                      $"{Median(which.Select(q => trieRun.Micros[q])),12:N2} {Median(which.Select(q => trieRange.Micros[q])),11:N2} " +
+                      $"{Median(scanWhich.Select(q => scan.Micros[q])),12:N0}");
 }
-Console.WriteLine($"all {queryCount:N0}: sorted array {sorted.Micros.Sum() / 1e3:N1} ms, burst trie {trieRun.Micros.Sum() / 1e3:N1} ms; " +
-                  $"scan {scan.Micros.Sum() / 1e3:N0} ms for {scan.Answers.Length:N0}");
+Console.WriteLine($"all {queryCount:N0}: sorted array {sorted.Micros.Sum() / 1e3:N1} ms, trie every {trieRun.Micros.Sum() / 1e3:N1} ms, " +
+                  $"trie ends {trieRange.Micros.Sum() / 1e3:N1} ms; scan {scan.Micros.Sum() / 1e3:N0} ms for {scan.Answers.Length:N0}");
 Console.WriteLine(disagree == 0 ? "answers agree: yes" : $"answers DISAGREE on {disagree} queries");
 var example = queries.First(q => q.K == Math.Min(8, plies));
 Console.WriteLine($"e.g. the first {example.K} moves {string.Join(" ", example.Prefix.Where(c => c != 0).Select(c => moveNames[c]))}: {SortedQuery(example.Prefix).Games:N0} games");

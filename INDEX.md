@@ -266,17 +266,30 @@ first moves as codes are a key whose prefixes are its openings.
 | 12 | 109,447 | 85.4% |
 | 16 | 118,604 | 96.5% |
 
-| median a query | games found | sorted array | burst trie | scan |
-|---|---|---|---|---|
-| 1 move | 72,488 | 27 µs | 534 µs | 818 µs |
-| 4 moves | 453 | 1.3 µs | 6.6 µs | 320 µs |
-| 8-16 moves | 1 | ~0.9 µs | ~0.9 µs | ~300 µs |
-| memory | | 4.3 MB | 13.5 MB | none |
+The first run had the trie through `CollectPrefix` only: equal to the
+sorted array where a prefix picks out a game or two, 20x slower where it
+picks out tens of thousands, because the trie handed back every matching
+line while the sorted array's games are already one run. Matthew chose to
+give the trie the same shortcut: `BurstTrie.TryGetPrefixRange(prefix, out
+first, out last)`, the smallest and largest key with the prefix (down the
+first and last children; only the two end leaves scanned). It's on his
+branch `prefix-range` in `..\Lookuptables` (f1063ff: tests against a sorted
+reference at thresholds 1-128; four deliberate faults all red), which the
+trial builds against, so that branch must stay checked out there until
+July's trial has run. Rerun:
 
-So far: equal where a prefix picks out a few games, and the sorted array
-well ahead where it picks out many, because its games are already one run
-while the trie lists every matching line. July (8 M games) is the real
-test.
+| median a query | games found | sorted array | trie, every line | trie, first and last | scan |
+|---|---|---|---|---|---|
+| 1 move | 72,488 | 33 µs | 469 µs | 27 µs | 756 µs |
+| 2 moves | 7,756 | 9.0 µs | 85 µs | 4.7 µs | 365 µs |
+| 4 moves | 453 | 1.2 µs | 4.9 µs | 0.9 µs | 286 µs |
+| 8-16 moves | 1 | ~0.8 µs | ~0.7 µs | 0.4 µs | ~260 µs |
+| memory | | 4.3 MB | 13.5 MB | 13.5 MB | none |
+
+With the range method the trie is fastest at every length on 2013-01 (all
+1,000 queries: 3.3 ms against 6.9 ms for the sorted array); for short
+prefixes most of both times is adding up the games' numbers to check the
+answer. It costs 3x the memory. July (8 M games) is the real test.
 
 ## Session 2 (outline): the measurement
 

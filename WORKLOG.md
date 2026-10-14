@@ -1900,3 +1900,21 @@ rather than 48-byte boards, because that is the storage that scales.
 - The PowerShell guard refused a whole call ("system path '/c'") over a
   `Remove-Item` beside a `cmd /c "..."`, so nothing in it ran: one
   `Remove-Item` per call, on its own, as the notebook says.
+
+## 2026-10-15 (~02:00): a fairer trie, on Matthew's branch
+
+- Matthew: "we might have to rerun the benchmark", then (b): give his trie
+  the shortcut the sorted array had. `BurstTrie.TryGetPrefixRange` on a new
+  branch `prefix-range` in ..\Lookuptables (f1063ff, his to push): the
+  first and last key with a prefix, down the first and last children from
+  the prefix's node (a key ending at a node sorts first), scanning only the
+  two end leaves. Tests against a sorted reference (strings with keys that
+  are prefixes of others, small-alphabet bytes, sequential IDs with skipped
+  runs; thresholds 1, 2, 3, 32, 128): 45 of 45 pass, and four deliberate
+  faults (terminal not first, largest going left, no check past the
+  fingerprint, a leaf's max taken as its min) all turned them red.
+- lines-trial.cs measures the trie both ways. 2013-01: with the range
+  method the trie is fastest at every prefix length (0.4 µs against 0.8
+  for the sorted array on long prefixes; 4.7 against 9.0 µs at 2 moves),
+  answers agreeing; 3x the memory. The branch stays checked out in
+  ..\Lookuptables until July's trial has run (it builds against it).
