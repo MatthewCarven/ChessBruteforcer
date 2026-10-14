@@ -1,0 +1,214 @@
+5,260,601 games in 3271s. Tables on disk with both kinds: 146.
+5,226,962 games (99.4%) enter a table we have, with a move still to make.
+Still to play when they get there: median 7 moves (quartiles 3 and 13; the game had ended there in 265,616)
+
+The table (50-move rule, the game's clock) for the side to move, against the game's result:
+  table says     games              won          drawn           lost  unfinished
+  won         1,700,490   1,268,541 (74.6%) 335,404 (19.7%)  96,529 (5.7%)          16
+  drawn       1,162,142   206,955 (17.8%) 697,024 (60.0%) 258,148 (22.2%)          15
+  lost        2,364,330    78,784 (3.3%) 413,597 (17.5%) 1,871,920 (79.2%)          29
+  Ended otherwise than the table says: 1,389,417 of 5,226,902 (26.6%): the results perfect play from there would have changed.
+  Won endings not won: 924,314 of 4,064,820; of those, 497,506 on time.
+  Won or lost with best play but drawn by the 50-move rule at the game's clock: 293
+  Won endings that ended in mate (1,186,875): the players took a median 11.5 moves, best play 8.5; slower than best in 71% of them.
+
+Where they enter, the most common tables:
+  table      games   won for someone   ...and won    drawn   ...and drawn
+  KPPvKP   964,462           763,951        75.4%  200,499          57.8%
+  KRPvKR   573,276           231,807        69.5%  341,461          54.7%
+  KRPvKP   372,754           323,259        79.3%   49,492          66.9%
+  KRPPvK   332,920           332,585        83.6%      332          79.2%
+  KPPPvK   296,884           296,551        79.8%      329          75.1%
+  KQPvKP   277,825           259,944        82.9%   17,880          56.7%
+  KQPPvK   233,908           233,786        84.5%      121          76.9%
+  KBPvKP   208,690           153,464        73.3%   55,221          70.6%
+  KPPvKR   197,032           152,286        67.9%   44,742          52.6%
+  KNPvKP   147,510           108,511        67.4%   38,998          72.3%
+  KBPPvK   141,375           140,171        76.8%    1,202          76.5%
+  KNPPvK   104,737           104,418        76.6%      318          87.4%
+  KPPvKQ    92,131            88,968        74.4%    3,163          45.6%
+  KPPvKB    72,093            25,407        77.9%   46,685          67.9%
+  KQRPvK    71,432            71,432        88.2%        0           0.0%
+
+By the players' average rating:
+                  games  ended otherwise  wins won  draws held  of the otherwise, on time
+  under 1500   1,587,279            27.2%     75.8%       60.0%                      37.0%
+  1500-1999    2,445,348            25.3%     79.1%       60.0%                      59.1%
+  2000-2399     956,759            28.6%     75.4%       59.1%                      73.9%
+  2400 and up   237,576            27.4%     76.3%       62.9%                      79.0%
+
+By time control (Lichess's classes: base + 40 x increment):
+                  games  ended otherwise  wins won  draws held  of the otherwise, on time
+  ultrabullet    13,193            38.4%     66.1%       22.6%                      88.9%
+  bullet       1,317,192            32.7%     71.0%       48.5%                      75.4%
+  blitz        2,780,651            25.9%     78.4%       60.7%                      54.3%
+  rapid        1,075,233            21.2%     82.5%       67.3%                      25.5%
+  classical      39,085            17.6%     85.4%       73.3%                      11.3%
+  other           1,608            13.8%     88.5%       79.3%                       3.3%
+
+Move by move inside the tables (5,226,962 games, 5422s): the table's verdict (50-move rule, the game's clock) for the side moving, before each move and after.
+  Moves played: 95,465,223 in 4,961,346 games (median 15 a game); from a won position 37,460,256, drawn 22,540,744, lost 35,464,223 (a lost side can't make it worse).
+  Mistakes, moves that made the verdict worse for the side making them:
+    won -> drawn   1,010,000    2.7% of moves from won positions
+    won -> lost       67,987    0.2%
+    drawn -> lost    865,509    3.8% of moves from drawn positions (1 in 26)
+    all            1,943,496    3.2% of the moves that could go wrong (1 in 31); won ones thrown 1 in 35
+  Checks: moves that made it better for the side moving 0 (should be 0); games stopped at a position no table read 0.
+
+The 4,961,346 games with moves played in the tables:
+  no mistake 3,945,973 (79.5%); at least one 1,015,373 (20.5%), where our engine, moving by the tables, would have played better.
+  mistakes in a game: none 3,945,973, one 601,616, two 195,166, three or more 218,591
+  the first mistake threw away a win in 601,524 (59.2%), a draw in 413,849 (40.8%)
+  ended as the table said at entry, with mistakes on the way that came back: 243,399 of 3,615,027 (6.7%)
+  with at least one mistake, by average rating: under 1500 25%, 1500-1999 19%, 2000-2399 18%, 2400 and up 17%
+  by time control: ultrabullet 22%, bullet 19%, blitz 21%, rapid 22%, classical 20%, other 16%
+
+How the 1,389,417 games that ended otherwise than the table at entry went wrong:
+                                                                    games  share  with a mistake
+  the moves (the last position's verdict is the result)           653,221  47.0%          100.0%
+  a flag fell, the last position not as the result                684,636  49.3%           16.1%
+  resigned, the last position not lost                             15,392   1.1%           20.6%
+  drawn by repetition while someone was winning                    31,682   2.3%           14.9%
+  drawn otherwise while someone was winning (agreed, claimed)       1,500   0.1%           14.9%
+  abandoned or other                                                2,986   0.2%            9.0%
+
+Mistakes per 100 moves that could go wrong, by the rating of the player moving:
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  under 1500   32,238,639      19,282,060   735,202     3.81        3.21%       5.19%
+  1500-1999    42,274,411      26,839,883   825,953     3.08        2.72%       3.62%
+  2000-2399    15,959,502      10,357,460   298,608     2.88        2.64%       3.23%
+  2400 and up   4,992,671       3,521,597    83,733     2.38        2.64%       2.12%
+
+By time control:
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  ultrabullet     171,402          97,899     5,706     5.83        4.40%      11.69%
+  bullet       21,660,024      12,888,134   443,036     3.44        2.82%       4.97%
+  blitz        50,791,724      32,461,096 1,043,314     3.21        2.92%       3.65%
+  rapid        21,981,164      13,999,825   436,545     3.12        2.84%       3.55%
+  classical       834,369         537,374    14,465     2.69        2.53%       2.92%
+  other            26,540          16,672       430     2.58        2.26%       3.12%
+
+By how far into the ending (the player's own moves since the game entered the tables):
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  1-5          40,965,565      25,703,246   955,733     3.72        3.19%       4.61%
+  6-10         25,254,337      15,681,046   499,534     3.19        2.73%       4.01%
+  11-20        20,905,481      12,940,735   353,705     2.73        2.46%       3.26%
+  21-40         7,061,808       4,645,275   111,314     2.40        2.64%       2.09%
+  41 and on     1,278,032       1,030,698    23,210     2.25        5.62%       1.08%
+
+The tables most moves are made in:
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  KPvK          6,721,709       5,105,748   203,992     4.00        5.13%       3.23%
+  KRPvKR        6,045,585       5,077,990   366,756     7.22       12.63%       5.36%
+  KQvK          8,019,918       4,047,776    71,497     1.77        1.55%      12.42%
+  KRvK          5,768,120       2,990,426    34,297     1.15        0.90%       4.56%
+  KRvKR         2,744,308       2,727,682    49,444     1.81       12.43%       1.40%
+  KPPvKP        4,256,730       2,723,855   174,092     6.39        5.37%       8.67%
+  KPPvK         4,242,561       2,195,271    33,230     1.51        1.37%       5.37%
+  KPvKP         2,458,945       2,076,240    75,055     3.61        3.83%       3.52%
+  KQPvK         3,315,236       1,626,299    12,075     0.74        0.67%      16.53%
+  KQvKP         2,763,056       1,580,758    69,629     4.40        4.02%       5.78%
+  KRPvK         2,462,529       1,219,014     8,025     0.66        0.58%       4.57%
+  KRvKP         1,526,903       1,117,129    57,675     5.16        6.70%       3.94%
+  KBPvK         1,779,857       1,105,731    17,681     1.60        1.80%       1.28%
+  KQPPvK        2,225,925       1,083,497     5,726     0.53        0.52%      27.23%
+  KRPPvK        2,213,037       1,076,525     3,492     0.32        0.32%       9.78%
+
+The hardest tables (1,000 or more moves that could go wrong), most mistakes per 100:
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  KBBvKQ            1,468           1,106       216    19.53       18.80%      20.51%
+  KNNvKQ            3,888           3,163       598    18.91       26.61%      14.79%
+  KBBvKN            3,763           2,909       369    12.68       17.04%       9.98%
+  KRPvKQ          284,683         206,354    22,673    10.99       10.46%      11.65%
+  KQPvKQ          895,903         789,109    81,166    10.29       17.27%       8.06%
+  KPPvKR        1,192,256         810,069    80,685     9.96        8.74%      11.86%
+  KQRvKQ           37,698          24,733     2,131     8.62        6.76%      13.27%
+  KNPvKQ          115,931          68,523     5,763     8.41        7.81%      11.07%
+  KBNvKQ            8,007           4,710       392     8.32        7.93%      10.67%
+  KRNvKQ           15,971          15,287     1,260     8.24       21.62%       5.90%
+
+
+By the seconds left on the mover's clock as it starts to think (95,438,683 moves with readings, 100.0%):
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  0-4 s        12,975,990       8,281,893   382,165     4.61        3.95%       6.42%
+  5-9 s        11,334,511       7,356,175   250,234     3.40        2.92%       4.38%
+  10-19 s      13,786,614       8,865,252   259,049     2.92        2.55%       3.54%
+  20-29 s       7,884,793       4,985,797   140,250     2.81        2.50%       3.28%
+  30-59 s      14,070,575       8,682,869   251,347     2.89        2.58%       3.33%
+  1-2 min      13,670,621       8,375,948   248,077     2.96        2.66%       3.36%
+  2-5 min      13,427,938       8,305,055   254,971     3.07        2.77%       3.49%
+  5 min and more  8,287,641       5,131,339   156,973     3.06        2.66%       3.75%
+
+By the time taken over the move (readings in whole seconds, the increment added back):
+                    moves  could go wrong  mistakes  per 100  wins thrown  draws lost
+  under 1 s    27,383,773      16,779,138   477,245     2.84        2.40%       3.96%
+  1 s          35,992,582      21,567,664   613,370     2.84        2.51%       3.38%
+  2-3 s        22,973,332      14,873,029   517,763     3.48        3.20%       3.86%
+  4-9 s         7,664,048       5,697,870   271,358     4.76        4.79%       4.73%
+  10-29 s       1,305,761         988,148    58,394     5.91        6.40%       5.40%
+  30 s and more    119,187          78,479     4,936     6.29        6.94%       5.71%
+
+What the mistakes were (each the first of these that fits):
+                        all   won -> drawn    won -> lost  drawn -> lost   meaning
+  stalemate    176,404 (9%)  176,404 (17%)         0 (0%)         0 (0%)   stalemated the other side
+  too slow      15,063 (1%)    15,063 (1%)         0 (0%)         0 (0%)   still mates, but no longer inside the 50-move count
+  hung        410,939 (21%)  218,435 (22%)   37,217 (55%)  155,287 (18%)   left something to be taken: the other side's way out is a capture
+  missed       128,518 (7%)    38,538 (4%)    7,614 (11%)   82,366 (10%)   missed a capture that would have kept it
+  pawn        193,493 (10%)  149,401 (15%)     5,268 (8%)    38,824 (4%)   none of those: a wrong pawn move
+  king        638,980 (33%)  218,474 (22%)   11,576 (17%)  408,930 (47%)   none of those: a wrong king move
+  piece       380,099 (20%)  193,685 (19%)     6,312 (9%)  180,102 (21%)   none of those: a wrong move of another piece
+
+The tables with the most mistakes, and what they were:
+  table     mistakes stalemate  too slow      hung    missed      pawn      king     piece
+  KRPvKR     366,756        0%        0%       18%        5%        7%       32%       38%
+  KPvK       203,992        1%        0%        2%        1%       29%       67%        0%
+  KPPvKP     174,092        1%        0%       21%        6%       26%       46%        0%
+  KQPvKQ      81,166        0%        0%       20%        4%        4%       31%       40%
+  KPPvKR      80,685        1%        0%       13%        5%       14%       35%       33%
+  KPvKP       75,055        0%        0%       24%        5%       17%       54%        0%
+  KQvK        71,497       58%        1%       27%       14%        0%        0%        0%
+  KQvKP       69,629        6%        0%       18%        3%        0%       36%       36%
+  KRvKP       57,675        2%        0%       17%        7%        4%       41%       29%
+  KRvKR       49,444        0%        0%       45%        8%        0%       28%       19%
+  KBPvKP      34,704        5%        0%       23%        9%       10%       42%       10%
+  KRvK        34,297        8%       19%       47%       20%        0%        7%        0%
+
+Examples: the strongest player with 20 s or more who made each of the commonest kinds, by table (tab-separated:
+  table, kind, change, rating, speed, seconds left, FEN, played, the tables' move, before (for the side moving), after (for the other side), link,
+  the two moves again as from-to squares)
+EXAMPLE	KRPvKR	piece	won -> drawn	3070	bullet	24	8/8/6pk/4K3/7r/R7/8/8 b - - 0 44	Rh5+	g5	wins (mate in 38)	draws	https://lichess.org/GB5P0bNV#87	h4h5	g6g5
+EXAMPLE	KRPvKR	king	won -> drawn	2994	bullet	26	8/K7/P3k3/8/8/8/3R4/1r6 w - - 2 47	Ka8	Rd8	wins (mate in 30)	draws	https://lichess.org/0xLNxa4L#92	a7a8	d2d8
+EXAMPLE	KRPvKR	hung	drawn -> lost	3057	bullet	24	6k1/8/4K1p1/7r/7R/8/8/8 w - - 1 48	Rh3	Rxh5	draws	wins (mate in 13)	https://lichess.org/qIPTS6Rh#94	h4h3	h4h5
+EXAMPLE	KPvK	king	drawn -> lost	2922	bullet	25	8/8/8/2p5/8/3K4/1k6/8 w - - 9 54	Kd2	Kc4	draws	wins (mate in 12)	https://lichess.org/pMndNkl8#106	d3d2	d3c4
+EXAMPLE	KPvK	pawn	won -> drawn	2947	bullet	29	8/8/8/1kp5/8/3K4/8/8 b - - 0 42	c4+	Kb4	wins (mate in 16)	draws	https://lichess.org/D3Ruev4L#83	c5c4	b5b4
+EXAMPLE	KPvK	hung	won -> drawn	2631	bullet	111	8/8/P7/k1K5/8/8/8/8 w - - 3 75	Kc6	a7	wins (mate in 7)	draws	https://lichess.org/Th3kht3Q#148	c5c6	a6a7
+EXAMPLE	KPPvKP	king	won -> lost	3008	bullet	24	8/8/7P/4k1p1/5p2/5K2/8/8 b - - 0 50	Kf5	Kf6	wins (mate in 19)	wins (mate in 14)	https://lichess.org/lvudHuUs#99	e5f5	e5f6
+EXAMPLE	KPPvKP	pawn	drawn -> lost	2815	bullet	20	8/6p1/6k1/6p1/6K1/8/6P1/8 w - - 2 38	g3	Kg3	draws	wins (mate in 23)	https://lichess.org/A7V5cn0R#74	g2g3	g4g3
+EXAMPLE	KPPvKP	hung	drawn -> lost	2834	rapid	184	8/8/7p/5Pk1/4K1p1/8/8/8 w - - 1 58	Ke3	Ke5	draws	wins (mate in 13)	https://lichess.org/xmCwpAZs#114	e4e3	e4e5
+EXAMPLE	KQPvKQ	piece	won -> drawn	3085	bullet	24	8/7Q/8/8/6P1/1k2K3/8/q7 w - - 1 48	Qf7+	Qd3+	wins (mate in 13)	draws	https://lichess.org/KBTZThQi#94	h7f7	h7d3
+EXAMPLE	KQPvKQ	king	drawn -> lost	3000	rapid	866	4Q3/8/8/8/1P6/4K3/5qk1/8 w - - 2 62	Ke4	Kd3	draws	wins (mate in 12)	https://lichess.org/EoILQfS3#122	e3e4	e3d3
+EXAMPLE	KQPvKQ	hung	drawn -> lost	2765	rapid	197	1K6/8/5Q2/1q6/7p/8/4k3/8 w - - 42 106	Qb6	Kc8	draws	wins (mate in 6)	https://lichess.org/yAuIrWJi#210	f6b6	b8c8
+EXAMPLE	KPPvKR	king	won -> drawn	2861	bullet	20	8/6R1/8/8/4K1k1/6p1/7p/8 b - - 1 51	Kh3	Kh5	wins (mate in 37)	draws	https://lichess.org/fTAiGRN3#101	g4h3	g4h5
+EXAMPLE	KPPvKR	piece	drawn -> lost	2888	blitz	36	8/8/6P1/8/2r2PK1/k7/8/8 b - - 0 61	Rc1	Kb4	draws	wins (mate in 34)	https://lichess.org/IQn3iZZ5#121	c4c1	a3b4
+EXAMPLE	KPPvKR	pawn	drawn -> lost	2782	blitz	93	8/4k3/2P3P1/4K3/8/3r4/8/8 w - - 1 53	g7	c7	draws	wins (mate in 24)	https://lichess.org/ge5coy6Z#104	g6g7	c6c7
+EXAMPLE	KPvKP	king	drawn -> lost	2917	bullet	20	8/8/8/2k5/5p2/2K2P2/8/8 w - - 8 62	Kd2	Kd3	draws	wins (mate in 18)	https://lichess.org/UW8cLjPG#122	c3d2	c3d3
+EXAMPLE	KPvKP	hung	drawn -> lost	2919	bullet	21	8/8/8/8/5Kp1/7k/7P/8 b - - 3 55	g3	Kh4	draws	wins (mate in 13)	https://lichess.org/mG5rxPNG#109	g4g3	h3h4
+EXAMPLE	KPvKP	pawn	drawn -> lost	2832	blitz	33	8/8/8/1P2p3/8/3k4/5K2/8 b - - 4 71	e4	Kd2	draws	wins (mate in 13)	https://lichess.org/KxQ2mnkd#141	e5e4	d3d2
+EXAMPLE	KQvK	stalemate	won -> drawn	3000	rapid	884	8/8/8/8/6K1/6Q1/8/5k2 w - - 9 85	Kf3	Qe3	wins (mate in 4)	draws (stalemate)	https://lichess.org/EoILQfS3#168	g4f3	g3e3
+EXAMPLE	KQvK	hung	won -> drawn	2644	rapid	288	1q6/8/2K5/4k3/8/8/8/8 b - - 3 89	Qc7+	Qb4	wins (mate in 5)	draws	https://lichess.org/8DSadbWv#177	b8c7	b8b4
+EXAMPLE	KQvK	missed	drawn -> lost	2829	rapid	173	8/8/8/1K6/8/8/8/4kQ2 b - - 0 91	Kd2	Kxf1	draws	wins (mate in 5)	https://lichess.org/uOlVAAS1#181	e1d2	e1f1
+EXAMPLE	KQvKP	king	drawn -> lost	2906	bullet	23	1Q6/2K5/8/8/5k2/8/5p2/8 b - - 0 51	Ke3	Kf3	draws	wins (mate in 11)	https://lichess.org/NSqLQIc1#101	f4e3	f4f3
+EXAMPLE	KQvKP	piece	won -> drawn	2653	bullet	20	6Q1/8/8/8/1k3K2/8/2p5/8 w - - 0 64	Qb8+	Qc8	wins (mate in 9)	draws	https://lichess.org/rFi8DCva#126	g8b8	g8c8
+EXAMPLE	KQvKP	hung	drawn -> lost	2544	bullet	30	8/7P/6K1/2k5/8/8/8/1q6 w - - 0 51	Kf7	Kg7	draws	wins (mate in 7)	https://lichess.org/VcaDglNE#100	g6f7	g6g7
+EXAMPLE	KRvKP	king	won -> drawn	3000	bullet	114	8/8/7R/p7/1k6/8/8/6K1 w - - 2 50	Kh1	Kf1	wins (mate in 20)	draws	https://lichess.org/ycbnO8xe#98	g1h1	g1f1
+EXAMPLE	KRvKP	piece	drawn -> lost	2693	blitz	35	8/PK6/8/8/8/4k3/2r5/8 b - - 4 71	Rc1	Rb2+	draws	wins (mate in 32)	https://lichess.org/DciUD1df#141	c2c1	c2b2
+EXAMPLE	KRvKP	hung	drawn -> lost	3000	bullet	114	8/8/8/8/1k6/7R/p7/7K w - - 0 53	Rc3	Rh4+	draws	wins (mate in 8)	https://lichess.org/ycbnO8xe#104	h3c3	h3h4
+EXAMPLE	KRvKR	hung	drawn -> lost	2953	bullet	136	2r5/8/8/8/4k3/8/8/RK6 b - - 7 59	Ra8	Ke5	draws	wins (mate in 15)	https://lichess.org/yvo3IAbY#117	c8a8	e4e5
+EXAMPLE	KRvKR	king	drawn -> lost	2712	bullet	26	8/8/6K1/6R1/4k3/8/8/5r2 b - - 12 54	Kf4	Rf2	draws	wins (mate in 16)	https://lichess.org/ADKAuwj4#107	e4f4	f1f2
+EXAMPLE	KRvKR	piece	drawn -> lost	2818	blitz	97	6r1/8/8/2k1K3/7R/8/8/8 w - - 5 73	Rd4	Rh5	draws	wins (mate in 13)	https://lichess.org/A0hcJiD6#144	h4d4	h4h5
+EXAMPLE	KBPvKP	king	drawn -> lost	2987	bullet	21	8/8/6p1/8/P1K5/8/4b3/1k6 w - - 1 68	Kb4	Kd4	draws	wins (mate in 15)	https://lichess.org/94teuF0R#134	c4b4	c4d4
+EXAMPLE	KBPvKP	hung	drawn -> lost	2779	rapid	208	8/4k3/6BP/8/4p3/8/8/4K3 b - - 0 56	Kd6	Kf8	draws	wins (mate in 9)	https://lichess.org/JmB7uZx2#111	e7d6	e7f8
+EXAMPLE	KBPvKP	piece	won -> drawn	2816	bullet	23	8/2p5/8/6P1/8/k1K5/8/1b6 b - - 1 50	Be4	Ba2	wins (mate in 17)	draws	https://lichess.org/V2RFQNjl#99	b1e4	b1a2
+EXAMPLE	KRvK	hung	won -> drawn	3000	bullet	113	8/8/8/8/8/8/2k3K1/1R6 w - - 9 60	Kg3	Rb4	wins (mate in 12)	draws	https://lichess.org/ycbnO8xe#118	g2g3	b1b4
+EXAMPLE	KRvK	missed	drawn -> lost	2706	blitz	57	8/8/3R4/2k5/4K3/8/8/8 b - - 17 79	Kb5	Kxd6	draws	wins (mate in 8)	https://lichess.org/MVpI466K#157	c5b5	c5d6
+EXAMPLE	KRvK	too slow	won -> drawn	2832	rapid	95	8/8/8/8/8/2k4r/5K2/8 b - - 83 146	Kc4	Kd3	wins (mate in 8)	draws by the 50-move count (loses (mated in 9) without it)	https://lichess.org/MnEdPRnM#291	c3c4	c3d3
