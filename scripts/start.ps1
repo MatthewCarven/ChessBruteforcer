@@ -16,6 +16,15 @@ $jobs = @(
     @{ Name = 'the book learner'; Start = 'bot\learn.cmd';            Running = @('*learn.py*', '*learn.cmd*') }
 )
 $processes = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine }
+
+# Build the engine once, here, before any window starts: the bot's and the learner's scripts each build it too,
+# and two builds of one project at the same moment trip over each other's files (2026-10-14: the bot's failed).
+# Theirs then find nothing to do.
+if (-not $DryRun) {
+    'building the engine ...'
+    dotnet build src\ChessBruteforcer.Engine -c Release --nologo -v q | Out-Null
+    if ($LASTEXITCODE -ne 0) { 'the engine build failed: fix that first (nothing started)'; exit 1 }
+}
 foreach ($job in $jobs) {
     $found = @($processes | Where-Object { $line = $_.CommandLine; ($job.Running | Where-Object { $line -like $_ }).Count -gt 0 })
     if ($found.Count -gt 0) {
@@ -26,6 +35,7 @@ foreach ($job in $jobs) {
     } else {
         Start-Process -FilePath $job.Start -WorkingDirectory (Get-Location) | Out-Null
         "$($job.Name): started ($($job.Start), its own window)"
+        Start-Sleep -Seconds 15   # let its own (now quick) build finish before the next window's starts
     }
 }
 

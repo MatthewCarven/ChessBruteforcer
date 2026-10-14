@@ -6,6 +6,12 @@ setlocal
 cd /d "%~dp0.."
 dotnet build src\ChessBruteforcer.Engine -c Release --nologo -v q
 if errorlevel 1 (
+    rem Another window may have been building the same project at that moment: once more, after a pause.
+    echo build failed: trying again in 20 s
+    timeout /t 20 /nobreak >nul
+    dotnet build src\ChessBruteforcer.Engine -c Release --nologo -v q
+)
+if errorlevel 1 (
     echo build failed
     pause
     exit /b 1
