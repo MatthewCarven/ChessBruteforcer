@@ -1764,3 +1764,45 @@ rather than 48-byte boards, because that is the storage that scales.
   rows as Parquet columns through DuckDB, on trial in session 1. Moves
   played and material become columns rather than sort orders; positions
   are sorted by fingerprint. TODO has the sessions.
+
+## 2026-10-15 (00:33): the whole of September, move by move
+
+- `scripts\takeover-month.cmd 2026-09`, 22:08-00:33: 5,260,601 games read
+  (55 min), 5,226,962 enter a table, 95.5 M moves walked; memory peaked
+  ~2.3 GB. Output scripts/takeover-moves-2026-09-month.txt; set beside the
+  one day (1 September) by a scratch script.
+- **The one day was representative.** Every headline number held:
+
+  | | 1 Sept | September |
+  |---|---|---|
+  | games entering a table | 189,913 | 5,226,962 |
+  | ended otherwise than the table | 26.7% | 26.6% |
+  | of the won endings not won, on time | 54.3% | 53.8% |
+  | moves played in the tables | 3.44 M | 95.5 M |
+  | mistakes, of moves that could go wrong | 1 in 31 | 1 in 31 |
+  | games with at least one mistake | 20.4% | 20.5% |
+  | checks (better than the table / unread) | 0 / 0 | 0 / 0 |
+
+- **The thin rows are solid now** (mistakes per 100 moves that could go
+  wrong, 95% margins): by the mover's rating 3.81 / 3.08 / 2.88 / 2.38
+  (+-0.01-0.02; 2400 and up make 38% fewer than under 1500), yet games
+  end otherwise ~27% in every band, because the clock takes more of them
+  as ratings rise (on time 37% -> 79%). By time control: ultrabullet 5.83
+  +-0.15 (13,193 games), bullet 3.44, blitz 3.21, rapid 3.12, classical
+  2.69 +-0.04 (39,085 games, 17.6% ended otherwise, 11% of those on time).
+- The clock, confirmed: 4.61 per 100 with under 5 s left against ~2.9 from
+  10 s up; long thinks 30 s+ 6.29 (hard positions, not proof that thinking
+  hurts). Late in an ending (41+ own moves) 2.25 +-0.03, a little worse
+  than the day's 2.05 suggested.
+- New at this size, the hardest tables (1,000+ moves that could go wrong):
+  two minor pieces against a queen, KBBvKQ 19.5 +-2.3 and KNNvKQ 18.9
+  +-1.4 per 100 (about 1 move in 5), KBBvKN 12.7; then KRPvKQ 11.0,
+  KQPvKQ 10.3, KPPvKR 10.0 as before. Kinds of mistake as before (king
+  33%, hung 21%, piece 20%, pawn 10%, stalemate 9%; KQvK 58% stalemates).
+  KRvK shows 19% "too slow": the 50-move count running out on K+R v K.
+- Examples now reach 3000+ (bullet: 3085 threw a K+Q+P v K+Q win with 24 s
+  left). Ratings of exactly 3000 are probably new bots at their
+  provisional start (ours began there), so the top band has some bots in.
+- The one-day sample files can go once Matthew likes (his call):
+  games/2026-09-part.cbg (1.28 GB); keep 2026-09-part-tables.cbg (64 MB)
+  as the line-for-line check for `game takeover`.
