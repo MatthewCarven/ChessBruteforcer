@@ -229,6 +229,55 @@ read of ~50-60 minutes in its own window (slower while the queue downloads
 onto the same share). Disk: ~1.3 GB of rows on the laptop, twice during the
 trial.
 
+## Session 1b: Matthew's Lookuptables, brought forward (2026-10-15)
+
+Matthew chose to try his CSharp-Lookuptables now rather than in session 3.
+"Every game that began like this" needs no chess engine: Lichess writes
+its own SAN, so the same moves are always the same text, and a game's
+first moves as codes are a key whose prefixes are its openings.
+
+- `index-month.py rows ... --lines 16` also writes `lines.u16`: each
+  game's first 16 moves, two bytes each (a code per move in SAN, listed in
+  `lines.json`; 0 once the game has ended). 32 bytes a game, ~2.9 GB for
+  July, deleted once the trial is written up. `check` confirms the saved
+  moves of every game it fetches.
+- `scripts/lines-trial.cs` (a .NET 10 file-based app referencing
+  `..\Lookuptables` as it is, so no upgrade and no change to his repo):
+  the games sorted by line, so each distinct line is a run of game
+  numbers in one flat array. Three ways to answer the first k moves with
+  the games that began that way: a sorted array of the distinct lines
+  (binary search; the games are one contiguous run), his burst trie (a
+  key per distinct line, the moves big-endian then the line's number, as
+  in his 64 GB disk test; CollectPrefix), and a plain scan (the control).
+  All answers checked against each other; memory from the managed heap;
+  a second of warm-up first, as his harness does. It also counts the
+  distinct lines at each depth: how fast games become unique by moves.
+- Run on the first 8 M games of July (the trie took ~114 bytes a distinct
+  line on 2013-01, so all 89 M would need ~10 GB), by
+  `scripts\index-month.cmd 2026-07`, after the rest of session 1.
+
+2013-01 (121,332 games):
+
+| first k moves | distinct | games sharing them with no other |
+|---|---|---|
+| 1 | 20 | 0% |
+| 4 | 8,015 | 3.2% |
+| 8 | 68,602 | 46.0% |
+| 12 | 109,447 | 85.4% |
+| 16 | 118,604 | 96.5% |
+
+| median a query | games found | sorted array | burst trie | scan |
+|---|---|---|---|---|
+| 1 move | 72,488 | 27 µs | 534 µs | 818 µs |
+| 4 moves | 453 | 1.3 µs | 6.6 µs | 320 µs |
+| 8-16 moves | 1 | ~0.9 µs | ~0.9 µs | ~300 µs |
+| memory | | 4.3 MB | 13.5 MB | none |
+
+So far: equal where a prefix picks out a few games, and the sorted array
+well ahead where it picks out many, because its games are already one run
+while the trie lists every matching line. July (8 M games) is the real
+test.
+
 ## Session 2 (outline): the measurement
 
 What the cut-offs should be, measured on July: how many positions each ply
@@ -282,11 +331,9 @@ and each piece count holds, and how many of them repeat.
   at least 10, games share) goes into its row as two columns.
 - **A book for the bot** from the layer, in Polyglot format, set against
   make-book.py's book for the same filter on the same month.
-- **On trial: Matthew's CSharp-Lookuptables** (`..\Lookuptables`) for the
-  by-moves side: a burst trie over each game's moves as bytes makes "every
-  game that began like this" one prefix query, and its path compression
-  suits the long unique middles. Measured against the sorted blocks on
-  size and on 1,000 random lines. What its own results say about disk
+- **Matthew's CSharp-Lookuptables** (`..\Lookuptables`) for the by-moves
+  side: the trial was brought forward to session 1b (above), and its
+  result decides whether it has a place here. What its own results say about disk
   (README section 4): the library's `DiskIndexer` is the Python edition's
   directory tree (a file per 3-byte prefix, fixed-size records), and
   Matthew's 64 GB run found the better design to be a small index in RAM

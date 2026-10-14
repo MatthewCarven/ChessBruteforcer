@@ -43,8 +43,16 @@ that could go wrong does.
    restart (between games).
 2. **Done: the build plan for the index**, [INDEX.md](INDEX.md): what a
    sample of July says, the files and formats, session 1 in full, sessions
-   2-5 outlined. Next: **session 1** (it needs Matthew's yes to `pip install
-   duckdb`, 13.7 MB, for the Parquet trial).
+   2-5 outlined.
+3. **Index session 1 and 1b, waiting on the match** (Matthew: (b) the
+   Lookuptables trial now, (c) July's read after the match):
+   `scripts\index-month.cmd 2026-07 games\tune\match-sf2.log` in its own
+   window from 01:32 waits for the match's "final:" line, then reads July
+   (~1 hour) and runs check, dups, the Parquet trial and
+   scripts/lines-trial.cs on 8 M games; log games/index/index-2026-07.log.
+   Passed on 2013-01 end to end. Then: write up scripts/index-2026-07.txt,
+   choose the format, decide with Matthew where the index lives, and delete
+   lines.u16 (2.9 GB).
 
 ### 1. The index over the games (the main line)
 

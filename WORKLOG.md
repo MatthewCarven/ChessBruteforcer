@@ -1878,3 +1878,25 @@ rather than 48-byte boards, because that is the storage that scales.
 - DuckDB reads a dict of numpy arrays directly (unsigned types kept), so
   the trial needs no pandas or pyarrow. In SQL, 40 x a UINT8 column
   overflows: cast first.
+- Matthew picked (b), the Lookuptables trial brought forward, and (c),
+  July's read after the match. `rows --lines 16` keeps each game's first 16
+  moves as two-byte codes (2013-01: 1,304 different moves in SAN; all
+  121,332 games' saved moves match their fetched PGN), and
+  scripts/lines-trial.cs (.NET 10, his library referenced as it is) sets
+  his burst trie against a sorted array and a scan. 2013-01: equal (~0.9 µs)
+  where a prefix picks out a game or two, the sorted array 20x faster where
+  it picks out tens of thousands (its games are one run; the trie lists
+  every line), the trie 3x the memory. Games become unique fast: 46% share
+  their first 8 moves with no other game, 96.5% their first 16 (2013).
+- July-sized memory: `dups` and `trial` loaded whole columns (~2-4 GB for
+  July's 89 M games). Now columns stream out of their .zst into numpy
+  arrays a piece at a time (zstd.open + readinto), duplicates come from one
+  sorted copy of the fingerprints, the Parquet goes out as 10 M-row parts,
+  and DuckDB is capped at 1 GB with its spill folder in the index folder
+  (its default is .tmp in the working directory). Same answers on 2013-01.
+- scripts\index-month.cmd runs the lot in order, after waiting for a log's
+  "final:" line; started 01:32 for July, waiting on the sf2 match (264
+  games at 01:32: +97 -86 =81, Elo +14 [-20, +50]).
+- The PowerShell guard refused a whole call ("system path '/c'") over a
+  `Remove-Item` beside a `cmd /c "..."`, so nothing in it ran: one
+  `Remove-Item` per call, on its own, as the notebook says.
