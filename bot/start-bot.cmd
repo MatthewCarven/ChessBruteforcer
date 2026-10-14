@@ -1,5 +1,6 @@
 @echo off
-rem Run BruteForceBot on Lichess (lichess-bot with our engine and tables).  Ctrl+C, or close the window, stops it.
+rem Run BruteForceBot on Lichess (lichess-bot with our engine and tables).  Ctrl+C, or close the window, stops it;
+rem if lichess-bot stops by itself (a network fault it didn't ride out), run-bot.ps1 starts it again.
 rem   bot\start-bot.cmd
 rem Runs from a copy of the engine build (bot\lichess-bot\engines\bruteforcer) so the repo stays buildable;
 rem the copy is refreshed from the latest build each start.  Its log goes to bot\logs, its games to bot\games.
@@ -31,7 +32,6 @@ if errorlevel 1 (
     if errorlevel 1 echo The chat commands didn't go in ^(lichess-bot changed?^): starting without !info.
 )
 set BRUTEFORCER_TABLES=%CD%\tables
-cd /d "%~dp0lichess-bot"
-for /f %%d in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd"') do set TODAY=%%d
-"%PY%" lichess-bot.py -l "%~dp0logs\bot-%TODAY%.log"
+rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers.
+pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0run-bot.ps1"
 pause
