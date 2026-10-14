@@ -1746,3 +1746,21 @@ rather than 48-byte boards, because that is the storage that scales.
 - The bot lost to latrunculi-bot (2329, blitz, we challenged it):
   https://lichess.org/SrwnQEj5, mated on move 57. Our engine had us +1.1
   at move 17; it turned between moves 21 and 24 (-0.5 to -2.6).
+
+## 2026-10-15 (small hours): the index plan, with three additions
+
+- Matthew's picture: index files pointing into the big files by moves
+  played and the pieces as a sorted list, then positions; duplicates found
+  by checksumming and run-length encoding; a map from beginning to
+  endgame. Most of it was the 2026-10-13 plan. His checksum + RLE is the
+  right tool where positions repeat (sort the 64-bit fingerprints; runs of
+  equal ones are counts; the gaps between sorted ones take ~4 bytes, not
+  8), which is only the opening and the last few pieces: in 2013, 84% of
+  positions were seen once. Collisions: ~1 pair a month (~6 B positions),
+  ~2,300 over 46 months, so exact lookups confirm by replaying.
+- He took all three additions and left the sort order to us: (a) a
+  fingerprint per game in session 1, for duplicate games; (b) the bow-tie
+  map (opening exit x table entry x result) as session 5; (c) per-game
+  rows as Parquet columns through DuckDB, on trial in session 1. Moves
+  played and material become columns rather than sort orders; positions
+  are sorted by fingerprint. TODO has the sessions.
