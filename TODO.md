@@ -54,6 +54,19 @@ and the engine plays them by the 50-move rule. Where things stand:
       we're in them, where the book ran out; the tables' verdict to
       spectators only, his (a)) and `!help` listing it. Live from the bot's
       next restart; check in a casual game from his own account.
+- [ ] **Where our losses turn** (Matthew, 2026-10-15: "add the stockfish
+      losses job"): Stockfish 16 over the bot's lost games (bot/games),
+      finding in each the move where the game turned (e.g. the first of ours
+      that loses 150 cp or more by Stockfish). Then sort them: missed
+      tactics (Stockfish sees the refutation within a few plies more than
+      our search reached: depth) against misjudged positions (at our own
+      depth our evaluation disagreed with Stockfish's: the evaluation, i.e.
+      new Texel terms). By opponent rating and time control; the bot's log
+      has our evaluation and depth for every move to set beside it. First
+      examples, 2026-10-14 night: latrunculi-bot 2329 (SrwnQEj5: +1.1 at
+      move 17, turned at moves 21-24), Musashi-thebot 2309, TroutBot 2211,
+      JenniferX 3037 (rapid). Lost blitz v 2200+ 0 of 3 that night, won 5
+      of 5 v 1780-1915.
 - [ ] **The month queue** (Matthew, 2026-10-13 22:36: "queue the lot up"):
       `scripts\month-queue.cmd` in its own window, newest first, stopping
       before the share has < 100 GB free: 2026-09 back to 2022-12 (46
