@@ -191,10 +191,8 @@ Sessions, in order:
 - [x] Push `compression` (GitHub matched d13b55c at 00:47 on 2026-10-15).
 - [ ] A second pull request from `compression` into `main` (PR #1 took only
       the first commit).
-- [ ] Push `prefix-range` in ..\Lookuptables (BurstTrie.TryGetPrefixRange,
-      one commit on main's f350485), and merge it if he likes it. Keep it
-      checked out there until July's lines trial has run (the trial builds
-      against it).
+- [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
+      CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;
       keep games/2026-09-part-tables.cbg (64 MB) as the takeover check file.
 - [ ] Keep the laptop awake on long runs (a Windows power setting; it slept

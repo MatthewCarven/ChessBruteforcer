@@ -1916,5 +1916,8 @@ rather than 48-byte boards, because that is the storage that scales.
 - lines-trial.cs measures the trie both ways. 2013-01: with the range
   method the trie is fastest at every prefix length (0.4 µs against 0.8
   for the sorted array on long prefixes; 4.7 against 9.0 µs at 2 moves),
-  answers agreeing; 3x the memory. The branch stays checked out in
-  ..\Lookuptables until July's trial has run (it builds against it).
+  answers agreeing; 3x the memory.
+- Matthew pushed it and merged it into his main (PR #1, merge commit
+  b9ca823, the same tree as f1063ff); his local main fast-forwarded to it
+  and the merged branch deleted. The trial builds and agrees against main.
+  Match at 659 games: +227 -212 =220, Elo +8 [-14, +30].

@@ -272,11 +272,10 @@ picks out tens of thousands, because the trie handed back every matching
 line while the sorted array's games are already one run. Matthew chose to
 give the trie the same shortcut: `BurstTrie.TryGetPrefixRange(prefix, out
 first, out last)`, the smallest and largest key with the prefix (down the
-first and last children; only the two end leaves scanned). It's on his
-branch `prefix-range` in `..\Lookuptables` (f1063ff: tests against a sorted
-reference at thresholds 1-128; four deliberate faults all red), which the
-trial builds against, so that branch must stay checked out there until
-July's trial has run. Rerun:
+first and last children; only the two end leaves scanned). Tests against
+a sorted reference at thresholds 1-128; four deliberate faults all red.
+Matthew merged it into his main the same night (CSharp-Lookuptables PR #1,
+b9ca823), so the trial builds against his main as it stands. Rerun:
 
 | median a query | games found | sorted array | trie, every line | trie, first and last | scan |
 |---|---|---|---|---|---|
