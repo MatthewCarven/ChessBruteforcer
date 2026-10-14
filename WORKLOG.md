@@ -1653,3 +1653,12 @@ rather than 48-byte boards, because that is the storage that scales.
 - Aborts: two games v MinibruteforceBot (14:22, 14:58) aborted after 30 s
   because it never made its first move (we'd played 1.e4 from the book at
   once). Matthew: don't block it.
+- **Result: sf1 +48 -11 =10 (76.8%), Elo +208 [+130, +311]**: SPRT [0, 20]
+  accepted H1 after 69 games (15:54-16:00). Same tuner, same shape of
+  evaluation, similar data size: Stockfish's verdicts teach what human
+  results couldn't. So the data was the limit, not the evaluation's shape.
+- The bot gets it: `bot/eval/eval-sf1.txt` (in git, 16 KB), and
+  make-config.py sets EvalFile to it when the file is there (delete it to
+  go back). Checked: the engine loads it from that path (spaces and all),
+  and the evaluation changes. Matthew had stopped the bot between games;
+  it takes the new numbers at its next start (start.cmd).

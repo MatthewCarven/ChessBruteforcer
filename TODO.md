@@ -115,6 +115,19 @@ and the engine plays them by the 50-move rule. Where things stand:
       49 of 49 at 7, so for the bot they'd gain nothing. For the thesis: the
       Syzygy 6-piece set (~150 GB) to judge human games; our own 6-piece
       build needs a machine with ~128 GB of memory. WORKLOG.
+- [ ] **Texel tuning** (Matthew, 2026-10-14; WORKLOG has it all):
+      - [x] Step 1, human results: tuned numbers no better (1,951 games, +1 Elo).
+      - [x] Step 2a, Stockfish's verdicts (Lichess's analysed games,
+        scripts/eval-games.py, `tune positions --lambda 0`): **+208 Elo
+        [+130, +311]** over the original, 69 games. The bot uses it
+        (bot/eval/eval-sf1.txt via EvalFile).
+      - [ ] Confirm at a slower clock (60+0.6, the bot's speed is 3+2), and
+        try more data (the whole of July: ~9 M analysed games) and a
+        result/eval blend (--lambda 0.2).
+      - [ ] Then bake the winner into the engine's built-in numbers (the
+        takeover, hard and match commands use the built-in ones).
+      - [ ] Step 2b: new terms (passed/doubled/isolated pawns, mobility,
+        king safety), tuned the same way towards Stockfish.
 - [ ] Later for the bot: tuning the evaluation from game results (Texel),
       2-3 sessions, measured by a match like the book's. And a server near
       Lichess (Europe) if it should run all day: from Australia every move
