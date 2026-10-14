@@ -1662,3 +1662,31 @@ rather than 48-byte boards, because that is the storage that scales.
   go back). Checked: the engine loads it from that path (spaces and all),
   and the evaluation changes. Matthew had stopped the bot between games;
   it takes the new numbers at its next start (start.cmd).
+- First 5 rated games on sf1: 5 won (Stepbot_Chess 1905, ThrorBjorn 1866,
+  Tigrament 2045, laura-bot 1917, mochi_bot 1771), 2009 -> 2026. Too few to
+  measure (at the book era's 53%, 5 of 5 is ~1 in 25); check again at ~30.
+- July 2026 counted (17:12): the books from three months, 4,850,017 games:
+  main 497,607 moves (median line 15 plies, average 15.6, all 24: 8.9%),
+  wide 1,227,739. September back on the share and matching its SHA-256.
+
+## 2026-10-14: the book learner (the book's option c)
+
+- Matthew picked (c), the background job first. `bot/learn.py` (window:
+  `bot/learn.cmd`; `start.cmd` starts it with the bot and the queue):
+  after each finished game, our positions within the book's reach (12
+  moves) where the main book had nothing: no book at all, thought about 45
+  s; only the wide book, its move checked (best v the wide move, 20 s
+  each) and vetoed at 75 cp or more behind. At most 4 a game, nearest the
+  book first. Kept in bot/books/ours.jsonl; bot/books/ours.bin rebuilt
+  after each game (temporary file, moved over; lichess-bot opens books
+  afresh each move). make-config.py lists main, ours, wide, and makes
+  ours.bin if missing with one inert entry (key 0): lichess-bot's
+  open_reader can't take an empty file. Its own engine copy (the tuned
+  evaluation, no tables), below-normal priority (ctypes needs the
+  handle's types on 64-bit, or SetPriorityClass quietly fails).
+- Tested in a scratch folder on 3 games (2 s thinks): 12 positions, each
+  read back from ours.bin as lichess-bot reads it (castling included);
+  the inert entry answers nothing. Started 18:46 on the backlog (~150
+  games). The bot needs one restart to list ours.bin; after that the
+  learner's book goes live as it grows. `learn.py --summary` reports what
+  it has learnt, vetoes, and how many bot moves came from it.

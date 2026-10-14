@@ -47,7 +47,15 @@ engine["online_moves"]["online_egtb"]["enabled"] = False      # our own tables, 
 book = os.path.join(here, "books", "lichess-2200.bin")
 if not os.path.exists(book):
     book = os.path.join(here, "books", "lichess-2026-09-2200.bin")
-books = [b for b in (book, os.path.join(here, "books", "lichess-2200-wide.bin")) if os.path.exists(b)]
+# Between them, our own book (bot/learn.py: moves the learner worked out after the bot's games, where the main
+# book had nothing or the wide book's move didn't stand up). It always exists, with one inert entry when the
+# learner has nothing yet, because lichess-bot can't open an empty book; the learner rebuilds it live.
+ours = os.path.join(here, "books", "ours.bin")
+if not os.path.exists(ours):
+    os.makedirs(os.path.dirname(ours), exist_ok=True)
+    with open(ours, "wb") as f:
+        f.write((0).to_bytes(8, "big") + (0).to_bytes(2, "big") + (1).to_bytes(2, "big") + (0).to_bytes(4, "big"))   # key 0, move 0, weight 1
+books = [b for b in (book, ours, os.path.join(here, "books", "lichess-2200-wide.bin")) if os.path.exists(b)]
 engine["polyglot"] = {
     "enabled": bool(books),
     "book": {"standard": books},

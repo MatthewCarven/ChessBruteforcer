@@ -25,7 +25,8 @@ and the engine plays them by the 50-move rule. Where things stand:
         played 3+ times, 940,807), after the main one in the bot's list;
         `month-book.cmd` rebuilds both, `book-match.py` uses both. Takes
         effect at the bot's next restart (Matthew's, between games).
-      - [ ] (c) The background job (one session): its own window, low
+      - [x] (c) The background job: bot/learn.py, running from 2026-10-14
+        (WORKLOG). Measure after a week (`learn.py --summary`). The plan was: its own window, low
         priority, an engine copy without tables. Watches bot/games; after
         each game, the positions in our first ~15 moves where neither book
         had a move get ~60 s each (about 6x a game's), and positions where
