@@ -1704,3 +1704,21 @@ rather than 48-byte boards, because that is the storage that scales.
   window from 17:22): filter and import done (games/tune/eval-games-
   2026-09.cbg, 4.18 GB); positions (2 a game) running at 21:18. Next:
   `tune fit` on them (with July's 2.86 M, or alone), then a match v sf1.
+
+## 2026-10-14 (night): the bot rides out network changes; start.cmd builds once
+
+- Matthew moves between the upstairs and downstairs wireless networks.
+  lichess-bot already retries each request for 60 s, a game's stream for
+  10 minutes, and restarts itself after a network error at startup; any
+  other fault ("Quitting lichess-bot due to an error") ended it for good.
+  `bot/run-bot.ps1` (run by start-bot.cmd) loops: wait until lichess.org
+  answers, run lichess-bot, start it again 20 s after it stops by itself;
+  Ctrl+C stops all; 5 stops within 2 minutes of starting gives up with a
+  message (a token problem, say). Restarts logged to bot/logs/restarts.log.
+  Tested with a stand-in that fails at once: 4 restarts, then the give-up.
+- start.cmd opened the bot and the learner together; both built the engine
+  at once and the bot's build failed. start.ps1 now builds once first and
+  spaces the windows 15 s apart, and start-bot.cmd / learn.cmd retry a
+  failed build after 20 s. Matthew had stopped everything at 21:26-21:31
+  (the bot cleanly, between games); restarted 21:42-21:44: bot (guard,
+  sf1, our book listed), learner, queue, September's Texel positions.
