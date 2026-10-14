@@ -1806,3 +1806,16 @@ rather than 48-byte boards, because that is the storage that scales.
 - The one-day sample files can go once Matthew likes (his call):
   games/2026-09-part.cbg (1.28 GB); keep 2026-09-part-tables.cbg (64 MB)
   as the line-for-line check for `game takeover`.
+
+## 2026-10-15 (small hours): the plan consolidated
+
+- Matthew asked for the plan consolidated before the next session, which
+  makes the build plan for the index. TODO.md now opens with one plan in
+  order: what runs in the background, the next session (start the Texel
+  fit and its match in the background, the September positions being
+  ready: 13,580,216 from 6,811,130 games; then the index build plan),
+  then four sections: the index (sessions 1-5), the engine's strength,
+  findings for the thesis, and Matthew's own items. The older sections
+  stay below as the record; their open items moved up. Stale entries
+  fixed: KRPvKR was already compressed (CBC1), compression is done, and two
+  paths an old heredoc had mangled.

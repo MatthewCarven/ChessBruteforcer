@@ -1,227 +1,203 @@
 # TODO / roadmap
 
-If you're asking "where are we?", this is the answer. Top to bottom is
-roughly the order of work. Tick items off here and log them in
-[WORKLOG.md](WORKLOG.md).
+If you're asking "where are we?", this is the answer. The plan comes first,
+in order. Finished work is logged in [WORKLOG.md](WORKLOG.md); the older
+sections further down are the record of how we got here, and their open
+items are gathered into the plan.
 
-## Now: playing with the tables, and the games that reach them (from 2026-10-12)
+## The plan (consolidated 2026-10-15)
 
-Every table of 5 pieces or fewer is done (FIVE-PIECE.md, FIVE-PIECE-PAWNS.md),
-and the engine plays them by the 50-move rule. Where things stand:
-- Done: real games' endings against Stockfish 16 (1,000 games, all as the
-  tables say for both); hard positions from the tables (`hard`: we scored
-  351.5 and 360 of 504 where the tables give 252; per table in WORKLOG);
-  `game takeover` by rating and time control on 3.28 M games of September
-  2026 and on 2013 (2013-06 held out: 21.7% against 21.1%).
-- [x] August 2026 counted (done 20:24): the book is September + August,
-      363,447 moves, median line 15 plies (was 14). The bot restarted
-      20:42 on lichess-2200.bin with matchmaking within 300; September's
-      and August's .zst cleaned up.
-- [ ] **Where the book runs out against bots** (Matthew, 2026-10-13
-      evening: "it went off after move 4"; measured in WORKLOG): bots leave
-      the human book with rare moves, so width matters more than depth.
-      He picked (a) now, (c) after.
-      - [x] (a) A wide book, `bot/books/lichess-2200-wide.bin` (moves
-        played 3+ times, 940,807), after the main one in the bot's list;
-        `month-book.cmd` rebuilds both, `book-match.py` uses both. Takes
-        effect at the bot's next restart (Matthew's, between games).
-      - [x] (c) The background job: bot/learn.py, running from 2026-10-14
-        (WORKLOG). Measure after a week (`learn.py --summary`; its log is
-        bot/logs/learn-<date>.log). The bot needs one restart (between
-        games) to list ours.bin, if it hasn't had one since 21:00 on
-        2026-10-14. The plan was: its own window, low
-        priority, an engine copy without tables. Watches bot/games; after
-        each game, the positions in our first ~15 moves where neither book
-        had a move get ~60 s each (about 6x a game's), and positions where
-        only the wide book answered get its move checked (dropped if the
-        engine thinks it loses something). Results kept in a small file;
-        `bot/books/ours.bin` rebuilt from it to a temporary file and moved
-        over (retry if lichess-bot has it open), listed between the main
-        and wide books. Measure after a week: how often it answers, and
-        moves of the wide book it vetoed. Today's numbers: 9 of 447 out-of-
-        book positions had come up before (2%), so it grows slowly.
+Where we are: every table of 5 pieces or fewer is solved, both kinds
+(FIVE-PIECE.md, FIVE-PIECE-PAWNS.md), and the engine plays them by the
+50-move rule. It plays on Lichess as matthewcarven (blitz ~2026) on a
+Texel-tuned evaluation (+208 Elo) with opening books of its own. Real games
+set against the tables (all of September 2026, 5.23 M games reaching them):
+26.6% end otherwise than perfect play from there would, and 1 move in 31
+that could go wrong does.
+
+### Running in the background (check them, don't start them)
+
+- **The bot, the book learner and the month queue**: `start.cmd` starts all
+  three, each in its own window, and skips any already running. Logs:
+  bot/logs/bot-<date>.log, bot/logs/restarts.log (the network guard),
+  bot/logs/learn-<date>.log, games/month-queue.log. Restart the bot only
+  between games. The laptop must stay awake (plugged in).
+- **The month queue** (`scripts\month-queue.cmd`; Matthew 2026-10-13: "queue
+  the lot up"): newest first, 2026-09 back to 2022-12 (46 months, ~1.4 TB,
+  ~4.3 B games, ~16 days at ~1 MB/s) onto the desktop share (Z:\lichess,
+  each with Lichess's SHA-256), stopping before the share has < 100 GB free;
+  each month counted into the books as it lands (Jul-Sep 2026 in: 497,607
+  main moves, median line 15 plies). Restartable. On 2026-10-15 it was
+  downloading August again. Later: `-Parallel 2` (two downloads ran 1.30
+  MB/s together v ~0.85 alone: ~16 days -> ~11); his spill-over drive (`-Dir`
+  a list, filled in turn); recount the book deeper (16 moves) once ~12
+  months are in. The whole archive is 165 months, 2.6 TB, 8.22 B games.
+
+### Next session (Matthew, 2026-10-15: "make the build plan next session")
+
+1. Start the Texel fit and its match in the background; the data is ready
+   (games/tune/positions-2026-09-sf.tsv, 1.04 GB: 13,580,216 quiet
+   positions from 6,811,130 analysed games, finished 22:26 on 2026-10-14;
+   July's 2.86 M could be added):
+   `tune fit games/tune/positions-2026-09-sf.tsv games/tune/eval-sf2.txt`
+   (watch memory: ~2-3 GB), then a match sf2 v sf1: copy the engine build
+   and both eval files to a path without spaces (the match tool splits its
+   command at the first space), `--tc 10+0.1 --concurrency 5 --tables tables
+   --sprt 0 10 --openings games/tune/openings-300.txt`.
+2. Meanwhile, **the build plan for the index** (section 1 below): the five
+   sessions turned into steps, files, formats and checks, session 1 in full.
+
+### 1. The index over the games (the main line)
+
+Matthew's idea (2026-10-13, extended 2026-10-15): index files pointing into
+the big files, so that games and positions can be found and counted
+without reading everything; duplicates found by fingerprints and run
+lengths; a map from beginning to endgame. He took all three additions
+(fingerprints per game, the bow-tie map, Parquet rows) and left the sort
+order to us. Numbers and reasoning: WORKLOG, 2026-10-13 late and 2026-10-15.
+
+- **Where the data is**: Lichess's months are pzstd files of independent
+  32 MiB frames (~4.7 MB packed, ~14,400 games starting in each, each
+  unpacks alone in ~90 ms), so pointers go straight into Lichess's own
+  files (no second copy) and a month can be worked a frame per thread.
+- **Two kinds of record, not one file per sort order.** *Per game, a row of
+  columns* (Parquet via DuckDB, which does the run-length, gap and
+  dictionary coding and sorts or groups by any column on demand): month,
+  frame, game number, plies, result, ratings, speed, termination, the
+  game's fingerprint, where it enters the tables (ply, material, verdict),
+  and later where it leaves the shared opening. Moves played and material
+  are columns, not sort orders. *Positions, sorted by fingerprint* (64-bit
+  hash; runs of equal ones become counts, the gaps between sorted ones take
+  ~4 bytes against 8), kept only where positions repeat: the opening and
+  the last few pieces (2013: 84% of positions seen once).
+- **Collisions**: ~1 pair of different positions sharing a 64-bit
+  fingerprint a month (~6 B positions), ~2,300 over 46 months, so an exact
+  lookup replays the game it points to and confirms.
+- **The shape (the bow-tie)**: openings shared (the median game is new from
+  ply ~8, a ply deeper per doubling of the games), middles almost never,
+  endings converging by material at 5 pieces and exactly at 4.
+
+Sessions, in order:
+- [ ] **1. Game pointers** (July 2026, on the share): per month a frame
+      table (offset, first game starting in it: ~6,200 rows, ~75 KB) and
+      each game's row; fetch random games by number and check them against
+      a straight read. Each game's fingerprint (its moves hashed), so
+      duplicate games are a sort and a count (2013: 0.8% exact repeats). On
+      trial: the rows in Parquet through DuckDB (`pip install duckdb`)
+      against a plain binary file, for size and speed; keep whichever wins.
+- [ ] **2. The measurement**, on 16 threads (a frame each; C#, since
+      replaying ~6 B moves a month needs it): per ply, positions, distinct,
+      seen 2+ / 10+ times; materials passed through; positions with <= 5 /
+      6 / 7 pieces and their repeats. Then pick the cut-offs (12-24 plies;
+      5-7 pieces) from the sizes.
+- [ ] **3. The opening layer**: positions sorted by fingerprint in 64 KB
+      compressed blocks with an index up front (like the CBC1 tables) and a
+      block cache; counts, results, rating bands, next moves; a book from it
+      for the bot. Each game's opening exit (the last position at least 2 /
+      10 games share) goes into its row. Try Matthew's CSharp-Lookuptables
+      (`..\Lookuptables`, .NET 10; github MatthewCarven/CSharp-Lookuptables)
+      for the by-moves side: its burst trie over each game's moves as bytes
+      makes "every game that began like this" one prefix query, and its path
+      compression suits the long unique middles. Measure it against sorted
+      blocks. (It targets .NET 10 and we target .NET 8: it gains a net8.0
+      target, or we move up.) Its disk result, a small index in RAM pointing
+      into one flat file, is already the shape of the game pointers.
+- [ ] **4. The endgame layer**: material -> games and the ply they reach
+      it; exact positions with few pieces, joined to the tables (the
+      takeover's verdicts, already batched, go into the rows).
+- [ ] **5. The bow-tie map** (Matthew's "a map from beginning to endgame"):
+      each game stitched at the two knots, its opening exit x its table
+      entry x its result. With both in the rows it's a group-by: from this
+      opening, which endings, and how they score.
+- Then the queue's count step becomes count + index: one read a month.
+
+### 2. The engine's strength
+
+- [ ] **Texel tuning** (WORKLOG has it all; step 1, human results, gained
+      nothing; step 2a, Stockfish's verdicts, +208 Elo [+130, +311], the bot
+      uses bot/eval/eval-sf1.txt via EvalFile):
+      - [ ] The September fit and match (next session, above).
+      - [ ] Confirm at a slower clock (60+0.6; the bot's speed is 3+2), and
+        a result/eval blend (`--lambda 0.2`).
+      - [ ] Bake the winner into the engine's built-in numbers (`takeover`,
+        `hard` and the match commands use the built-in ones).
+      - [ ] Step 2b: new terms (passed / doubled / isolated pawns, mobility,
+        king safety), tuned the same way towards Stockfish. "Where our
+        losses turn" says which matter.
+- [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
+      bot's lost games (bot/games), finding in each the move where the game
+      turned (e.g. the first of ours that loses 150 cp or more by
+      Stockfish). Then sort them: missed tactics (Stockfish sees the
+      refutation a few plies past where our search reached: depth) against
+      misjudged positions (at our own depth our evaluation disagreed with
+      Stockfish's: the evaluation, new Texel terms). By opponent rating and
+      time control; the bot's log has our evaluation and depth for every
+      move. First examples, 2026-10-14 night: latrunculi-bot 2329
+      (SrwnQEj5: +1.1 at move 17, turned at moves 21-24), Musashi-thebot
+      2309, TroutBot 2211, JenniferX 3037 (rapid). That night: blitz v 2200+
+      lost 3 of 3, v 1780-1915 won 5 of 5.
 - [ ] **The book's worth, measured** (Matthew asked for it): an overnight
       `scripts/book-match.py` run, e.g. `--games 400 --tc 180+2
-      --concurrency 3` (3+2 like the bot's games; ~1.2 GB per engine
-      copy, so check commit first). Smoke-tested (6 games, exits cleanly).
-      Watch: against UCI_LimitStrength Stockfish the book lasted only ~4
-      of our moves a game (it plays odd moves); Lichess bots kept us in
-      book ~8. If that dilutes it, give Stockfish the book too, or use a
-      full-strength Stockfish at a short movetime. Before that, the bot's
-      own rated games: 34% in 19 before the book, 46% in 42 with it
-      (+-10 points each).
-- [x] **Chat commands** (Matthew, 2026-10-14): `!info` (tables, whether
-      we're in them, where the book ran out; the tables' verdict to
-      spectators only, his (a)) and `!help` listing it. Live from the bot's
-      next restart; check in a casual game from his own account.
-- [ ] **Where our losses turn** (Matthew, 2026-10-15: "add the stockfish
-      losses job"): Stockfish 16 over the bot's lost games (bot/games),
-      finding in each the move where the game turned (e.g. the first of ours
-      that loses 150 cp or more by Stockfish). Then sort them: missed
-      tactics (Stockfish sees the refutation within a few plies more than
-      our search reached: depth) against misjudged positions (at our own
-      depth our evaluation disagreed with Stockfish's: the evaluation, i.e.
-      new Texel terms). By opponent rating and time control; the bot's log
-      has our evaluation and depth for every move to set beside it. First
-      examples, 2026-10-14 night: latrunculi-bot 2329 (SrwnQEj5: +1.1 at
-      move 17, turned at moves 21-24), Musashi-thebot 2309, TroutBot 2211,
-      JenniferX 3037 (rapid). Lost blitz v 2200+ 0 of 3 that night, won 5
-      of 5 v 1780-1915.
-- [ ] **The month queue** (Matthew, 2026-10-13 22:36: "queue the lot up"):
-      `scripts\month-queue.cmd` in its own window, newest first, stopping
-      before the share has < 100 GB free: 2026-09 back to 2022-12 (46
-      months, ~1.4 TB, ~4.3 B games; ~16 days at ~1 MB/s; restartable, and
-      the laptop must stay awake). The whole archive is 165 months, 2.6 TB,
-      8.22 B games. Later: (1) his spill-over drive: `-Dir` a list, filled
-      in turn, and readers looking in each; (2) two downloads at once ran
-      1.30 MB/s together v ~0.85 alone, so `-Parallel 2` would cut ~16 days
-      to ~11.
-- [ ] **An index over the games** (Matthew, planning 2026-10-13): offsets
-      by moves played, and the board as a sorted list of pieces; streamed
-      from the desktop or cached. Plan in WORKLOG. His order: c, a, b.
-      Lichess's months are 32 MiB pzstd frames (~4.7 MB packed, ~14,400
-      games each, each unpacks alone in ~90 ms), so pointers go straight
-      into their files and a month can be worked a frame per thread.
-      Matthew, 2026-10-15, took all three additions and left the sort
-      order to us. The shape: two kinds of record, not one file per sort.
-      **Per game, a row of columns** (Parquet via DuckDB, which does the
-      run-length, gap and dictionary coding and sorts or groups by any
-      column on demand): month, frame, game number, plies, result,
-      ratings, speed, termination, the game's fingerprint, where it enters
-      the tables (ply, material, verdict), and later where it leaves the
-      shared opening. Moves played and material are columns, not sort
-      orders. **Positions, sorted by fingerprint** (64-bit hash; runs of
-      equal ones become counts, gaps between sorted ones ~4 bytes against
-      8), only where positions repeat: the opening and the last few pieces
-      (2013: 84% of positions seen once; one 64-bit collision a month, ~2,300
-      over 46 months, so an exact lookup replays the game to confirm).
-      - [ ] Session 1, (c) game pointers (July, on the share): per month a
-        frame table (offset, first game in it) and each game's row; fetch
-        random games by number and check them against a straight read.
-        Added: each game's fingerprint (its moves hashed), so duplicate
-        games are a sort and a count (2013: 0.8% exact repeats). On trial:
-        the rows in Parquet through DuckDB (`pip install duckdb`), against
-        a plain binary file for size and speed; keep whichever wins.
-      - [ ] Session 2, the measurement for (a) and (b), on 16 threads (a
-        frame each; C#, since replaying ~6 B moves a month needs it): per
-        ply, positions, distinct, seen 2+ / 10+ times; materials passed
-        through; positions with <= 5 / 6 / 7 pieces and their repeats. Then
-        pick the cut-offs (12-24 plies; 5-7 pieces) from the sizes.
-      - [ ] Session 3, (a) the opening layer: sorted by fingerprint, 64 KB
-        compressed blocks with an index up front (like the CBC1 tables), a
-        block cache; counts, results, rating bands, next moves; a book from
-        it for the bot. Each game's opening exit (the last position at
-        least 2 / 10 games share) goes into its row. Try Matthew's
-        CSharp-Lookuptables (`..\Lookuptables`, .NET 10; github
-        MatthewCarven/CSharp-Lookuptables) for the by-moves side: its burst
-        trie over each game's moves as bytes makes "every game that began
-        like this" one prefix query, and its path compression suits long
-        unique middles. Measure it against sorted blocks. Its disk result
-        (a small index in RAM pointing into one flat file) is already the
-        shape of the game pointers.
-      - [ ] Session 4, (b) the endgame layer: material -> games and the ply
-        they reach it; exact positions with few pieces, joined to the tables.
-      - [ ] Session 5, the bow-tie map (Matthew's "a map from beginning to
-        endgame"): openings are shared, middles almost never, endings
-        converge by material. Each game is stitched at the two knots: its
-        opening exit x its table entry x its result. With both in the rows
-        it's a group-by: from this opening, which endings and how they score.
-      - Then the queue's count step becomes count + index, one read a month.
-- [ ] **More months for the book** (Matthew's (c)): `scripts\month-book.cmd
-      2026-07`, then 06, ... one a night (~8 h download at ~1 MB/s, ~1 h
-      count). From 2026-10-13 the months are kept on Matthew's desktop
-      (`\\id10terror-desktop\chessbruteforcer\lichess`, his Z:, 1.4 TB free,
-      ~10 MB/s), with Lichess's SHA-256 beside each; the laptop keeps only
-      counts and books. Each doubling of the games adds about a ply to a
-      typical book line. August and September's .zst were deleted before
-      the share existed: fetch them again only if a recount needs them.
-- [x] **The whole of September with `--moves`** (Matthew's (b); he picked
-      it 2026-10-14 night; done 00:33 on 2026-10-15, results in WORKLOG: the
-      one day was representative, 1 in 31 again, and the thin rows hold):
-      1. Done 2026-10-13 (`scripts/month-tables.cmd 2026-09`): 5,260,601
-         games in `games/2026-09-tables.cbg` (1.86 GB; its .pgn deleted).
-      2. Done 2026-10-14: `game takeover` reads in batches (100,000;
-         `--batch N`), keeping a small summary per game; batches of 20,000
-         and 100,000 both give scripts/takeover-moves-2026-09-clocks.txt
-         line for line (timings aside).
-      3. Done 22:08-00:33 (`scripts\takeover-month.cmd 2026-09`):
-         scripts/takeover-moves-2026-09-month.txt. Still open: new examples
-         for "Endgames Thrown Away" if he wants them (mind ratings of
-         exactly 3000: likely bots). games/2026-09-part.cbg (1.28 GB) can
-         go, his call; keep the -tables sample as the check file.
-- [x] The clock and the kinds of mistake (2026-10-12): `table-games.py`
-      keeps the clock; under 5 s left, 4.6 mistakes per 100 moves, from 20 s
-      up ~3 whatever the clock. Kinds: king steps 33%, hung 21%, stalemate
-      9% (59% in K+Q v K). Examples and Matthew's page: WORKLOG.
-- [x] Move by move inside the tables (`game takeover ... --moves`,
-      2026-10-12): 1 move in 31 that could go wrong does (2026; 1 in 32 in
-      2013), and 20% of games have at least one. Half the endings that go
-      wrong do it on the clock. WORKLOG has the tables.
-- [x] **An opening book from our own games** (2026-10-13): 2200+ players,
-      blitz or slower, the first 12 moves; September alone 193,322 moves in
-      130,617 positions. WORKLOG.
-- [x] What 6-piece tables would be worth (2026-10-14): 8.2% of human games
-      reach 6 (5.8% reach 5); 29.5% of those 6-piece endings go wrong; but
-      the bot's games ended as perfect play says in 38 of 38 at 6 pieces and
-      49 of 49 at 7, so for the bot they'd gain nothing. For the thesis: the
-      Syzygy 6-piece set (~150 GB) to judge human games; our own 6-piece
-      build needs a machine with ~128 GB of memory. WORKLOG.
-- [ ] **Texel tuning** (Matthew, 2026-10-14; WORKLOG has it all):
-      - [x] Step 1, human results: tuned numbers no better (1,951 games, +1 Elo).
-      - [x] Step 2a, Stockfish's verdicts (Lichess's analysed games,
-        scripts/eval-games.py, `tune positions --lambda 0`): **+208 Elo
-        [+130, +311]** over the original, 69 games. The bot uses it
-        (bot/eval/eval-sf1.txt via EvalFile).
-      - [ ] **Next session starts here.** September's positions:
-        `scripts	une-data.cmd 2026-09` was running (2 a game ->
-        games/tune/positions-2026-09-sf.tsv; check games/tune/tune-data-
-        2026-09.log ends "finished"; run it again if not, it skips what's
-        done). Then `tune fit games/tune/positions-2026-09-sf.tsv
-        games/tune/eval-sf2.txt` (watch memory: ~2-3 GB for ~15 M
-        positions), and a match sf2 v sf1: copy the engine build and both
-        eval files to a path without spaces (the match tool splits its cmd
-        at the first space), `--tc 10+0.1 --concurrency 5 --tables tables
-        --sprt 0 10 --openings games/tune/openings-300.txt`.
-      - [ ] Confirm at a slower clock (60+0.6, the bot's speed is 3+2), and
-        a result/eval blend (--lambda 0.2).
-      - [ ] The bot on sf1: check its rated record after ~30 games (5 of 5
-        won at first; book era 53% v ~1990).
-      - [ ] Then bake the winner into the engine's built-in numbers (the
-        takeover, hard and match commands use the built-in ones).
-      - [ ] Step 2b: new terms (passed/doubled/isolated pawns, mobility,
-        king safety), tuned the same way towards Stockfish.
-- [ ] Later for the bot: tuning the evaluation from game results (Texel),
-      2-3 sessions, measured by a match like the book's. And a server near
-      Lichess (Europe) if it should run all day: from Australia every move
-      costs ~1.2 s of connection, and a dropped minute lost one game.
-- [x] **A Lichess bot**: live 2026-10-13 as matthewcarven (WORKLOG). The engine
-      already speaks UCI with the clock (wtime/btime/winc/binc), Move Overhead
-      and EndgameTables, so this is mostly plumbing: the lichess-bot bridge
-      (github.com/lichess-bot-devs/lichess-bot, Python) runs any UCI engine.
-      Matthew's part first: a new Lichess account that has never played a
-      game, and an API token with the bot:play scope (he types it into the
-      config himself; the config stays out of git). Upgrading to BOT is
-      permanent for that account.
-      1. Setup (one session): clone lichess-bot (his yes for the download),
-         config pointing at a copy of the engine build with `--tables`, one
-         game at a time, Lichess's online tablebase off, read Lichess's
-         current bot rules; he upgrades the account, then challenges it from
-         his own account, casual.
-      2. Make it hold up (one session): a start script and logs, Move
-         Overhead for network lag (test at bullet), table-based draw claims
-         and resigning, restart after a crash, which challenges to accept,
-         matchmaking against other bots.
-      3. Learn from it: its Lichess rating is the engine's first real one;
-         `game takeover --moves` on its own games should find no mistakes.
-      Running it all day needs the laptop awake, or a small Linux server
-      later (his call; .NET 8 and ~12 GB of tables).
-- [x] The hard positions at 1 s a move (2026-10-13): Stockfish converts 76
-      of 108 long wins (44 at 100 ms) and holds a quarter of the knife-edge
-      defences; we score 322.5 of 504 against the tables' 252. WORKLOG.
+      --concurrency 3` (~1.2 GB per engine copy: check commit first; not
+      alongside other big jobs). Smoke-tested. Against UCI_LimitStrength
+      Stockfish the book lasted only ~4 of our moves (it plays odd moves),
+      against Lichess bots ~8; if that dilutes it, give Stockfish the book
+      too, or a full-strength Stockfish at a short movetime. The bot's own
+      rated games: 34% in 19 before the book, 46% in 42 with it (+-10 each).
+- [ ] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
+      21:47 that night): measure after a week, ~2026-10-21 (`learn.py
+      --summary`): how often its book answers, and moves of the wide book it
+      vetoed. It covers our first 12 moves only; middlegame losses don't
+      teach it anything.
+- [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
+      first; the book era 53% v ~1990). Check `!info` / `!help` from his own
+      account in a casual game.
+- [ ] Later: speed (bitboards and legal-only move generation; the bot
+      searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering and threads;
+      the evaluation scaled down as the 50-move count rises; a server near
+      Lichess (Europe) if it should run all day (from Australia each move
+      costs ~1.2 s of connection).
+
+### 3. Findings for the thesis
+
+- [ ] New examples for "Endgames Thrown Away" from the month
+      (scripts/takeover-moves-2026-09-month.txt; ratings of exactly 3000 are
+      likely bots at their provisional start), if Matthew wants them.
 - [ ] How much slower the engine's rule-safe play mates than the fastest
-      mate; the evaluation scaled down as the clock rises (step C's maybe).
-- [ ] Matthew's: a second pull request from `compression` into `main` (PR
-      #1 took only the first commit).
+      mate.
+- [ ] Export the principal tree from a position, to a chosen depth, as a
+      file the thesis can use.
+- [ ] 6 pieces for human games: the Syzygy 6-piece set (~150 GB) to judge
+      them (8.2% of games reach 6, 29.5% of those endings go wrong); our own
+      6-piece build would need ~128 GB of memory. Not for the bot: its games
+      ended as perfect play says in 38 of 38 at 6 pieces.
+- [ ] Repetition, measured: a perft that refuses repeated positions, and
+      every repetition in stored games once the index has positions.
+
+### 4. Matthew's (flagged, his to do)
+
+- [ ] Push `compression` (4 commits ahead at 00:40 on 2026-10-15).
+- [ ] A second pull request from `compression` into `main` (PR #1 took only
+      the first commit).
+- [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;
+      keep games/2026-09-part-tables.cbg (64 MB) as the takeover check file.
+- [ ] Keep the laptop awake on long runs (a Windows power setting; it slept
+      48 h of the pawn-table build).
+
+### Done lately (details in WORKLOG)
+
+- 2026-10-14/15: `game takeover` reads in batches; the whole of September
+  move by move: 1 in 31 held, classical 2.69 mistakes per 100, 2400 and up
+  2.38, two minor pieces v a queen ~1 move in 5.
+- 2026-10-14: Texel step 2a (+208 Elo from Stockfish's verdicts); the book
+  learner; chat commands (`!info`, `!help`); the bot's network guard
+  (run-bot.ps1); start.cmd; what 6-piece tables would be worth.
+- 2026-10-13: the Lichess bot live (matthewcarven); our own opening books
+  (main, wide), August and July counted; the month queue and the desktop
+  share; the clock and the kinds of mistake.
+- 2026-10-12: move by move inside the tables (1 in 31); the hard positions
+  at 1 s a move.
+- 2026-10-05: all 50 pawn tables, so every 5-piece table is done.
 
 ## Then: compression, then the pawn tables (agreed 2026-09-29/30, all done)
 
@@ -231,7 +207,7 @@ with 48-square pawns) against ~103 GB free. Matthew chose compression first
 over buying a drive (a drive would have to be an SSD: solving writes and
 reads all over the files).
 
-### Step A: compression (in progress, branch `compression`)
+### Step A: compression (done 2026-09-30, branch `compression`)
 Measured on our tables, compressed in independent 64 KB blocks (so a probe
 still jumps straight to its position): zlib 9.5x (KRPvKR.cbz) to 12x
 (KRBvKR.cbt); lzma on a 64 MB sample 17-35x. So every 5-piece table, pawns
@@ -274,8 +250,8 @@ included, ~112 GB plain, would be ~11 GB.
       build-five-piece.cmd, 2026-09-30 02:30-03:18): all 120 files, 28.7 GB
       -> 3.15 GB (9.1x; DTM 10.1x, DTZ 7.7x; 3.6x to 78x). Free space 96 ->
       122 GB. The 36 small tables stay plain.
-- [ ] KRPvKR's two files are still plain (2.7 GB): `compress
-      tables\KRPvKR.cbt`, then `tables\KRPvKR.cbz`.
+- [x] KRPvKR's two files compressed too (found CBC1 on 2026-10-15:
+      185 MB and 75 MB).
 - [x] `build-five-piece.ps1`: compresses both files of each finished table
       (and any finished one it skips), unless `-Plain`; `-List` shows which
       are compressed. Run as it is, it would compress the 60 pawnless tables.
@@ -350,7 +326,7 @@ left is a draw.
 - [x] Next with every 5-piece table in: against Stockfish from the takeover
       positions (WSL), done 2026-10-09 (see "Now" at the top for the rest).
 
-## Now: the session plan (5-piece tables and the depth ladder)
+## Done: the session plan (5-piece tables and the depth ladder)
 
 Agreed with Matthew 2026-09-27. One session per step, in order. Any step
 may take two sessions: if it does, stop at a clean commit and write where it
@@ -510,8 +486,8 @@ Plan agreed with Matthew: part A (slices, proven on 4 pieces), then part B
       FIVE-PIECE.md. Was: 60 material sets (20 of
       three pieces v a bare king, 40 of two v one), both kinds, ~31 GB and
       ~18 h. Matthew said go (option a); he runs
-      `scriptsuild-five-piece.cmd` (restartable, logs to
-      `tablesive-piece.log`, stops under 10 GB free).
+      `scripts\build-five-piece.cmd` (restartable, logs to
+      `tables\five-piece.log`, stops under 10 GB free).
 
 ## Done: milestone 1, the foundation
 
@@ -611,7 +587,8 @@ moves played from the start.
 2. [x] Replay to any ply: `game show <file> <n> [ply]` (negative counts back
        from the end); game n is found by skipping the others' move bytes
 3. [ ] Position index (Zobrist hash -> game, ply): from a position, every
-       game that reached it, and where each came from and went
+       game that reached it, and where each came from and went. Now the
+       index plan at the top (section 1)
 4. [ ] Repetition (Matthew's idea): repetition rules remove no *positions*,
        but they make the number of *games* finite (the 75-move and fivefold
        rules cap a game at roughly 8,849 moves). Measure it two ways:
@@ -730,7 +707,7 @@ Stockfish *is* installable, and at reduced strength it makes a good yardstick.
 - [ ] More games per measurement (hundreds, not tens) once changes are small
 - [ ] Gauntlet against other open-source engines of known CCRL rating
 
-### 3c. Lichess bot account
+### 3c. Lichess bot account (done 2026-10-13: matthewcarven; see the plan at the top)
 
 - [ ] Create a separate account and upgrade it to a BOT account (permanent,
       labelled as a bot, only plays via the Bot API)
