@@ -35,24 +35,28 @@ that could go wrong does.
 
 ### Now (2026-10-15)
 
-1. **Running**: `scripts\tune-match.cmd sf2 sf1 games\tune\positions-2026-09-sf.tsv`
-   (its own window from 00:49): the Texel fit on September's 13.58 M
-   positions (log games/tune/fit-sf2.log, ~25 min), then sf2 v sf1 by
-   itself (games/tune/match-sf2.log: 10+0.1, 5 at a time, SPRT [0, 10]).
-   If sf2 wins, it goes to bot/eval/ and the bot takes it at its next
-   restart (between games).
+Matthew rebooted after 05:00 on 2026-10-15. After the reboot: check the
+share answers (`Test-Path \\id10terror-desktop\chessbruteforcer\lichess`),
+then `start.cmd` (bot, learner, queue: the queue re-checks August first,
+~80 min), then July's index run.
+
+1. **Done: the Texel fit on September, no gain.** sf2 (13.58 M positions)
+   v sf1 (2.86 M): +668 -662 =670 over 2,000 games, Elo +1 [-11, +13]; the
+   SPRT never decided. Five times the data taught nothing more: the bot
+   keeps sf1, and the next gains need new evaluation terms (step 2b).
 2. **Done: the build plan for the index**, [INDEX.md](INDEX.md): what a
    sample of July says, the files and formats, session 1 in full, sessions
    2-5 outlined.
-3. **Index session 1 and 1b, waiting on the match** (Matthew: (b) the
-   Lookuptables trial now, (c) July's read after the match):
-   `scripts\index-month.cmd 2026-07 games\tune\match-sf2.log` in its own
-   window from 01:32 waits for the match's "final:" line, then reads July
-   (~1 hour) and runs check, dups, the Parquet trial and
+3. **Index session 1 and 1b: to run again** (Matthew: (b) the Lookuptables
+   trial now, (c) July's read after the match). It started at 04:11 when
+   the match ended, read 4.55 of 29 GB (~7.3 MB/s, so ~66 min a month), and
+   failed at 04:54 when the share went away (~04:23, the same outage that
+   stopped August's check). Run `scripts\index-month.cmd 2026-07` again (no
+   second argument now) after August's check, so the two don't share the
+   network: ~1 hour, then check, dups, the Parquet trial and
    scripts/lines-trial.cs on 8 M games; log games/index/index-2026-07.log.
-   Passed on 2013-01 end to end. Then: write up scripts/index-2026-07.txt,
-   choose the format, decide with Matthew where the index lives, and delete
-   lines.u16 (2.9 GB).
+   Then: write up scripts/index-2026-07.txt, choose the format, decide with
+   Matthew where the index lives, and delete lines.u16 (2.9 GB).
 
 ### 1. The index over the games (the main line)
 
@@ -125,7 +129,8 @@ Sessions, in order:
 - [ ] **Texel tuning** (WORKLOG has it all; step 1, human results, gained
       nothing; step 2a, Stockfish's verdicts, +208 Elo [+130, +311], the bot
       uses bot/eval/eval-sf1.txt via EvalFile):
-      - [ ] The September fit and match (running, above).
+      - [x] The September fit and match: no gain (sf2 = sf1, Elo +1
+        [-11, +13] over 2,000 games); the bot keeps sf1.
       - [ ] Confirm at a slower clock (60+0.6; the bot's speed is 3+2), and
         a result/eval blend (`--lambda 0.2`).
       - [ ] Bake the winner into the engine's built-in numbers (`takeover`,

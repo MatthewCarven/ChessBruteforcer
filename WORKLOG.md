@@ -1921,3 +1921,30 @@ rather than 48-byte boards, because that is the storage that scales.
   b9ca823, the same tree as f1063ff); his local main fast-forwarded to it
   and the merged branch deleted. The trial builds and agrees against main.
   Match at 659 games: +227 -212 =220, Elo +8 [-14, +30].
+
+## 2026-10-15 (to ~05:15): sf2 no better; the share went away
+
+- **sf2 v sf1 ran its full 2,000 games: +668 -662 =670, 50.1%, Elo +1
+  [-11, +13]**; SPRT [0, 10] undecided (LLR -0.99). Fitting on September's
+  13.58 M positions instead of July's 2.86 M changed the numbers a little
+  and the play not at all: the data size has done its work, and this
+  evaluation's shape (piece-square tables and the bishop pair) is now the
+  limit. The bot keeps sf1. Next for strength: step 2b (new terms), guided
+  by "where our losses turn".
+- July's index run started at 04:11:45 when the match ended and read 965
+  frames (4.55 GB, 13.9 M games) at ~7.3 MB/s; then the share went away
+  (~04:23). make-book.py's reader waits 30 minutes, so both it and August's
+  SHA-256 check (in the month queue, at byte 23.18 G of 30.1 G) gave up at
+  04:54:46 with "No such file", and the share was still unreachable at
+  05:12. The queue logged August as DAMAGED and listed it in
+  games/month-queue.damaged, which would have skipped it from then on;
+  Matthew stopped the queue and agreed it was likely the network.
+- The queue now calls a month damaged only when this run's make-book.py
+  says "doesn't match Lichess's SHA-256"; any other failure of the check
+  waits for the share (up to 6 hours, as for downloads) and tries once
+  more, then stops. The count step's test reads only this run's lines too
+  (it searched the whole log, so an old mismatch line would have counted).
+  Checked: the script parses, and the rule on a stand-in log (an old
+  mismatch above a lost share: not damaged; a mismatch in this run:
+  damaged). August taken off the damaged list. Matthew is rebooting before
+  testing it again.

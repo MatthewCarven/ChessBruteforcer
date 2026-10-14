@@ -54,6 +54,13 @@ function Growing([string] $path) {
     return (Get-Item -LiteralPath $path).Length -ne $before
 }
 
+function Lines-In([string] $path) { if (Test-Path $path) { @(Get-Content $path).Count } else { 0 } }
+
+function Mismatch-Since([string] $path, [int] $from) {
+    # A SHA-256 mismatch reported by this run of make-book.py (lines after $from), not an older one in the log.
+    [bool](Get-Content $path | Select-Object -Skip $from | Select-String -Pattern "doesn't match Lichess's SHA-256" -SimpleMatch -Quiet)
+}
+
 function Rebuild-Books([string] $monthLog) {
     & $py -I scripts\make-book.py book bot\books\lichess-2200.bin "bot\books\counts\*.counts" *>> $monthLog
     & $py -I scripts\make-book.py book bot\books\lichess-2200-wide.bin "bot\books\counts\*.counts" --min-games 3 *>> $monthLog
@@ -81,16 +88,27 @@ function Do-Month([string] $month) {
         if (-not (Test-Path -LiteralPath $final)) { Log "STOPPING: $month's download didn't finish (run this again to carry on)"; return 'stop' }
     }
     if (Test-Path $counts) {
-        Log "$month`: counted before; checking it against Lichess's SHA-256"
-        & $py -I scripts\make-book.py verify $final --counts $counts *>> $monthLog
-        if ($LASTEXITCODE -ne 0) { Log "DAMAGED: $month (see $monthLog)"; return 'damaged' }
+        # Damaged only when the SHA-256 itself disagrees. The share or the network going away for longer than
+        # make-book.py waits (30 min) also fails the check (2026-10-15: August was called damaged that way, the
+        # file fine): wait for the share and try once more.
+        foreach ($try in 1, 2) {
+            Log "$month`: counted before; checking it against Lichess's SHA-256"
+            $before = Lines-In $monthLog
+            & $py -I scripts\make-book.py verify $final --counts $counts *>> $monthLog
+            if ($LASTEXITCODE -eq 0) { break }
+            if (Mismatch-Since $monthLog $before) { Log "DAMAGED: $month (see $monthLog)"; return 'damaged' }
+            if ($try -eq 2) { Log "STOPPING: checking $month failed twice, not on its SHA-256 (see $monthLog; run this again to carry on)"; return 'stop' }
+            Log "$month`: the check failed, not on its SHA-256 (the share or the network?); trying again once the share answers"
+            Wait-Dir
+        }
         Log "$month`: matches"
     } else {
         Log "$month`: counting (progress in $monthLog)"
         Add-Content $monthLog ('{0:yyyy-MM-dd HH:mm:ss}: counting {1} (month-queue)' -f (Get-Date), $final)
+        $before = Lines-In $monthLog
         & $py -I scripts\make-book.py count $final $counts *>> $monthLog
         if (-not (Test-Path $counts)) {
-            if (Select-String -Path $monthLog -Pattern "doesn't match Lichess's SHA-256" -Quiet) { Log "DAMAGED: $month (see $monthLog)"; return 'damaged' }
+            if (Mismatch-Since $monthLog $before) { Log "DAMAGED: $month (see $monthLog)"; return 'damaged' }
             Log "STOPPING: counting $month failed (see $monthLog)"; return 'stop'
         }
         Log ("$month`: " + ((Get-Content $monthLog | Select-String 'games read' | Select-Object -Last 1).Line -replace ' to bot.*', ''))
