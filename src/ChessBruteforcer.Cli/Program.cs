@@ -75,7 +75,8 @@ static class Cli
                                          with the engine on both sides (0: all)
           game takeover <file>... --versus N "<engine command>" [ms]  N of those positions, each played twice
                                          against a UCI engine (our engine on each side in turn), ms a move (100)
-          tune positions <out .tsv> <file>... [--min-elo 2000 --per-game 8]  quiet positions from strong games, with results
+          tune positions <out .tsv> <file>... [--min-elo 2000 --per-game 8 [--lambda L]]  quiet positions from strong games,
+                                         with results; --lambda: analysed games (Evals tag), target L x result + (1 - L) x Stockfish
           tune fit <positions .tsv> <out params> [--start <params>] [--epochs 1500 --rate 1]  Texel tuning of the evaluation
           game reach <file>... [--sample N <tsv>]  how far down games get (5, 6, 7 pieces...), the 6-piece materials
                                          they enter by; --sample writes N first 6-piece positions to check
@@ -146,6 +147,8 @@ static class Cli
                     TunePositions(output, files, 2000, 8),
                 ["tune", "positions", var output, .. var files, "--min-elo", var elo, "--per-game", var per] when files.Length > 0 =>
                     TunePositions(output, files, int.Parse(elo), int.Parse(per)),
+                ["tune", "positions", var output, .. var files, "--min-elo", var elo, "--per-game", var per, "--lambda", var lam] when files.Length > 0 =>
+                    TunePositions(output, files, int.Parse(elo), int.Parse(per), double.Parse(lam, CultureInfo.InvariantCulture)),
                 ["tune", "fit", var positions, var output] => TuneFit(positions, output, null, 1500, 1.0),
                 ["tune", "fit", var positions, var output, "--epochs", var e, "--rate", var r] =>
                     TuneFit(positions, output, null, int.Parse(e), double.Parse(r, CultureInfo.InvariantCulture)),
@@ -1361,7 +1364,11 @@ static class Cli
     /// side to move not in check, the move before and the move played neither a capture nor a promotion, and
     /// more than 5 pieces (the tables have the rest). Written as "FEN \t white's result \t game number".
     /// </summary>
-    private static int TunePositions(string output, string[] files, int minElo, int perGame)
+    /// <param name="lambda">With an Evals tag (scripts/eval-games.py): the target is lambda x the game's result plus
+    /// (1 - lambda) x Stockfish's evaluation of the position as a score, 1 / (1 + 10^(-cp / 400)); positions
+    /// without a numeric evaluation (none, or a mate) are skipped, and so is the "ended normally" rule, the
+    /// evaluation being the engine's, not the players'. Null: the result alone, as before.</param>
+    private static int TunePositions(string output, string[] files, int minElo, int perGame, double? lambda = null)
     {
         var watch = Stopwatch.StartNew();
         var random = new Random(20261014);
@@ -1372,15 +1379,17 @@ static class Cli
             foreach (var game in GameFile.Read(file))
             {
                 games++;
+                string[]? evals = lambda is null ? null : game.Tag("Evals")?.Split(' ');
                 if (!(game.Tag("Event") ?? "").Contains("Rated") || game.Tag("FEN") is not null
-                    || game.Tag("Termination") != "Normal" || Speed(game) is not ("blitz" or "rapid" or "classical")
+                    || (lambda is null && game.Tag("Termination") != "Normal") || (lambda is not null && evals is null)
+                    || Speed(game) is not ("blitz" or "rapid" or "classical")
                     || !int.TryParse(game.Tag("WhiteElo"), out int whiteElo) || !int.TryParse(game.Tag("BlackElo"), out int blackElo)
                     || whiteElo < minElo || blackElo < minElo)
                     continue;
-                string result = game.Result switch { "1-0" => "1", "0-1" => "0", "1/2-1/2" => "0.5", _ => "" };
-                if (result == "")
+                double? result = game.Result switch { "1-0" => 1, "0-1" => 0, "1/2-1/2" => 0.5, _ => null };
+                if (result is not { } r)
                     continue;
-                var quiet = new List<string>();
+                var quiet = new List<(string Fen, double Target)>();
                 var position = game.StartPosition();
                 int pieces = 32;
                 for (int ply = 0; ply < game.Moves.Count; ply++)
@@ -1388,7 +1397,13 @@ static class Cli
                     var move = game.Moves[ply];
                     bool before = ply > 0 && (game.Moves[ply - 1].IsCapture || game.Moves[ply - 1].IsPromotion);
                     if (ply >= 16 && pieces > 5 && !before && !move.IsCapture && !move.IsPromotion && !position.InCheck())
-                        quiet.Add(position.ToFen());
+                    {
+                        if (lambda is not { } l)
+                            quiet.Add((position.ToFen(), r));
+                        else if (evals is not null && ply - 1 < evals.Length
+                                 && int.TryParse(evals[ply - 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int cp))
+                            quiet.Add((position.ToFen(), l * r + (1 - l) / (1 + Math.Pow(10, -cp / 400.0))));   // the eval after ply - 1 is this position's
+                    }
                     if (move.IsCapture)
                         pieces--;
                     position.MakeMove(move);
@@ -1396,15 +1411,16 @@ static class Cli
                 if (quiet.Count == 0)
                     continue;
                 used++;
-                foreach (string fen in quiet.OrderBy(_ => random.Next()).Take(perGame))
+                foreach (var (fen, target) in quiet.OrderBy(_ => random.Next()).Take(perGame))
                 {
-                    writer.WriteLine($"{fen}\t{result}\t{games}");
+                    writer.WriteLine($"{fen}\t{target.ToString("0.#####", CultureInfo.InvariantCulture)}\t{games}");
                     written++;
                 }
             }
         }
         Console.WriteLine($"{games:N0} games read in {watch.Elapsed.TotalSeconds:0}s; {used:N0} used (rated, both {minElo}+, blitz or slower, " +
-                          $"ended normally); {written:N0} quiet positions written to {output}");
+                          (lambda is { } lam ? $"analysed; target {lam} x result + {1 - lam} x Stockfish" : "ended normally; target the result") +
+                          $"); {written:N0} quiet positions written to {output}");
         return 0;
     }
 

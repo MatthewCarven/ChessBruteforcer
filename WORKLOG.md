@@ -1588,3 +1588,68 @@ rather than 48-byte boards, because that is the storage that scales.
   pieces, so its strength is in the middlegame (and the book).
 - Outputs: scripts/six-piece-2026-10-14.txt, the 600 judged positions in
   scripts/six-piece-check-2026-09-part.tsv.
+
+## 2026-10-14: Texel tuning, step 1
+
+- Matthew: "let's do the Texel tuning". The evaluation was Michniewski's
+  simplified one (fixed piece values, one square table each, the king's
+  blended by phase, a bishop pair). Now every piece on every square has a
+  middlegame and an endgame value, blended by phase, plus the bishop pair
+  both ways: 770 numbers (`EvalParams`, saved and loaded as text; the UCI
+  option `EvalFile` loads a set). The built-in set is the old evaluation:
+  3,542 positions, 2,657 identical and 885 a centipawn off (the blend's
+  rounding), none further.
+- `Tuner`: error = mean (result - 1/(1 + 10^(-K eval/400)))^2 over quiet
+  positions with their game's result; K fitted once to the starting
+  numbers; the evaluation is linear in its numbers, so the gradient is
+  exact; Adam, full batch, 16 threads; a tenth of the games held back and
+  the numbers that judge best there kept. Tests: gradient against finite
+  differences, the tuner's evaluation is the engine's, it finds a knight
+  made worth 200 more. A first test with 3,000 coin-flip results overfitted
+  at once (770 numbers): a warning about data size.
+- `tune positions`: 1 September 2026, rated, both 2000+, blitz or slower,
+  ended normally (not on time), positions after move 8, not in check, no
+  capture or promotion just before or as the move played, more than 5
+  pieces; up to 8 a game. 157,870 games, **1,235,527 positions** (815 s).
+- `tune fit`, 1,500 epochs (47 s): K 0.8427; held-back error **0.199653 ->
+  0.191633 (4.0% less)**, still falling slowly, never overfitting. Average
+  values, middlegame / endgame: pawn 77 / 220, knight 249 / 474, bishop
+  247 / 468, rook 355 / 816, queen 997 / 1294, bishop pair 14 / 135 (all
+  were 114 / 307 / 328 / 500 / 897, pair 30). Material counts about double
+  in endgames (an extra unit converts more surely with fewer pieces), and
+  the bishop pair is an endgame asset. 6,000 epochs: 0.191509, but the
+  values drift along a flat valley (endgame queen 1,721, middlegame values
+  shrinking), so the 1,500-epoch set goes to the match:
+  games/tune/eval-v1.txt.
+- Match: tuned v original, same engine (EvalFile), no tables in the
+  engines (ours adjudicate), 10+0.1, 300 openings drawn from our book (8
+  plies), 6 at a time, SPRT [0, 20]. The match tool splits its command at
+  the first space, so the engine runs from a copy in the scratchpad.
+- **Result: no gain.** 1,951 games, tuned +892 -885 =174, 50.2%, Elo +1
+  [-13, +16]; SPRT [0, 20] accepted H0 (09:00-11:22). Better prediction of
+  who wins human games didn't make the engine play better: human results
+  are a noisy target (2000+ players throw a fifth of won endings), and
+  square tables alone can only say so much.
+
+## 2026-10-14: Texel tuning, step 2a: towards Stockfish's judgement
+
+- Matthew picked (c): Stockfish's evaluations first, new evaluation terms
+  after. One Lichess game in ten carries [%eval] after every move (10.1% of
+  306,873 sampled, ~66 evaluated plies each): ~9 M games, ~590 M positions
+  a month. `scripts/eval-games.py` keeps those games with an [Evals] tag
+  (centipawns for white after each ply; M<n> mates; ? none). First 3 GB of
+  July 2026 (on the share): 9,211,656 games read, 948,918 kept (10.3%),
+  466 s; imported 451 s (`games/tune/eval-games-2026-07.cbg`).
+- `tune positions ... --lambda L`: target L x result + (1 - L) x
+  1/(1 + 10^(-cp/400)) from the eval of that position (the one after the
+  ply before); numeric evals only; any rating, blitz or slower, any
+  termination. L = 0, 4 a game: 721,358 games, **2,855,253 positions**.
+- Fit, 1,500 epochs (127 s): K 1.1214; held-back error **0.032367 ->
+  0.027099 (16.3% less**, against 4.0% with results). Values, middlegame /
+  endgame: pawn 94 / 178, knight 292 / 423, bishop 314 / 436, rook 426 /
+  749, queen 1001 / 1282, bishop pair 20 / 84. games/tune/eval-sf1.txt.
+- Match sf1 v original from 15:54, the same setup, 5 at a time (the bot was
+  playing alongside).
+- Aborts: two games v MinibruteforceBot (14:22, 14:58) aborted after 30 s
+  because it never made its first move (we'd played 1.e4 from the book at
+  once). Matthew: don't block it.
