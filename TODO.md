@@ -26,7 +26,10 @@ and the engine plays them by the 50-move rule. Where things stand:
         `month-book.cmd` rebuilds both, `book-match.py` uses both. Takes
         effect at the bot's next restart (Matthew's, between games).
       - [x] (c) The background job: bot/learn.py, running from 2026-10-14
-        (WORKLOG). Measure after a week (`learn.py --summary`). The plan was: its own window, low
+        (WORKLOG). Measure after a week (`learn.py --summary`; its log is
+        bot/logs/learn-<date>.log). The bot needs one restart (between
+        games) to list ours.bin, if it hasn't had one since 21:00 on
+        2026-10-14. The plan was: its own window, low
         priority, an engine copy without tables. Watches bot/games; after
         each game, the positions in our first ~15 moves where neither book
         had a move get ~60 s each (about 6x a game's), and positions where
@@ -122,9 +125,20 @@ and the engine plays them by the 50-move rule. Where things stand:
         scripts/eval-games.py, `tune positions --lambda 0`): **+208 Elo
         [+130, +311]** over the original, 69 games. The bot uses it
         (bot/eval/eval-sf1.txt via EvalFile).
+      - [ ] **Next session starts here.** September's positions:
+        `scripts	une-data.cmd 2026-09` was running (2 a game ->
+        games/tune/positions-2026-09-sf.tsv; check games/tune/tune-data-
+        2026-09.log ends "finished"; run it again if not, it skips what's
+        done). Then `tune fit games/tune/positions-2026-09-sf.tsv
+        games/tune/eval-sf2.txt` (watch memory: ~2-3 GB for ~15 M
+        positions), and a match sf2 v sf1: copy the engine build and both
+        eval files to a path without spaces (the match tool splits its cmd
+        at the first space), `--tc 10+0.1 --concurrency 5 --tables tables
+        --sprt 0 10 --openings games/tune/openings-300.txt`.
       - [ ] Confirm at a slower clock (60+0.6, the bot's speed is 3+2), and
-        try more data (the whole of July: ~9 M analysed games) and a
-        result/eval blend (--lambda 0.2).
+        a result/eval blend (--lambda 0.2).
+      - [ ] The bot on sf1: check its rated record after ~30 games (5 of 5
+        won at first; book era 53% v ~1990).
       - [ ] Then bake the winner into the engine's built-in numbers (the
         takeover, hard and match commands use the built-in ones).
       - [ ] Step 2b: new terms (passed/doubled/isolated pawns, mobility,

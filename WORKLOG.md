@@ -1690,3 +1690,17 @@ rather than 48-byte boards, because that is the storage that scales.
   games). The bot needs one restart to list ours.bin; after that the
   learner's book goes live as it grows. `learn.py --summary` reports what
   it has learnt, vetoes, and how many bot moves came from it.
+- Two faults found at 21:15. The learner's Python had exited at ~20:45
+  after 43 games (152 positions learnt); the reason went to its window,
+  which can't be read from here. And its list of studied games was read
+  with split(), but the bot's file names have spaces, so a restart
+  re-read every game (harmless, as learnt positions are skipped, but
+  slow). Fixed: the list read by lines; its log also written to
+  bot/logs/learn-<date>.log; a fault on one game logged with its traceback
+  and skipped, and a dead engine restarted (the game tried again once).
+  Restarted 21:23: below-normal priority confirmed on the interpreter
+  and its engine. If it stops again, the log file says why.
+- Texel step 2a with September (`scripts/tune-data.cmd 2026-09`, its own
+  window from 17:22): filter and import done (games/tune/eval-games-
+  2026-09.cbg, 4.18 GB); positions (2 a game) running at 21:18. Next:
+  `tune fit` on them (with July's 2.86 M, or alone), then a match v sf1.

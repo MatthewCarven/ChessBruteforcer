@@ -22,7 +22,7 @@ Runs at below-normal priority (its engine inherits it), so the bot's own engine 
 its own copy of the engine build (bot/learn.cmd makes it), with the tuned evaluation and without endgame tables (openings never need them).
 Games done are listed in bot/books/ours-done.txt; stop it any time, and it carries on where it was.
 """
-import ctypes, glob, io, json, os, struct, sys, time
+import ctypes, glob, io, json, os, struct, sys, time, traceback
 import chess, chess.engine, chess.pgn, chess.polyglot
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -44,7 +44,22 @@ THINK, CHECK, WORSE, PER_GAME = option("--think", 45.0), option("--check", 20.0)
 
 
 def log(text):
-    print(time.strftime("%Y-%m-%d %H:%M:%S  ") + text, flush=True)
+    """To the window and to bot/logs/learn-<date>.log (the window can't be read from elsewhere)."""
+    line = time.strftime("%Y-%m-%d %H:%M:%S  ") + text
+    print(line, flush=True)
+    try:
+        os.makedirs(os.path.join(HERE, "logs"), exist_ok=True)
+        with open(os.path.join(HERE, "logs", time.strftime("learn-%Y-%m-%d.log")), "a", encoding="utf-8") as out:
+            out.write(line + "\n")
+    except OSError:
+        pass
+
+
+def studied():
+    """The games done, one file name a line (names have spaces in them, so never split on whitespace)."""
+    if not os.path.exists(DONE):
+        return set()
+    return {line.strip() for line in open(DONE, encoding="utf-8") if line.strip()}
 
 
 def polyglot_move(board, move):
@@ -155,7 +170,7 @@ def read_game(path):
 
 def summary():
     rows = list(learnt().values())
-    done = open(DONE, encoding="utf-8").read().split() if os.path.exists(DONE) else []
+    done = studied()
     think = [r for r in rows if r["why"] == "no book"]
     veto = [r for r in rows if r["why"] == "wide book vetoed"]
     print(f"{len(done)} games studied; {len(rows)} positions in our book: {len(think)} thought about where no book had a "
@@ -166,6 +181,15 @@ def summary():
     for path in glob.glob(os.path.join(HERE, "logs", "bot-*.log")):
         used += sum(1 for line in open(path, encoding="utf-8", errors="replace") if "ours.bin" in line and "Got move" in line)
     print(f"moves the bot has played from our book: {used}")
+
+
+def start_engine():
+    engine = chess.engine.SimpleEngine.popen_uci(ENGINE)
+    options = {"Hash": 256}
+    if os.path.exists(EVAL):
+        options["EvalFile"] = EVAL
+    engine.configure(options)
+    return engine
 
 
 def main():
@@ -181,14 +205,11 @@ def main():
         log("couldn't lower my priority; carrying on")
     os.makedirs(BOOKS, exist_ok=True)
     write_book()
-    done = set(open(DONE, encoding="utf-8").read().split()) if os.path.exists(DONE) else set()
-    engine = chess.engine.SimpleEngine.popen_uci(ENGINE)
-    options = {"Hash": 256}
-    if os.path.exists(EVAL):
-        options["EvalFile"] = EVAL
-    engine.configure(options)
+    done = studied()
+    engine = start_engine()
     log(f"learning from the bot's games (think {THINK:g} s, check {CHECK:g} s, veto at {WORSE} cp, {PER_GAME} a game); "
         f"{len(done)} games studied before, {len(learnt())} positions in our book")
+    failures = {}
     try:
         while True:
             # Only finished games: lichess-bot writes a game's file when it ends.
@@ -199,7 +220,19 @@ def main():
                 name = os.path.basename(path)
                 site = game.headers.get("Site", name) if game else name
                 if game is not None and game.headers.get("Variant", "Standard") == "Standard" and "FEN" not in game.headers:
-                    kept, considered = study(engine, game, site)
+                    try:
+                        kept, considered = study(engine, game, site)
+                    except chess.engine.EngineTerminatedError:
+                        failures[name] = failures.get(name, 0) + 1
+                        log(f"{site}: the engine died ({failures[name]} time(s) on this game); starting it again"
+                            + ("" if failures[name] < 2 else ", and leaving this game"))
+                        engine = start_engine()
+                        if failures[name] < 2:
+                            continue
+                        kept, considered = [], 0
+                    except Exception:
+                        log(f"{site}: skipped after an error:\n" + traceback.format_exc())
+                        kept, considered = [], 0
                     if kept:
                         size = write_book()
                         log(f"{site}: {len(kept)} kept of {considered} out-of-book positions -> our book {size}: "
@@ -212,6 +245,9 @@ def main():
             time.sleep(30)
     except KeyboardInterrupt:
         log("stopped")
+    except Exception:
+        log("stopped by an error:\n" + traceback.format_exc())
+        raise
     finally:
         engine.quit()
 
