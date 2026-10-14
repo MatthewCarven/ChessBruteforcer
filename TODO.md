@@ -33,19 +33,18 @@ that could go wrong does.
   a list, filled in turn); recount the book deeper (16 moves) once ~12
   months are in. The whole archive is 165 months, 2.6 TB, 8.22 B games.
 
-### Next session (Matthew, 2026-10-15: "make the build plan next session")
+### Now (2026-10-15)
 
-1. Start the Texel fit and its match in the background; the data is ready
-   (games/tune/positions-2026-09-sf.tsv, 1.04 GB: 13,580,216 quiet
-   positions from 6,811,130 analysed games, finished 22:26 on 2026-10-14;
-   July's 2.86 M could be added):
-   `tune fit games/tune/positions-2026-09-sf.tsv games/tune/eval-sf2.txt`
-   (watch memory: ~2-3 GB), then a match sf2 v sf1: copy the engine build
-   and both eval files to a path without spaces (the match tool splits its
-   command at the first space), `--tc 10+0.1 --concurrency 5 --tables tables
-   --sprt 0 10 --openings games/tune/openings-300.txt`.
-2. Meanwhile, **the build plan for the index** (section 1 below): the five
-   sessions turned into steps, files, formats and checks, session 1 in full.
+1. **Running**: `scripts\tune-match.cmd sf2 sf1 games\tune\positions-2026-09-sf.tsv`
+   (its own window from 00:49): the Texel fit on September's 13.58 M
+   positions (log games/tune/fit-sf2.log, ~25 min), then sf2 v sf1 by
+   itself (games/tune/match-sf2.log: 10+0.1, 5 at a time, SPRT [0, 10]).
+   If sf2 wins, it goes to bot/eval/ and the bot takes it at its next
+   restart (between games).
+2. **Done: the build plan for the index**, [INDEX.md](INDEX.md): what a
+   sample of July says, the files and formats, session 1 in full, sessions
+   2-5 outlined. Next: **session 1** (it needs Matthew's yes to `pip install
+   duckdb`, 13.7 MB, for the Parquet trial).
 
 ### 1. The index over the games (the main line)
 
@@ -55,6 +54,8 @@ without reading everything; duplicates found by fingerprints and run
 lengths; a map from beginning to endgame. He took all three additions
 (fingerprints per game, the bow-tie map, Parquet rows) and left the sort
 order to us. Numbers and reasoning: WORKLOG, 2026-10-13 late and 2026-10-15.
+**The build plan, session by session, is [INDEX.md](INDEX.md)**; what's
+below is the summary.
 
 - **Where the data is**: Lichess's months are pzstd files of independent
   32 MiB frames (~4.7 MB packed, ~14,400 games starting in each, each
@@ -116,7 +117,7 @@ Sessions, in order:
 - [ ] **Texel tuning** (WORKLOG has it all; step 1, human results, gained
       nothing; step 2a, Stockfish's verdicts, +208 Elo [+130, +311], the bot
       uses bot/eval/eval-sf1.txt via EvalFile):
-      - [ ] The September fit and match (next session, above).
+      - [ ] The September fit and match (running, above).
       - [ ] Confirm at a slower clock (60+0.6; the bot's speed is 3+2), and
         a result/eval blend (`--lambda 0.2`).
       - [ ] Bake the winner into the engine's built-in numbers (`takeover`,
@@ -154,6 +155,9 @@ Sessions, in order:
       account in a casual game.
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering and threads;
+      the hash keying en passant only when a capture is legal (now it keys
+      it after every double push, so a repetition through one can be missed:
+      WORKLOG 2026-10-15);
       the evaluation scaled down as the 50-move count rises; a server near
       Lichess (Europe) if it should run all day (from Australia each move
       costs ~1.2 s of connection).
@@ -176,7 +180,7 @@ Sessions, in order:
 
 ### 4. Matthew's (flagged, his to do)
 
-- [ ] Push `compression` (4 commits ahead at 00:40 on 2026-10-15).
+- [x] Push `compression` (GitHub matched d13b55c at 00:47 on 2026-10-15).
 - [ ] A second pull request from `compression` into `main` (PR #1 took only
       the first commit).
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;

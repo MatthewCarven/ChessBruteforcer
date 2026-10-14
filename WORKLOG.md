@@ -1819,3 +1819,36 @@ rather than 48-byte boards, because that is the storage that scales.
   stay below as the record; their open items moved up. Stale entries
   fixed: KRPvKR was already compressed (CBC1), compression is done, and two
   paths an old heredoc had mangled.
+
+## 2026-10-15 (00:45 on): the September Texel fit; the index's build plan
+
+- `compression` is pushed (GitHub at d13b55c). Running: the bot (a game
+  on), the learner, and the queue on August (~1 MB/s). Commit 15.1 of 19.0
+  GB used before anything new started.
+- `scripts\tune-match.cmd <new> <old> <positions>`: one round of Texel
+  tuning in its own window. Builds, fits `games\tune\eval-<new>.txt` with
+  every thread at below-normal priority (the bot's games come first) and
+  the .NET heap capped at 3.5 GB, then plays the match the way sf1's was
+  played (engine and evaluations copied to %TEMP%\cb-match, as the match
+  tool splits its engine command at the first space; 10+0.1, 5 at a time,
+  300 book openings, our tables adjudicating, at most 2000 games), with
+  SPRT [0, 10]. Started 00:49 as `sf2 sf1
+  games\tune\positions-2026-09-sf.tsv`: 13,580,216 positions loaded in 48
+  s (12.2 M tuned on, 1.36 M held back), K 1.2669, held-back error 0.038818
+  at the start; ~0.7-0.8 s an epoch, so ~20 minutes for 1,500.
+- The index's build plan is INDEX.md. A sample first (24 frames spread
+  over July, 346,962 games, scratch script): 6,177 frames, ~89.3 M games;
+  Python parses a frame's games in 1.7 s on one thread, so 8 processes
+  keep up with the share (~50 min a month) and session 1 needs no C#;
+  walking the frame notes over the share took 165 s (27 ms a read), so the
+  frame table is made during the one read. A row needs no location (its
+  number and the frame table find it). Packed, a row is 14.2 bytes, 8 of
+  them the fingerprint: 1.27 GB a month, ~58 GB for 46 months. 1.19% of
+  the sample's games share their exact moves with another. 2013-01 has
+  pzstd's notes too.
+- Found while planning session 2: the engine's Zobrist hash keys the en
+  passant square after every double pawn push, so 1.e4 e5 2.Nf3 and 1.Nf3
+  e5 2.e4 hash differently. The index's position fingerprint keys it only
+  when an en passant capture is legal. (In the engine itself, its hash
+  table and repetition checks, the same quirk can only miss a
+  transposition or a repetition, never confuse two positions.)
