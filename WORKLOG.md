@@ -1852,3 +1852,29 @@ rather than 48-byte boards, because that is the storage that scales.
   when an en passant capture is legal. (In the engine itself, its hash
   table and repetition checks, the same quirk can only miss a
   transposition or a repetition, never confuse two positions.)
+
+## 2026-10-15 (01:10 on): index session 1 begun; the sf2 fit done
+
+- The fit finished in 1,128 s (games/tune/eval-sf2.txt); sf2 v sf1 started
+  by itself. At game 116: +43 -37 =36, 52.6%, undecided.
+- Matthew: yes to DuckDB (1.5.6 installed, global Python 3.14), and
+  session 1 now with July's read held until the match ends. He asked that
+  his CSharp-Lookuptables not be forgotten; the answer from its own README
+  is in INDEX.md (session 3): its winning disk design (a small index in RAM
+  into one flat file) is the shape the index already uses, the trial needs
+  no .NET upgrade, and an upgrade only follows if the trie wins.
+- `scripts/index-month.py` (rows, get, check, dups, trial). 2013-01: 121,332
+  games (Lichess's count), SHA-256 matches, every game fetched by number
+  matches the read byte for byte; duplicates 0.83%, none longer than 20
+  plies (75.6% of games of 1-4 plies are duplicates; the biggest group is
+  80 games of 1.e4 e5); Parquet and plain columns agree (17.3 / 17.5
+  bytes a game; too small to time).
+- A first run with 8 workers failed to unpack a frame ("Unable to allocate
+  output buffer") at the moment Windows logged a low-memory event
+  (Resource-Exhaustion-Detector 2004, 01:17:37). The bot (mid-game) and the
+  match were unharmed. 3.9 GB of commit was free with nothing of ours
+  running; the Claude app's 17 processes held 4.8 GB. The default is 4
+  workers now, which still keeps up with the share.
+- DuckDB reads a dict of numpy arrays directly (unsigned types kept), so
+  the trial needs no pandas or pyarrow. In SQL, 40 x a UINT8 column
+  overflows: cast first.

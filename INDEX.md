@@ -36,9 +36,9 @@ What it changes in the plan:
   finds it in milliseconds, against ~90 ms to unpack the frame. That saves
   the 4-6 bytes a game an offset would cost.
 - **Python is enough for session 1.** One read of a month over the share
-  takes ~50 minutes (29 GB at ~10 MB/s), and 8 Python processes parse the
-  frames in ~22 minutes of that, so the share is the limit, not the
-  language. Replaying moves (session 2) is different: that needs C#.
+  takes ~50 minutes (29 GB at ~10 MB/s), and 4 Python processes parse the
+  frames in about that time (6,177 x 1.7 s / 4 = 44 minutes), so the share
+  is the limit, not the language. Replaying moves (session 2) is different: that needs C#.
 - **The frame table is built during the read**, not by a separate walk
   (165 s of small reads over the share).
 - **The fingerprint is most of the row.** Per game, packed (each column a
@@ -75,10 +75,10 @@ session 5).
 (zstd in its standard library, numpy installed). Subcommands:
 
 ```
-python -I scripts/index-month.py rows  <month .zst> <dir> [--workers 8] [--frames N]
+python -I scripts/index-month.py rows  <month .zst> <dir> [--workers 4] [--frames N] [--hash-all 1]
 python -I scripts/index-month.py get   <month .zst> <dir> <game number>...
-python -I scripts/index-month.py check <month .zst> <dir>
-python -I scripts/index-month.py dups  <dir> [--examples 20]
+python -I scripts/index-month.py check <month .zst> <dir> [--sample 1000]
+python -I scripts/index-month.py dups  <month .zst> <dir> [--examples 20]
 python -I scripts/index-month.py trial <dir>
 ```
 
@@ -87,12 +87,13 @@ python -I scripts/index-month.py trial <dir>
 The main process reads the file from the share in order, frame by frame,
 feeding every byte to SHA-256 on the way (checked against the `.sha256`
 beside the month at the end, as make-book.py does), and hands each frame's
-packed bytes to a pool of 8 worker processes. A worker unpacks its frame,
-splits it at `[Event` lines and parses each game that **starts** in it. A
-game cut by the frame's end is finished from the start of the next frame,
-which the main process sends along with it (up to that frame's first
-`[Event`). Results come back in frame order, so game numbers are the file's
-order.
+packed bytes to a pool of 4 worker processes (below-normal priority, so the
+bot's games come first). A worker unpacks its frame, splits it at `[Event`
+lines and parses each game that starts and ends in it; it hands back the
+text before its first game and its last game whole. The main process joins
+the one to the other, so a game cut by a frame's end is finished from the
+next frame's start, and parses it itself (one game a frame). Results are
+taken in frame order, so game numbers are the file's order.
 
 The frame walk follows pzstd's notes (a skippable frame holding the next
 frame's packed size). 2013-01 and 2026-07 both have them before every
@@ -101,9 +102,12 @@ falling back to walking block headers (code no file needs yet). If the
 share drops mid-read, wait and carry on from the same byte, as
 make-book.py does.
 
-Memory: ~1-1.5 GB for 8 workers plus the rows as they grow (~2.3 GB raw for
-July if kept whole, so they go to disk in chunks of a million games). Watch the commit headroom first (3.9 GB free on 2026-10-15 with the
-bot, the learner and the queue running).
+Memory: ~150 MB a worker; the rows go to disk a million games at a time
+(~26 MB), as ~2.3 GB raw for July wouldn't fit in memory beside everything
+else. Watch the commit headroom first: on 2026-10-15 a test with 8 workers,
+started while the sf2 match ran, met a Windows low-memory event (01:17:37)
+and failed to unpack a frame; the bot and the match were unharmed. The
+Claude app's own processes held 4.8 GB then, and 3.9 GB was free.
 
 ### Step 2: the files
 
@@ -207,9 +211,12 @@ columns' statistics, duplicates, the trial's table, and the checks.
 
 Session 1 is done when:
 
-- [ ] 2013-01 (3 frames, ~121 k games) goes through
-      `rows`, and **every** game fetched by number matches the straight
-      read; the game count equals Lichess's counts.txt for that month.
+- [x] 2013-01 (3 frames) goes through `rows`, and **every** game fetched
+      by number matches the straight read; the game count equals Lichess's
+      for that month. Done 2026-10-15: 121,332 games, SHA-256 matching,
+      121,332 of 121,332 fetched byte for byte; duplicates 0.83% (none
+      longer than 20 plies; the biggest group, 80 games, is 1.e4 e5 and
+      nothing more); Parquet and plain columns agree on all three queries.
 - [ ] July 2026: the frame table covers the file to its last byte; the
       SHA-256 matches; the game count equals counts.txt.
 - [ ] `check` passes on 1,000 random games.
@@ -279,9 +286,24 @@ and each piece count holds, and how many of them repeat.
   by-moves side: a burst trie over each game's moves as bytes makes "every
   game that began like this" one prefix query, and its path compression
   suits the long unique middles. Measured against the sorted blocks on
-  size and on 1,000 random lines. It targets .NET 10 and we target .NET 8:
-  (a) it gains a net8.0 target (his repo, his call), or (b) we move up to
-  .NET 10 (WSL would need it too). Decided at the start of session 3.
+  size and on 1,000 random lines. What its own results say about disk
+  (README section 4): the library's `DiskIndexer` is the Python edition's
+  directory tree (a file per 3-byte prefix, fixed-size records), and
+  Matthew's 64 GB run found the better design to be a small index in RAM
+  pointing into one flat file (0.15 ms a lookup against 0.36 ms, no second
+  copy of the data, built in 0.4 s against 24 minutes). That is the shape
+  used here throughout: the frame table into Lichess's file, and for this
+  trial the trie in RAM over the distinct opening lines, each pointing at
+  its run of game numbers in a flat file sorted by line. The trie took ~73
+  bytes a key in that run, so a key for every game of July (89 M) would be
+  ~6.5 GB, more than fits beside the bot; distinct lines are fewer, and
+  session 2 says how many. The trial needs no upgrade: a .NET 10 trial
+  program can reference both the library (net10.0) and our Core (net8.0).
+  Only if the trie wins and goes into our own commands: (a) the library
+  gains a net8.0 target (his repo, his call), or (b) we move up to .NET 10
+  (WSL would need it too). The Python edition (nested dictionaries and the
+  directory tree; the burst trie is C# only) suits quick experiments on
+  samples, not 89 M keys (~10 GB as Python dictionaries).
 - **Checks**: counts for a few positions equal a straight count over the
   frames; the book's lines agree with make-book.py's.
 
