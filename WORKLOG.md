@@ -2181,3 +2181,25 @@ next move matches the forecast ~80% of the time: a fresh search mostly agrees
 with the last one. Every opponent was an engine, which tends to see the same
 best move; against people it would likely be lower, with no data here to say.
 The engine searches on one thread; the laptop has 8 cores (16 threads).
+
+## 2026-10-15 (18:39-20:58): July with the 13-game fix, Lichess's count exactly
+
+July's index ran again from the scratchpad snapshot of the scripts at
+ee66600 (restarted after the 18:35 failure above):
+
+| | first run (14:54) | with the fix |
+|---|---:|---:|
+| games | 89,288,408 | **89,288,421** (counts.txt: 89,288,421) |
+| games cut by a frame's end | 6,177 | 6,190 (6,176 ends + the 13 + the last) |
+| distinct move sequences | 87,604,543 | 87,604,555 |
+| games in duplicate groups | 1,834,283 | 1,834,284 (one more 1.e4) |
+| different moves in SAN | 3,246 | 3,231 (15 were tag fragments of glued games) |
+| check | 4,000 of 4,000 | 4,000 of 4,000 |
+| read | 2,516 s, 11.5 MB/s | 4,799 s, 6.1 MB/s |
+
+The read and `check` (3,294 s) were slower on a busier laptop and share; the
+column statistics came out the same at the precision the write-up shows, the
+long duplicates likewise (16,999, 96.8% BOT v BOT). scripts/index-2026-07.txt
+is updated to this run. Since it ran the old scripts, its rows are plain
+columns plus the trial's Parquet, and the new tools refuse its games.json:
+July needs `rows` once more (TODO item 3).

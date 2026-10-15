@@ -1,8 +1,11 @@
 # July 2026's index: sessions 1 and 1b (INDEX.md), written up 2026-10-15
 
-Run: scripts\index-month.cmd 2026-07, 13:33-14:54 on 2026-10-15 (log games/index/index-2026-07.log).
-The month: lichess_db_standard_rated_2026-07.pgn.zst on the desktop share, 29.05 GB, 6,177 frames.
-Its SHA-256 matches Lichess's.
+Run: scripts\index-month.cmd 2026-07, 13:33-14:54 on 2026-10-15; then again with the fix below,
+18:39-20:58 (log games/index/index-2026-07.log, both runs). The month: lichess_db_standard_rated_2026-07.pgn.zst
+on the desktop share, 29.05 GB, 6,177 frames. Its SHA-256 matches Lichess's.
+
+**With the fix: 89,288,421 games, exactly Lichess's count, and every check passing.** The numbers
+below are from that second run.
 
 ## The count: 13 games short, found and fixed
 
@@ -44,15 +47,26 @@ a frame with no game start, and a frame whose only game start is cut at its end.
   after                  7,892                                           7,892    passes
 
 2013-01 indexed again after the fix: 121,332 games (counts.txt: 121,332), every one fetched by number
-byte for byte. July's rows below are from before the fix: 13 games missing and 13 rows wrong, out of
-89 M, so the statistics stand; the rows themselves get re-made by running July again.
+byte for byte. July again with the fix (from a snapshot of the scripts at ee66600):
+
+                                first run      with the fix
+  games                        89,288,408        89,288,421   (counts.txt: 89,288,421)
+  games cut by a frame's end        6,177             6,190   (6,176 frame ends + the 13 + the last game)
+  distinct move sequences      87,604,543        87,604,555   (12 of the 13 are unique; one more 1.e4 game)
+  different moves in SAN            3,246             3,231   (15 were tag fragments from glued games)
+  check                         all 4,000         all 4,000
+
+The statistics barely moved: none of the column figures below changed at the precision shown.
 
 ## The read
 
   frames                 6,177 (pzstd notes before every one); ~14,455 games starting in each
-  read                   2,516 s, 11.5 MB/s, 4 worker processes, June downloading onto the share alongside
-  share drops            0 (the first attempt, at 04:11, stopped at byte 4.68 G when the share went away)
-  packing the columns    8.5 s
+  read                   2,516 s at 11.5 MB/s the first time; 4,799 s at 6.1 MB/s with the fix (a busier
+                         laptop and share: June downloading, a second Claude session, VS Code)
+                         4 worker processes, below-normal priority
+  share drops            0 (an attempt at 04:11 stopped when the share went away; one at 18:18 met a Windows
+                         low-memory event at 18:35, from another session's memory tests)
+  packing the columns    8.5 s / 19.1 s
   rows                   1,268.3 MB packed, 14.20 bytes a game (the sample said 14.2)
 
 ## The columns
@@ -87,45 +101,45 @@ What's in them:
 
   speed (Lichess's: base + 40 x increment)   games    white won / black won / drawn / unfinished
   ultrabullet                               956,136    48.5% / 46.3% / 1.6% / 3.6%
-  bullet                                 31,512,173    49.7% / 46.9% / 2.9% / 0.4%
-  blitz                                  41,033,690    49.3% / 45.9% / 4.3% / 0.5%
-  rapid                                  15,223,237    49.2% / 45.5% / 4.6% / 0.7%
+  bullet                                 31,512,178    49.7% / 46.9% / 2.9% / 0.4%
+  blitz                                  41,033,696    49.3% / 45.9% / 4.3% / 0.5%
+  rapid                                  15,223,239    49.2% / 45.5% / 4.6% / 0.7%
   classical                                 563,172    48.4% / 44.8% / 5.8% / 1.0%
 
 ## check: games fetched by number against the read
 
   interior (one random game a frame)      1,000 of 1,000 match byte for byte; first 16 moves saved right
   boundary (games cut by a frame's end)   1,000 of 1,000 match; first 16 moves saved right
-  2,840 frame reads in 2,204 s (~0.8 s a read over the share)
+  2,840 frame reads in 3,294 s (~1.2 s a read over the share; 2,204 s the first time)
 
 (See above: this checks `rows` against `get`, and the two shared the bug. The count against counts.txt
-is the check that matters for completeness, and it goes in the list for every month.)
+is the check that matters for completeness, and `rows` now makes it for every month.)
 
 ## dups: games with exactly the same moves
 
-  89,288,408 games, 87,604,543 distinct move sequences
-  games sharing their exact moves with another: 1,834,283 (2.05%; 2013-01: 0.83%), in 150,418 groups;
-  beyond the first of each group: 1,683,865 (1.89%)
+  89,288,421 games, 87,604,555 distinct move sequences
+  games sharing their exact moves with another: 1,834,284 (2.05%; 2013-01: 0.83%), in 150,418 groups;
+  beyond the first of each group: 1,683,866 (1.89%)
 
   group size    groups      games
          2      81,690    163,380
        3-9      55,654    241,584
      10-99      12,159    286,240
    100-999         833    203,941
-     1000+          82    939,138
+     1000+          82    939,139
 
   plies     all games   duplicated   share duplicated
       0       383,336      383,336   100.00%
-    1-4       624,424      619,199    99.16%
-   5-10       757,873      448,577    59.19%
-  11-20     2,683,789      323,362    12.05%
-  21-40    13,238,296       42,810     0.32%
-  41-80    46,676,371        8,077     0.02%
-    81+    24,924,319        8,922     0.04%
+    1-4       624,425      619,200    99.16%
+   5-10       757,874      448,577    59.19%
+  11-20     2,683,791      323,362    12.05%
+  21-40    13,238,298       42,810     0.32%
+  41-80    46,676,386        8,077     0.02%
+    81+    24,924,311        8,922     0.04%
 
   how duplicated games ended: Normal 48.0%, Time forfeit 15.2%, Abandoned 36.4%, Unterminated 0.4%
 
-Short duplicates are what you'd expect: games abandoned after a move or two (201,211 games of 1.e4 and
+Short duplicates are what you'd expect: games abandoned after a move or two (201,212 games of 1.e4 and
 nothing else; 90,441 of 1.d4), and the quick mates every beginner meets (7,258 games of the Scholar's mate
 e4 e5 Bc4 Nc6 Qh5 Nf6 Qxf7#). The 20 biggest groups were all confirmed by fetching two games of each.
 
@@ -157,6 +171,8 @@ may want BOT v BOT games set apart (the flags column already does it).
 
   queries: games by speed and result (above); games of 20 plies or fewer with both players 2000+
   (338,329); duplicate groups by size (2: 81,690, 3: 24,898, 4: 11,862, ...).
+  (The times are the first run's. With the fix, on the busier laptop: written in 19.1 v 18.4 s, queries
+  13.8 v 9.8 s, sizes the same. Parquet ahead both times.)
 
 2013-01 had them level too (2.1 v 2.1 MB). **Parquet**: as small, a little faster, and every later question
 (session 5's bow-tie map, the bot-game split above) is a line of SQL; this write-up's duplicate profile was
@@ -165,7 +181,9 @@ games themselves, not the rows.
 
 ## lines trial (session 1b): the first 16 moves of the first 8 M games, with Matthew's Lookuptables
 
-  7,348,088 distinct 16-move lines (91.9% of games; 2013-01's 121 k games: 97.8%)
+  7,348,088 distinct 16-move lines (91.9% of games; 2013-01's 121 k games: 97.8%); with the fix, 7,348,089
+  (4 of the 13 fall in the first 8 M games). Times below are the first run's; the second, on the busier
+  laptop, took about twice as long everywhere and the two front-runners still tied (369.6 v 346.4 ms).
 
   first k moves   distinct    games sharing them with no other
         4           46,818      0.2%
@@ -190,10 +208,9 @@ memory misses dominate both) at 3.2x the memory; collecting every line instead i
 
 ## What follows
 
-- Run July again with the fix (scripts\index-month.cmd 2026-07, ~1.5 h, its own window): the count should
-  then be 89,288,421 and the 13 games fetchable.
-- The format: Parquet. `rows` can write it directly for later months, and the plain .zst columns go.
+- Done: July again with the fix, 89,288,421 games (18:39-20:58).
+- Done (commit 0a396cb): `rows` writes Parquet directly for later months, and compares every month's
+  count with counts.txt (saved beside the month when it downloads).
 - Where the whole index lives: Matthew's call. Rows ~1.27 GB a month, ~58 GB for the 46 months queued
   (the fingerprints ~33 GB of it); the laptop has ~71 GB free, the share ~1.4 TB.
-- Every month's count against counts.txt, automatically.
-- games/index/2026-07/lines.u16 (2.9 GB) can go once the re-run is checked (it writes a new one).
+- games/index/2026-07/lines.u16 (2.9 GB) can go: the lines trial is done.

@@ -248,13 +248,18 @@ Session 1 is done when:
       nothing more); Parquet and plain columns agree on all three queries.
 - [x] July 2026: the frame table covers the file to its last byte; the
       SHA-256 matches (2026-10-15: 6,177 frames, 89,288,408 games).
-- [ ] July's count equals Lichess's counts.txt: **13 short** (89,288,421).
-      13 frame ends fell inside an `[Event` line, so neither frame saw that
-      game start and the game was glued onto the one before. Fixed in
-      `rows` and `get` (both split the joined text at every game start);
+- [x] July's count equals Lichess's counts.txt. The first run was **13
+      short**: 13 frame ends fell inside an `[Event` line, so neither frame
+      saw that game start and the game was glued onto the one before. Fixed
+      in `rows` and `get` (both split the joined text at every game start);
       scripts/test-index-month.py cuts real games through every such point.
-      Done when July, run again, prints `count: 89,288,421 games, Lichess's
-      counts.txt 89,288,421: MATCHES` (its `.count` is on the share).
+      Run again with the fix (2026-10-15, 18:39-20:58, the scripts as of
+      ee66600): **89,288,421 games**, Lichess's count exactly; check, dups,
+      trial and the lines trial all as before.
+- [ ] July's rows in the new layout: that run predates `rows` writing
+      Parquet, so the new tools refuse its games.json. `rows` on July once
+      more, which also prints the count's MATCHES (its `.count` is on the
+      share).
 - [x] `rows` writes Parquet directly, and the count against counts.txt is
       automatic (2026-10-15, evening). The test passes (8 parts of 1,000
       games; MATCHES, and a `.count` 13 high gives SHORT BY 13); 2013-01:
