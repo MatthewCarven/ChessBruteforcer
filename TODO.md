@@ -74,8 +74,10 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          matching, check 4,000 of 4,000, dups 2.05% as before.
    - [ ] **Tonight (2026-10-16 from ~00:08) the laptop is on Matthew's phone
          hotspot**, so the desktop share is out for a few hours. July's
-         new-layout run (started 23:36) was stopped at 00:16, halfway; start
-         it again once the share is back (after the 5-piece-tables bench).
+         new-layout run (started 23:36) was stopped at 00:16, halfway. It
+         starts again by itself once the share answers: a launcher window
+         ("July 2026 index: waiting for the desktop share", from 01:01)
+         checks each minute, then runs index-month.cmd 2026-07.
          May 2026 is downloading into the laptop's games\ (uncapped, his
          unlimited data; restarted 00:39 on the fixed script, ~0.8 MB/s, so
          ~10 h; its SHA-256 and count are saved): move it to the share
