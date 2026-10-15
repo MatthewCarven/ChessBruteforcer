@@ -35,10 +35,13 @@ that could go wrong does.
 
 ### Now (2026-10-15)
 
-Matthew rebooted after 05:00 on 2026-10-15. After the reboot: check the
-share answers (`Test-Path \\id10terror-desktop\chessbruteforcer\lichess`),
-then `start.cmd` (bot, learner, queue: the queue re-checks August first,
-~80 min), then July's index run.
+**State at 13:30 on 2026-10-15** (after a reboot at 05:16): August's
+SHA-256 matches Lichess's (checked by hand 05:19-06:03 with
+`scripts\verify-month.cmd 2026-08`, and again by the queue at 09:55), so
+the "DAMAGED" at 04:54 was the share going away. `start.cmd` ran at 09:12:
+the bot, the learner and the queue are up; the queue marked August and
+July done and is downloading June (28.2 GB). **Next: July's index run**,
+not yet started again: `scripts\index-month.cmd 2026-07` (item 3 below).
 
 1. **Done: the Texel fit on September, no gain.** sf2 (13.58 M positions)
    v sf1 (2.86 M): +668 -662 =670 over 2,000 games, Elo +1 [-11, +13]; the
@@ -52,9 +55,10 @@ then `start.cmd` (bot, learner, queue: the queue re-checks August first,
    the match ended, read 4.55 of 29 GB (~7.3 MB/s, so ~66 min a month), and
    failed at 04:54 when the share went away (~04:23, the same outage that
    stopped August's check). Run `scripts\index-month.cmd 2026-07` again (no
-   second argument now) after August's check, so the two don't share the
-   network: ~1 hour, then check, dups, the Parquet trial and
-   scripts/lines-trial.cs on 8 M games; log games/index/index-2026-07.log.
+   second argument now; it can share the network with the queue's
+   download, which is ~1 MB/s): ~1 hour, then check, dups, the Parquet
+   trial and scripts/lines-trial.cs on 8 M games (the trie both ways); log
+   games/index/index-2026-07.log.
    Then: write up scripts/index-2026-07.txt, choose the format, decide with
    Matthew where the index lives, and delete lines.u16 (2.9 GB).
 

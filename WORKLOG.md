@@ -1948,3 +1948,18 @@ rather than 48-byte boards, because that is the storage that scales.
   mismatch above a lost share: not damaged; a mismatch in this run:
   damaged). August taken off the damaged list. Matthew is rebooting before
   testing it again.
+
+## 2026-10-15 (05:16 on): after the reboot, August is sound
+
+- The share answered again after the reboot (Z: mapped, all three 2026
+  months there). Matthew asked for August's checksum again:
+  `scripts\verify-month.cmd <month>` (new: make-book.py verify in its own
+  window, log games/verify-<month>.log) ran 05:19-06:03: **SHA-256 matches
+  Lichess's**, 30,145,862,359 bytes in 2,622 s (11.5 MB/s, faster than the
+  ~7 MB/s while the queue also used the share). So the file was never
+  damaged; the share going away was.
+- Matthew ran start.cmd at 09:12: bot, learner, queue. The queue checked
+  August again (matches, 09:55) and July (checked when counted: at once),
+  marked both done, and is downloading June.
+- Still to do: July's index run again (`scripts\index-month.cmd 2026-07`),
+  which the outage stopped at 4.55 of 29 GB.
