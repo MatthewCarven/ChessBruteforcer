@@ -1,8 +1,10 @@
 """A test for index-month.py's frame joins: a small month in Lichess's layout (pzstd frames, each after a
 skippable note), made from real games and cut on purpose through game starts. Every cut point in and around
 an [Event line, cuts mid-movetext, a frame with no game start, and a frame whose only game start is an
-[Event line cut at its end. Then `rows` and `check` on it, and every game fetched by number, its plies and
-its fingerprint compared with a straight split of the text.
+[Event line cut at its end. Then `rows` (Parquet parts of 1,000 games, so lookups cross part edges), `check`,
+`dups` and `trial` on it, and every game fetched by number, its plies and its fingerprint compared with a
+straight split of the text. And the count: a <name>.count with the right count gives MATCHES, one 13 too high
+SHORT BY 13 and exit 1.
 
     python -I scripts/test-index-month.py [games/lichess_db_standard_rated_2013-01.pgn.zst]
 
@@ -65,15 +67,36 @@ def main():
             sha = hashlib.sha256(f.read()).hexdigest()
         with open(month + ".sha256", "w", encoding="ascii", newline="\n") as f:
             f.write(f"{sha}  {os.path.basename(month)}\n")
+
+        def run(step, expect=0):
+            done = subprocess.run([sys.executable, "-I", SCRIPT] + step, capture_output=True, text=True)
+            if done.returncode != expect:
+                print(done.stdout + done.stderr)
+                raise SystemExit(f"{step[0]} exited {done.returncode}, not {expect}")
+            return done.stdout
+
+        def count_line(out):
+            return next((line for line in out.splitlines() if line.startswith("count: ")), "(no count line)")
+
+        def write_count(n):
+            with open(month + ".count", "w", encoding="ascii", newline="\n") as f:
+                f.write(f"{os.path.basename(month)} {n}\n")
+
         folder = os.path.join(work, "index")
-        for step in (["rows", month, folder, "--workers", "2", "--hash-all", "1", "--lines", "16"],
-                     ["check", month, folder, "--sample", "0"]):
-            run = subprocess.run([sys.executable, "-I", SCRIPT] + step, capture_output=True, text=True)
-            if run.returncode:
-                print(run.stdout + run.stderr)
-                raise SystemExit(f"{step[0]} failed")
+        write_count(len(games))
+        out = run(["rows", month, folder, "--workers", "2", "--hash-all", "1", "--lines", "16", "--part-rows", "1000"])
+        print(count_line(out))
+        if not count_line(out).endswith(": MATCHES"):
+            raise SystemExit("FAILED: the count didn't match")
+        for line in run(["check", month, folder, "--sample", "0"]).splitlines():
+            if "row right" in line:
+                print(line)
+        run(["dups", month, folder, "--examples", "3"])
+        if "answers agree: yes" not in run(["trial", folder]):
+            raise SystemExit("FAILED: trial's two ways disagree")
 
         index = im.Index(month, folder)
+        parts = [p["rows"] for p in index.note["parts"]]
         plies, fp = index.column("plies"), index.column("fingerprint")
         wrong = []
         for g, game in enumerate(games[:index.note["games"]]):
@@ -81,10 +104,16 @@ def main():
             if index.game(g) != game or int(plies[g]) != len(moves) or int(fp[g]) != im.fingerprint(moves):
                 wrong.append(g)
         index.file.close()
-        print(f"{len(cuts) + 1} frames, {len(games):,} games; indexed {index.note['games']:,}; "
-              f"{len(games) - len(wrong):,} fetched by number with the right plies and fingerprint")
-        if index.note["games"] != len(games) or wrong:
-            raise SystemExit(f"FAILED" + (f"; first wrong game {wrong[0]:,}" if wrong else ""))
+        print(f"{len(cuts) + 1} frames, {len(games):,} games; indexed {index.note['games']:,} in {len(parts)} Parquet "
+              f"parts; {len(games) - len(wrong):,} fetched by number with the right plies and fingerprint")
+        if index.note["games"] != len(games) or wrong or sum(parts) != len(games) or set(parts[:-1]) != {1000}:
+            raise SystemExit(f"FAILED" + (f"; first wrong game {wrong[0]:,}" if wrong else f"; parts {parts}"))
+
+        write_count(len(games) + 13)                        # Lichess says 13 more than are there: as July did
+        out = run(["rows", month, os.path.join(work, "short"), "--workers", "2"], expect=1)
+        print(count_line(out))
+        if not count_line(out).endswith(": SHORT BY 13"):
+            raise SystemExit("FAILED: a count 13 short wasn't reported")
         print("passed")
     finally:
         shutil.rmtree(work, ignore_errors=True)

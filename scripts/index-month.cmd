@@ -1,11 +1,13 @@
 @echo off
-rem Index session 1 on one Lichess month (INDEX.md): the read, the checks, duplicates, the Parquet trial and the
-rem Lookuptables trial, one after another, all output into games\index\index-<month>.log.
+rem Index session 1 on one Lichess month (INDEX.md): the read, the checks, duplicates, the queries on the rows
+rem and the Lookuptables trial, one after another, all output into games\index\index-<month>.log.
 rem   scripts\index-month.cmd 2026-07 [a log to wait for]
 rem With a second argument, it first waits (checking each minute) until that log has its "final:" line, as a
 rem match's log does when the match is over: the read and the trials need the memory the match is using.
-rem Steps: index-month.py rows (one read of the month on the share, ~50-60 min, the first 16 moves of each game
-rem kept for the trial), check, dups, trial; then scripts\lines-trial.cs on the first 8 M games.
+rem Steps: index-month.py rows (one read of the month on the share, ~50-60 min, the rows written as Parquet as it
+rem goes, the first 16 moves of each game kept for the trial; then the game count against Lichess's, from the
+rem <month>.count beside it: a count SHORT BY n stops the run there, with everything written for a look), check,
+rem dups, trial; then scripts\lines-trial.cs on the first 8 M games.
 setlocal
 set MONTH=%1
 set WAITFOR=%2

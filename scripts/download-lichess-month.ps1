@@ -9,7 +9,10 @@
 # continues, so nothing is downloaded twice.  Retries when the connection drops.  When the
 # size matches the server's, the file gets its proper name.  If Lichess has replaced the file
 # since the part was started (its Last-Modified changed), it stops rather than splice two files.
-# Lichess's SHA-256 for the month goes beside it as <name>.sha256 (make-book.py count checks it).
+# Lichess's SHA-256 for the month goes beside it as <name>.sha256 (make-book.py count checks it), and its
+# line of standard/counts.txt ("<name> <games>") as <name>.count (index-month.py rows checks the game count
+# against it: the only check that sees a game lost, as July 2026's first index lost 13).  Run on a month
+# that's already there, it downloads nothing and saves whichever of the two is missing.
 #
 # -Dir can be a network share (the months live on Matthew's desktop from 2026-10-13).  While it
 # can't be reached the script waits, up to 6 hours, without using up attempts; a write cut off by
@@ -30,6 +33,7 @@ $part = "$final.part"
 $first = Join-Path $Dir "lichess_db_standard_rated_$Month.first-1GB.pgn.zst"
 $stamp = "$part.last-modified"
 $sums = "$final.sha256"
+$countFile = "$final.count"
 $log = "games\download-$Month.log"
 
 function Log([string] $text) {
@@ -49,12 +53,28 @@ function Wait-Dir {
     if ($since) { Log ('{0} is back after {1:N0} min' -f $Dir, ((Get-Date) - $since).TotalMinutes) }
 }
 
+function Save-Sha256 {
+    if (Test-Path -LiteralPath $sums) { return }
+    $line = curl.exe -sS https://database.lichess.org/standard/sha256sums.txt |
+        Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($name))$" } | Select-Object -First 1
+    if ($line) { Set-Content -LiteralPath $sums -Value $line -Encoding ascii; Log "Lichess's SHA-256: $($line.Substring(0, 64))" }
+    else { Log "no SHA-256 for $name on Lichess's list (yet?); the count will say it couldn't check" }
+}
+
+function Save-Count {
+    if (Test-Path -LiteralPath $countFile) { return }
+    $line = curl.exe -sS https://database.lichess.org/standard/counts.txt |
+        Where-Object { $_ -match "^$([regex]::Escape($name)) \d+$" } | Select-Object -First 1
+    if ($line) { Set-Content -LiteralPath $countFile -Value $line -Encoding ascii; Log ("Lichess's game count: {0:N0}" -f [long]($line -split ' ')[1]) }
+    else { Log "no game count for $name on Lichess's counts.txt (yet?); the index will say it couldn't check" }
+}
+
 if ($LimitRate -in '0', 'none') { $LimitRate = '' }
 if ($LimitRate -and $LimitRate -notmatch '^\d+[kKmMgG]?$') { Log "STOPPING: -LimitRate $LimitRate isn't a speed curl knows (500k, 1m, or 0 for none)"; exit 1 }
 $rateArgs = if ($LimitRate) { @('--limit-rate', $LimitRate) } else { @() }
 
 Wait-Dir
-if (Test-Path -LiteralPath $final) { Log "$final is already here: nothing to do"; return }
+if (Test-Path -LiteralPath $final) { Log "$final is already here: nothing to download"; Save-Sha256; Save-Count; return }
 if (-not (Test-Path $part) -and (Test-Path $first)) {
     Rename-Item $first (Split-Path $part -Leaf)
     Set-Content $stamp 'Sat, 03 Oct 2026 05:06:59 GMT'   # the server's date when the first 1 GB was fetched
@@ -72,12 +92,8 @@ if (Test-Path $stamp) {
 }
 Log "=== $name`: $expected bytes on the server ($modified)"
 Log $(if ($LimitRate) { "speed capped at $LimitRate a second" } else { 'no speed cap' })
-if (-not (Test-Path -LiteralPath $sums)) {
-    $line = curl.exe -sS https://database.lichess.org/standard/sha256sums.txt |
-        Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($name))$" } | Select-Object -First 1
-    if ($line) { Set-Content -LiteralPath $sums -Value $line -Encoding ascii; Log "Lichess's SHA-256: $($line.Substring(0, 64))" }
-    else { Log "no SHA-256 for $name on Lichess's list (yet?); the count will say it couldn't check" }
-}
+Save-Sha256
+Save-Count
 
 for ($try = 1; $try -le 100; $try++) {
     Wait-Dir

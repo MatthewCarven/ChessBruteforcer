@@ -2077,3 +2077,59 @@ scratchpad (a copy of index-month.cmd beside them, output and log to the
 repo as usual: games/index/index-2026-07.log, appended), because another
 session is moving `rows` to Parquet in this checkout meanwhile, and each of
 the five steps starts the script afresh. lines-trial.cs runs from the repo.
+
+## 2026-10-15 (18:17-18:50): `rows` writes Parquet; the count against Lichess's, every month
+
+TODO item 3's follow-up, in a side session.
+
+- **`rows` writes the rows straight to Parquet** through DuckDB as the read
+  goes: `parquet/part-NNN.parquet`, 10 M games a part (`--part-rows`), zstd,
+  the same 11 columns and types. Parts go to `parquet.new/` and move into
+  `parquet/` only once the read is whole and its SHA-256 matches;
+  `games.json` (written last) lists the parts and each column's size from
+  Parquet's own metadata. The plain .zst columns are gone. `check`, `dups`,
+  `trial` and `Index.column` read the parts a part at a time, and an index
+  from before (no `"format": "parquet"`) is refused with "run rows again".
+  `check` now also compares every sampled game's row (all 11 columns) with
+  the fetched game parsed again, so row n is shown to be game n. `trial`
+  runs its three queries two ways on the Parquet rows (SQL; numpy over the
+  columns) and compares them, and prints each column's size.
+- **Memory**: the COPY of a 10 M-row part costs +140-180 MB on DuckDB's 4
+  threads and +16 MB on 1 (1.5 s a part instead of 0.75), so the writer uses
+  one. On 20 M synthetic rows the main process peaks ~580 MB over its
+  baseline during the read (~260 MB of it the part being gathered); the old
+  packing step peaked ~1.4 GB, after the read. DuckDB capped at 1 GB,
+  spilling into the index folder.
+- **The count**: download-lichess-month.ps1 saves the month's line of
+  Lichess's standard/counts.txt beside its `.sha256` as `<name>.count`, and
+  run on a month already there it downloads nothing and saves whichever of
+  the two is missing. `rows` reads it first (a bad one stops before the
+  read) and ends `count: 121,332 games, Lichess's counts.txt 121,332:
+  MATCHES`, or SHORT BY n / OVER BY n with exit 1, every file written. The
+  month queue picks the new download script up from May on (each month runs
+  it afresh). Saved by hand: 2013-01 locally (with its `.sha256`), and July
+  (89,288,421), August (91,912,325), September (89,616,462) on the share.
+  June's download began before the change, so it has none yet (TODO).
+- **Proof**: scripts/test-index-month.py (updated) passes: 7,892 games in 8
+  parts of 1,000, MATCHES, `check` 7,892 of 7,892 rows right, `dups` and
+  `trial` run, and a `.count` 13 high gives SHORT BY 13 and exit 1. Six
+  mutations: four went red (rows read without the part's offset, a column
+  filled from 0, `<=` for the count, a part's remainder dropped); two stayed
+  green and are harmless (part order doesn't matter since each piece carries
+  its first game; one only removed a check). 2013-01 in games/index/2013-01:
+  121,332 games, SHA-256 and count matching, all 121,332 fetched byte for
+  byte with their rows right, `dups` as before (120,521 distinct, 1,001 in
+  190 groups), `trial`'s two ways agree; Parquet 2,104,260 bytes, the same
+  as the trial made from the plain columns.
+- scripts/clean-up.ps1 offers an index's old plain columns once it has
+  been indexed again in Parquet (only 2013-01's for now).
+
+**July's re-run failed at 18:35:50, and that was me.** `rows` died with a
+MemoryError unpacking a frame. Windows logged Resource-Exhaustion-Detector
+2004 at 18:35:48 and 18:36:26, just as my memory probes (above) reached ~1.5
+GB of commit. 3.6 GB was free when I started them, but I hadn't checked for
+a running job, and July had started at 18:18 from its own window. The bot
+and the queue's June download came through. The 14:15 index is intact
+except lines.u16 (half rewritten, 549 MB), plus a `tmp/` of raw columns
+(426 MB) the old `rows` left. Restarting it is Matthew's; the repo's
+index-month.cmd now gives the Parquet rows and the count in the same run.

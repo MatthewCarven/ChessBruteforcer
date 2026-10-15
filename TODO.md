@@ -49,7 +49,8 @@ It found **13 games short** of Lichess's counts.txt (89,288,408 v 421): a
 frame's end falling inside an `[Event` line glued that game onto the one
 before, and `check` couldn't see it because `get` joined the same way. Fixed
 in both, with scripts/test-index-month.py. The long duplicates are bots
-(96.8% BOT v BOT). Format: Parquet. **Next: run July again** with the fix
+(96.8% BOT v BOT). Format: Parquet, which `rows` now writes directly, with
+the count against counts.txt printed every run (evening). **Next: run July again** with the fix
 (`scripts\index-month.cmd 2026-07`, ~1.5 h, its own window; the count should
 be 89,288,421), then **Matthew decides where the whole index lives** (~1.27 GB
 of rows a month, ~58 GB for 46 months; laptop ~71 GB free, share ~1.4 TB),
@@ -67,14 +68,36 @@ and lines.u16 (2.9 GB) can go once the re-run is checked.
    [scripts/index-2026-07.txt](scripts/index-2026-07.txt) has it all. Left:
    - [ ] Run July again with the 13-game fix (`scripts\index-month.cmd
          2026-07`, ~1.5 h; log games/index/index-2026-07.log, appended): the
-         count must be 89,288,421 (counts.txt). **Running from 18:18**, from
-         a snapshot of the scripts (WORKLOG says why); done ~19:50.
+         count must be 89,288,421 (counts.txt). Started 18:18 from a snapshot
+         of the scripts (WORKLOG says why); **failed at 18:35:50** for memory
+         (MemoryError in `rows`; Windows low-memory events at 18:35:48 and
+         18:36:26), caused by another session's memory probes running beside
+         it (WORKLOG). To run again: the repo's `scripts\index-month.cmd
+         2026-07` now writes the rows as Parquet and prints `count: ...
+         MATCHES` (or SHORT BY n, which stops the run there); July's `.count`
+         is on the share. The 14:15 index is still there except lines.u16,
+         which the failed run half rewrote (549 MB; the next run writes it
+         afresh). It also left games/index/2026-07/tmp (426 MB of raw columns
+         from the old `rows`), which nothing reads now: Matthew's delete.
    - [ ] Where the whole index lives: Matthew's call.
-   - [ ] `rows` writes Parquet directly (the format chosen), and the plain
-         .zst columns go; compare every month's count with counts.txt
-         automatically (save its line beside the .sha256 when downloading?).
-   - [ ] lines.u16 (2.9 GB) can go once the re-run is checked (Matthew's
-         delete, or scripts/clean-up.ps1).
+   - [x] `rows` writes Parquet directly (10 M games a part, zstd, through
+         DuckDB) and the plain .zst columns are gone; `check`, `dups`,
+         `trial` read the Parquet, and `check` also compares every sampled
+         game's row with the game parsed again. Every month's count is
+         compared with counts.txt automatically: the download saves
+         `<name>.count` beside the `.sha256`, `rows` prints MATCHES or SHORT
+         BY n. Done 2026-10-15 evening (WORKLOG); July-September's `.count`
+         are on the share.
+   - [ ] **June's `.count`**: its download started before the change, so it
+         has none. Once June has landed: `pwsh -File
+         scripts\download-lichess-month.ps1 2026-06 -Dir
+         \\id10terror-desktop\chessbruteforcer\lichess` saves it and
+         downloads nothing (never while June's .part is still growing: it
+         would start a second download). May onwards get theirs as they land.
+   - [ ] lines.u16 (2.9 GB) and July's old plain columns
+         (games/index/2026-07/games, 1.27 GB) can go once the re-run is
+         checked: scripts/clean-up.ps1 offers the columns once the re-run's
+         games.json says Parquet (Matthew's delete).
    - [ ] For the thesis: BOT v BOT games replay whole games (96.8% of the
          duplicates of 41+ plies; 0.46% of all games). Set them apart when
          counting how often positions happen.

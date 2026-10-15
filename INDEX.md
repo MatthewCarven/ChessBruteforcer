@@ -72,10 +72,10 @@ session 5).
 ## Session 1 in full: game pointers (July 2026)
 
 **One script, `scripts/index-month.py`**, run with the global Python 3.14
-(zstd in its standard library, numpy installed). Subcommands:
+(zstd in its standard library, numpy and DuckDB 1.5.6 installed). Subcommands:
 
 ```
-python -I scripts/index-month.py rows  <month .zst> <dir> [--workers 4] [--frames N] [--hash-all 1]
+python -I scripts/index-month.py rows  <month .zst> <dir> [--workers 4] [--frames N] [--hash-all 1] [--lines 16] [--part-rows 10000000]
 python -I scripts/index-month.py get   <month .zst> <dir> <game number>...
 python -I scripts/index-month.py check <month .zst> <dir> [--sample 1000]
 python -I scripts/index-month.py dups  <month .zst> <dir> [--examples 20]
@@ -105,9 +105,13 @@ falling back to walking block headers (code no file needs yet). If the
 share drops mid-read, wait and carry on from the same byte, as
 make-book.py does.
 
-Memory: ~150 MB a worker; the rows go to disk a million games at a time
-(~26 MB), as ~2.3 GB raw for July wouldn't fit in memory beside everything
-else. Watch the commit headroom first: on 2026-10-15 a test with 8 workers,
+Memory: ~150 MB a worker; the rows go to Parquet a part at a time (10 M
+games, ~260 MB while gathered), as ~2.3 GB raw for July wouldn't fit in
+memory beside everything else. The write is on one DuckDB thread: +16 MB
+and 1.5 s a part, against +140-180 MB and 0.75 s on four. Measured on 20 M
+synthetic rows, the main process peaks ~580 MB over its baseline (the plain
+columns' packing step it replaced peaked at ~1.4 GB, the whole fingerprint
+column read and packed at once). Watch the commit headroom first: on 2026-10-15 a test with 8 workers,
 started while the sf2 match ran, met a Windows low-memory event (01:17:37)
 and failed to unpack a frame; the bot and the match were unharmed. The
 Claude app's own processes held 4.8 GB then, and 3.9 GB was free.
@@ -132,8 +136,15 @@ Games starting in frame f: first game of f+1 minus first game of f. A frame
 with no game starting in it (possible with a very long game) has the next
 frame's first game number and is skipped by lookups.
 
-**The rows**, one per game, in file order. The trial (step 5) decides the
-format; the columns are the same either way:
+**The rows**, one per game, in file order, as Parquet (the trial's choice,
+step 5): `parquet/part-NNN.parquet`, 10 M games a part (the last fewer),
+zstd, written through DuckDB as the read goes (DuckDB capped at 1 GB,
+spilling into the index folder). `games.json` lists the parts (file, first
+game, rows, bytes), the dictionaries, each column's size from Parquet's own
+metadata, and the count against Lichess's. Readers take a part at a time:
+a whole column costs only its array and one part's piece. The plain .zst
+columns of the trial went on 2026-10-15 (`scripts/clean-up.ps1` offers an
+old index's once it has been run again). The columns:
 
 | column | type | from the PGN |
 |---|---|---|
@@ -164,6 +175,14 @@ half a pair of different games sharing one, in total, so counts can trust
 it; a duplicate shown as an example is still confirmed by comparing the
 moves.
 
+**The count against Lichess's**: the download saves the month's line of
+Lichess's standard/counts.txt beside it as `<name>.count` (beside its
+`.sha256`; run on a month already there, the download script saves just the
+missing ones). `rows` ends with `count: 89,288,421 games, Lichess's
+counts.txt 89,288,421: MATCHES`, or `SHORT BY n` (or `OVER BY n`) and exit
+1, with every file written for a look. It is the only check that sees a
+lost game: July's first run passed `check` with 13 missing.
+
 ### Step 3: fetching a game by number (`get`, `check`)
 
 `get`: binary search of the frame table for the frame where game g starts;
@@ -173,7 +192,9 @@ the frame's end, read and unpack the next frame too. Print its PGN.
 
 `check`: during the read (step 1), a reservoir of 1,000 game numbers chosen
 at random, each with the SHA-256 of its full PGN text. `check` fetches each
-by number through the frame table and compares. All 1,000 must match.
+by number through the frame table and compares. All 1,000 must match. Each
+one's row (all 11 columns, from the Parquet parts) is also compared with
+the fetched game parsed again, so row n is shown to be game n.
 
 ### Step 4: duplicate games (`dups`)
 
@@ -206,6 +227,11 @@ Keep whichever is smaller and fast enough. DuckDB's pull is that later
 questions (the bow-tie map in session 5) become one SQL line each; plain
 columns' pull is no new dependency and C# can read them directly.
 
+**Chosen 2026-10-15: Parquet** (July: 1,267 v 1,268 MB, the queries 4.8 v
+6.2 s). `rows` writes it directly now, and `trial` runs the same three
+queries on the Parquet rows two ways, SQL in DuckDB and numpy over the
+columns a part at a time, timed and compared, with each column's size.
+
 ### Step 6: the report, and done when
 
 `scripts/index-2026-07.txt` (in git, like the other reports): the month's
@@ -227,7 +253,13 @@ Session 1 is done when:
       game start and the game was glued onto the one before. Fixed in
       `rows` and `get` (both split the joined text at every game start);
       scripts/test-index-month.py cuts real games through every such point.
-      Done when July, run again, counts 89,288,421.
+      Done when July, run again, prints `count: 89,288,421 games, Lichess's
+      counts.txt 89,288,421: MATCHES` (its `.count` is on the share).
+- [x] `rows` writes Parquet directly, and the count against counts.txt is
+      automatic (2026-10-15, evening). The test passes (8 parts of 1,000
+      games; MATCHES, and a `.count` 13 high gives SHORT BY 13); 2013-01:
+      121,332 games, MATCHES, all 121,332 fetched byte for byte with all 11
+      columns of their rows right; `dups` as before; `trial`'s two ways agree.
 - [x] `check` passes on 1,000 random games (and 1,000 cut by a frame's end).
       But `check` compares `rows` with `get`, and they shared the bug: the
       count against counts.txt is the completeness check.

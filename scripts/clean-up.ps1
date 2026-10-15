@@ -6,7 +6,9 @@
 #   - games\*.pgn that have already been imported into a .cbg of the same name
 #     (2026-09-tables.pgn, 2026-09-part-tables.pgn), and the unpacked 2013 PGNs whose .zst is kept;
 #   - a month's download, games\lichess_db_standard_rated_<month>.pgn.zst, but only once
-#     bot\books\counts\<month>.counts exists (the count writes it last, so it is finished).
+#     bot\books\counts\<month>.counts exists (the count writes it last, so it is finished);
+#   - an index's plain .zst columns, games\index\<month>\games\, once the month has been indexed again with
+#     the rows in Parquet (its games.json says "format": "parquet"): nothing reads them since 2026-10-15.
 # Kept: every .cbg, the 2013 .zst downloads (small), the tables, 2026-09-part.cbg (the only copy of all
 # of a 2026 day's games once September's download is gone).
 Set-Location (Split-Path $PSScriptRoot -Parent)
@@ -23,10 +25,19 @@ foreach ($zst in Get-ChildItem games -Filter 'lichess_db_standard_rated_*.pgn.zs
         $offer += [pscustomobject]@{ File = $zst.FullName; GB = $zst.Length / 1GB; Why = "counted into bot\books\counts\$month.counts" }
     }
 }
+foreach ($dir in Get-ChildItem games\index -Directory -ErrorAction SilentlyContinue) {
+    $plain = Join-Path $dir.FullName 'games'
+    $note = Join-Path $dir.FullName 'games.json'
+    if ((Test-Path -LiteralPath $plain) -and (Test-Path -LiteralPath $note) -and
+        ((Get-Content -LiteralPath $note -Raw) -match '"format": "parquet"')) {
+        $bytes = (Get-ChildItem -LiteralPath $plain -File | Measure-Object Length -Sum).Sum
+        $offer += [pscustomobject]@{ File = $plain; GB = $bytes / 1GB; Why = "plain columns of $($dir.Name)'s index; its rows are in Parquet now"; Folder = $true }
+    }
+}
 if ($offer.Count -eq 0) { "Nothing to delete right now."; return }
 $offer | ForEach-Object { '{0,7:N2} GB  {1}  ({2})' -f $_.GB, (Split-Path $_.File -Leaf), $_.Why }
 '{0,7:N2} GB in all; C: has {1:N1} GB free now.' -f ($offer | Measure-Object GB -Sum).Sum, ((Get-PSDrive C).Free / 1GB)
 $answer = Read-Host 'Type YES to delete these'
 if ($answer -ne 'YES') { 'Nothing deleted.'; return }
-foreach ($item in $offer) { Remove-Item -LiteralPath $item.File; "deleted $(Split-Path $item.File -Leaf)" }
+foreach ($item in $offer) { Remove-Item -LiteralPath $item.File -Recurse:([bool]$item.Folder); "deleted $(if ($item.Folder) { $item.File } else { Split-Path $item.File -Leaf })" }
 'C: has {0:N1} GB free now.' -f ((Get-PSDrive C).Free / 1GB)

@@ -1,7 +1,8 @@
 """Game pointers over a Lichess month (INDEX.md, session 1): a frame table into Lichess's own .pgn.zst and one
-row of columns per game, so any game can be fetched by its number and the month counted without reading it.
+row per game in Parquet, so any game can be fetched by its number and the month counted without reading it.
 
     python -I scripts/index-month.py rows  <month .zst> <dir> [--workers 4] [--frames N] [--hash-all 1] [--lines 16]
+                                                             [--part-rows 10000000]
     python -I scripts/index-month.py get   <month .zst> <dir> <game number>...
     python -I scripts/index-month.py check <month .zst> <dir> [--sample 1000]
     python -I scripts/index-month.py dups  <month .zst> <dir> [--examples 20]
@@ -10,26 +11,30 @@ row of columns per game, so any game can be fetched by its number and the month 
 rows: one read of the month, frame by frame, in file order (riding out the share dropping, and checked
 against Lichess's SHA-256 when the whole file is read). Worker processes unpack and parse the frames; a game
 cut by a frame's end is finished from the next frame's start. Games are numbered 0, 1, 2, ... in file order.
-Writes <dir>/frames.cbf (the frame table), <dir>/games/<column>.zst (each column a zstd-packed little-endian
-array) and <dir>/games.json (the columns, their dictionaries, the counts, how the read went). Below-normal
-priority, so the bot's games come first. --frames N reads only the first N frames; --hash-all 1 keeps every
-game's hash for `check` (small months only). --lines N also writes each game's first N moves to
-<dir>/lines.u16 (N two-byte codes a game, 0 once the game has ended; the moves in SAN by code in
-<dir>/lines.json), for the by-moves trial with Matthew's Lookuptables.
+Writes <dir>/frames.cbf (the frame table), <dir>/parquet/part-NNN.parquet (the rows, --part-rows games a part,
+zstd, written through DuckDB a part at a time as the read goes) and <dir>/games.json (the columns, their
+dictionaries, the parts, the counts, how the read went). Then the count: against Lichess's, from the
+<name>.count beside the month (its line of standard/counts.txt, which the download saves), MATCHES, or SHORT
+BY n (or OVER BY n) and exit 1, the files written either way. Below-normal priority, so the bot's games come
+first. --frames N reads only the first N frames; --hash-all 1 keeps every game's hash for `check` (small months
+only). --lines N also writes each game's first N moves to <dir>/lines.u16 (N two-byte codes a game, 0 once the
+game has ended; the moves in SAN by code in <dir>/lines.json), for the by-moves trial with Matthew's
+Lookuptables.
 
 get: a game's PGN by its number, through the frame table: one frame read and unpacked (two if the game runs
 into the next frame).
 
 check: fetches the games `rows` kept a hash of (one random game a frame, and every game cut by a frame's end;
-every game with --hash-all) and compares them byte for byte, up to --sample of each kind (0: all). It checks
-`rows` against `get`, which share the frame joins: a game lost at a join (July 2026 lost 13 before the fix) shows
-only in the count against Lichess's standard/counts.txt. scripts/test-index-month.py tests the joins.
+every game with --hash-all) and compares them byte for byte, and their rows (every column) with the fetched
+game parsed again, up to --sample of each kind (0: all). It checks `rows` against `get`, which share the frame
+joins: a game lost at a join (July 2026 lost 13 before the fix) shows only in the count against Lichess's,
+which `rows` prints. scripts/test-index-month.py tests the joins.
 
 dups: games with exactly the same moves, from the fingerprints: groups, sizes, lengths, endings, and examples
 confirmed by fetching two games of each group and comparing their moves.
 
-trial: the rows as plain columns against Parquet through DuckDB: size, time to write, and three queries timed
-both ways with their answers compared.
+trial: the format trial's three queries (it chose Parquet, 2026-10-15) on the rows, two ways, SQL in DuckDB and
+numpy over the columns a part at a time, timed and their answers compared; and the rows' size column by column.
 
 The game fingerprint: SHA-256 of the moves in SAN as Lichess writes them, joined by single spaces (no move
 numbers, comments, annotation marks or result), the first 8 bytes read little-endian.
@@ -56,6 +61,7 @@ COLUMNS = [                                     # name, numpy type
 ]
 FLAG_EVALS, FLAG_CLOCKS, FLAG_WHITE_BOT, FLAG_BLACK_BOT, FLAG_TOURNAMENT = 1, 2, 4, 8, 16
 SPEEDS = ["ultrabullet", "bullet", "blitz", "rapid", "classical"]   # Lichess: base + 40 x increment < 30 / 180 / 480 / 1500 s
+PART_ROWS = 10_000_000                          # games a Parquet part (rows --part-rows): ~260 MB of rows in memory
 
 
 def options(args, spec):
@@ -88,6 +94,41 @@ def below_normal():
     kernel.SetPriorityClass.restype = ctypes.c_int
     if not kernel.SetPriorityClass(kernel.GetCurrentProcess(), 0x4000):
         print("couldn't set below-normal priority", file=sys.stderr)
+
+
+def duck(folder, threads=4):
+    """DuckDB for a month's index: memory capped at 1 GB (the laptop has ~4 GB of commit headroom), spilling into
+    the index folder rather than the working directory. Imported here, so the worker processes never load it."""
+    import duckdb
+    spill = os.path.join(os.path.abspath(folder), "duckdb-spill")
+    return duckdb.connect(config={"memory_limit": "1GB", "threads": threads, "temp_directory": spill})
+
+
+def quoted(path):
+    """A path as an SQL string."""
+    return "'" + path.replace("'", "''") + "'"
+
+
+def names_sql(names):
+    return ", ".join(f'"{name}"' for name in names)
+
+
+def expected_count(path):
+    """Lichess's game count for a month, from the <name>.count the download saved beside it (its line of
+    standard/counts.txt: the name, a space, the count), or None."""
+    try:
+        with open(path + ".count", encoding="ascii") as f:
+            text = f.read()
+    except OSError:
+        return None
+    try:
+        name, count = text.split()
+        count = int(count)
+    except ValueError:
+        raise SystemExit(f"{path}.count isn't a line of Lichess's counts.txt (the name, a space, the count): {text[:80]!r}")
+    if name != os.path.basename(path):
+        raise SystemExit(f"{path}.count is the count of {name}")
+    return count
 
 
 def month_start(path):
@@ -218,18 +259,24 @@ def frames_of(raw, size, limit):
         number += 1
 
 
-class Columns:
-    """The rows as they come, flushed to one raw file per column every million games."""
+class RowWriter:
+    """The rows as they come, written to Parquet through DuckDB a part at a time (part_rows games each, the last
+    fewer), into <folder>/parquet.new until install() puts them in <folder>/parquet. Only the part being gathered
+    is in memory (~26 bytes a game). The opening moves (--lines) go to their own raw file every million games."""
 
-    def __init__(self, folder, lines_path=None):
-        self.folder = folder
-        os.makedirs(folder, exist_ok=True)
-        self.files = {name: open(os.path.join(folder, name + ".raw"), "wb") for name, _ in COLUMNS}
-        self.parts = {name: [] for name, _ in COLUMNS}
-        self.pending = 0
+    def __init__(self, folder, part_rows, lines_path=None):
+        self.folder, self.part_rows = folder, part_rows
+        self.new = os.path.join(folder, "parquet.new")
+        if os.path.isdir(self.new):                     # left by a read that stopped part-way
+            for old in os.listdir(self.new):
+                os.remove(os.path.join(self.new, old))
+        os.makedirs(self.new, exist_ok=True)
+        self.batches = {name: [] for name, _ in COLUMNS}
+        self.pending = self.written = 0
+        self.parts, self.write_seconds, self.con = [], 0.0, None
         self.term_codes, self.eco_codes = {}, {}
         self.lines = open(lines_path, "wb") if lines_path else None
-        self.line_parts, self.move_codes = [], {}
+        self.line_parts, self.line_pending, self.move_codes = [], 0, {}
 
     def add(self, columns):
         """One batch from as_arrays: its numeric columns, its terminations and ECO codes re-coded into the
@@ -237,56 +284,94 @@ class Columns:
         numeric, terms, ecos, moves = columns
         types = dict(COLUMNS)
         for name, values in zip(NUMERIC, numeric):
-            self.parts[name].append(values)
+            self.batches[name].append(values)
         for name, (distinct, codes), table in (("termination", terms, self.term_codes), ("eco", ecos, self.eco_codes)):
             to_month = np.array([table.setdefault(v, len(table)) for v in distinct], dtype=types[name])
-            self.parts[name].append(to_month[codes] if len(codes) else np.zeros(0, dtype=types[name]))
+            self.batches[name].append(to_month[codes] if len(codes) else np.zeros(0, dtype=types[name]))
+        n = len(numeric[0])
         if self.lines is not None:
             distinct, codes = moves
             to_month = np.array([0] + [self.move_codes.setdefault(m, len(self.move_codes) + 1) for m in distinct])
             if len(self.move_codes) > 65535:
                 raise SystemExit("more than 65,535 different moves in SAN: they don't fit two bytes")
             self.line_parts.append(to_month.astype("<u2")[codes])
-        self.pending += len(numeric[0])
-        if self.pending >= 1_000_000:
-            self.flush()
+            self.line_pending += n
+            if self.line_pending >= 1_000_000:
+                self.flush_lines()
+        self.pending += n
+        if self.pending >= self.part_rows:
+            self.write_parts()
 
-    def flush(self):
-        for name, parts in self.parts.items():
-            if parts:
-                np.concatenate(parts).tofile(self.files[name])
-            parts.clear()
+    def flush_lines(self):
         if self.line_parts:
             np.concatenate(self.line_parts).tofile(self.lines)
             self.line_parts.clear()
-        self.pending = 0
+        self.line_pending = 0
 
-    def finish(self, out_folder):
-        """Pack each column into out_folder/<name>.zst; returns {name: (raw bytes, packed bytes)} and the seconds taken."""
-        self.flush()
-        for f in self.files.values():
-            f.close()
+    def write_parts(self, last=False):
+        """Each full part waiting as a Parquet file; with last, what's left too (an empty part if there are no
+        games at all, so a month always has one)."""
+        types = dict(COLUMNS)
+        while self.pending >= self.part_rows or (last and (self.pending or not self.parts)):
+            take, chunk = min(self.part_rows, self.pending), {}
+            for name, _ in COLUMNS:                     # a column at a time, so the batches go as they're joined
+                waiting = self.batches[name]
+                whole = waiting[0] if len(waiting) == 1 else np.concatenate(waiting) if waiting else np.zeros(0, types[name])
+                chunk[name] = whole[:take]
+                self.batches[name] = [whole[take:]] if len(whole) > take else []
+            if self.con is None:                        # one thread: a 10 M-row part then costs +16 MB and 1.5 s
+                self.con = duck(self.folder, threads=1) # to write, against +140-180 MB and 0.75 s on four (2026-10-15)
+            path = os.path.join(self.new, f"part-{len(self.parts):03}.parquet")
+            t = time.perf_counter()
+            self.con.register("chunk", chunk)
+            self.con.execute(f"COPY (SELECT {names_sql(chunk)} FROM chunk) TO {quoted(path)} (FORMAT parquet, COMPRESSION zstd)")
+            self.con.unregister("chunk")
+            self.write_seconds += time.perf_counter() - t
+            self.parts.append(dict(file=os.path.basename(path), first=self.written, rows=take, bytes=os.path.getsize(path)))
+            self.written += take
+            self.pending -= take
+            del chunk
+
+    def finish(self):
+        """The last part written and the lines file closed; returns {column: packed bytes} over all the parts,
+        from the Parquet files' own metadata."""
+        self.write_parts(last=True)
+        if self.lines is not None:
+            self.flush_lines()
+            self.lines.close()
+        files = "[" + ", ".join(quoted(os.path.join(self.new, p["file"])) for p in self.parts) + "]"
+        sizes = dict(self.con.execute(f"SELECT path_in_schema, sum(total_compressed_size)::BIGINT FROM "
+                                      f"parquet_metadata({files}) GROUP BY path_in_schema").fetchall())
+        self.con.close()
+        return sizes
+
+    def install(self):
+        """The new parts in <folder>/parquet, in place of an earlier run's (or the format trial's)."""
+        final = os.path.join(self.folder, "parquet")
+        os.makedirs(final, exist_ok=True)
+        for old in os.listdir(final):
+            if old.endswith(".parquet"):
+                os.remove(os.path.join(final, old))
+        for part in self.parts:
+            os.replace(os.path.join(self.new, part["file"]), os.path.join(final, part["file"]))
+        os.rmdir(self.new)
+
+    def discard(self):
+        if self.con is not None:
+            self.con.close()
         if self.lines is not None:
             self.lines.close()
-        os.makedirs(out_folder, exist_ok=True)
-        t, sizes = time.perf_counter(), {}
-        for name, _ in COLUMNS:
-            raw_path = os.path.join(self.folder, name + ".raw")
-            with open(raw_path, "rb") as f:
-                data = f.read()
-            packed = zstd.compress(data, 3)
-            with open(os.path.join(out_folder, name + ".zst"), "wb") as f:
-                f.write(packed)
-            sizes[name] = (len(data), len(packed))
-            os.remove(raw_path)
-        os.rmdir(self.folder)
-        return sizes, time.perf_counter() - t
+        for part in os.listdir(self.new):
+            os.remove(os.path.join(self.new, part))
+        os.rmdir(self.new)
 
 
 def rows_command(args):
-    o, args = options(args, {"workers": (4, int), "frames": (10**9, int), "hash-all": (0, int), "lines": (0, int)})
+    o, args = options(args, {"workers": (4, int), "frames": (10**9, int), "hash-all": (0, int), "lines": (0, int),
+                             "part-rows": (PART_ROWS, int)})
     path, folder = args
     keep = o["lines"]
+    lichess_count = expected_count(path)                  # read first: a bad .count stops before the hour's read
     os.makedirs(folder, exist_ok=True)
     below_normal()
     import multiprocessing
@@ -295,7 +380,7 @@ def rows_command(args):
     size = os.path.getsize(path)
     steady = mb.Steady(path)
     raw = io.BufferedReader(steady, 8 << 20)
-    columns = Columns(os.path.join(folder, "tmp"), os.path.join(folder, "lines.u16") if keep else None)
+    columns = RowWriter(folder, o["part-rows"], os.path.join(folder, "lines.u16") if keep else None)
     frame_rows, samples = [], {"interior": [], "boundary": []}
     tail, tail_frame, games = None, -1, 0
     stray = 0
@@ -362,23 +447,42 @@ def rows_command(args):
     expected = mb.expected_sha256(path)
     raw.close()
     if whole and expected and sha != expected:
+        columns.discard()
         raise SystemExit(f"{path}: SHA-256 {sha} isn't Lichess's {expected}; nothing written")
 
+    sizes = columns.finish()
+    if columns.written != games:
+        raise SystemExit(f"wrote {columns.written:,} rows for {games:,} games")
+    note_path = os.path.join(folder, "games.json")
+    if os.path.exists(note_path):                         # an earlier run's: until the new one is written, the
+        os.remove(note_path)                              # folder isn't an index anyone can read half-replaced
     with open(os.path.join(folder, "frames.cbf"), "wb") as f:
         f.write(FRAME_HEAD.pack(FRAME_MAGIC, len(frame_rows), size, bytes.fromhex(sha) if sha else bytes(32)))
         for row in frame_rows:
             f.write(FRAME_ROW.pack(*row))
-    sizes, pack_seconds = columns.finish(os.path.join(folder, "games"))
+    columns.install()
+    parquet_bytes = sum(p["bytes"] for p in columns.parts)
+    if not whole:
+        counted, count_text = None, "read only part of the file (--frames), so not checked"
+    elif lichess_count is None:
+        counted, count_text = None, f"no {os.path.basename(path)}.count beside the month (the download saves it), so not checked"
+    else:
+        counted = games == lichess_count
+        count_text = (f"{games:,} games, Lichess's counts.txt {lichess_count:,}: " +
+                      ("MATCHES" if counted else f"SHORT BY {lichess_count - games:,}" if games < lichess_count
+                       else f"OVER BY {games - lichess_count:,}"))
     note = dict(
         month=os.path.basename(path), file_size=size, sha256=sha, sha256_matches=(sha == expected) if whole and expected else None,
-        whole_file=whole, frames=len(frame_rows), games=games, read_seconds=round(read_seconds, 1),
-        pack_seconds=round(pack_seconds, 2), share_drops=steady.drops, stray_text_before_first_game=stray,
-        columns={name: dict(type=t, raw=sizes[name][0], packed=sizes[name][1]) for name, t in COLUMNS},
+        whole_file=whole, frames=len(frame_rows), games=games, lichess_count=lichess_count, count_matches=counted,
+        read_seconds=round(read_seconds, 1), write_seconds=round(columns.write_seconds, 2), share_drops=steady.drops,
+        stray_text_before_first_game=stray, format="parquet", part_rows=o["part-rows"], parts=columns.parts,
+        parquet_bytes=parquet_bytes,
+        columns={name: dict(type=t, raw=games * np.dtype(t).itemsize, packed=int(sizes.get(name, 0))) for name, t in COLUMNS},
         terminations=[t.decode() for t in sorted(columns.term_codes, key=columns.term_codes.get)],
         ecos=[e.decode() for e in sorted(columns.eco_codes, key=columns.eco_codes.get)],
         samples=samples, hash_all=bool(o["hash-all"]),
     )
-    with open(os.path.join(folder, "games.json"), "w", encoding="utf-8", newline="\n") as f:
+    with open(note_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(note, f)
     if keep:
         with open(os.path.join(folder, "lines.json"), "w", encoding="utf-8", newline="\n") as f:
@@ -386,60 +490,94 @@ def rows_command(args):
                       sorted(columns.move_codes, key=columns.move_codes.get)]), f)
         print(f"lines.u16: the first {keep} moves of each game, {len(columns.move_codes):,} different moves in SAN, "
               f"{os.path.getsize(os.path.join(folder, 'lines.u16')) / 1e6:.1f} MB")
-    packed_total = sum(p for _, p in sizes.values())
     print(f"{path}: {len(frame_rows):,} frames, {games:,} games in {read_seconds:.0f}s "
-          f"({steady.offset / 1e6 / read_seconds:.1f} MB/s); rows {packed_total / 1e6:.1f} MB packed "
-          f"({packed_total / max(games, 1):.2f} bytes a game), packed in {pack_seconds:.1f}s")
+          f"({steady.offset / 1e6 / read_seconds:.1f} MB/s); rows {parquet_bytes / 1e6:.1f} MB of Parquet in "
+          f"{len(columns.parts)} part(s) ({parquet_bytes / max(games, 1):.2f} bytes a game), written in "
+          f"{columns.write_seconds:.1f}s")
     if whole:
         print(f"SHA-256: {'matches Lichess' if expected and sha == expected else 'no .sha256 to check against' if not expected else 'MISMATCH'}")
     else:
         print(f"read {steady.offset:,} of {size:,} bytes (--frames): no SHA-256 check")
+    print(f"count: {count_text}")
     if stray:
         print(f"warning: {stray} frame(s) began with text before any game")
+    if os.path.isdir(os.path.join(folder, "games")):
+        print(f"note: {os.path.join(folder, 'games')} holds plain .zst columns from before the rows went to Parquet; "
+              f"nothing reads them now (scripts/clean-up.ps1 offers them)")
+    if counted is False:
+        raise SystemExit(1)
 
 
-CHUNK = 10_000_000                              # rows at a time, when a month's columns are read in pieces
+CHUNK = 10_000_000                              # rows at a time, when a month's columns are worked in pieces
 
 
-class ColumnReader:
-    """One packed column, unpacked as a stream straight into numpy arrays: a piece at a time, or whole with
-    nothing but the array itself in memory."""
-
-    def __init__(self, folder, name):
-        self.dtype = np.dtype(dict(COLUMNS)[name])
-        self.file = zstd.open(os.path.join(folder, "games", name + ".zst"), "rb")
-
-    def read(self, count):
-        out = np.empty(count, self.dtype)
-        view, got = memoryview(out).cast("B"), 0
-        while got < len(view):
-            n = self.file.readinto(view[got:])
-            if not n:
-                break
-            got += n
-        return out[:got // self.dtype.itemsize]
-
-    def close(self):
-        self.file.close()
+def read_note(folder):
+    """A month's games.json, refusing one from before the rows went to Parquet, or one whose parts don't match."""
+    path = os.path.join(folder, "games.json")
+    if not os.path.exists(path):
+        raise SystemExit(f"{path} isn't there: run rows (an index whose rows stopped part-way has none)")
+    with open(path, encoding="utf-8") as f:
+        note = json.load(f)
+    if note.get("format") != "parquet":
+        raise SystemExit(f"{folder} was indexed before the rows went to Parquet (plain .zst columns): run rows again")
+    for part in note["parts"]:
+        p = os.path.join(folder, "parquet", part["file"])
+        if not os.path.exists(p) or os.path.getsize(p) != part["bytes"]:
+            raise SystemExit(f"{p} isn't the part rows wrote ({part['bytes']:,} bytes)")
+    return note
 
 
-def load_column(folder, name, games):
-    reader = ColumnReader(folder, name)
+def part_paths(folder, note):
+    return [os.path.join(folder, "parquet", part["file"]) for part in note["parts"]]
+
+
+def column_pieces(folder, note, names):
+    """(first game, {name: array}) for each Parquet part in order: the named columns, a part at a time."""
+    types = dict(COLUMNS)
+    con = duck(folder)
     try:
-        return reader.read(games)
+        for part, path in zip(note["parts"], part_paths(folder, note)):
+            got = con.execute(f"SELECT {names_sql(names)} FROM read_parquet({quoted(path)})").fetchnumpy()
+            piece = {name: np.asarray(got[name], dtype=types[name]) for name in names}
+            del got
+            if any(len(a) != part["rows"] for a in piece.values()):
+                raise SystemExit(f"{path} gave {len(next(iter(piece.values()))):,} rows, not {part['rows']:,}")
+            yield part["first"], piece
     finally:
-        reader.close()
+        con.close()
 
 
-def column_chunks(folder, names, games, size=CHUNK):
-    """(first row, {name: array}) for each piece of `size` rows of the named columns, in order."""
-    readers = {name: ColumnReader(folder, name) for name in names}
+def load_column(folder, note, name):
+    """One column whole, filled a part at a time: the array and one part's piece in memory."""
+    out = np.empty(note["games"], dict(COLUMNS)[name])
+    for first, piece in column_pieces(folder, note, [name]):
+        out[first:first + len(piece[name])] = piece[name]
+    return out
+
+
+def rows_of(folder, note, numbers):
+    """Every column of the games numbered `numbers` (distinct, ascending), from the parts that hold them."""
+    numbers = np.asarray(numbers, np.int64)
+    out = {name: np.zeros(len(numbers), t) for name, t in COLUMNS}
+    con = duck(folder)
     try:
-        for start in range(0, games, size):
-            yield start, {name: r.read(min(size, games - start)) for name, r in readers.items()}
+        for part, path in zip(note["parts"], part_paths(folder, note)):
+            lo, hi = np.searchsorted(numbers, [part["first"], part["first"] + part["rows"]])
+            if lo == hi:
+                continue
+            wanted = numbers[lo:hi] - part["first"]
+            con.register("wanted", {"r": wanted})
+            got = con.execute(f"SELECT file_row_number, {names_sql(name for name, _ in COLUMNS)} FROM read_parquet("
+                              f"{quoted(path)}, file_row_number = true) JOIN wanted ON file_row_number = r "
+                              f"ORDER BY file_row_number").fetchnumpy()
+            con.unregister("wanted")
+            if not np.array_equal(got["file_row_number"], wanted):
+                raise SystemExit(f"{path}: games {numbers[lo]:,} to {numbers[hi - 1]:,} aren't all there")
+            for name, _ in COLUMNS:
+                out[name][lo:hi] = got[name]
     finally:
-        for r in readers.values():
-            r.close()
+        con.close()
+    return out
 
 
 def duplicate_groups(fp):
@@ -480,15 +618,19 @@ class Index:
             self.frames = [FRAME_ROW.unpack(f.read(FRAME_ROW.size)) for _ in range(count)]
         if os.path.getsize(path) != size:
             raise SystemExit(f"{path} is {os.path.getsize(path):,} bytes; the frame table was made from one of {size:,}")
-        with open(os.path.join(folder, "games.json"), encoding="utf-8") as f:
-            self.note = json.load(f)
+        self.note = read_note(folder)
+        if self.note["frames"] != count:
+            raise SystemExit(f"{folder}: games.json has {self.note['frames']:,} frames, frames.cbf {count:,}")
         self.first = [row[3] for row in self.frames]
         self.cache = OrderedDict()                      # frame number -> (text, game starts)
         self.file = open(path, "rb")
         self.frame_reads = 0
 
     def column(self, name):
-        return load_column(self.folder, name, self.note["games"])
+        return load_column(self.folder, self.note, name)
+
+    def rows(self, numbers):
+        return rows_of(self.folder, self.note, numbers)
 
     def frame(self, number):
         if number in self.cache:
@@ -555,22 +697,32 @@ def check_command(args):
         with open(os.path.join(folder, "lines.json"), encoding="utf-8") as f:
             lines = json.load(f)
         table = np.fromfile(os.path.join(folder, "lines.u16"), dtype="<u2").reshape(-1, lines["plies"])
+    start_ordinal = month_start(path)
+    terminations, ecos = index.note["terminations"], index.note["ecos"]
     for kind in ("interior", "boundary"):
         kept = index.note["samples"][kind]
         chosen = kept if o["sample"] <= 0 or o["sample"] >= len(kept) else random.Random(1).sample(kept, o["sample"])
-        chosen.sort()
-        wrong, wrong_lines = [], []
-        for n, h in chosen:
+        chosen = sorted(set(map(tuple, chosen)))
+        stored = index.rows([n for n, _ in chosen])
+        wrong, wrong_lines, wrong_rows = [], [], []
+        for i, (n, h) in enumerate(chosen):
             text = index.game(n)
             if hashlib.sha256(text).hexdigest() != h:
                 wrong.append(n)
+            row, term, eco, moves = parse_game(text, start_ordinal)
+            if (any(int(stored[name][i]) != value for name, value in zip(NUMERIC, row))
+                    or terminations[stored["termination"][i]] != term.decode()
+                    or ecos[stored["eco"][i]] != eco.decode()):
+                wrong_rows.append(n)
             if lines is not None:
                 saved = [lines["moves"][c] for c in table[n] if c]
-                if saved != [m.decode() for m in sans(text.partition(b"\n\n")[2])[:lines["plies"]]]:
+                if saved != [m.decode() for m in moves[:lines["plies"]]]:
                     wrong_lines.append(n)
-        bad += len(wrong) + len(wrong_lines)
+        bad += len(wrong) + len(wrong_lines) + len(wrong_rows)
         print(f"{kind}: {len(chosen) - len(wrong):,} of {len(chosen):,} games fetched by number match the read"
               + (f"; wrong: {wrong[:10]}" if wrong else ""))
+        print(f"{kind}: {len(chosen) - len(wrong_rows):,} of {len(chosen):,} have their row right (all {len(COLUMNS)} "
+              f"columns, against the game fetched and parsed again)" + (f"; wrong: {wrong_rows[:10]}" if wrong_rows else ""))
         if lines is not None:
             print(f"{kind}: {len(chosen) - len(wrong_lines):,} of {len(chosen):,} have their first {lines['plies']} moves "
                   f"saved right" + (f"; wrong: {wrong_lines[:10]}" if wrong_lines else ""))
@@ -622,55 +774,35 @@ def dups_command(args):
 
 
 def trial_command(args):
-    import duckdb
     (folder,) = args
-    with open(os.path.join(folder, "games.json"), encoding="utf-8") as f:
-        note = json.load(f)
-    plain = sum(c["packed"] for c in note["columns"].values())
+    note = read_note(folder)
     games = note["games"]
-    # DuckDB gets the memory a month's rows would otherwise need at once (~2.3 GB for July) capped at 1 GB,
-    # spilling into the index folder rather than the working directory.
-    spill = os.path.join(os.path.abspath(folder), "duckdb-spill")
-    config = {"memory_limit": "1GB", "threads": 4, "temp_directory": spill}
+    parquet_size = note["parquet_bytes"]
 
     def speed_of(base, inc):
         return np.digitize(base.astype(np.int64) + 40 * inc.astype(np.int64), [30, 180, 480, 1500])
 
-    def plain_queries():
+    def numpy_queries():
         q1, q2 = np.zeros(20, np.int64), 0
-        for _, c in column_chunks(folder, ["clock_base", "increment", "result", "plies", "white_elo", "black_elo"], games):
+        for _, c in column_pieces(folder, note, ["clock_base", "increment", "result", "plies", "white_elo", "black_elo"]):
             q1 += np.bincount(speed_of(c["clock_base"], c["increment"]) * 4 + c["result"], minlength=20)
             q2 += int(((c["plies"] <= 20) & (c["white_elo"] >= 2000) & (c["black_elo"] >= 2000)).sum())
-        _, counts, _ = duplicate_groups(load_column(folder, "fingerprint", games))
+        _, counts, _ = duplicate_groups(load_column(folder, note, "fingerprint"))
         sizes, groups = np.unique(counts, return_counts=True)
         return q1.reshape(5, 4), q2, {int(s): int(g) for s, g in zip(sizes, groups)}
 
-    # Parquet: a part file per piece of rows, read back as one table.
-    parts = os.path.join(folder, "parquet")
-    os.makedirs(parts, exist_ok=True)
-    for old in os.listdir(parts):
-        os.remove(os.path.join(parts, old))
-    t = time.perf_counter()
-    con = duckdb.connect(config=config)
-    for i, (_, chunk) in enumerate(column_chunks(folder, [name for name, _ in COLUMNS], games)):
-        part = os.path.join(parts, f"part-{i:03}.parquet").replace("'", "''")
-        con.register("chunk", chunk)
-        con.execute(f"COPY (SELECT * FROM chunk) TO '{part}' (FORMAT parquet, COMPRESSION zstd)")
-        con.unregister("chunk")
-    con.close()
-    write_seconds = time.perf_counter() - t
-    parquet_size = sum(os.path.getsize(os.path.join(parts, f)) for f in os.listdir(parts))
-
-    def parquet_queries():
-        con = duckdb.connect(config=config)
-        p = os.path.join(parts, "*.parquet").replace("'", "''")
+    def sql_queries():
+        # DuckDB gets the memory the fingerprints' group-by would otherwise take (~0.7 GB of keys for July) capped
+        # at 1 GB, spilling into the index folder.
+        con = duck(folder)
+        p = "read_parquet([" + ", ".join(quoted(x) for x in part_paths(folder, note)) + "])"
         est = "(clock_base::INTEGER + 40 * increment::INTEGER)"
         speed = f"CASE WHEN {est} < 30 THEN 0 WHEN {est} < 180 THEN 1 WHEN {est} < 480 THEN 2 WHEN {est} < 1500 THEN 3 ELSE 4 END"
         q1 = np.zeros((5, 4), np.int64)
-        for s, r, k in con.execute(f"SELECT {speed} AS s, result, count(*) FROM '{p}' GROUP BY s, result").fetchall():
+        for s, r, k in con.execute(f"SELECT {speed} AS s, result, count(*) FROM {p} GROUP BY s, result").fetchall():
             q1[s, r] = k
-        q2 = con.execute(f"SELECT count(*) FROM '{p}' WHERE plies <= 20 AND white_elo >= 2000 AND black_elo >= 2000").fetchone()[0]
-        q3 = dict(con.execute(f"SELECT n, count(*) FROM (SELECT count(*) AS n FROM '{p}' GROUP BY fingerprint) "
+        q2 = con.execute(f"SELECT count(*) FROM {p} WHERE plies <= 20 AND white_elo >= 2000 AND black_elo >= 2000").fetchone()[0]
+        q3 = dict(con.execute(f"SELECT n, count(*) FROM (SELECT count(*) AS n FROM {p} GROUP BY fingerprint) "
                               f"WHERE n > 1 GROUP BY n").fetchall())
         con.close()
         return q1, q2, q3
@@ -684,15 +816,20 @@ def trial_command(args):
             best = s if best is None else min(best, s)
         return best, answer
 
-    pt, pa = timed(plain_queries)
-    qt, qa = timed(parquet_queries)
+    pt, pa = timed(numpy_queries)
+    qt, qa = timed(sql_queries)
     same = np.array_equal(pa[0], qa[0]) and pa[1] == qa[1] and pa[2] == qa[2]
-    print(f"{games:,} games")
-    print(f"{'':28} {'plain columns':>14} {'Parquet (DuckDB)':>17}")
-    print(f"{'size on disk':28} {plain / 1e6:>11.1f} MB {parquet_size / 1e6:>14.1f} MB")
-    print(f"{'bytes a game':28} {plain / games:>14.2f} {parquet_size / games:>17.2f}")
-    print(f"{'time to write':28} {note['pack_seconds']:>13.2f}s {write_seconds:>16.2f}s   (plain: packing the columns; Parquet: from the plain columns)")
-    print(f"{'three queries (best of 3)':28} {pt:>13.2f}s {qt:>16.2f}s   (each loading what it needs from disk)")
+    print(f"{games:,} games; rows {parquet_size / 1e6:.1f} MB of Parquet in {len(note['parts'])} part(s), "
+          f"{parquet_size / max(games, 1):.2f} bytes a game, written in {note['write_seconds']:.2f}s during the read")
+    packed = sum(c["packed"] for c in note["columns"].values())
+    print(f"\n{'column':12} {'raw MB':>9} {'packed MB':>10} {'bytes a game':>13} {'share':>7}")
+    for name, c in note["columns"].items():
+        print(f"{name:12} {c['raw'] / 1e6:>9.1f} {c['packed'] / 1e6:>10.1f} {c['packed'] / max(games, 1):>13.2f} "
+              f"{100 * c['packed'] / max(packed, 1):>6.1f}%")
+    print(f"{'all':12} {sum(c['raw'] for c in note['columns'].values()) / 1e6:>9.1f} {packed / 1e6:>10.1f} "
+          f"{packed / max(games, 1):>13.2f}   (the rest of the files, {(parquet_size - packed) / 1e6:.2f} MB, is Parquet's own)")
+    print(f"\nthree queries (best of 3): SQL in DuckDB {qt:.2f}s, numpy over the columns {pt:.2f}s (each reading what it "
+          f"needs from disk)")
     print(f"answers agree: {'yes' if same else 'NO'}")
     print("\ngames by speed and result (white won / black won / drawn / unfinished):")
     for i, name in enumerate(SPEEDS):
