@@ -2034,7 +2034,7 @@ GiB. Measured on the share, eight 30 s readings from 17:41:32: 501, 499,
 (4.15 GB to go at 17:45) lands about 20:00, then its count. Matthew pushed
 to 8f714fc (ls-remote agrees).
 
-## 2026-10-15 (18:00-18:40): July's index written up; 13 games a frame cut lost
+## 2026-10-15 (17:57-18:15): July's index written up; 13 games a frame cut lost
 
 [scripts/index-2026-07.txt](scripts/index-2026-07.txt) has the whole run:
 the read, the columns, check, dups, the trial and the lines trial.
@@ -2070,3 +2070,10 @@ the read, the columns, check, dups, the trial and the lines trial.
 
 Next: July again with the fix (~1.5 h, its own window), then where the
 whole index lives (Matthew's call).
+
+**July running again, from 18:18** on Matthew's yes, in its own window. It
+runs index-month.py and make-book.py from a snapshot of ee66600 in the
+scratchpad (a copy of index-month.cmd beside them, output and log to the
+repo as usual: games/index/index-2026-07.log, appended), because another
+session is moving `rows` to Parquet in this checkout meanwhile, and each of
+the five steps starts the script afresh. lines-trial.cs runs from the repo.

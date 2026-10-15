@@ -44,7 +44,7 @@ the "DAMAGED" at 04:54 was the share going away. `start.cmd` ran at 09:12:
 the bot, the learner and the queue are up; the queue marked August and
 July done and is downloading June (28.2 GB). **July's index run finished
 at 14:54, every check passing** (results in WORKLOG, "July's index run").
-**Written up 18:30** as [scripts/index-2026-07.txt](scripts/index-2026-07.txt).
+**Written up 18:14** as [scripts/index-2026-07.txt](scripts/index-2026-07.txt).
 It found **13 games short** of Lichess's counts.txt (89,288,408 v 421): a
 frame's end falling inside an `[Event` line glued that game onto the one
 before, and `check` couldn't see it because `get` joined the same way. Fixed
@@ -67,7 +67,8 @@ and lines.u16 (2.9 GB) can go once the re-run is checked.
    [scripts/index-2026-07.txt](scripts/index-2026-07.txt) has it all. Left:
    - [ ] Run July again with the 13-game fix (`scripts\index-month.cmd
          2026-07`, ~1.5 h; log games/index/index-2026-07.log, appended): the
-         count must be 89,288,421 (counts.txt).
+         count must be 89,288,421 (counts.txt). **Running from 18:18**, from
+         a snapshot of the scripts (WORKLOG says why); done ~19:50.
    - [ ] Where the whole index lives: Matthew's call.
    - [ ] `rows` writes Parquet directly (the format chosen), and the plain
          .zst columns go; compare every month's count with counts.txt
