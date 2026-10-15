@@ -1,0 +1,384 @@
+2026-10-15 22:27:03: 31 positions to depth 12, 2 rounds, arms 1,R2,R4,R8,R16,L16, hash 64 MB, range step 15 cp, overlap 10 cp
+0   0 1       7401.2 ms    13,675,218 nodes 1848 knps  f3g5       86
+0   0 R2      5957.8 ms    20,978,036 nodes 3521 knps  f3g5       84
+0   0 R4      3574.1 ms    19,895,930 nodes 5567 knps  f3g5       84
+0   0 R8      2875.3 ms    22,708,251 nodes 7898 knps  f3g5       88
+0   0 R16     2751.6 ms    25,004,352 nodes 9087 knps  f3g5       88
+0   0 L16     3325.9 ms    54,465,838 nodes 16376 knps  f3g5       83
+0   1 1       3971.6 ms     7,600,891 nodes 1914 knps  d1f2     -172
+0   1 R2      2849.4 ms    10,376,032 nodes 3641 knps  d1f2     -172
+0   1 R4      1761.1 ms    10,926,215 nodes 6204 knps  d1f2     -172
+0   1 R8      2019.7 ms    17,924,156 nodes 8874 knps  d1f2     -166
+0   1 R16     1795.4 ms    14,958,875 nodes 8332 knps  d1f2     -170  (1 fallbacks)
+0   1 L16     2131.4 ms    36,635,264 nodes 17188 knps  d1f2     -172
+0   2 1        329.7 ms       821,108 nodes 2490 knps  e8f8      998
+0   2 R2       266.6 ms     1,048,883 nodes 3935 knps  e8f8     1001
+0   2 R4       271.2 ms     1,494,507 nodes 5512 knps  e8f8      998
+0   2 R8       196.1 ms     2,498,465 nodes 12740 knps  e8f8      998
+0   2 R16      237.4 ms     3,245,921 nodes 13672 knps  e8f8      998  (1 fallbacks)
+0   2 L16      250.5 ms     5,305,149 nodes 21179 knps  e8f8      998
+0   3 1       5104.7 ms     9,075,683 nodes 1778 knps  e3c5      -11
+0   3 R2      2273.6 ms     8,470,217 nodes 3725 knps  e3c5        2
+0   3 R4      2824.9 ms    14,206,623 nodes 5029 knps  e3c5      -15
+0   3 R8       972.9 ms     8,942,915 nodes 9192 knps  e3c5       13
+0   3 R16     1573.9 ms    13,173,958 nodes 8371 knps  e3c5       13
+0   3 L16     1225.3 ms    19,624,063 nodes 16015 knps  e3c5       13
+0   4 1       5819.7 ms    11,281,558 nodes 1939 knps  b6b7     1510
+0   4 R2      4384.2 ms    10,528,121 nodes 2401 knps  b6b7     1500
+0   4 R4      3325.0 ms    12,056,023 nodes 3626 knps  c6d5     1494
+0   4 R8      2357.8 ms    14,244,889 nodes 6042 knps  b6b7     1510  (1 fallbacks)
+0   4 R16     2542.6 ms    20,909,800 nodes 8224 knps  b6b7     1489
+0   4 L16     2476.5 ms    41,454,463 nodes 16739 knps  b6b7     1512
+0   5 1       7826.3 ms    14,365,496 nodes 1836 knps  e1e3       93
+0   5 R2      7039.9 ms    17,395,553 nodes 2471 knps  e1e3       77  (1 fallbacks)
+0   5 R4      5710.0 ms    15,014,522 nodes 2630 knps  e1e3       91  (3 fallbacks)
+0   5 R8      6512.8 ms    22,883,209 nodes 3514 knps  e1e3      110  (2 fallbacks)
+0   5 R16     2979.0 ms    21,449,131 nodes 7200 knps  e1e3      110  (2 fallbacks)
+0   5 L16     3623.3 ms    58,930,060 nodes 16264 knps  e1e3      110
+0   6 1       4499.4 ms     7,303,290 nodes 1623 knps  c1e3        6
+0   6 R2      2930.4 ms     9,533,709 nodes 3253 knps  c1e3        4
+0   6 R4      2613.7 ms    11,475,256 nodes 4390 knps  c1e3        2
+0   6 R8      2543.5 ms    13,128,020 nodes 5161 knps  c1e3        4
+0   6 R16     2663.9 ms    12,764,707 nodes 4792 knps  c1e3        8
+0   6 L16     1956.9 ms    23,483,698 nodes 12001 knps  c1e3        8
+0   7 1       2997.1 ms     6,030,244 nodes 2012 knps  c1g5      171
+0   7 R2      3281.1 ms     9,991,588 nodes 3045 knps  c1g5      162
+0   7 R4      1766.8 ms     8,118,101 nodes 4595 knps  c1g5      177
+0   7 R8       961.6 ms    10,573,408 nodes 10996 knps  c1g5      171
+0   7 R16     1209.9 ms    14,858,871 nodes 12281 knps  c1g5      171
+0   7 L16     3559.7 ms    53,759,696 nodes 15103 knps  c1g5      162
+0   8 1        675.9 ms     1,586,460 nodes 2347 knps  g4g3     -142
+0   8 R2       359.3 ms     1,665,985 nodes 4637 knps  g4g3     -142
+0   8 R4       291.3 ms     2,282,227 nodes 7834 knps  g4g3     -146
+0   8 R8       203.4 ms     2,150,753 nodes 10575 knps  g4g3     -142
+0   8 R16      253.5 ms     3,702,116 nodes 14606 knps  g4g3     -142
+0   8 L16      299.4 ms     5,945,459 nodes 19857 knps  g4g3     -142
+0   9 1       2138.7 ms     4,402,394 nodes 2058 knps  a1c1       48
+0   9 R2      1816.9 ms     6,129,316 nodes 3374 knps  f2f3       32
+0   9 R4      1376.4 ms     6,404,866 nodes 4653 knps  f1c4       44  (1 fallbacks)
+0   9 R8      1793.3 ms    11,554,452 nodes 6443 knps  f2f3       24  (1 fallbacks)
+0   9 R16     1796.5 ms    11,456,950 nodes 6377 knps  a1c1       48  (1 fallbacks)
+0   9 L16     1488.6 ms    23,756,609 nodes 15959 knps  a1c1       48
+0  10 1       3607.8 ms     6,073,621 nodes 1683 knps  f3e5       85
+0  10 R2      3453.5 ms    11,409,134 nodes 3304 knps  c2c3       71
+0  10 R4      2594.5 ms    10,968,191 nodes 4227 knps  f3e5       81
+0  10 R8      2208.6 ms    11,328,790 nodes 5129 knps  f3e5       86
+0  10 R16     4548.4 ms    14,249,924 nodes 3133 knps  f3e5       93  (1 fallbacks)
+0  10 L16     2341.2 ms    30,887,947 nodes 13193 knps  f3e5       85
+0  11 1       9818.5 ms    20,284,515 nodes 2066 knps  f3f5      379
+0  11 R2      8116.8 ms    28,431,549 nodes 3503 knps  f3f5      379
+0  11 R4      6113.7 ms    27,452,503 nodes 4490 knps  f3f5      371
+0  11 R8     33663.6 ms    92,824,476 nodes 2757 knps  f3f5      379  (1 fallbacks)
+0  11 R16     3522.9 ms    47,350,075 nodes 13441 knps  f3f5      379
+0  11 L16     6505.5 ms   128,062,949 nodes 19685 knps  f3f5      381
+0  12 1       7420.5 ms    13,268,463 nodes 1788 knps  e3d4     -129
+0  12 R2      2083.3 ms     7,287,058 nodes 3498 knps  e3d4      -95
+0  12 R4      3764.1 ms    18,733,494 nodes 4977 knps  e3d4     -129  (1 fallbacks)
+0  12 R8      3142.6 ms    19,950,070 nodes 6348 knps  e3d4     -128  (1 fallbacks)
+0  12 R16     1510.6 ms    13,683,754 nodes 9059 knps  e3d4      -95
+0  12 L16     4438.8 ms    66,096,787 nodes 14891 knps  e3d4     -131
+0  13 1      17365.0 ms    29,214,870 nodes 1682 knps  f3d4       37
+0  13 R2     10831.1 ms    36,389,677 nodes 3360 knps  f3d4       38
+0  13 R4      4386.1 ms    24,426,754 nodes 5569 knps  f3d4       41
+0  13 R8      5950.7 ms    32,718,885 nodes 5498 knps  f3d4       41
+0  13 R16     7446.2 ms    44,514,541 nodes 5978 knps  f3d4       41
+0  13 L16     6382.7 ms    87,987,044 nodes 13785 knps  f3d4       45
+0  14 1       9319.9 ms    17,631,950 nodes 1892 knps  h2h3     -349
+0  14 R2      7902.9 ms    18,653,318 nodes 2360 knps  g2g4     -372  (1 fallbacks)
+0  14 R4      5882.1 ms    18,099,179 nodes 3077 knps  h2h3     -346  (2 fallbacks)
+0  14 R8     21204.6 ms    64,763,075 nodes 3054 knps  h2h3     -439  (4 fallbacks)
+0  14 R16    17508.9 ms    61,482,285 nodes 3511 knps  h2h3     -398  (4 fallbacks)
+0  14 L16    15384.5 ms   245,879,935 nodes 15982 knps  g2g4     -378
+0  15 1       7592.2 ms    12,870,848 nodes 1695 knps  f3e5       52
+0  15 R2      3801.2 ms    11,401,285 nodes 2999 knps  f3e5       53
+0  15 R4      2711.5 ms    14,857,337 nodes 5479 knps  f3e5       59
+0  15 R8      2897.1 ms    17,825,643 nodes 6153 knps  f3e5       53
+0  15 R16     2716.4 ms    18,256,541 nodes 6721 knps  f3e5       59
+0  15 L16     8957.9 ms   125,252,014 nodes 13982 knps  f3e5       63
+0  16 1       8874.7 ms    13,929,490 nodes 1570 knps  e1e2     -140
+0  16 R2      2330.2 ms     5,661,189 nodes 2429 knps  e1e2      -79
+0  16 R4      1098.9 ms     6,820,267 nodes 6206 knps  e1e2      -77
+0  16 R8       817.1 ms     6,706,426 nodes 8208 knps  e1e2      -77
+0  16 R16      826.7 ms     7,920,431 nodes 9581 knps  e1e2      -75
+0  16 L16     4108.8 ms    54,703,834 nodes 13314 knps  e1e2     -133
+0  17 1       2955.4 ms     5,402,813 nodes 1828 knps  a6c4      -61
+0  17 R2      1630.1 ms     5,760,203 nodes 3534 knps  a6c4      -54
+0  17 R4      1799.4 ms     8,535,117 nodes 4743 knps  a6c4      -36
+0  17 R8      1300.8 ms     8,439,595 nodes 6488 knps  a6c4      -61  (1 fallbacks)
+0  17 R16     2612.2 ms    12,434,226 nodes 4760 knps  a6c4      -39  (1 fallbacks)
+0  17 L16     1978.4 ms    29,031,382 nodes 14674 knps  a6c4      -54
+0  18 1      13387.3 ms    23,020,668 nodes 1720 knps  b2b4     -110
+0  18 R2      6521.6 ms    18,318,218 nodes 2809 knps  f1c1     -105
+0  18 R4      2971.2 ms    15,837,547 nodes 5330 knps  f1e1      -98
+0  18 R8      5856.8 ms    25,152,970 nodes 4295 knps  f1c1      -92
+0  18 R16     3445.3 ms    25,426,425 nodes 7380 knps  f1e1     -101
+0  18 L16     4736.9 ms    74,484,347 nodes 15724 knps  f1c1      -94
+0  19 1       1685.7 ms     3,524,965 nodes 2091 knps  a1a6      -86
+0  19 R2      1621.5 ms     5,604,744 nodes 3457 knps  a1a6      -86  (1 fallbacks)
+0  19 R4      2034.7 ms    10,661,824 nodes 5240 knps  a1a6      -85  (2 fallbacks)
+0  19 R8      1350.8 ms    10,756,516 nodes 7963 knps  a1a6      -90
+0  19 R16     2204.8 ms    19,335,901 nodes 8770 knps  a1a6     -102
+0  19 L16      939.1 ms    18,382,294 nodes 19575 knps  a1a6      -95
+0  20 1       4246.3 ms     7,681,522 nodes 1809 knps  a1f1      442
+0  20 R2      1954.9 ms     5,137,188 nodes 2628 knps  a1f1      395  (1 fallbacks)
+0  20 R4      1239.3 ms     6,070,444 nodes 4898 knps  a1f1      414
+0  20 R8      1096.4 ms     6,391,662 nodes 5830 knps  a1f1      395  (1 fallbacks)
+0  20 R16     1235.3 ms     7,985,994 nodes 6465 knps  a1f1      411  (2 fallbacks)
+0  20 L16     2424.0 ms    35,878,335 nodes 14801 knps  a1f1      405
+0  21 1        724.8 ms     1,615,845 nodes 2229 knps  c1c5      106
+0  21 R2       712.4 ms     2,474,437 nodes 3473 knps  d2h6      109
+0  21 R4       866.2 ms     3,694,867 nodes 4266 knps  d2h6      114  (1 fallbacks)
+0  21 R8       667.5 ms     4,947,232 nodes 7411 knps  d2f4       95
+0  21 R16      611.9 ms     4,230,111 nodes 6913 knps  d2h6      110
+0  21 L16      719.9 ms    12,960,566 nodes 18002 knps  d2h6      110
+0  22 1      13593.3 ms    23,257,408 nodes 1711 knps  f1e1      -43
+0  22 R2      3392.3 ms    12,574,064 nodes 3707 knps  d2d1      -42
+0  22 R4      1599.2 ms     9,490,072 nodes 5934 knps  d2d1      -42
+0  22 R8      2956.1 ms    17,338,961 nodes 5865 knps  f1e1      -45
+0  22 R16     1952.8 ms    14,135,767 nodes 7239 knps  f1e1      -43
+0  22 L16     5020.9 ms    76,238,271 nodes 15184 knps  f1e1      -52
+0  23 1       1960.6 ms     3,932,310 nodes 2006 knps  b2b3     -194
+0  23 R2      1110.0 ms     3,321,792 nodes 2993 knps  b2b3     -200
+0  23 R4      1230.6 ms     5,592,991 nodes 4545 knps  b2b3     -194
+0  23 R8       522.6 ms     5,125,222 nodes 9808 knps  b2b3     -200
+0  23 R16      568.7 ms     7,763,069 nodes 13651 knps  b2b3     -200
+0  23 L16      821.8 ms    14,997,914 nodes 18250 knps  b2b3     -195
+0  24 1       5331.0 ms     8,846,578 nodes 1659 knps  f3g3       94
+0  24 R2      2222.9 ms     7,582,089 nodes 3411 knps  f3g3      100
+0  24 R4      1824.3 ms     9,908,870 nodes 5432 knps  f3g3      100
+0  24 R8      2292.3 ms    12,496,846 nodes 5452 knps  f3g3      100
+0  24 R16     2300.8 ms    15,270,125 nodes 6637 knps  f3g3      100
+0  24 L16     2095.4 ms    29,228,652 nodes 13949 knps  f3g3       98
+0  25 1       1290.7 ms     2,664,964 nodes 2065 knps  c1c6      409
+0  25 R2       893.1 ms     3,586,805 nodes 4016 knps  c1c6      409
+0  25 R4       569.3 ms     3,668,219 nodes 6444 knps  c1c6      409
+0  25 R8       513.7 ms     4,637,489 nodes 9028 knps  c1c6      409
+0  25 R16      478.1 ms     5,165,647 nodes 10805 knps  c1c6      409
+0  25 L16      666.5 ms    11,831,616 nodes 17752 knps  c1c6      409
+0  26 1       8125.1 ms    14,759,584 nodes 1817 knps  e4g5     -102
+0  26 R2      8278.5 ms    21,278,155 nodes 2570 knps  e4g5     -139
+0  26 R4      5833.2 ms    22,737,974 nodes 3898 knps  e4g5     -102
+0  26 R8      1822.1 ms    18,721,456 nodes 10275 knps  e4g5     -139
+0  26 R16     2651.7 ms    22,700,049 nodes 8560 knps  e4g5     -139  (1 fallbacks)
+0  26 L16    10367.6 ms   175,792,781 nodes 16956 knps  e4g5      -90
+0  27 1       6813.2 ms    11,177,621 nodes 1641 knps  f3f4       13
+0  27 R2      4418.5 ms    12,822,267 nodes 2902 knps  f3f4       14
+0  27 R4      3065.8 ms    15,650,725 nodes 5105 knps  f3f4       14  (1 fallbacks)
+0  27 R8      2654.1 ms    15,815,196 nodes 5959 knps  f3f4       14
+0  27 R16     5400.3 ms    19,836,468 nodes 3673 knps  f3f4       14  (1 fallbacks)
+0  27 L16     4101.7 ms    58,493,102 nodes 14261 knps  f3f4       14
+0  28 1       7517.0 ms    13,902,440 nodes 1849 knps  a1a2      151
+0  28 R2      9782.5 ms    24,554,855 nodes 2510 knps  a1a2      151
+0  28 R4      9984.6 ms    46,432,557 nodes 4650 knps  a1a2      151
+0  28 R8      4387.5 ms    34,082,327 nodes 7768 knps  a1a2      154
+0  28 R16     2430.0 ms    23,933,281 nodes 9849 knps  a1a2      151
+0  28 L16     8426.8 ms   133,439,674 nodes 15835 knps  a1a2      151
+0  29 1        758.4 ms     1,773,994 nodes 2339 knps  g2h3      -94
+0  29 R2       514.4 ms     2,223,072 nodes 4322 knps  g2h3     -109
+0  29 R4       360.7 ms     2,722,842 nodes 7549 knps  g2h3      -94
+0  29 R8       273.1 ms     2,603,431 nodes 9533 knps  g2h3      -98
+0  29 R16      309.2 ms     3,253,535 nodes 10522 knps  g2h3     -109
+0  29 L16      430.0 ms     7,949,608 nodes 18488 knps  g2h3     -109
+0  30 1       3549.5 ms     5,946,509 nodes 1675 knps  f1g2      -12
+0  30 R2      1839.9 ms     6,047,523 nodes 3287 knps  f1g2        3
+0  30 R4      1491.3 ms     7,320,987 nodes 4909 knps  f1g2        3
+0  30 R8      1364.4 ms     8,251,227 nodes 6048 knps  f1g2        8
+0  30 R16     1674.1 ms    10,319,073 nodes 6164 knps  f1g2        3
+0  30 L16     1448.2 ms    20,935,082 nodes 14456 knps  f1g2        3
+1   0 L16    10615.9 ms   152,735,492 nodes 14387 knps  b2b4       93
+1   0 R16     3296.9 ms    28,575,637 nodes 8667 knps  f3g5       86
+1   0 R8      3125.6 ms    24,680,404 nodes 7896 knps  b2b4       93
+1   0 R4      3567.5 ms    20,354,516 nodes 5705 knps  f3g5       88
+1   0 R2      4496.9 ms    14,256,522 nodes 3170 knps  f3g5       88
+1   0 1       7399.7 ms    13,675,218 nodes 1848 knps  f3g5       86
+1   1 L16     2114.4 ms    34,944,024 nodes 16526 knps  d1f2     -156
+1   1 R16     1308.6 ms    11,660,837 nodes 8911 knps  d1f2     -163
+1   1 R8      1700.4 ms    14,235,608 nodes 8372 knps  d1f2     -160
+1   1 R4      1617.4 ms     9,976,906 nodes 6169 knps  d1f2     -172
+1   1 R2      4630.0 ms    16,178,817 nodes 3494 knps  d1f2     -172
+1   1 1       3936.3 ms     7,600,891 nodes 1931 knps  d1f2     -172
+1   2 L16      214.5 ms     4,796,740 nodes 22363 knps  e8f8      998
+1   2 R16      230.3 ms     2,673,941 nodes 11611 knps  e8f8      980  (1 fallbacks)
+1   2 R8       179.3 ms     1,926,218 nodes 10743 knps  e8f8     1001
+1   2 R4       185.0 ms     1,107,167 nodes 5986 knps  e8f8      998
+1   2 R2       268.4 ms       885,907 nodes 3300 knps  e8f8      998
+1   2 1        347.2 ms       821,108 nodes 2365 knps  e8f8      998
+1   3 L16     1327.3 ms    21,468,003 nodes 16174 knps  e3c5       13
+1   3 R16     1910.5 ms    11,550,826 nodes 6046 knps  e3c5       13
+1   3 R8      1334.4 ms    11,361,136 nodes 8514 knps  e3c5       13
+1   3 R4      1874.7 ms     9,859,961 nodes 5259 knps  e3c5        2
+1   3 R2      2234.5 ms     5,666,013 nodes 2536 knps  e3c5       13
+1   3 1       5093.9 ms     9,075,683 nodes 1782 knps  e3c5      -11
+1   4 L16     3281.6 ms    52,174,350 nodes 15899 knps  b6b7     1512
+1   4 R16     2097.2 ms    19,936,498 nodes 9506 knps  b6b7     1510  (1 fallbacks)
+1   4 R8      4578.6 ms    20,247,293 nodes 4422 knps  c6d5     1595  (1 fallbacks)
+1   4 R4      4764.6 ms    15,592,176 nodes 3273 knps  b6b7     1512
+1   4 R2      4371.9 ms    10,667,492 nodes 2440 knps  b6b7     1512
+1   4 1       5754.1 ms    11,281,558 nodes 1961 knps  b6b7     1510
+1   5 L16     3327.7 ms    57,120,267 nodes 17165 knps  e1e3       91
+1   5 R16     4920.7 ms    26,248,606 nodes 5334 knps  g5f6       60  (2 fallbacks)
+1   5 R8      4882.5 ms    22,292,310 nodes 4566 knps  g5f6       70  (2 fallbacks)
+1   5 R4      3294.2 ms    15,430,603 nodes 4684 knps  e1e3       91  (2 fallbacks)
+1   5 R2      6453.3 ms    21,095,261 nodes 3269 knps  e1e3       91  (1 fallbacks)
+1   5 1       7643.3 ms    14,365,496 nodes 1879 knps  e1e3       93
+1   6 L16     2001.2 ms    28,513,295 nodes 14248 knps  c1e3        7
+1   6 R16     2338.7 ms    12,362,587 nodes 5286 knps  c1e3        7
+1   6 R8      2267.3 ms    11,679,311 nodes 5151 knps  c1e3        5
+1   6 R4      1689.1 ms     8,315,753 nodes 4923 knps  c1e3        7
+1   6 R2      2379.1 ms     7,606,680 nodes 3197 knps  c1e3        7
+1   6 1       4502.8 ms     7,303,290 nodes 1622 knps  c1e3        6
+1   7 L16     3231.1 ms    51,584,866 nodes 15965 knps  c1g5      172
+1   7 R16     1145.2 ms    11,909,595 nodes 10400 knps  c1g5      177
+1   7 R8      1059.2 ms    11,207,231 nodes 10581 knps  c1g5      171
+1   7 R4      2033.8 ms    10,810,816 nodes 5316 knps  c1g5      177
+1   7 R2      2203.4 ms     6,876,522 nodes 3121 knps  c1g5      177
+1   7 1       2976.4 ms     6,030,244 nodes 2026 knps  c1g5      171
+1   8 L16      308.1 ms     7,107,103 nodes 23066 knps  g4g3     -142
+1   8 R16      213.2 ms     2,809,512 nodes 13179 knps  g4g3     -142
+1   8 R8       280.7 ms     2,786,942 nodes 9930 knps  g4g3     -142  (1 fallbacks)
+1   8 R4       345.0 ms     2,106,004 nodes 6105 knps  g4g3     -146
+1   8 R2       414.9 ms     1,900,001 nodes 4580 knps  g4g3     -142  (1 fallbacks)
+1   8 1        661.8 ms     1,586,460 nodes 2397 knps  g4g3     -142
+1   9 L16     1770.7 ms    29,563,752 nodes 16696 knps  a1c1       48
+1   9 R16     1026.1 ms     9,611,963 nodes 9367 knps  a1c1       37
+1   9 R8      1140.1 ms     8,346,363 nodes 7321 knps  a1c1       48
+1   9 R4      1277.0 ms     6,574,769 nodes 5149 knps  h2h3       18  (1 fallbacks)
+1   9 R2      2148.4 ms     7,028,135 nodes 3271 knps  a1c1       48
+1   9 1       2145.5 ms     4,402,394 nodes 2052 knps  a1c1       48
+1  10 L16     2009.9 ms    28,207,103 nodes 14034 knps  f3e5       85
+1  10 R16     6361.0 ms    23,079,514 nodes 3628 knps  f3e5       95
+1  10 R8      1891.1 ms    11,051,637 nodes 5844 knps  f3e5       85
+1  10 R4      2627.4 ms     9,568,751 nodes 3642 knps  f3e5       85
+1  10 R2      5979.5 ms    13,368,244 nodes 2236 knps  f3e5       86
+1  10 1       3607.5 ms     6,073,621 nodes 1684 knps  f3e5       85
+1  11 L16     5857.1 ms   114,873,248 nodes 19613 knps  f3f5      379
+1  11 R16     5490.5 ms    51,778,209 nodes 9430 knps  f3f5      381  (1 fallbacks)
+1  11 R8     13508.4 ms    62,222,514 nodes 4606 knps  f3f5      371  (1 fallbacks)
+1  11 R4      5790.1 ms    22,729,463 nodes 3926 knps  f3f5      381
+1  11 R2      7750.3 ms    20,707,773 nodes 2672 knps  f3f5      379
+1  11 1       9830.0 ms    20,284,515 nodes 2064 knps  f3f5      379
+1  12 L16     3742.9 ms    56,586,517 nodes 15118 knps  e3d4     -128
+1  12 R16     5547.6 ms    19,272,439 nodes 3474 knps  e3d4     -122  (1 fallbacks)
+1  12 R8      5741.5 ms    18,170,985 nodes 3165 knps  e3d4     -130  (1 fallbacks)
+1  12 R4      4704.8 ms    14,175,521 nodes 3013 knps  e3d4     -128
+1  12 R2      2872.4 ms     8,698,068 nodes 3028 knps  e3d4     -103
+1  12 1       7589.9 ms    13,268,463 nodes 1748 knps  e3d4     -129
+1  13 L16     4812.9 ms    66,130,689 nodes 13740 knps  f3d4       40
+1  13 R16     4015.7 ms    30,350,252 nodes 7558 knps  f3d4       38
+1  13 R8      4958.1 ms    30,551,078 nodes 6162 knps  f3d4       40
+1  13 R4      5386.3 ms    28,737,305 nodes 5335 knps  f3d4       41
+1  13 R2     12391.2 ms    38,975,452 nodes 3145 knps  f3d4       40
+1  13 1      17593.2 ms    29,214,870 nodes 1661 knps  f3d4       37
+1  14 L16    10781.0 ms   156,072,432 nodes 14477 knps  g2g4     -432
+1  14 R16     3991.0 ms    31,296,299 nodes 7842 knps  g2g4     -372  (1 fallbacks)
+1  14 R8      7102.6 ms    33,904,541 nodes 4774 knps  g2g4     -372  (3 fallbacks)
+1  14 R4     19447.0 ms    47,982,010 nodes 2467 knps  g2g4     -372
+1  14 R2      5600.2 ms    15,727,675 nodes 2808 knps  g2g4     -372
+1  14 1       9376.4 ms    17,631,950 nodes 1880 knps  h2h3     -349
+1  15 L16     3366.6 ms    50,335,363 nodes 14951 knps  f3e5       50
+1  15 R16     3871.7 ms    23,345,438 nodes 6030 knps  f3e5       59
+1  15 R8      3188.3 ms    19,055,516 nodes 5977 knps  f3e5       49
+1  15 R4      2234.0 ms    12,566,407 nodes 5625 knps  f3e5       59
+1  15 R2      5583.4 ms    15,635,071 nodes 2800 knps  f3e5       53
+1  15 1       7642.6 ms    12,870,848 nodes 1684 knps  f3e5       52
+1  16 L16     1791.1 ms    25,759,098 nodes 14382 knps  e1e2      -90
+1  16 R16     1933.9 ms    15,215,516 nodes 7868 knps  e1e2     -130  (1 fallbacks)
+1  16 R8       886.7 ms     7,766,439 nodes 8758 knps  e1e2      -75
+1  16 R4      1091.5 ms     6,600,440 nodes 6047 knps  e1e2      -77
+1  16 R2      1582.5 ms     5,417,046 nodes 3423 knps  e1e2      -72
+1  16 1       8916.9 ms    13,929,490 nodes 1562 knps  e1e2     -140
+1  17 L16     1927.1 ms    28,041,843 nodes 14551 knps  a6c4      -54
+1  17 R16     1237.1 ms    10,293,194 nodes 8320 knps  a6c4      -61
+1  17 R8       731.9 ms     6,270,854 nodes 8568 knps  a6c4      -30
+1  17 R4      1411.0 ms     7,132,445 nodes 5055 knps  a6c4      -36  (1 fallbacks)
+1  17 R2      2203.0 ms     6,947,758 nodes 3154 knps  a6c4      -54  (2 fallbacks)
+1  17 1       2975.4 ms     5,402,813 nodes 1816 knps  a6c4      -61
+1  18 L16     4121.8 ms    59,370,075 nodes 14404 knps  f1e1      -97
+1  18 R16     3899.5 ms    18,577,158 nodes 4764 knps  f1e1      -97
+1  18 R8      3555.1 ms    22,275,564 nodes 6266 knps  f1c1     -102
+1  18 R4      7718.8 ms    27,368,286 nodes 3546 knps  f1e1     -106
+1  18 R2      5808.7 ms    16,931,337 nodes 2915 knps  f1c1     -101
+1  18 1      13395.4 ms    23,020,668 nodes 1719 knps  b2b4     -110
+1  19 L16     1100.7 ms    19,425,862 nodes 17649 knps  a1a6      -80
+1  19 R16     2480.3 ms    18,430,929 nodes 7431 knps  a1a6     -102  (1 fallbacks)
+1  19 R8      1385.5 ms    10,519,899 nodes 7593 knps  a1a6      -85  (1 fallbacks)
+1  19 R4      1641.5 ms     8,898,803 nodes 5421 knps  a1a6      -88  (2 fallbacks)
+1  19 R2      1546.5 ms     5,322,196 nodes 3441 knps  a1a6      -88  (1 fallbacks)
+1  19 1       1705.4 ms     3,524,965 nodes 2067 knps  a1a6      -86
+1  20 L16     1679.2 ms    26,836,947 nodes 15982 knps  a1f1      429
+1  20 R16     1761.8 ms     8,848,987 nodes 5023 knps  a1f1      399  (2 fallbacks)
+1  20 R8      1063.2 ms     6,087,864 nodes 5726 knps  a1f1      398  (1 fallbacks)
+1  20 R4      2088.0 ms     8,815,241 nodes 4222 knps  a1f1      411  (1 fallbacks)
+1  20 R2      1590.1 ms     5,329,786 nodes 3352 knps  a1f1      429
+1  20 1       4273.3 ms     7,681,522 nodes 1798 knps  a1f1      442
+1  21 L16      582.9 ms    10,680,513 nodes 18322 knps  d2h6      110
+1  21 R16      574.7 ms     5,201,449 nodes 9051 knps  d2f4       95
+1  21 R8       866.1 ms     4,240,690 nodes 4897 knps  d2f4       95  (1 fallbacks)
+1  21 R4       937.9 ms     4,256,543 nodes 4538 knps  d2h6      114
+1  21 R2      1705.4 ms     4,404,089 nodes 2582 knps  d2f4       93
+1  21 1        751.8 ms     1,615,845 nodes 2149 knps  c1c5      106
+1  22 L16     4776.5 ms    77,941,980 nodes 16318 knps  d2d1      -43
+1  22 R16     2064.6 ms    14,410,776 nodes 6980 knps  f1e1      -45
+1  22 R8      2384.3 ms    13,366,840 nodes 5606 knps  d2d1      -43
+1  22 R4      3118.3 ms    15,563,183 nodes 4991 knps  f1e1      -45
+1  22 R2      2670.7 ms    10,022,516 nodes 3753 knps  f1e1      -40
+1  22 1      13699.5 ms    23,257,408 nodes 1698 knps  f1e1      -43
+1  23 L16      879.3 ms    16,836,537 nodes 19148 knps  b2b3     -200
+1  23 R16      539.4 ms     6,892,116 nodes 12777 knps  b2b3     -194
+1  23 R8       619.9 ms     5,787,421 nodes 9336 knps  b2b3     -200
+1  23 R4      1077.4 ms     4,654,043 nodes 4320 knps  b2b3     -200
+1  23 R2      2004.2 ms     5,494,446 nodes 2741 knps  b2b3     -200
+1  23 1       1959.9 ms     3,932,310 nodes 2006 knps  b2b3     -194
+1  24 L16     2326.4 ms    33,131,373 nodes 14241 knps  f3g3       94
+1  24 R16     1597.7 ms    12,132,944 nodes 7594 knps  f3g3      100
+1  24 R8      2017.1 ms    12,186,668 nodes 6042 knps  f3g3      101
+1  24 R4      1716.3 ms    10,002,175 nodes 5828 knps  f3g3      101
+1  24 R2      2926.7 ms     9,610,671 nodes 3284 knps  f3g3      100
+1  24 1       5364.2 ms     8,846,578 nodes 1649 knps  f3g3       94
+1  25 L16      681.4 ms    12,177,920 nodes 17873 knps  c1c6      409
+1  25 R16      408.5 ms     5,244,064 nodes 12837 knps  c1c6      409
+1  25 R8       477.8 ms     4,622,544 nodes 9675 knps  c1c6      409
+1  25 R4       614.6 ms     4,084,328 nodes 6645 knps  c1c6      409
+1  25 R2       778.1 ms     3,195,241 nodes 4107 knps  c1c6      409
+1  25 1       1309.6 ms     2,664,964 nodes 2035 knps  c1c6      409
+1  26 L16     7035.5 ms   109,951,415 nodes 15628 knps  e4g5      -93
+1  26 R16     2424.3 ms    23,379,209 nodes 9644 knps  e4g5      -85
+1  26 R8     19693.9 ms    60,194,179 nodes 3056 knps  e4g5      -90  (3 fallbacks)
+1  26 R4      1763.9 ms    13,066,848 nodes 7408 knps  e4g5      -82
+1  26 R2      4554.8 ms    16,070,253 nodes 3528 knps  e4g5      -90
+1  26 1       7984.1 ms    14,759,584 nodes 1849 knps  e4g5     -102
+1  27 L16     3955.7 ms    57,987,904 nodes 14659 knps  f3f4       14
+1  27 R16     3255.0 ms    20,771,081 nodes 6381 knps  f3f4        5
+1  27 R8      6427.6 ms    22,202,004 nodes 3454 knps  f3f4       14  (1 fallbacks)
+1  27 R4      4066.4 ms    15,627,961 nodes 3843 knps  f3f4       14  (2 fallbacks)
+1  27 R2      8264.4 ms    19,816,478 nodes 2398 knps  f3f4       14  (1 fallbacks)
+1  27 1       6764.8 ms    11,177,621 nodes 1652 knps  f3f4       13
+1  28 L16    10484.7 ms   176,183,007 nodes 16804 knps  a1a2      151
+1  28 R16     2456.4 ms    25,996,238 nodes 10583 knps  a1a2      151
+1  28 R8      3011.6 ms    28,526,228 nodes 9472 knps  a1a2      151
+1  28 R4      4359.5 ms    21,385,689 nodes 4906 knps  a1a2      151
+1  28 R2      8782.7 ms    23,783,635 nodes 2708 knps  a1a2      151
+1  28 1       7508.4 ms    13,902,440 nodes 1852 knps  a1a2      151
+1  29 L16      338.4 ms     6,969,160 nodes 20596 knps  g2h3     -109
+1  29 R16      321.0 ms     3,071,149 nodes 9569 knps  g2h3     -106
+1  29 R8       282.1 ms     2,700,920 nodes 9574 knps  g2h3     -109
+1  29 R4       287.0 ms     2,315,672 nodes 8067 knps  g2h3     -109
+1  29 R2       535.8 ms     2,401,258 nodes 4482 knps  g2h3     -108
+1  29 1        736.5 ms     1,773,994 nodes 2409 knps  g2h3      -94
+1  30 L16     2136.0 ms    30,384,681 nodes 14225 knps  f1g2      -15
+1  30 R16     1240.7 ms     9,113,353 nodes 7345 knps  f1g2        1
+1  30 R8      1519.1 ms     9,728,652 nodes 6404 knps  f1g2       -1
+1  30 R4      1232.2 ms     6,721,856 nodes 5455 knps  f1g2        3
+1  30 R2      2319.1 ms     7,517,653 nodes 3242 knps  f1g2        3
+1  30 1       3504.1 ms     5,946,509 nodes 1697 knps  f1g2      -12
+
+One thread, repeated: 0 of 31 later searches differ from round 0 in nodes or move.
+
+| arm | threads | total time s | speedup (total) | speedup (geo. mean) | nodes v 1 | knps | knps v 1 | same move | same score | mean abs score diff | fallbacks |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 353.7 | 1.00 | 1.00 | 1.00 | 1,792 | 1.00 | 100% | 100% | 0.0 | 0 |
+| R2 | 2 | 231.6 | 1.53 | 1.52 | 1.10 | 2,997 | 1.67 | 85% | 21% | 9.8 | 10 |
+| R4 | 4 | 178.9 | 1.98 | 2.04 | 1.24 | 4,382 | 2.44 | 85% | 21% | 8.5 | 20 |
+| R8 | 8 | 219.2 | 1.61 | 2.18 | 1.68 | 4,870 | 2.72 | 84% | 23% | 12.9 | 28 |
+| R16 | 16 | 157.7 | 2.24 | 2.31 | 1.66 | 6,688 | 3.73 | 90% | 24% | 11.3 | 26 |
+| L16 | 16 | 215.2 | 1.64 | 1.77 | 5.31 | 15,639 | 8.73 | 87% | 26% | 8.3 | 0 |

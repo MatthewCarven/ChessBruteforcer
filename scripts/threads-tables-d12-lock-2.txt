@@ -1,0 +1,182 @@
+loaded 292 endgame tables from C:\Users\Admin\Desktop\-=Programming=-\Chess Bruteforcer\tables in 0.7 s (796 MB in memory, 220 read from disk as probed)
+2026-10-16 00:42:51: 20 positions to depth 12, 2 rounds, arms 1,L2,L4,L8, hash 64 MB, range step 15 cp, overlap 10 cp, endgame tables on
+every position searched once on L8 in 81.7 s, off the record (private 1,454 MB, peak 2,529 MB)
+0   0 1         13.5 ms         2,679 nodes 199 knps  b8b7    29961  tb 405, 116 blocks in 10 ms, 0 waits 0.0 ms
+0   0 L2        13.8 ms         4,951 nodes 359 knps  b8b7    29961  tb 777, 114 blocks in 10 ms, 111 waits 10.5 ms
+0   0 L4        18.0 ms         9,749 nodes 542 knps  b8b7    29961  tb 1,585, 134 blocks in 12 ms, 435 waits 37.7 ms
+0   0 L8        20.1 ms        15,303 nodes 762 knps  b8b7    29961  tb 2,481, 139 blocks in 16 ms, 1,075 waits 110.9 ms
+0   1 1       1871.5 ms       425,563 nodes 227 knps  b5b6        0  tb 24,096, 14,444 blocks in 1532 ms, 0 waits 0.0 ms
+0   1 L2      1158.7 ms       417,179 nodes 360 knps  b5b6        0  tb 24,675, 10,378 blocks in 1136 ms, 8,042 waits 797.2 ms
+0   1 L4      1312.7 ms       618,192 nodes 471 knps  b5b6        0  tb 32,695, 15,456 blocks in 1722 ms, 21,457 waits 2943.9 ms
+0   1 L8      2275.5 ms     1,041,206 nodes 458 knps  b5b6        0  tb 54,776, 29,623 blocks in 3322 ms, 41,506 waits 13873.8 ms
+0   2 1          0.1 ms           134 nodes 1644 knps  h5h4   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+0   2 L2         0.3 ms           256 nodes 939 knps  h5h4   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+0   2 L4         0.4 ms           622 nodes 1455 knps  h5h4   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+0   2 L8         0.9 ms         2,824 nodes 3116 knps  h5h4   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+0   3 1       9677.2 ms     7,686,009 nodes 794 knps  f4f5   -29976  tb 141,696, 66,570 blocks in 6133 ms, 0 waits 0.0 ms
+0   3 L2      6118.1 ms     9,379,629 nodes 1533 knps  f4f5   -29974  tb 161,089, 48,256 blocks in 4578 ms, 43,383 waits 3433.5 ms
+0   3 L4      8059.9 ms    16,038,493 nodes 1990 knps  f4f5   -29978  tb 294,037, 105,233 blocks in 9885 ms, 143,475 waits 14535.3 ms
+0   3 L8      7854.9 ms    19,551,137 nodes 2489 knps  f4f5   -29978  tb 364,615, 118,237 blocks in 11213 ms, 254,904 waits 41684.7 ms
+0   4 1       1309.6 ms       801,468 nodes 612 knps  f4f1   -29986  tb 11,831, 6,469 blocks in 782 ms, 0 waits 0.0 ms
+0   4 L2      1090.4 ms     1,124,144 nodes 1031 knps  f4f1   -29986  tb 17,499, 8,261 blocks in 1077 ms, 3,308 waits 340.6 ms
+0   4 L4      1130.9 ms     1,843,336 nodes 1630 knps  f4f1   -29986  tb 28,877, 10,653 blocks in 1591 ms, 11,881 waits 1664.5 ms
+0   4 L8       841.9 ms     2,312,273 nodes 2747 knps  f4f1   -29986  tb 35,127, 11,216 blocks in 1731 ms, 19,865 waits 3297.9 ms
+0   5 1        484.1 ms       166,333 nodes 344 knps  h6h5    29963  tb 6,491, 3,760 blocks in 354 ms, 0 waits 0.0 ms
+0   5 L2       384.6 ms       221,360 nodes 576 knps  h6h5    29963  tb 9,503, 3,233 blocks in 312 ms, 3,096 waits 252.0 ms
+0   5 L4       324.9 ms       227,897 nodes 701 knps  h6h5    29963  tb 9,145, 3,349 blocks in 351 ms, 6,054 waits 695.2 ms
+0   5 L8       295.9 ms       322,803 nodes 1091 knps  g7g5    29963  tb 13,091, 3,268 blocks in 356 ms, 11,246 waits 1643.3 ms
+0   6 1       8511.6 ms     7,221,558 nodes 848 knps  d4d3   -29988  tb 163,777, 59,848 blocks in 5099 ms, 0 waits 0.0 ms
+0   6 L2      6294.9 ms     9,434,687 nodes 1499 knps  d4d3   -29988  tb 201,008, 61,566 blocks in 5351 ms, 37,513 waits 2698.2 ms
+0   6 L4      6946.8 ms    14,321,068 nodes 2062 knps  h7h6   -29988  tb 341,069, 102,909 blocks in 8861 ms, 132,858 waits 11699.9 ms
+0   6 L8      5933.0 ms    21,586,392 nodes 3638 knps  d4d3   -29988  tb 442,514, 91,369 blocks in 8083 ms, 227,233 waits 28469.8 ms
+0   7 1        763.6 ms       362,225 nodes 474 knps  a4b4   -29962  tb 11,280, 5,203 blocks in 549 ms, 0 waits 0.0 ms
+0   7 L2       785.2 ms       676,380 nodes 861 knps  a4b4   -29958  tb 19,972, 6,251 blocks in 687 ms, 5,371 waits 497.1 ms
+0   7 L4       625.0 ms       668,666 nodes 1070 knps  a4b4   -29962  tb 20,147, 7,381 blocks in 859 ms, 9,886 waits 1201.9 ms
+0   7 L8       663.6 ms     1,514,621 nodes 2282 knps  a4b4   -29962  tb 42,886, 6,260 blocks in 756 ms, 25,651 waits 3495.8 ms
+0   8 1      21454.8 ms     9,607,595 nodes 448 knps  f7c4   -29980  tb 485,277, 101,758 blocks in 15244 ms, 0 waits 0.0 ms
+0   8 L2     13172.2 ms     6,229,892 nodes 473 knps  f7c4   -29980  tb 342,520, 90,201 blocks in 13743 ms, 57,195 waits 7885.8 ms
+0   8 L4     28642.9 ms    18,760,784 nodes 655 knps  f7c4   -29980  tb 918,880, 226,621 blocks in 34787 ms, 286,800 waits 66171.1 ms
+0   8 L8     21295.7 ms    14,559,062 nodes 684 knps  f7c4   -29980  tb 696,283, 166,541 blocks in 25853 ms, 250,157 waits 133554.5 ms
+0   9 1       3353.5 ms     3,557,372 nodes 1061 knps  e4f3   -29990  tb 67,058, 18,027 blocks in 1553 ms, 0 waits 0.0 ms
+0   9 L2      2889.3 ms     5,370,108 nodes 1859 knps  e4f3   -29990  tb 113,429, 18,875 blocks in 1679 ms, 21,023 waits 1368.2 ms
+0   9 L4      1769.2 ms     6,492,698 nodes 3670 knps  h3h4   -29990  tb 102,051, 14,932 blocks in 1325 ms, 33,191 waits 2479.2 ms
+0   9 L8      1861.7 ms    10,038,846 nodes 5392 knps  e4f3   -29990  tb 178,350, 20,688 blocks in 1936 ms, 81,550 waits 7581.0 ms
+0  10 1          0.1 ms            87 nodes 1730 knps  a7a6   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+0  10 L2         0.2 ms           161 nodes 724 knps  a7a6   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+0  10 L4         0.4 ms           856 nodes 2020 knps  a7a8   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+0  10 L8         0.7 ms         2,516 nodes 3588 knps  a7a8   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+0  11 1        511.6 ms       190,925 nodes 373 knps  g2e3      -31  tb 6,718, 2,968 blocks in 384 ms, 0 waits 0.0 ms
+0  11 L2       566.5 ms       349,952 nodes 618 knps  g2e3      -31  tb 10,875, 4,443 blocks in 610 ms, 2,275 waits 238.3 ms
+0  11 L4       456.9 ms       465,548 nodes 1019 knps  g2e3      -31  tb 13,418, 5,061 blocks in 717 ms, 5,038 waits 720.5 ms
+0  11 L8       368.2 ms       586,437 nodes 1593 knps  g2e3      -31  tb 17,424, 4,685 blocks in 680 ms, 9,514 waits 1746.4 ms
+0  12 1       1168.9 ms       550,790 nodes 471 knps  b2b4     1363  tb 10,450, 7,894 blocks in 854 ms, 0 waits 0.0 ms
+0  12 L2       993.5 ms       867,577 nodes 873 knps  b2b4     1363  tb 15,981, 8,532 blocks in 1004 ms, 4,678 waits 465.8 ms
+0  12 L4       980.9 ms     1,380,564 nodes 1407 knps  b2b4     1473  tb 26,763, 8,877 blocks in 1076 ms, 17,062 waits 1946.7 ms
+0  12 L8       633.3 ms     1,385,074 nodes 2187 knps  b2b4     1367  tb 25,999, 9,830 blocks in 1271 ms, 19,798 waits 2846.9 ms
+0  13 1       4076.9 ms     2,279,192 nodes 559 knps  c6c8    29981  tb 63,283, 29,201 blocks in 2904 ms, 0 waits 0.0 ms
+0  13 L2      4279.6 ms     4,401,360 nodes 1028 knps  c6c8    29981  tb 125,831, 30,889 blocks in 3102 ms, 36,136 waits 3128.8 ms
+0  13 L4      4323.8 ms     8,393,292 nodes 1941 knps  c6c8    29981  tb 231,478, 31,341 blocks in 3199 ms, 110,342 waits 9705.9 ms
+0  13 L8      4427.2 ms    14,032,478 nodes 3170 knps  c6c8    29981  tb 386,842, 34,133 blocks in 3523 ms, 257,908 waits 24225.7 ms
+0  14 1      12945.3 ms     3,919,972 nodes 303 knps  h4e1    29967  tb 193,992, 62,593 blocks in 10075 ms, 0 waits 0.0 ms
+0  14 L2      8670.9 ms     3,965,254 nodes 457 knps  c7c8q   29967  tb 213,296, 53,712 blocks in 9176 ms, 34,552 waits 4986.5 ms
+0  14 L4      7118.1 ms     5,861,598 nodes 823 knps  c7c8q   29967  tb 276,776, 50,204 blocks in 8532 ms, 99,176 waits 15258.6 ms
+0  14 L8     10138.2 ms     8,219,724 nodes 811 knps  h4e1    29967  tb 406,006, 114,981 blocks in 20415 ms, 192,154 waits 53375.1 ms
+0  15 1       1546.2 ms     1,298,820 nodes 840 knps  a6a8      503  tb 17,932, 8,832 blocks in 883 ms, 0 waits 0.0 ms
+0  15 L2      1150.9 ms     1,643,561 nodes 1428 knps  a6a8      507  tb 23,613, 10,578 blocks in 1106 ms, 3,523 waits 298.1 ms
+0  15 L4       711.3 ms     1,701,532 nodes 2392 knps  a6a8      507  tb 23,336, 8,987 blocks in 951 ms, 9,029 waits 920.9 ms
+0  15 L8       915.9 ms     3,088,580 nodes 3372 knps  a6a8      506  tb 42,449, 15,259 blocks in 1686 ms, 27,246 waits 3800.5 ms
+0  16 1       1012.9 ms     1,028,012 nodes 1015 knps  a6a7    29967  tb 10,788, 5,775 blocks in 563 ms, 0 waits 0.0 ms
+0  16 L2       681.5 ms     1,150,803 nodes 1689 knps  a6a7    29967  tb 11,688, 5,563 blocks in 607 ms, 2,451 waits 233.7 ms
+0  16 L4       837.1 ms     2,066,575 nodes 2469 knps  a6a7    29967  tb 21,200, 7,700 blocks in 945 ms, 11,087 waits 1445.1 ms
+0  16 L8      1393.3 ms     8,113,135 nodes 5823 knps  e7d6    29987  tb 59,417, 17,493 blocks in 2126 ms, 28,608 waits 5427.2 ms
+0  17 1       1089.3 ms       728,471 nodes 669 knps  a1a6    29967  tb 23,945, 6,470 blocks in 732 ms, 0 waits 0.0 ms
+0  17 L2       834.9 ms       779,227 nodes 933 knps  a1a6    29967  tb 26,251, 6,850 blocks in 805 ms, 4,508 waits 412.0 ms
+0  17 L4       863.8 ms     1,340,215 nodes 1552 knps  a1a6    29967  tb 43,268, 7,496 blocks in 906 ms, 15,562 waits 1813.4 ms
+0  17 L8       806.7 ms     1,636,971 nodes 2029 knps  a1a6    29967  tb 50,962, 7,646 blocks in 961 ms, 24,822 waits 4486.3 ms
+0  18 1         19.3 ms         9,641 nodes 499 knps  a6b5   -29994  tb 204, 147 blocks in 15 ms, 0 waits 0.0 ms
+0  18 L2        21.1 ms        18,321 nodes 869 knps  a6b5   -29994  tb 400, 147 blocks in 16 ms, 151 waits 16.8 ms
+0  18 L4        21.8 ms        34,974 nodes 1605 knps  a6b5   -29994  tb 749, 157 blocks in 17 ms, 500 waits 50.8 ms
+0  18 L8        21.4 ms        59,941 nodes 2803 knps  a6b5   -29994  tb 1,337, 159 blocks in 17 ms, 1,193 waits 119.9 ms
+0  19 1       2281.2 ms       953,437 nodes 418 knps  d1h1    29933  tb 28,829, 14,544 blocks in 1690 ms, 0 waits 0.0 ms
+0  19 L2      1833.7 ms     1,240,696 nodes 677 knps  d1h1    29933  tb 35,115, 15,580 blocks in 1925 ms, 8,880 waits 956.5 ms
+0  19 L4      1824.4 ms     1,856,485 nodes 1018 knps  d1h1    29925  tb 54,867, 17,330 blocks in 2160 ms, 29,384 waits 3854.0 ms
+0  19 L8      1767.1 ms     2,300,272 nodes 1302 knps  d1h1    29925  tb 70,436, 22,330 blocks in 2884 ms, 45,089 waits 9476.4 ms
+round 0 done, private 1,336 MB, peak 2,778 MB
+1   0 L8        18.8 ms        16,158 nodes 859 knps  b8b7    29961  tb 2,665, 131 blocks in 13 ms, 1,094 waits 93.3 ms
+1   0 L4        13.8 ms         9,448 nodes 684 knps  b8b7    29961  tb 1,473, 114 blocks in 10 ms, 376 waits 31.8 ms
+1   0 L2        14.6 ms         5,079 nodes 348 knps  b8b7    29961  tb 796, 114 blocks in 11 ms, 124 waits 11.2 ms
+1   0 1         13.7 ms         2,679 nodes 196 knps  b8b7    29961  tb 405, 116 blocks in 11 ms, 0 waits 0.0 ms
+1   1 L8      1917.9 ms       880,689 nodes 459 knps  b5b6        0  tb 44,619, 24,910 blocks in 2834 ms, 33,990 waits 11613.8 ms
+1   1 L4      1437.2 ms       620,663 nodes 432 knps  b5b6        0  tb 31,895, 18,071 blocks in 2058 ms, 21,593 waits 3070.4 ms
+1   1 L2      1211.1 ms       394,751 nodes 326 knps  b5b6        0  tb 20,836, 12,196 blocks in 1337 ms, 7,674 waits 702.8 ms
+1   1 1       1881.5 ms       425,563 nodes 226 knps  b5b6        0  tb 24,096, 14,444 blocks in 1521 ms, 0 waits 0.0 ms
+1   2 L8         1.5 ms         2,663 nodes 1739 knps  h5h4   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+1   2 L4         0.8 ms         1,166 nodes 1423 knps  h5h4   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+1   2 L2         0.4 ms           264 nodes 685 knps  h5h4   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+1   2 1          0.1 ms           134 nodes 1872 knps  h5h4   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+1   3 L8      8249.4 ms    19,996,613 nodes 2424 knps  f4f5   -29978  tb 380,235, 125,023 blocks in 11973 ms, 260,095 waits 43642.0 ms
+1   3 L4      5922.5 ms    13,137,724 nodes 2218 knps  f4f5   -29974  tb 224,862, 69,503 blocks in 6647 ms, 109,042 waits 10816.6 ms
+1   3 L2      5744.1 ms     7,623,771 nodes 1327 knps  f4f5   -29974  tb 133,704, 58,093 blocks in 5455 ms, 31,691 waits 2484.4 ms
+1   3 1       9751.7 ms     7,686,009 nodes 788 knps  f4f5   -29976  tb 141,696, 66,570 blocks in 6164 ms, 0 waits 0.0 ms
+1   4 L8       872.7 ms     2,177,572 nodes 2495 knps  f4f1   -29986  tb 35,315, 10,410 blocks in 1723 ms, 20,286 waits 3503.3 ms
+1   4 L4       951.8 ms     1,549,941 nodes 1628 knps  f4f1   -29986  tb 24,583, 10,131 blocks in 1533 ms, 8,873 waits 1155.5 ms
+1   4 L2       986.3 ms       999,061 nodes 1013 knps  f4f1   -29986  tb 15,152, 7,176 blocks in 958 ms, 3,187 waits 325.3 ms
+1   4 1       1338.8 ms       801,468 nodes 599 knps  f4f1   -29986  tb 11,831, 6,469 blocks in 810 ms, 0 waits 0.0 ms
+1   5 L8       311.6 ms       297,731 nodes 955 knps  g7g5    29963  tb 12,649, 3,557 blocks in 373 ms, 11,345 waits 1778.8 ms
+1   5 L4       323.1 ms       232,930 nodes 721 knps  h6h5    29963  tb 9,108, 4,007 blocks in 411 ms, 5,947 waits 660.2 ms
+1   5 L2       387.6 ms       198,727 nodes 513 knps  h6h5    29963  tb 8,649, 3,388 blocks in 335 ms, 2,819 waits 260.8 ms
+1   5 1        495.2 ms       166,333 nodes 336 knps  h6h5    29963  tb 6,491, 3,760 blocks in 353 ms, 0 waits 0.0 ms
+1   6 L8      4070.4 ms    14,067,787 nodes 3456 knps  d4d3   -29988  tb 301,755, 62,778 blocks in 5566 ms, 158,616 waits 19723.5 ms
+1   6 L4      5352.4 ms    13,111,544 nodes 2450 knps  d4d3   -29988  tb 282,142, 66,704 blocks in 5780 ms, 104,383 waits 9202.6 ms
+1   6 L2      7181.1 ms    11,042,854 nodes 1538 knps  d4d3   -29988  tb 233,353, 75,242 blocks in 6471 ms, 37,889 waits 2645.9 ms
+1   6 1       8606.5 ms     7,221,558 nodes 839 knps  d4d3   -29988  tb 163,777, 59,848 blocks in 5128 ms, 0 waits 0.0 ms
+1   7 L8       519.8 ms       964,514 nodes 1855 knps  a4b4   -29952  tb 26,988, 5,014 blocks in 639 ms, 18,794 waits 2750.5 ms
+1   7 L4       709.5 ms       842,533 nodes 1187 knps  a4b4   -29962  tb 25,144, 6,690 blocks in 786 ms, 12,655 waits 1456.8 ms
+1   7 L2       899.9 ms       767,839 nodes 853 knps  a4b4   -29962  tb 23,043, 6,769 blocks in 754 ms, 5,971 waits 567.7 ms
+1   7 1        785.3 ms       362,225 nodes 461 knps  a4b4   -29962  tb 11,280, 5,203 blocks in 549 ms, 0 waits 0.0 ms
+1   8 L8     16225.8 ms    11,747,428 nodes 724 knps  f7c4   -29980  tb 550,050, 127,627 blocks in 19610 ms, 199,974 waits 101340.7 ms
+1   8 L4     12091.5 ms     7,018,536 nodes 580 knps  f7c4   -29980  tb 388,526, 95,091 blocks in 14655 ms, 123,878 waits 28178.0 ms
+1   8 L2     21700.9 ms    12,502,782 nodes 576 knps  f7c4   -29980  tb 642,489, 144,241 blocks in 21686 ms, 95,734 waits 13075.8 ms
+1   8 1      21362.7 ms     9,607,595 nodes 450 knps  f7c4   -29980  tb 485,277, 101,758 blocks in 15170 ms, 0 waits 0.0 ms
+1   9 L8      2064.7 ms    11,201,716 nodes 5425 knps  h3h4   -29990  tb 183,665, 21,381 blocks in 1986 ms, 83,941 waits 8402.0 ms
+1   9 L4      2615.2 ms     7,644,666 nodes 2923 knps  e4f3   -29990  tb 160,834, 22,448 blocks in 2064 ms, 57,435 waits 4328.1 ms
+1   9 L2      2343.9 ms     5,116,583 nodes 2183 knps  e4f3   -29990  tb 89,405, 14,308 blocks in 1242 ms, 15,636 waits 986.8 ms
+1   9 1       3244.1 ms     3,557,372 nodes 1097 knps  e4f3   -29990  tb 67,058, 18,027 blocks in 1496 ms, 0 waits 0.0 ms
+1  10 L8         1.8 ms         2,500 nodes 1409 knps  a7a8   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+1  10 L4         0.8 ms         1,072 nodes 1340 knps  a7a8   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+1  10 L2         0.3 ms           164 nodes 505 knps  a7a6   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+1  10 1          0.0 ms            87 nodes 2296 knps  a7a6   -29998  tb 0, 0 blocks in 0 ms, 0 waits 0.0 ms
+1  11 L8       444.7 ms       580,865 nodes 1306 knps  g2e3      -39  tb 17,690, 6,015 blocks in 995 ms, 9,335 waits 2029.8 ms
+1  11 L4       563.5 ms       519,642 nodes 922 knps  g2e3      -31  tb 15,251, 5,191 blocks in 782 ms, 6,770 waits 1003.6 ms
+1  11 L2       546.6 ms       343,391 nodes 628 knps  g2e3      -31  tb 11,011, 4,536 blocks in 598 ms, 2,202 waits 239.1 ms
+1  11 1        519.8 ms       190,925 nodes 367 knps  g2e3      -31  tb 6,718, 2,968 blocks in 372 ms, 0 waits 0.0 ms
+1  12 L8       773.5 ms     1,524,071 nodes 1970 knps  b2b4     1424  tb 28,500, 10,857 blocks in 1487 ms, 22,212 waits 3624.5 ms
+1  12 L4      1130.3 ms     1,963,124 nodes 1737 knps  b2b4     1522  tb 33,195, 7,898 blocks in 940 ms, 22,605 waits 2389.3 ms
+1  12 L2      1079.4 ms       944,426 nodes 875 knps  b2b4     1473  tb 17,429, 8,426 blocks in 969 ms, 6,025 waits 624.1 ms
+1  12 1       1207.6 ms       550,790 nodes 456 knps  b2b4     1363  tb 10,450, 7,894 blocks in 869 ms, 0 waits 0.0 ms
+1  13 L8      4494.7 ms    14,500,688 nodes 3226 knps  c6c8    29981  tb 373,554, 36,013 blocks in 3728 ms, 247,876 waits 24442.0 ms
+1  13 L4      4543.8 ms     8,709,930 nodes 1917 knps  c6c8    29981  tb 238,686, 33,598 blocks in 3441 ms, 116,086 waits 10232.5 ms
+1  13 L2      4079.6 ms     4,289,991 nodes 1052 knps  c6c8    29981  tb 125,098, 28,967 blocks in 2893 ms, 35,005 waits 2964.2 ms
+1  13 1       4088.7 ms     2,279,192 nodes 557 knps  c6c8    29981  tb 63,283, 29,201 blocks in 2914 ms, 0 waits 0.0 ms
+1  14 L8      9883.2 ms     8,546,386 nodes 865 knps  h4e1    29967  tb 415,386, 105,547 blocks in 18795 ms, 202,346 waits 52653.8 ms
+1  14 L4      9409.4 ms     6,874,126 nodes 731 knps  c7c8q   29967  tb 357,468, 68,852 blocks in 11924 ms, 122,321 waits 19824.2 ms
+1  14 L2      9272.2 ms     4,115,432 nodes 444 knps  c7c8q   29967  tb 220,292, 58,746 blocks in 10005 ms, 36,305 waits 5202.4 ms
+1  14 1      13017.5 ms     3,919,972 nodes 301 knps  h4e1    29967  tb 193,992, 62,593 blocks in 10094 ms, 0 waits 0.0 ms
+1  15 L8      1880.9 ms     4,883,997 nodes 2597 knps  a6g6      399  tb 81,477, 33,221 blocks in 3716 ms, 53,285 waits 8329.5 ms
+1  15 L4      1079.1 ms     2,627,596 nodes 2435 knps  a6a8      506  tb 35,170, 11,840 blocks in 1266 ms, 15,072 waits 1537.6 ms
+1  15 L2      1678.8 ms     2,430,236 nodes 1448 knps  a6a8      500  tb 34,186, 16,193 blocks in 1634 ms, 5,292 waits 418.8 ms
+1  15 1       1546.9 ms     1,298,820 nodes 840 knps  a6a8      503  tb 17,932, 8,832 blocks in 832 ms, 0 waits 0.0 ms
+1  16 L8       826.8 ms     3,498,205 nodes 4231 knps  e7d7    29987  tb 32,244, 12,192 blocks in 1578 ms, 17,043 waits 3161.9 ms
+1  16 L4       771.8 ms     2,097,914 nodes 2718 knps  e7d6    29987  tb 20,925, 9,031 blocks in 1095 ms, 8,126 waits 973.4 ms
+1  16 L2       787.5 ms     1,266,175 nodes 1608 knps  a6a7    29967  tb 13,150, 6,212 blocks in 676 ms, 3,093 waits 273.5 ms
+1  16 1       1048.6 ms     1,028,012 nodes 980 knps  a6a7    29967  tb 10,788, 5,775 blocks in 567 ms, 0 waits 0.0 ms
+1  17 L8       990.7 ms     1,731,394 nodes 1748 knps  a1a6    29967  tb 61,886, 10,018 blocks in 1267 ms, 28,026 waits 5447.6 ms
+1  17 L4       826.5 ms     1,558,872 nodes 1886 knps  a1a6    29967  tb 51,036, 5,910 blocks in 717 ms, 16,532 waits 1717.0 ms
+1  17 L2       972.8 ms     1,091,634 nodes 1122 knps  a1a6    29967  tb 37,657, 6,734 blocks in 782 ms, 6,294 waits 599.3 ms
+1  17 1       1093.1 ms       728,471 nodes 666 knps  a1a6    29967  tb 23,945, 6,470 blocks in 741 ms, 0 waits 0.0 ms
+1  18 L8        22.8 ms        53,784 nodes 2359 knps  a6b5   -29994  tb 1,279, 163 blocks in 18 ms, 1,095 waits 127.6 ms
+1  18 L4        22.0 ms        35,460 nodes 1609 knps  a6b5   -29994  tb 758, 159 blocks in 18 ms, 508 waits 53.1 ms
+1  18 L2        20.3 ms        18,298 nodes 901 knps  a6b5   -29994  tb 401, 147 blocks in 15 ms, 157 waits 15.8 ms
+1  18 1         19.9 ms         9,641 nodes 485 knps  a6b5   -29994  tb 204, 147 blocks in 16 ms, 0 waits 0.0 ms
+1  19 L8      1726.1 ms     2,447,102 nodes 1418 knps  d1h1    29925  tb 73,139, 22,201 blocks in 2778 ms, 47,448 waits 9270.5 ms
+1  19 L4      1774.4 ms     1,757,051 nodes 990 knps  d1h1    29925  tb 53,976, 18,768 blocks in 2380 ms, 25,156 waits 3530.0 ms
+1  19 L2      1564.2 ms     1,170,545 nodes 748 knps  d1h1    29925  tb 31,760, 13,730 blocks in 1584 ms, 8,543 waits 865.0 ms
+1  19 1       2245.7 ms       953,437 nodes 425 knps  d1h1    29933  tb 28,829, 14,544 blocks in 1673 ms, 0 waits 0.0 ms
+round 1 done, private 1,282 MB, peak 2,778 MB
+
+One thread, repeated: 0 of 20 later searches differ from round 0 in nodes or move.
+
+| arm | threads | total time s | speedup (total) | speedup (geo. mean) | nodes v 1 | knps | knps v 1 | same move | same score | mean abs score diff | fallbacks |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 144.4 | 1.00 | 1.00 | 1.00 | 565 | 1.00 | 100% | 100% | 0.0 | 0 |
+| L2 | 2 | 111.4 | 1.30 | 1.00 | 1.25 | 912 | 1.61 | 95% | 83% | 3.3 | 0 |
+| L4 | 4 | 115.5 | 1.25 | 0.96 | 1.87 | 1,319 | 2.33 | 83% | 78% | 7.9 | 0 |
+| L8 | 8 | 116.8 | 1.24 | 0.89 | 2.57 | 1,793 | 3.17 | 80% | 70% | 6.3 | 0 |
+
+| arm | threads | table hits a search | table hits v 1 | table hits a second | blocks a search | decompressing, of thread time | waits a search | waiting, of thread time |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 63,402 | 1.00 | 17,568 | 20,731 | 68.3% | 0 | 0.0% |
+| L2 | 2 | 75,298 | 1.19 | 27,034 | 21,216 | 46.8% | 14,496 | 27.1% |
+| L4 | 4 | 109,884 | 1.73 | 38,052 | 26,946 | 29.1% | 43,014 | 51.4% |
+| L8 | 8 | 137,852 | 2.17 | 47,204 | 32,273 | 17.8% | 73,408 | 68.6% |
+exit 0 after 571 s

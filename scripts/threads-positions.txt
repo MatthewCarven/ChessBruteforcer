@@ -1,0 +1,63 @@
+# 31 positions from bot/games, every 8th game, ply 30/40/50 (pick-positions.py)
+# AaronsEngine vs matthewcarven - IUkxcXqO.pgn, ply 30
+r2qk2r/pp4bp/3p1n2/2nPp3/5p2/5N1P/PPBB1PP1/R2Q1RK1 w kq - 4 16
+# AshNostromo vs matthewcarven - G5HpBeRd.pgn, ply 40
+r3kb2/8/2p2q1p/pp1P4/5Pbp/2PP4/PP4P1/Q2N1RK1 w q - 0 21
+# BerkBot vs matthewcarven - 2N03uUpA.pgn, ply 50
+3QRbk1/pp3qr1/7p/2p5/8/7P/PPP2PP1/4R1K1 w - - 5 26
+# Bot5551 vs matthewcarven - Tdubk8zh.pgn, ply 30
+rnb2rk1/6pp/pN2p3/q1bp4/1p2n3/1B2BN2/PPP3PP/R2Q1RK1 w - - 4 16
+# DeMen100ns-bot vs matthewcarven - CoPd2ket.pgn, ply 40
+2r4r/R1B1bkp1/1PQ2p1p/5b2/4p3/8/2P2PPP/3R2K1 w - - 0 21
+# Iskelt-Corax vs matthewcarven - bNJ8brLB.pgn, ply 50
+4r1kr/1ppq2pp/p2b4/2p1p1B1/P3N2Q/1nPP3P/1P3PP1/3RR1K1 w - - 9 26
+# Kapablanca_balls vs matthewcarven - AGBIUMC9.pgn, ply 30
+2rqr1k1/ppp2ppp/2n2b2/1BPp1b2/3P4/P1P2N2/5PPP/R1BQR1K1 w - - 3 16
+# Mithandros vs matthewcarven - qbxKuS6Y.pgn, ply 40
+r4rk1/2q2p2/pb1p1np1/1p2pN1p/4P3/2PP1Q1P/RP3PP1/2B1R1K1 w - - 0 21
+# SeedChess vs matthewcarven - ZHro8CCX.pgn, ply 50
+1r4k1/5p1p/4p1p1/8/3Pp1QP/Pb6/5PPK/RNq5 w - - 0 26
+# TheChessblazer vs matthewcarven - hlpncZIP.pgn, ply 30
+r4rk1/pppn2p1/7p/3Ppp2/4P1b1/P7/1P1N1PPP/R3KB1R w KQ - 0 16
+# TroutBot vs matthewcarven - YPoahhpP.pgn, ply 40
+r1b2rk1/1pq3bp/p3p1p1/2pnp3/P1B5/3P1N1P/1PP1QPP1/R1B1R1K1 w - - 2 21
+# anna-bot vs matthewcarven - 3eXeLfSi.pgn, ply 50
+2kr4/pb2qp1R/1p3n2/2pPb1p1/2P1N3/5Q2/PPB2PP1/R3K3 w Q - 3 26
+# entebot vs matthewcarven - 88W3aJIU.pgn, ply 30
+r1bq2k1/p4pbp/2p2np1/4r3/3pP1P1/P1NQB2P/1PP2P2/2KR3R w - - 0 16
+# laura-bot vs matthewcarven - aq5RMI6S.pgn, ply 40
+2r3k1/ppb1qp1p/4bp2/2rp4/7Q/2N1PN2/PP3PPP/2RR2K1 w - - 16 21
+# matthewcarven vs AconcaguaBot - 68zvP41W.pgn, ply 50
+4rr2/1p4pk/7p/q1bQBb2/p1P5/P4P2/1P2K1PP/3R1B1R w - - 5 26
+# matthewcarven vs Botkingteam33 - LrftNFDe.pgn, ply 30
+1r2k2r/1bpnbpp1/pq2p2p/1p6/3P1B2/1B1Q1N2/PPP2PPP/R4RK1 w k - 2 16
+# matthewcarven vs Chessiverse_Raak - kNpmk02X.pgn, ply 40
+r1b1k1r1/bpp1qp2/p2p3p/P2Pp3/1PB1P1n1/1NP2N2/5Pn1/R1B1QR1K w q - 0 21
+# matthewcarven vs DeMen100ns-bot - UUUczlFu.pgn, ply 50
+5rk1/p4ppp/Br2pnn1/8/p2PP2q/2B1QPR1/5P1P/6RK w - - 2 26
+# matthewcarven vs Kapablanca_balls - qEIuC0AF.pgn, ply 30
+r3k2r/1pq3bp/n1p1bpp1/2n1p3/p2pP2B/3P1N2/PPQN1PPP/RB3RK1 w kq - 0 16
+# matthewcarven vs Musashi-thebot - VzNZXxcd.pgn, ply 40
+3q1rk1/5ppp/3bp3/1B1n4/3P4/1P3P2/3B1P1P/Q4RK1 w - - 3 21
+# matthewcarven vs SybBot - wmMeZzIq.pgn, ply 50
+5rk1/pb5p/1q1p1np1/1P1P4/P1p1P3/B1P3P1/2BQ2KP/R7 w - - 5 26
+# matthewcarven vs TopasBot - yOhPdyUn.pgn, ply 30
+r1b2rk1/pp2pp1p/6p1/4b3/3p4/1P1P2P1/1P1BPPBP/2R2RK1 w - - 1 16
+# matthewcarven vs agentc313 - SLMglYng.pgn, ply 40
+1qr1r1k1/1b1n1pbp/p2pp1p1/1p4Pn/4P1QP/P1NBBN2/1PPR1P2/5RK1 w - - 9 21
+# matthewcarven vs byte-knight - XP8jZ1Z3.pgn, ply 50
+2r3r1/4kp1Q/p3p3/1p1p4/2nP3P/2q1B3/PRP2P2/1K5R w - - 2 26
+# matthewcarven vs laura-bot - Q5pxmdE6.pgn, ply 30
+r2qr1k1/ppp2ppp/3p1n2/4p3/1P1PP3/2NQPR2/1PP3PP/5RK1 w - - 3 16
+# matthewcarven vs mochi_bot - gqUVp5Zj.pgn, ply 40
+2kr3r/p1pp2p1/1pqnp2p/3np3/8/PQ1BP3/3N1PPP/1KR3R1 w - - 0 21
+# matthewcarven vs sseh-c - n4kZuWoQ.pgn, ply 50
+2q3k1/1p4pp/rn1p4/pQpPn1b1/P3N3/2N2r1P/1PP2PK1/R6R w - - 0 26
+# matthewcarven vs turox-bot - dUNK75gl.pgn, ply 30
+2rr2k1/1pqnbppp/pn1pb3/N3p1P1/4P3/2N1BP2/PPPQ2BP/2KR2R1 w - - 7 16
+# myChessJava vs matthewcarven - n1Ukab5n.pgn, ply 40
+r4k1r/3n1pNp/2b5/3pp3/p2P4/b1N1BP2/1qP3PP/R3QRK1 w - - 1 21
+# stickshark99 vs matthewcarven - nowQGAW3.pgn, ply 50
+1k3r2/p1p5/3r3p/2pp4/4p2P/P1P4b/1P3PP1/3RR1K1 w - - 0 26
+# uzenatch vs matthewcarven - 4EeDjILK.pgn, ply 30
+r1b2rk1/ppp1q2p/3bp1p1/2n1N1P1/5P2/2P4P/P1P1Q3/R1B1KB1R w KQ - 3 16

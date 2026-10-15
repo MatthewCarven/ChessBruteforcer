@@ -20,6 +20,9 @@ if (args.Length > 0 && args[0] == "bench")
     return Bench(depth);
 }
 
+if (args.Length > 0 && args[0] == "bench-threads")
+    return BenchThreads.Run(args[1..]);
+
 if (args.Length > 0 && args[0] == "selfplay")
 {
     int games = args.Length > 1 && int.TryParse(args[1], out int g) ? g : 4;
@@ -142,5 +145,251 @@ static class SelfPlay
             }
         }
         return minors <= 1;
+    }
+}
+
+/// <summary>
+/// The search on more than one thread, measured.  Every position is searched
+/// to a fixed depth by every arm ("1": one thread, "L4": Lazy SMP on 4, "R4":
+/// Ranges on 4), all the arms one after another within a position, so that a
+/// change in the machine's speed falls on them alike, and in reverse order
+/// on alternate rounds.  The table is cleared before each search.  One line
+/// a search, then a table of each arm against "1".  Runs at below-normal
+/// priority, so that a game the bot is playing comes first.
+///
+/// With --tables, the endgame tables in that folder are loaded as the UCI
+/// engine loads them (plain ones into memory up to 1 GB, compressed ones
+/// read a block at a time as probed), every position is searched once by
+/// the last arm before the timed rounds (so the table files are in the
+/// disk cache for all the arms alike), and the compressed tables' block
+/// cache (--table-cache MB, the engine's default if not given) is emptied
+/// before each search, as the hash table is, and its memory let go.
+/// With --trace, every read of a compressed table in the timed searches is
+/// written to that file (see TableReadTrace; scripts/block-cache-trace.py
+/// reads it), with the tables' numbering beside it in &lt;file&gt;.tables.tsv.
+///
+///   bench-threads positions.txt 12 [--arms 1,L2,L4,L8,R2,R4,R8] [--rounds 2]
+///                 [--hash 64] [--eval eval.txt] [--step 15] [--tsv out.tsv]
+///                 [--tables dir] [--table-cache mb] [--trace reads.bin]
+/// </summary>
+static class BenchThreads
+{
+    private sealed record Arm(string Name, int Threads, ParallelMode Split);
+
+    private sealed record Row(int Round, int Position, string Arm, double Ms, long Nodes, string Move, int Score, int Fallbacks,
+                              long TableHits, BlockCacheCounts Blocks);
+
+    public static int Run(string[] args)
+    {
+        if (args.Length < 2)
+        {
+            Console.Error.WriteLine("usage: bench-threads <fen file> <depth> [--arms 1,L2,R2,...] [--rounds n] [--hash mb] " +
+                                    "[--eval file] [--step cp] [--tsv file] [--tables dir] [--table-cache mb] [--trace file]");
+            return 1;
+        }
+        var fens = File.ReadLines(args[0]).Select(l => l.Trim()).Where(l => l.Length > 0 && !l.StartsWith('#')).ToArray();
+        int depth = int.Parse(args[1]);
+        string armText = "1,L2,L4,L8,R2,R4,R8";
+        int rounds = 2, hash = 64, tableCache = BlockCache.DefaultMegabytes;
+        int? step = null, overlap = null;   // (unset: the search's own defaults)
+        string? tsv = null, tables = null, trace = null;
+        for (int i = 2; i < args.Length; i++)
+        {
+            switch (args[i])
+            {
+                case "--tables": tables = args[++i]; break;
+                case "--trace": trace = args[++i]; break;
+                case "--table-cache": tableCache = int.Parse(args[++i]); break;
+                case "--arms": armText = args[++i]; break;
+                case "--rounds": rounds = int.Parse(args[++i]); break;
+                case "--hash": hash = int.Parse(args[++i]); break;
+                case "--eval": Evaluation.Parameters = EvalParams.Load(args[++i]); break;
+                case "--step": step = int.Parse(args[++i]); break;
+                case "--overlap": overlap = int.Parse(args[++i]); break;
+                case "--tsv": tsv = args[++i]; break;
+                default:
+                    Console.Error.WriteLine($"unknown argument {args[i]}");
+                    return 1;
+            }
+        }
+        var arms = armText.Split(',').Select(ParseArm).ToArray();
+        using (var self = Process.GetCurrentProcess())
+            self.PriorityClass = ProcessPriorityClass.BelowNormal;   // (threads made later inherit it)
+
+        // The tables as the UCI engine has them: never solved or loaded mid-search, read in before the first.
+        using var tablebase = tables is null ? null
+            : new Tablebase(tables, blockCache: new BlockCache(tableCache)) { SolveMissing = false, LoadOnDemand = false };
+        if (tablebase is not null)
+        {
+            var loading = Stopwatch.StartNew();
+            var (count, bytes, onDisk) = tablebase.Preload();
+            Console.WriteLine($"loaded {count} endgame tables from {tables} in {loading.Elapsed.TotalSeconds:0.0} s " +
+                              $"({bytes / (1024 * 1024)} MB in memory, {onDisk} read from disk as probed, " +
+                              $"their blocks cached in {tablebase.BlockCache.Megabytes} MB at most)");
+        }
+        var table = new TranspositionTable(hash);
+        var search = new Search(table, tablebase);
+        search.RangeStep = step ?? search.RangeStep;
+        search.RangeOverlap = overlap ?? search.RangeOverlap;
+        var rows = new List<Row>();
+        using var output = tsv is null ? null : new StreamWriter(tsv);
+        output?.WriteLine("round\tposition\tarm\tms\tnodes\tmove\tscore\tfallbacks\ttable_hits\tblocks\tblock_ms\twaits\twait_ms" +
+                          "\tsame_block_waits\tsame_block_wait_ms");
+        // A search's reads: a marker (the sign bit, then round, position and threads), then the reads.
+        using var traceOut = trace is null ? null : new BinaryWriter(File.Create(trace));
+        Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss}: {fens.Length} positions to depth {depth}, {rounds} rounds, " +
+                          $"arms {armText}, hash {hash} MB, range step {search.RangeStep} cp, overlap {search.RangeOverlap} cp" +
+                          (tablebase is null ? "" : ", endgame tables on"));
+        // Warm up first (the JIT, the caches), off the record: the first search ran a third slower.
+        foreach (var arm in arms)
+        {
+            table.Clear();
+            search.Threads = arm.Threads;
+            search.Split = arm.Split;
+            search.Run(Position.FromFen(fens[0]), new SearchLimits { Depth = Math.Max(1, depth - 2) });
+        }
+        if (tablebase is not null)
+        {
+            // Every position once, so that the first arm timed doesn't pay alone for reading the table files from disk.
+            var warming = Stopwatch.StartNew();
+            foreach (string fen in fens)
+            {
+                table.Clear();
+                tablebase.ClearBlockCaches();
+                search.Run(Position.FromFen(fen), new SearchLimits { Depth = depth });
+            }
+            Console.WriteLine($"every position searched once on {arms[^1].Name} in {warming.Elapsed.TotalSeconds:0.0} s, off the record " +
+                              $"({Memory()})");
+        }
+        if (traceOut is not null)
+        {
+            TableReadTrace.Take();
+            TableReadTrace.Start();
+        }
+        for (int round = 0; round < rounds; round++)
+        {
+            var order = round % 2 == 0 ? arms : arms.Reverse().ToArray();
+            for (int p = 0; p < fens.Length; p++)
+            {
+                foreach (var arm in order)
+                {
+                    table.Clear();
+                    tablebase?.ClearBlockCaches();
+                    var before = tablebase?.BlockCacheCounts() ?? default;
+                    search.Threads = arm.Threads;
+                    search.Split = arm.Split;
+                    var clock = Stopwatch.StartNew();
+                    var result = search.Run(Position.FromFen(fens[p]), new SearchLimits { Depth = depth });
+                    double ms = clock.Elapsed.TotalMilliseconds;
+                    var blocks = (tablebase?.BlockCacheCounts() ?? default) - before;
+                    var row = new Row(round, p, arm.Name, ms, result.Nodes, result.BestMove?.ToUci() ?? "0000", result.Score,
+                                      search.RangeFallbacks, search.TableHits, blocks);
+                    rows.Add(row);
+                    Console.WriteLine($"{round} {p,3} {arm.Name,-4} {ms,9:0.0} ms {row.Nodes,13:N0} nodes " +
+                                      $"{row.Nodes / Math.Max(ms, 0.001):0} knps  {row.Move,-6} {row.Score,6}" +
+                                      (row.Fallbacks > 0 ? $"  ({row.Fallbacks} fallbacks)" : "") +
+                                      (tablebase is null ? "" : $"  tb {row.TableHits:N0}, {blocks.Decompressed:N0} blocks in " +
+                                                                $"{blocks.DecompressMs:0} ms, {blocks.Waits:N0} waits {blocks.WaitMs:0.0} ms " +
+                                                                $"({blocks.SameBlockWaits:N0} for the same block)"));
+                    output?.WriteLine($"{round}\t{p}\t{arm.Name}\t{ms:0.000}\t{row.Nodes}\t{row.Move}\t{row.Score}\t{row.Fallbacks}\t" +
+                                      $"{row.TableHits}\t{blocks.Decompressed}\t{blocks.DecompressMs:0.000}\t{blocks.Waits}\t{blocks.WaitMs:0.000}\t" +
+                                      $"{blocks.SameBlockWaits}\t{blocks.SameBlockWaitMs:0.000}");
+                    if (traceOut is not null)
+                    {
+                        traceOut.Write(long.MinValue | (long)round << 32 | (long)p << 16 | (long)arm.Threads);
+                        foreach (long read in TableReadTrace.Take())
+                            traceOut.Write(read);
+                    }
+                }
+            }
+            Console.WriteLine($"round {round} done, {Memory()}");
+        }
+        if (traceOut is not null)
+        {
+            TableReadTrace.Stop();
+            using var names = new StreamWriter(trace + ".tables.tsv");
+            names.WriteLine("id\tmaterial\tdtz\tsize\tvalues_per_block");
+            foreach (var info in TableReadTrace.Tables)
+                names.WriteLine($"{info.Id}\t{info.Material}\t{(info.Dtz ? 1 : 0)}\t{info.Size}\t{info.ValuesPerBlock}");
+            Console.WriteLine($"traced to {trace}");
+        }
+        Summarise(rows, arms);
+        if (tablebase is not null)
+            SummariseTables(rows, arms);
+        return 0;
+    }
+
+    private static string Memory()
+    {
+        using var self = Process.GetCurrentProcess();
+        return $"private {self.PrivateMemorySize64 / (1024 * 1024):N0} MB, peak {self.PeakPagedMemorySize64 / (1024 * 1024):N0} MB";
+    }
+
+    /// <summary>The endgame tables' share of each arm's searches: table hits, blocks decompressed, and waits, as shares of the arm's thread time.</summary>
+    private static void SummariseTables(List<Row> rows, Arm[] arms)
+    {
+        var baseline = rows.Where(r => r.Arm == "1").ToDictionary(r => (r.Round, r.Position));
+        Console.WriteLine();
+        Console.WriteLine("| arm | threads | table hits a search | table hits v 1 | table hits a second | blocks a search | " +
+                          "decompressing, of thread time | waits a search | waiting, of thread time | waits for the same block |");
+        Console.WriteLine("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+        foreach (var arm in arms)
+        {
+            var mine = rows.Where(r => r.Arm == arm.Name).ToList();
+            if (mine.Count == 0)
+                continue;
+            double threadMs = mine.Sum(r => r.Ms) * arm.Threads;
+            long hits = mine.Sum(r => r.TableHits);
+            long baseHits = mine.Where(r => baseline.ContainsKey((r.Round, r.Position))).Sum(r => baseline[(r.Round, r.Position)].TableHits);
+            Console.WriteLine($"| {arm.Name} | {arm.Threads} | {hits / mine.Count:N0} | {(baseHits > 0 ? $"{(double)hits / baseHits:0.00}" : "")} | " +
+                              $"{hits / (mine.Sum(r => r.Ms) / 1000):N0} | {mine.Average(r => r.Blocks.Decompressed):N0} | " +
+                              $"{mine.Sum(r => r.Blocks.DecompressMs) / threadMs:P1} | {mine.Average(r => r.Blocks.Waits):N0} | " +
+                              $"{mine.Sum(r => r.Blocks.WaitMs) / threadMs:P1} | " +
+                              $"{(double)mine.Sum(r => r.Blocks.SameBlockWaits) / Math.Max(1, mine.Sum(r => r.Blocks.Waits)):P0} |");
+        }
+    }
+
+    private static Arm ParseArm(string text) => text switch
+    {
+        "1" => new Arm("1", 1, ParallelMode.LazySmp),
+        ['L', .. var n] => new Arm(text, int.Parse(n), ParallelMode.LazySmp),
+        ['R', .. var n] => new Arm(text, int.Parse(n), ParallelMode.Ranges),
+        _ => throw new FormatException($"An arm is 1, L<threads> or R<threads>, not {text}."),
+    };
+
+    /// <summary>Each arm against the one-thread arm on the same searches (same round and position).</summary>
+    private static void Summarise(List<Row> rows, Arm[] arms)
+    {
+        var baseline = rows.Where(r => r.Arm == "1").ToDictionary(r => (r.Round, r.Position));
+        if (baseline.Count == 0)
+        {
+            Console.WriteLine("(no \"1\" arm to compare with)");
+            return;
+        }
+        var repeats = baseline.Values.Where(r => r.Round > 0)
+            .Count(r => r.Nodes != baseline[(0, r.Position)].Nodes || r.Move != baseline[(0, r.Position)].Move);
+        Console.WriteLine();
+        Console.WriteLine($"One thread, repeated: {repeats} of {baseline.Values.Count(r => r.Round > 0)} later searches differ from round 0 in nodes or move.");
+        Console.WriteLine();
+        Console.WriteLine("| arm | threads | total time s | speedup (total) | speedup (geo. mean) | nodes v 1 | knps | knps v 1 | same move | same score | mean abs score diff | fallbacks |");
+        Console.WriteLine("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+        double baseSeconds = baseline.Values.Sum(r => r.Ms) / 1000;
+        long baseNodes = baseline.Values.Sum(r => r.Nodes);
+        foreach (var arm in arms)
+        {
+            var mine = rows.Where(r => r.Arm == arm.Name && baseline.ContainsKey((r.Round, r.Position))).ToList();
+            if (mine.Count == 0)
+                continue;
+            double seconds = mine.Sum(r => r.Ms) / 1000;
+            long nodes = mine.Sum(r => r.Nodes);
+            double geo = Math.Exp(mine.Average(r => Math.Log(baseline[(r.Round, r.Position)].Ms / Math.Max(r.Ms, 0.001))));
+            double sameMove = mine.Count(r => r.Move == baseline[(r.Round, r.Position)].Move) * 100.0 / mine.Count;
+            double sameScore = mine.Count(r => r.Score == baseline[(r.Round, r.Position)].Score) * 100.0 / mine.Count;
+            double scoreDiff = mine.Average(r => Math.Abs(r.Score - baseline[(r.Round, r.Position)].Score));
+            double knps = nodes / seconds / 1000, baseKnps = baseNodes / baseSeconds / 1000;
+            Console.WriteLine($"| {arm.Name} | {arm.Threads} | {seconds:0.0} | {baseSeconds / seconds:0.00} | {geo:0.00} | " +
+                              $"{(double)nodes / baseNodes:0.00} | {knps:N0} | {knps / baseKnps:0.00} | {sameMove:0}% | {sameScore:0}% | " +
+                              $"{scoreDiff:0.0} | {mine.Sum(r => r.Fallbacks)} |");
+        }
     }
 }

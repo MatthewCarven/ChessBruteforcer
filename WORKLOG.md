@@ -2204,6 +2204,140 @@ is updated to this run. Since it ran the old scripts, its rows are plain
 columns plus the trial's Parquet, and the new tools refuse its games.json:
 July needs `rows` once more (TODO item 3).
 
+## 2026-10-15 (21:25-23:35): the search on more than one core
+
+Matthew asked whether the search could use the laptop's other cores (8 cores,
+16 threads; the engine used one), and proposed a way of his own: "describe our
+position in some ranges of possibility, split the job 4 or 8 or 16 ways". Both
+are built on branch claude/nostalgic-greider-09538a (from compression; commit
+9424597; not merged, the bot untouched), behind two new UCI options: `Threads`
+(default 1, so until it's set the bot searches exactly as before) and
+`ThreadSplit`:
+
+- **LazySMP**, the standard way: every thread searches the whole tree from the
+  root, all sharing the transposition table, half the helpers starting a depth
+  ahead. The main thread's answer is played.
+- **Ranges**, Matthew's idea (Baudet's parallel aspiration search, 1978): at
+  each depth from 4, the score range is cut into one window a thread around
+  the last depth's score (cuts at 0, ±15, ±30, ±60, ... cp, so the windows are
+  narrow where the score is likely to land), each reaching 10 cp into its
+  neighbours. Every thread searches the root in its own window; one of them
+  should hold the score, and its thread gives the answer while the rest are
+  stopped. When none holds it (pruning that depends on the window can make
+  neighbours disagree), that depth is searched again on one thread with the
+  full window.
+
+Underneath, the table is lockless (the key XORed with the entry, Hyatt and
+Mann), so a slot two threads write at once reads as a miss: a test of 8
+threads on 4 slots finds 0 mixed entries, and 14,711 in 0.4 s with the trick
+taken out. The endgame tables' sets of missing materials became concurrent.
+One thread searches exactly as before: the same move, score and node count as
+the previous build on 37 positions (the bench's 6, and the 31 below, depth 9).
+
+**Time to depth 12** (`ChessBruteforcer.Engine bench-threads`): 31 positions
+from bot/games (every 8th game, at ply 30, 40 or 50), the bot's evaluation
+(sf1), a 64 MB table cleared before every search. Every arm searched each
+position in turn (reverse order in round 2), 2 rounds, so 62 searches an arm,
+at below-normal priority, the bot playing at times alongside. One thread
+repeated itself exactly (0 of 31 differed). Two runs, each against its own
+one-thread baseline (349 s and 354 s for the 62); the Ranges rows are the
+second run's, with the 10 cp overlap:
+
+| arm | threads | speedup to depth 12 (total time) | median search | searches slower than 1 thread | nodes searched v 1 thread | nodes a second v 1 thread |
+|---|---:|---:|---:|---:|---:|---:|
+| one thread | 1 | 1.00 | 1.00 | | 1.00 | 1.00 (1.8 M/s) |
+| LazySMP | 2 | 1.25 | 1.27 | 13 of 62 | 1.59 | 1.99 |
+| LazySMP | 4 | 1.77 | 1.73 | 5 | 2.25 | 3.97 |
+| LazySMP | 8 | 1.95 | 2.12 | 5 | 3.57 | 6.96 |
+| LazySMP | 16 | 1.64 | 1.83 | 9 | 5.31 | 8.73 |
+| Ranges | 2 | 1.53 | 1.43 | 10 | 1.10 | 1.67 |
+| Ranges | 4 | 1.98 | 1.94 | 5 | 1.24 | 2.44 |
+| Ranges | 8 | 1.61 | 2.36 | 5 | 1.68 | 2.72 |
+| Ranges | 16 | 2.24 | 2.46 | 5 | 1.66 | 3.73 |
+
+(16 threads means the 8 cores' hyperthreads, with the bot and the book learner
+on them too.)
+
+- **To a fixed depth the two are about level**: ~2x at 4 to 8 threads either
+  way, and neither gets far past it.
+- **They spend the cores differently.** LazySMP keeps them all busy (7.0x the
+  nodes a second on 8) but puts most of it into searching wider, not deeper:
+  3.6x the nodes to reach the same depth. That's normal for LazySMP; its gain
+  shows in play more than in time to depth, since the wider search finds
+  better moves at the same depth. Ranges searches nearly the same tree (1.2 to
+  1.7x the nodes) and leaves cores idle (2.4 to 3.7x the nodes a second): once
+  the window holding the score is done the others are stopped, and that window
+  costs nearly what the full one did (next table).
+- **At a fixed depth neither gives the one-thread answer**: the same move in
+  84-90% of searches, the same score in 21-42%, 6-13 cp apart on average. The
+  threads change what the table holds when, so the tree changes. On one thread
+  nothing changed.
+- **The overlap matters to Ranges.** Without it (the first run), 194 of R8's
+  558 parallel depths (35%) had no window holding the score, each searched
+  again on one thread, and Ranges managed 1.21-1.29x at 2 to 8 threads. With
+  10 cp, 28 (5%), giving the table above. The 15 cp step and 10 cp overlap were
+  chosen on 8 other positions (bot games outside the 31, depth 10).
+
+**Baudet's 5-6x** (`scripts/window-ceiling.cs`). The most Ranges could gain,
+however many threads, is what a window just wide enough to hold the score
+saves over the full window at the same depth, from the same start (the table
+and move ordering the earlier depths leave, deterministic on one thread).
+Counted in nodes at depth 11 on the same 31 positions:
+
+| window around the score | held the score | full-window nodes / window's nodes |
+|---|---:|---:|
+| ±1 cp | 8 of 31 | 2.67 |
+| ±5 cp | 13 of 31 | 2.06 |
+| ±10 cp | 20 of 31 | 1.63 |
+| ±25 cp | 30 of 31 | 1.09 |
+| ±50 cp | 31 of 31 | 1.09 |
+| ±100 cp | 31 of 31 | 0.99 |
+| the narrowest that held it | 31 of 31 | **1.27** (median 1.06, best 2.17) |
+
+So the claim doesn't hold for this engine: its ceiling is ~1.3x, not 5-6x.
+Baudet's figure was for plain alpha-beta, where a full window really does cost
+far more than a narrow one. Principal variation search already searches every
+move but the first with a null window, and the table and move ordering do the
+rest, so a narrow window has little left to save. (The ±1 window looks better
+only because it mostly fails: a failed search is cheap and settles nothing.)
+What Ranges measures beyond 1.3x comes from sharing the table: the threads
+whose windows fail fill it for the one that holds the score, which is
+LazySMP's effect arriving by another road.
+
+**Matches**: one thread against 8, 40 games each at 10+0.1 (20 openings from
+games/tune/openings-300.txt in colour-reversed pairs), one game at a time,
+both engines at below-normal priority with the tuned evaluation, Hash 64 and
+no endgame tables. No time losses.
+
+| match | games | +W -L =D | score | Elo [95%] |
+|---|---:|---|---:|---|
+| LazySMP 8 v 1 thread | 40 | +26 -4 =10 | 77.5% | +215 [+124, +344] |
+| (its games 9-40) | 32 | +22 -2 =8 | 81.2% | +255 [+154, +416] |
+| Ranges 8 v 1 thread | 40 | +20 -2 =18 | 72.5% | +168 [+95, +259] |
+
+Games 1-8 of the first overlapped another session's test run (also below
+normal) on the same cores; leaving them out only raises LazySMP's score.
+
+**Does Ranges lose to LazySMP?** To a fixed depth, no: they're level. In play,
+by 47 Elo at 10+0.1, inside the noise of 40 games (only a head-to-head match
+would settle it). In what it is, yes: the narrow windows themselves are worth
+~1.3x at most here, and what makes Ranges work is the shared table, which
+LazySMP uses directly while keeping every core busy. So LazySMP for the bot,
+if Matthew wants threads.
+
+Not yet measured: the bot's own clock (300+2, ~12-14 min a game one at a
+time, so 20 games ~4-4.5 h: Matthew's call), and threads with the endgame
+tables loaded. A 5-piece table's compressed blocks are read under one lock
+per table, so 8 threads probing the same ending could queue there.
+
+The raw output is in scripts/: threads-positions.txt (the 31),
+threads-bench-d12.txt (the first run, Ranges without overlap),
+threads-bench-d12-ranges.txt and threads-ceiling-d11.txt. To repeat:
+`ChessBruteforcer.Engine bench-threads scripts\threads-positions.txt 12 --eval
+bot\eval\eval-sf1.txt` (default arms 1,L2,L4,L8,R2,R4,R8; ~30 min) and
+`dotnet run -c Release scripts\window-ceiling.cs -- scripts\threads-positions.txt
+11 bot\eval\eval-sf1.txt` (~8 min).
+
 ## 2026-10-15/16 (23:36-00:35): July's new-layout run stopped; on the phone's hotspot
 
 - **July with the new `rows`** started 23:36 by itself (index-month.cmd's
@@ -2223,3 +2357,232 @@ July needs `rows` once more (TODO item 3).
   stamp takes the server's date; a list that couldn't be fetched says so.
   Tested against a dead address (30 tries, then a clean stop) and a local
   web server (size and date read right).
+
+## 2026-10-16 (00:16-01:00): threads with the endgame tables loaded
+
+The question left open above: with the bot's tables loaded, do 8 threads
+queue on the compressed tables? Each 5-piece table (220 files, 12 GB, read
+from disk a 64 KB block at a time) decompressed its blocks, and read even a
+block it already held, under one lock a table. A side session, on branch
+claude/practical-cerf-df4df1 (on top of the threads branch; the bot
+untouched). They do queue, and badly; the cache is read without a lock now.
+
+**The bench.** `bench-threads` takes `--tables <dir>` and loads them as the
+UCI engine does (796 MB of plain tables into memory, the 220 compressed ones
+read as probed). 20 positions from bot/games (scripts/pick-endgame-positions.py:
+the first position with 6 or 7 pieces and the bot to move, in 20 of the 96
+games that reach one, spread over them, a material once where it could), so
+the search runs down into 5 pieces. Depth 12, the bot's evaluation (sf1), a
+64 MB hash table and the tables' block caches emptied before every search,
+every position searched once before the timed rounds (so the table files
+were in the disk cache for every arm alike), 2 rounds. Two builds, run A B A
+B: the old cache under its lock (commit a3cae87, which counts the reads that
+found the lock taken and the time they waited, with this commit's two bench
+fixes: the caches emptied in the warm-up too, and their memory let go) and
+the new one. Alone on the
+machine (July's index run was stopped at Matthew's word when the desktop
+share went away; the bot wasn't running), below normal, a 4 GB heap cap.
+One thread repeated itself exactly in every run, and the two builds' one
+thread searched the same nodes.
+
+| arm | build | speedup to depth 12 (total time) | median search | searches slower than 1 thread | nodes searched v 1 thread | nodes a second v 1 thread | waiting, of the threads' time |
+|---|---|---:|---:|---:|---:|---:|---:|
+| one thread | either | 1.00 | 1.00 | | 1.00 | 1.00 (0.55 M/s) | |
+| LazySMP 2 | one lock a table | 1.21 | 1.18 | 17 of 64 | 1.34 | 1.63 | 26% |
+| LazySMP 4 | one lock a table | 1.26 | 1.30 | 9 | 1.90 | 2.38 | 51% |
+| LazySMP 8 | one lock a table | **1.09** | 1.28 | 12 | 2.69 | 2.93 | **70%** |
+| LazySMP 2 | no lock | 1.49 | 1.35 | 10 | 1.36 | 2.04 | 15% |
+| LazySMP 4 | no lock | 1.79 | 1.62 | 4 | 2.22 | 3.96 | 30% |
+| LazySMP 8 | no lock | **2.08** | 2.04 | 6 | 3.31 | 6.90 | 33% |
+
+(Two runs a build, 40 searches an arm. The median and the slower count are
+over the 64 searches one thread took 100 ms or more over; the rest are mates
+the tables settle in a millisecond. A run's own L8 speedup was 0.97 and 1.24
+under the lock, 2.36 and 1.86 without it.)
+
+- **Under the lock, 8 threads were no faster than one.** They spent 70% of
+  their time waiting for a table's lock: Lazy SMP's threads search the same
+  ending, so they probe the same few tables, and one of them decompressing a
+  block (~120 us) held up the rest. Adding threads past 4 made it worse.
+- **Without it, the endgame scales like the middlegame**: 2.08x to depth 12
+  on 8 threads and 6.90x the nodes a second, against 1.95x and 6.96x on the
+  31 middlegame positions above.
+- How it works now: a cache slot has a version, odd while one thread fills
+  it. A read takes no lock and writes nothing: it reads the version, the
+  slot's block, the value and the version again, and keeps the value if the
+  version didn't move. Filling a slot belongs to the one thread that moves
+  its version from even to odd; a read that finds its slot being filled
+  waits for that. So a block already there is read by every thread at once,
+  and blocks for different slots are decompressed at once. A new test reads
+  one table from 8 threads on 3 cache slots (every value right; it fails
+  when filling takes no claim). 323 tests pass, 2 skipped as before.
+
+**What's left is the cache itself.** Even on one thread, two-thirds of the
+endgame search is decompressing blocks: 67.8% of its time, ~20,700 blocks a
+search (a block for every 3 table hits), ~120 us each with the file read. A
+table keeps 1,024 blocks, each in a fixed slot (64 MB at most), which holds
+little of what a search needs. And it never gives memory back. With 220
+compressed tables that's up to 14 GB, and the first try at this bench, which
+didn't empty the caches between searches, went past the 4 GB cap in under a
+minute on 8 threads ("Out of memory"; the cap kept it to the bench). With
+the caches emptied and let go before each search, a run peaked at 2.8-3.0
+GB. The bot keeps its caches for as long as it runs, so they grow with every
+ending it meets, faster on 8 threads. The waiting left on 8 threads (33%) is
+reads waiting while another thread fills the slot they want, about one for
+every block decompressed: either threads wanting the same block (Lazy SMP's
+threads follow each other) or two blocks sharing a slot, not yet told apart.
+Fewer misses would cut both.
+
+The raw output is in scripts/: threads-endgame-positions.txt (the 20),
+threads-tables-d12-{lock,free}-{1,2}.txt and .tsv, and
+threads-tables-summary.py (the table above from the .tsv files). To repeat:
+`ChessBruteforcer.Engine bench-threads scripts\threads-endgame-positions.txt
+12 --arms 1,L2,L4,L8 --eval bot\eval\eval-sf1.txt --tables tables` (~7 min
+without the lock, ~10 with it; peak ~3 GB, so check commit headroom first).
+
+## 2026-10-16 (01:11-02:15): the block cache: where its misses came from, one budget, half the time
+
+The step left open above, before the bot gets threads. A side session, on
+branch claude/angry-kirch-aa4068 on top of claude/practical-cerf-df4df1
+(138e089), so it fast-forwards from it; the bot untouched. Alone on the
+machine for every bench, 01:23-02:07 (July's index run waiting for the
+share and never started, the bot not running; only May's download, uncapped
+on Matthew's phone data, network but barely any CPU), below normal, a 4 GB
+heap cap.
+
+**Where the misses came from.** Every read of a compressed table in the
+timed searches traced (`bench-threads --trace`, commit 04cd475), the 20
+endings at depth 12, one thread, and the reads replayed offline through
+other caches (scripts/block-cache-trace.py). Replaying the old cache
+decompressed exactly the blocks the bench did, in all 20 searches (414,619),
+so the other caches below are the same reads, not a model of them. A
+search, on average:
+
+| | a search |
+|---|---:|
+| reads of a compressed table | 107,040 |
+| of them DTZ | 43,637 |
+| DTZ reads after a mate distance that had already settled the result | 43,251 (99.1%) |
+| blocks decompressed (each table its own 1,024 slots) | 20,731 |
+| blocks read at all (the least a cache emptied before the search can do) | 7,910 |
+
+- The old cache's misses: 38% cold (the block's first read), 30% capacity
+  (more blocks than a table's 1,024 slots, even if any could go anywhere),
+  32% conflict (two blocks wanting one slot).
+- DTZ tables: 34% of the misses. `TryProbeWithClock` read DTZ after every
+  win or loss, but in a search nearly every probe comes straight after a
+  capture (the count at 0), where a mate within 100 plies settles it.
+- By table: the mate distances of KQPvKQ (14%), KPPvKP (13%) and KQPvKP
+  (11%) are 38% of the misses between them; 136 tables are read at all.
+- On 8 threads, 99% of the reads that waited (old cache) were waiting for
+  the very block another thread was decompressing, not for another block
+  sharing their slot: Lazy SMP's threads search the same positions. Only
+  fewer misses cut those waits.
+
+The same reads through one cache for all the tables (blocks decompressed a
+search; the replay's numbers, with the bench's where measured):
+
+| cache | memory | all reads | DTZ read only where it can matter |
+|---|---:|---:|---:|
+| each table its own, 1,024 slots, direct-mapped (138e089) | up to 14 GB | 20,731 | 13,760 |
+| one for all, least recently used goes, 128 MB | 128 MB | 24,377 | 11,879 |
+| the same, 256 MB | 256 MB | 17,768 | 8,475 |
+| the same, 512 MB | 512 MB | 12,068 | 6,001 |
+| the same, 1 GB | 1 GB | 8,533 | 4,851 |
+| the same, 2 GB | 2 GB | 7,910 | 4,838 |
+| one for all, sets of 16 with a clock (now), 256 MB | 256 MB | 18,603 | 8,936 (measured 8,931) |
+| the same, 512 MB (the default) | 512 MB | 12,830 | **6,350 (measured 6,358)** |
+| the same, 1 GB | 1 GB | 9,113 | 4,989 (measured 4,987) |
+| every block read once | | 7,910 | 4,838 |
+
+Sets of 16 cost ~6% more misses than true least-recently-used; sets of 8
+another ~2%.
+
+**What changed** (commit a5b38fa):
+- **DTZ only where the mate can't settle it.** Mating in d plies is a way to
+  win under the 50-move rule that starts the count again (or mates) within
+  d plies, so when the clock + d is at most 100 the DTZ table has the same
+  win or loss, in time, and reading it changes nothing. Checked four ways:
+  every position of the test tables (CompressedTableTests, >100,000 wins
+  and losses); probes through the compressed test tables at clocks either
+  side of both distances, against the old definition; every position of
+  four real tables (scripts/dtz-skip-check.cs, below: 0 exceptions in 2.96
+  billion positions, 6.0 M of them mates at 90-100 plies; every rule draw
+  among wins and losses has a mate of 121 plies or more); and the slow
+  cursed-win test on the real KBBvKN. One thread searched exactly the same
+  nodes, moves and scores in every run of both builds.
+- **One cache for every table** (`BlockCache`): all the compressed tables a
+  Tablebase opens share 512 MB of places by default (UCI option
+  `TableCache`, in MB; `bench-threads --table-cache`). A block goes into one
+  of 16 places in its set (a hash of table and block), a clock hand within
+  the set picks what goes. Read without a lock as before (a version a
+  place); a thread filling a place names its block first, so reads of that
+  block wait for it and the rest pass by. Memory is taken as places are
+  first used and never passes the budget (it was up to 64 MB a table, 14 GB
+  in all, never let go).
+- The engine lets go of its old tables when `EndgameTables` changes (their
+  files stayed mapped).
+- 328 tests pass, 2 skipped as before (5 new: tables sharing a cache within
+  its budget, 8 threads on 4 tables through 6 places, the two DTZ checks,
+  the UCI option).
+
+**Re-measured**, A B A B (138e089, this branch, 138e089, this branch), two
+runs a build, 40 searches an arm (scripts/block-cache-d12-*):
+
+| arm | 138e089, s | now, s | now faster | to depth 12 v one thread (138e089 -> now) | nodes a second v one thread | decompressing, of thread time | waiting, of thread time | blocks a search |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| one thread | 294.1 | 149.8 | **1.96x** | 1.00 | 1.00 (0.55 -> 1.09 M/s) | 67.6% -> 42.1% | | 20,731 -> 6,358 |
+| LazySMP 2 | 203.8 | 101.4 | 2.01x | 1.44 -> 1.48 | 1.96 -> 2.00 | 50.9% -> 33.5% | 17.7% -> 9.2% | 20,626 -> 6,449 |
+| LazySMP 4 | 163.1 | 88.2 | 1.85x | 1.80 -> 1.70 | 3.73 -> 3.83 | 41.6% -> 26.3% | 27.9% -> 17.3% | 26,245 -> 8,352 |
+| LazySMP 8 | 137.2 | 62.4 | **2.20x** | **2.14 -> 2.40** | **6.42 -> 6.98** | 38.8% -> 22.2% | 32.6% -> 22.2% | 37,401 -> 9,036 |
+
+- Every arm about twice as fast; 8 threads still ~2.4x one thread, which
+  is itself twice as fast now. A run's own L8 speedup: 2.47 and 1.89 on
+  138e089 (2.36 and 1.86 last time), 2.43 and 2.38 now; the median search
+  2.04 -> 1.97.
+- Peak memory 2.92 / 2.74 GB -> 1.91 / 1.92 GB.
+- Every wait left on 8 threads is for a block another thread is
+  decompressing.
+- The budget, one run each (1 and L8): 256 MB 86.8 s one thread (8,931
+  blocks a search), 37.4 s L8, peak 1.44 GB; 512 MB 74.5-75.2 s, 31.0-31.4
+  s, 1.92 GB; 1 GB 76.1 s (4,987 blocks), 35.5 s, 2.80 GB. 1 GB
+  decompresses a fifth less but isn't faster here: the bench empties the
+  cache and lets its memory go before every search, so it allocates up to
+  1 GB a search, which the bot (never emptied) pays once. 512 MB, then:
+  the bot's laptop has ~2.4-5 GB of commit headroom with the bot running.
+
+**Smaller blocks, proposed (not run).** What's left on one thread is 42% of
+its time in ~6,400 decompressions a search, ~120 us each, and most of those
+are blocks read once (4,838 of the 6,358). A smaller block costs less to
+decompress almost in proportion. Sampled blocks of the six tables with the
+most misses, recompressed in memory at quality 10 (scripts/block-size-probe.cs,
+nothing written):
+
+| block | x smaller | files against 64 KB blocks | us to decompress a block | replayed misses a search, 512 MB | decompressing a search, estimated |
+|---|---:|---:|---:|---:|---:|
+| 64 KB (now) | 12.5 | 1.00x | 91.6 | 6,001 | ~790 ms (measured) |
+| 32 KB | 11.9 | 1.04x | 47.3 | 6,712 | ~460 ms |
+| 16 KB | 11.3 | 1.10x | 24.3 | 7,985 | ~280 ms |
+| 8 KB | 10.5 | 1.19x | 14.0 | 9,186 | ~180 ms |
+| 4 KB | 9.4 | 1.32x | 8.6 | 11,013 | ~130 ms |
+
+(The estimate scales the measured 64 KB time by the decompression times and
+the replayed misses.) 8 KB blocks would take a one-thread search from ~1.9 s
+to ~1.3 s here, and need far less cache: 128 MB of 8 KB blocks replays to
+11,237 misses, ~220 ms. The cost: recompressing the 220 tables (~12 GB ->
+~14 GB) from the compressed files themselves, ~4 h on all 16 threads (the
+pawnless 28.7 GB took 48 minutes the first time), a night; the reader then takes the block size from the file's header (it
+already holds it; only the check that it is 64 KB has to go) and the cache
+places shrink to match; block offsets held in memory grow from ~14 MB to
+~110 MB at 8 KB (half that as 4-byte offsets, every file being under 4 GB).
+A step of its own.
+
+The raw output is in scripts/: block-cache-trace-d12.{txt,tsv} (the traced
+run on the old cache, with same-block waits), block-cache-replay-d12.txt
+(the replay), block-cache-d12-{old,shared}-{1,2}.{txt,tsv} and
+block-cache-d12-summary.txt (the A B A B), block-cache-d12-shared-{256,1024}-MB.*,
+block-size-probe.txt, dtz-skip-check.txt. To repeat the trace:
+`ChessBruteforcer.Engine bench-threads scripts\threads-endgame-positions.txt
+12 --arms 1 --rounds 1 --eval bot\eval\eval-sf1.txt --tables tables --tsv
+t.tsv --trace t.bin`, then `python -I scripts\block-cache-trace.py t.bin
+t.tsv` (~2 min; the trace is ~60 MB for one thread and L8, so it isn't kept).
