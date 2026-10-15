@@ -72,12 +72,20 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          scripts at ee66600 (an 18:18 start died at 18:35 for memory, from
          another session's probes; WORKLOG). 89,288,421 games, SHA-256
          matching, check 4,000 of 4,000, dups 2.05% as before.
-   - [ ] **May 2026 is downloading into the laptop's games\** (uncapped, on
-         Matthew's word): 17.32 of 27.65 GiB at 05:53 on 2026-10-16, ~1 MB/s,
-         so done ~09:00; its SHA-256 and count are saved. Then move it to the
-         share. June's .part waits on the share. (Its window and the July
-         launcher were closed at 03:07 when the laptop came back from the
-         phone's hotspot; May was restarted at 03:33 and again at 05:53.)
+   - [ ] **May 2026 landed on the laptop** (2026-10-16 09:05, 29,689,176,290
+         bytes, SHA-256 matching Lichess's) and is being copied to the share
+         from 09:07 by a window "May 2026: check, copy to the share, check
+         again" (log games\move-2026-05.log): ~50 min to copy, ~75 to check
+         the share's copy. Once that says finished, the laptop's copy
+         (games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7 GB; C: had
+         30 GB free) can go: Matthew's delete. June's .part waits on the
+         share; the month queue isn't running.
+   - [ ] **lichess-bot gives up on a game whose stream drops** (2026-10-16
+         07:52: "Game over" logged three book moves into a live game against
+         TroutBot). A restart rejoined it a minute later; it lost on the board.
+         Fix: before calling a game over, ask Lichess for its status (or
+         rejoin games in progress every few minutes), as a patch beside
+         lichess-bot-chat.patch.
    - [x] **July's rows in the new layout** (2026-10-16, 03:33-04:56, the
          repo's index-month.cmd): 6,177 frames, **89,288,421 games, count
          MATCHES**, SHA-256 matching, 1,267.1 MB of Parquet; check 2,000 of

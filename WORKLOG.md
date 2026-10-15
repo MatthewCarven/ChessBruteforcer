@@ -2780,3 +2780,19 @@ downloaded or installed, and the engine is unchanged.
   reading records over it would take 4.4 h a run, so each machine keeps its
   own copy, and a split run's gradient swap (0.8 MB each way, ~0.18 s a
   step against 8-33 ms of work) would be 5-20x slower than the laptop alone.
+
+## 2026-10-16 (07:53-09:10): the bot restarted; May lands and goes to the share
+
+- **The bot restarted at 07:53** in what looked like a gap between games, to
+  pick up pondering, the shorter greetings and !info's project lines
+  (3aa22df). It had in fact dropped a live game: lichess-bot logged "Game
+  over" against TroutBot (2228) at 07:52:22, three book moves in, when the
+  game's stream closed (Lichess was shaky all night). The restarted bot
+  rejoined it at 07:53:43, ~1.5 min down on the clock, and lost by mate at
+  08:03. No errors or ponder trouble in the log since; 7 games by 09:02. A
+  fix for dropped streams is in TODO.
+- **May 2026 finished at 09:05:38** (29,689,176,290 bytes, the server's size;
+  ~0.9-1.2 MB/s over the morning, attempts ending curl exit 28 on stalls as
+  designed). Checked on the laptop against Lichess's SHA-256: matches (42 s).
+  Copying to the share from 09:07 with robocopy /Z, then the share's copy
+  checked again (a window of its own, games\move-2026-05.log).
