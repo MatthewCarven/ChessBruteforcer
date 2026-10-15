@@ -27,8 +27,8 @@ that could go wrong does.
   ~4.3 B games, ~16 days at ~1 MB/s) onto the desktop share (Z:\lichess,
   each with Lichess's SHA-256), stopping before the share has < 100 GB free;
   each month counted into the books as it lands (Jul-Sep 2026 in: 497,607
-  main moves, median line 15 plies). Restartable. On 2026-10-15 it was
-  downloading August again. **Capped at ~500 KB/s** from 2026-10-15
+  main moves, median line 15 plies). Restartable. Restarted 17:38 on
+  2026-10-15 with June at 23.96 of 28.24 GB. **Capped at ~500 KB/s** from 2026-10-15
   (`-LimitRate`, so the house keeps its internet): the rest takes ~28 days
   rather than ~16; `scripts\month-queue.cmd -LimitRate 0` is full speed. Later: `-Parallel 2` (two downloads ran 1.30
   MB/s together v ~0.85 alone: ~16 days -> ~11); his spill-over drive (`-Dir`
