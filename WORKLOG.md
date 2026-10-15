@@ -1996,3 +1996,14 @@ is the next chat's first job).
   **At this size the trie with TryGetPrefixRange ties the sorted array**
   (on 2013-01 it was ahead; here memory misses dominate both) and costs
   3.2x the memory; without it, 26x slower. Answers agree.
+
+## 2026-10-15 (~17:25): the month queue paused for the household
+
+Matthew stopped the month queue's window: the download was filling the
+line and YouTube at home was waiting on it. Nothing lost: June's .part on
+the share holds 23.96 of 28.24 GB (22.32 of 26.30 GiB), so ~4.3 GB to go,
+about 70 minutes at the ~1 MB/s it had been getting (8.9 GiB in the 2.5 h
+of its 19th attempt; curl had dropped 18 times, exits 35 and 56, before
+14:53). The bot and the learner are still running. To carry on, run
+start.cmd (it starts only the queue) or scripts\month-queue.cmd: it checks
+the part isn't growing for 150 s, then resumes it with `curl -C -`.
