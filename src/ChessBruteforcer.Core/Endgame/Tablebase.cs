@@ -306,8 +306,17 @@ public sealed class Tablebase : IDisposable
     {
         if (!TryProbe(position, out outcome))
             return false;
+        bool settled = DecisiveInTime(outcome, position.HalfmoveClock);
+        if (TableReadTrace.On)
+            TableReadTrace.Settled = settled;
         if (outcome.Kind != OutcomeKind.Draw && TryProbeDtz(position, out var dtz) && !DecisiveInTime(dtz, position.HalfmoveClock))
+        {
+            if (settled && TableReadTrace.On)
+                TableReadTrace.Contradicted();
             outcome = Outcome.Draw;
+        }
+        if (TableReadTrace.On)
+            TableReadTrace.Settled = false;
         return true;
     }
 

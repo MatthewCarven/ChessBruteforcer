@@ -43,11 +43,14 @@ internal sealed class CompressedTable : IDisposable
     private readonly byte[]?[] _cache;
     private readonly int[] _cachedBlock;   // the block in each slot, -1 for none
     private readonly int[] _version;       // each slot's, odd while it is being filled
+    private readonly int[] _filling;       // the block each slot was last filled with (for counting waits)
+    private readonly int _traceId;
     [ThreadStatic] private static byte[]? t_packed;   // a block as stored, read by the thread filling a slot
 
     // For a bench: blocks decompressed and the time it took (the file read included), and reads
-    // that found their slot being filled by another thread, with the time they waited.
-    private long _decompressed, _decompressTicks, _waits, _waitTicks;
+    // that found their slot being filled by another thread, with the time they waited, and of
+    // those the ones waiting for the very block they wanted.
+    private long _decompressed, _decompressTicks, _waits, _waitTicks, _sameWaits, _sameWaitTicks;
 
     public Material Material { get; }
     public bool IsDtz { get; }
@@ -67,6 +70,8 @@ internal sealed class CompressedTable : IDisposable
         _cachedBlock = new int[cacheSlots];
         Array.Fill(_cachedBlock, -1);
         _version = new int[cacheSlots];
+        _filling = new int[cacheSlots];
+        _traceId = TableReadTrace.Register(material, dtz, size, valuesPerBlock);
         _file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         _view = _file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
     }
@@ -107,10 +112,13 @@ internal sealed class CompressedTable : IDisposable
     {
         get
         {
+            if (TableReadTrace.On)
+                TableReadTrace.Read(_traceId, index, IsDtz);
             int block = (int)(index / _valuesPerBlock);
             int within = (int)(index % _valuesPerBlock);
             int slot = block % _cache.Length;
             long waiting = 0;   // since when, if the slot was being filled
+            bool same = false;  // and whether with this block
             var spinner = new SpinWait();
             while (true)
             {
@@ -128,7 +136,7 @@ internal sealed class CompressedTable : IDisposable
                         if (Volatile.Read(ref _version[slot]) == version)
                         {
                             if (waiting != 0)
-                                CountWait(waiting);
+                                CountWait(waiting, same);
                             return value;
                         }
                         continue;   // refilled as it was read: again
@@ -140,7 +148,10 @@ internal sealed class CompressedTable : IDisposable
                     }
                 }
                 if (waiting == 0)
+                {
                     waiting = Stopwatch.GetTimestamp();
+                    same = Volatile.Read(ref _filling[slot]) == block;
+                }
                 spinner.SpinOnce(sleep1Threshold: -1);   // (a fill takes ~100 us; a Sleep(1) can take 15 ms)
             }
         }
@@ -156,6 +167,7 @@ internal sealed class CompressedTable : IDisposable
         try
         {
             _cachedBlock[slot] = -1;   // (the slot's old block is overwritten below, even if this one fails)
+            Volatile.Write(ref _filling[slot], block);
             long began = Stopwatch.GetTimestamp();
             long start = _offsets[block];
             int length = (int)(_offsets[block + 1] - start);
@@ -176,16 +188,23 @@ internal sealed class CompressedTable : IDisposable
         }
     }
 
-    private void CountWait(long since)
+    private void CountWait(long since, bool same)
     {
+        long ticks = Stopwatch.GetTimestamp() - since;
         Interlocked.Increment(ref _waits);
-        Interlocked.Add(ref _waitTicks, Stopwatch.GetTimestamp() - since);
+        Interlocked.Add(ref _waitTicks, ticks);
+        if (same)
+        {
+            Interlocked.Increment(ref _sameWaits);
+            Interlocked.Add(ref _sameWaitTicks, ticks);
+        }
     }
 
     /// <summary>What the cache has done since the table was opened (see <see cref="BlockCacheCounts"/>).</summary>
     public BlockCacheCounts Counts =>
         new(Interlocked.Read(ref _decompressed), Ms(Interlocked.Read(ref _decompressTicks)),
-            Interlocked.Read(ref _waits), Ms(Interlocked.Read(ref _waitTicks)));
+            Interlocked.Read(ref _waits), Ms(Interlocked.Read(ref _waitTicks)),
+            Interlocked.Read(ref _sameWaits), Ms(Interlocked.Read(ref _sameWaitTicks)));
 
     private static double Ms(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;
 
@@ -340,13 +359,17 @@ internal sealed class CompressedTable : IDisposable
 /// What compressed tables' block caches did, for a bench: blocks
 /// decompressed and the milliseconds that took (the file read included),
 /// and reads that had to wait for another thread, with the milliseconds
-/// they waited.
+/// they waited; of those, the ones that waited for the very block they
+/// wanted (the rest waited for another block that shared its place).
 /// </summary>
-public readonly record struct BlockCacheCounts(long Decompressed, double DecompressMs, long Waits, double WaitMs)
+public readonly record struct BlockCacheCounts(long Decompressed, double DecompressMs, long Waits, double WaitMs,
+                                               long SameBlockWaits = 0, double SameBlockWaitMs = 0)
 {
     public static BlockCacheCounts operator +(BlockCacheCounts a, BlockCacheCounts b) =>
-        new(a.Decompressed + b.Decompressed, a.DecompressMs + b.DecompressMs, a.Waits + b.Waits, a.WaitMs + b.WaitMs);
+        new(a.Decompressed + b.Decompressed, a.DecompressMs + b.DecompressMs, a.Waits + b.Waits, a.WaitMs + b.WaitMs,
+            a.SameBlockWaits + b.SameBlockWaits, a.SameBlockWaitMs + b.SameBlockWaitMs);
 
     public static BlockCacheCounts operator -(BlockCacheCounts a, BlockCacheCounts b) =>
-        new(a.Decompressed - b.Decompressed, a.DecompressMs - b.DecompressMs, a.Waits - b.Waits, a.WaitMs - b.WaitMs);
+        new(a.Decompressed - b.Decompressed, a.DecompressMs - b.DecompressMs, a.Waits - b.Waits, a.WaitMs - b.WaitMs,
+            a.SameBlockWaits - b.SameBlockWaits, a.SameBlockWaitMs - b.SameBlockWaitMs);
 }
