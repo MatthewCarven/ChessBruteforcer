@@ -222,8 +222,58 @@ Sessions, in order:
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
+- [ ] **Threads for the bot** (2026-10-15, branch
+      claude/nostalgic-greider-09538a, not merged; WORKLOG 2026-10-15
+      21:25): UCI `Threads` (default 1) and `ThreadSplit` (LazySMP, or Ranges,
+      Matthew's split). Against one thread at 10+0.1, 40 games each: LazySMP
+      on 8 +215 Elo [+124, +344], Ranges on 8 +168 [+95, +259]. Both ~2x to
+      a fixed depth; the narrow windows themselves are worth ~1.3x at most
+      here (Baudet's 5-6x doesn't hold), so LazySMP. Matthew's call:
+      - [ ] The bot's clock: one thread v LazySMP 8 at 300+2, 20 games one at
+        a time, ~4-4.5 h (not alongside an index run: they'd skew each
+        other). Or head-to-head, LazySMP 8 v Ranges 8, to settle the 47 Elo.
+      - [x] 8 threads with the 5-piece tables loaded (2026-10-16, branch
+        claude/practical-cerf-df4df1 on top of the threads branch; WORKLOG
+        2026-10-16 00:16): they did queue. Under one lock a compressed table,
+        LazySMP 8 reached depth 12 in 20 endings 1.09x as fast as one
+        thread, its threads waiting on the lock 70% of the time. The cache
+        is read without a lock now (a version a slot): 2.08x and 6.90x the
+        nodes a second, like the middlegame's 1.95x and 6.96x.
+      - [x] The block cache itself (2026-10-16, branch
+        claude/angry-kirch-aa4068 on top of practical-cerf; WORKLOG
+        2026-10-16 01:11): every read traced and replayed. DTZ reads were a
+        third of the misses and 99% of them changed nothing (a mate within
+        100 plies of the count settles the rule), so DTZ is read only where
+        it can matter; and one cache for every table, 512 MB (UCI
+        `TableCache`), sets of 16 with a clock, read without a lock. Blocks
+        a search 20,731 -> 6,358; every arm ~2x faster (one thread 1.96x,
+        LazySMP 8 2.20x), 8 threads 2.40x one thread and 6.98x its nodes a
+        second; peak 2.9 -> 1.9 GB, and memory now has a ceiling.
+      - [ ] Then merge: all of it is on claude/threads-and-tables (from main,
+        2026-10-16), with `"Threads": 8` in the bot's uci_options
+        (bot/make-config.py) on the same branch, so the setting arrives
+        with the engine that has it (python-chess refuses an option the
+        engine doesn't list, and start-bot.cmd builds the engine from the
+        main checkout). Merge into main, bring compression up to it, then
+        restart the bot between games. Hash 256 is shared by all the
+        threads; the table cache (512 MB) by all the tables, so the bot
+        needs ~0.5 GB more than its hash and plain tables at most, not up
+        to 14 GB.
+      - [ ] Smaller blocks (a step of its own, a night; WORKLOG 2026-10-16
+        01:11): recompress the 220 compressed tables in 8 KB blocks (16 KB
+        the cautious choice). Estimated from sampled blocks: files 1.19x
+        (~12 -> ~14 GB), a block 0.15x the time, decompression a search
+        ~790 -> ~180 ms, a one-thread ending ~1.9 -> ~1.3 s, and 128 MB of
+        cache would do. Needs the reader to take the block size from the
+        header (it holds it; only the 64 KB check goes), cache places of
+        that size, and 4-byte block offsets (~55 MB in memory at 8 KB).
+        Recompress from the compressed files, one at a time, each checked
+        against the old before it replaces it.
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
-      searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering and threads;
+      searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
+      on it from 2026-10-15, building on the threads branch);
+      the table holds 16-byte slots but is sized at 24 a slot (Hash 256 uses
+      ~171 MB; sizing it at 16 changes the one-thread search, so measure);
       the hash keying en passant only when a capture is legal (now it keys
       it after every double push, so a repetition through one can be missed:
       WORKLOG 2026-10-15);

@@ -1,0 +1,40 @@
+| table | block | compressed, of plain | x smaller | us to decompress a block | us a KB |
+|---|---:|---:|---:|---:|---:|
+| KQPvKQ.cbt | 64 KB | 9.9% | 10.1 | 122.6 | 1.92 |
+| KQPvKQ.cbt | 32 KB | 10.3% | 9.7 | 63.1 | 1.97 |
+| KQPvKQ.cbt | 16 KB | 10.8% | 9.3 | 31.2 | 1.95 |
+| KQPvKQ.cbt | 8 KB | 11.3% | 8.8 | 17.1 | 2.14 |
+| KQPvKQ.cbt | 4 KB | 12.5% | 8.0 | 10.3 | 2.58 |
+| KPPvKP.cbt | 64 KB | 7.5% | 13.3 | 93.1 | 1.45 |
+| KPPvKP.cbt | 32 KB | 7.9% | 12.7 | 47.2 | 1.47 |
+| KPPvKP.cbt | 16 KB | 8.4% | 11.9 | 24.6 | 1.53 |
+| KPPvKP.cbt | 8 KB | 9.1% | 11.0 | 14.2 | 1.78 |
+| KPPvKP.cbt | 4 KB | 10.1% | 9.9 | 8.4 | 2.10 |
+| KQPvKP.cbt | 64 KB | 6.6% | 15.1 | 72.1 | 1.13 |
+| KQPvKP.cbt | 32 KB | 7.0% | 14.3 | 37.1 | 1.16 |
+| KQPvKP.cbt | 16 KB | 7.5% | 13.3 | 19.7 | 1.23 |
+| KQPvKP.cbt | 8 KB | 8.0% | 12.4 | 11.3 | 1.41 |
+| KQPvKP.cbt | 4 KB | 9.2% | 10.9 | 7.3 | 1.81 |
+| KBNvKP.cbt | 64 KB | 17.0% | 5.9 | 159.8 | 2.50 |
+| KBNvKP.cbt | 32 KB | 17.5% | 5.7 | 80.6 | 2.52 |
+| KBNvKP.cbt | 16 KB | 18.0% | 5.6 | 38.4 | 2.40 |
+| KBNvKP.cbt | 8 KB | 19.2% | 5.2 | 22.2 | 2.78 |
+| KBNvKP.cbt | 4 KB | 21.1% | 4.7 | 13.3 | 3.33 |
+| KPPvKP.cbz | 64 KB | 3.7% | 27.3 | 61.3 | 0.96 |
+| KPPvKP.cbz | 32 KB | 3.9% | 25.9 | 32.3 | 1.01 |
+| KPPvKP.cbz | 16 KB | 4.2% | 23.9 | 17.8 | 1.11 |
+| KPPvKP.cbz | 8 KB | 4.7% | 21.3 | 10.4 | 1.30 |
+| KPPvKP.cbz | 4 KB | 5.4% | 18.4 | 6.4 | 1.61 |
+| KQPvKP.cbz | 64 KB | 3.4% | 29.0 | 41.0 | 0.64 |
+| KQPvKP.cbz | 32 KB | 3.7% | 26.8 | 23.4 | 0.73 |
+| KQPvKP.cbz | 16 KB | 4.1% | 24.2 | 14.4 | 0.90 |
+| KQPvKP.cbz | 8 KB | 4.7% | 21.3 | 9.0 | 1.12 |
+| KQPvKP.cbz | 4 KB | 5.4% | 18.6 | 5.8 | 1.44 |
+
+| all sampled | block | x smaller | size against 64 KB blocks | us a block | us against 64 KB |
+|---|---:|---:|---:|---:|---:|
+| | 64 KB | 12.5 | 1.00x | 91.6 | 1.00 |
+| | 32 KB | 11.9 | 1.04x | 47.3 | 0.52 |
+| | 16 KB | 11.3 | 1.10x | 24.3 | 0.27 |
+| | 8 KB | 10.5 | 1.19x | 14.0 | 0.15 |
+| | 4 KB | 9.4 | 1.32x | 8.6 | 0.09 |

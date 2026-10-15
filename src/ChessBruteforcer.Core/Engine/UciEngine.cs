@@ -24,7 +24,10 @@ public sealed class UciEngine
 
     private Position _position = Position.Start();
     private int _moveOverheadMs = 50;
+    private int _threads = 1;
+    private ParallelMode _split = ParallelMode.LazySmp;
     private bool _tablesLoaded;
+    private int _tableCacheMegabytes = BlockCache.DefaultMegabytes;
     private List<ulong> _previousHashes = new();
 
     public UciEngine(TextWriter output, string? tablePath = null)
@@ -63,8 +66,11 @@ public sealed class UciEngine
                     Send($"id author {Author}");
                     Send("option name Hash type spin default 64 min 1 max 4096");
                     Send("option name EndgameTables type string default <empty>");
+                    Send($"option name TableCache type spin default {BlockCache.DefaultMegabytes} min 1 max 65536");
                     Send("option name Move Overhead type spin default 50 min 0 max 5000");
                     Send("option name EvalFile type string default <empty>");
+                    Send("option name Threads type spin default 1 min 1 max 64");
+                    Send("option name ThreadSplit type combo default LazySMP var LazySMP var Ranges");
                     Send("uciok");
                     break;
                 case "isready":
@@ -134,11 +140,30 @@ public sealed class UciEngine
             case "move overhead":
                 _moveOverheadMs = int.Parse(value, CultureInfo.InvariantCulture);
                 break;
+            case "threads":
+                _threads = Math.Clamp(int.Parse(value, CultureInfo.InvariantCulture), 1, 64);
+                break;
+            case "threadsplit":
+                // LazySMP: every thread searches the whole tree, sharing the table.  Ranges (Matthew's
+                // "ranges of possibility"): each thread searches with its own slice of the score range.
+                _split = value.ToLowerInvariant() switch
+                {
+                    "lazysmp" => ParallelMode.LazySmp,
+                    "ranges" => ParallelMode.Ranges,
+                    _ => throw new ArgumentException($"ThreadSplit is LazySMP or Ranges, not {value}."),
+                };
+                break;
             case "evalfile":
                 // Tuned evaluation numbers (EvalParams text); empty for the built-in ones. Process-wide.
                 Evaluation.Parameters = value is "" or "<empty>" ? EvalParams.Original() : EvalParams.Load(value);
                 _table.Clear();
                 Send(value is "" or "<empty>" ? "info string evaluation: built in" : $"info string evaluation from {value}");
+                break;
+            case "tablecache":
+                // MB for the compressed tables' decompressed blocks, all the tables together.
+                _tableCacheMegabytes = Math.Clamp(int.Parse(value, CultureInfo.InvariantCulture), 1, 65536);
+                _tablebase?.BlockCache.Resize(_tableCacheMegabytes);
+                Send($"info string endgame table cache {_tableCacheMegabytes} MB");
                 break;
             case "endgametables":
                 SetTablePath(value is "" or "<empty>" ? null : value);
@@ -155,8 +180,9 @@ public sealed class UciEngine
 
     private void SetTablePath(string? path)
     {
+        _tablebase?.Dispose();   // (no search is running: setoption stops it first)
         _tablebase = path is not null && System.IO.Directory.Exists(path)
-            ? new Tablebase(path) { SolveMissing = false, LoadOnDemand = false }
+            ? new Tablebase(path, blockCache: new BlockCache(_tableCacheMegabytes)) { SolveMissing = false, LoadOnDemand = false }
             : null;
         _tablesLoaded = false;
     }
@@ -172,7 +198,7 @@ public sealed class UciEngine
         var (tables, bytes, onDisk) = _tablebase.Preload();
         _tablesLoaded = true;
         Send($"info string loaded {tables} endgame tables ({bytes / (1024 * 1024)} MB in memory, " +
-             $"{onDisk} read from disk as probed)");
+             $"{onDisk} read from disk as probed, their blocks cached in {_tablebase.BlockCache.Megabytes} MB at most)");
     }
 
     /// <summary>position [startpos | fen &lt;fen&gt;] [moves &lt;move&gt;...]</summary>
@@ -231,6 +257,8 @@ public sealed class UciEngine
         var root = Position.FromFen(_position.ToFen());
         var history = _previousHashes.ToList();
         var search = _search;
+        search.Threads = _threads;
+        search.Split = _split;
         _searchThread = new Thread(() =>
         {
             var result = search.Run(root, limits, history, ReportInfo);
