@@ -40,8 +40,12 @@ SHA-256 matches Lichess's (checked by hand 05:19-06:03 with
 `scripts\verify-month.cmd 2026-08`, and again by the queue at 09:55), so
 the "DAMAGED" at 04:54 was the share going away. `start.cmd` ran at 09:12:
 the bot, the learner and the queue are up; the queue marked August and
-July done and is downloading June (28.2 GB). **Next: July's index run**,
-not yet started again: `scripts\index-month.cmd 2026-07` (item 3 below).
+July done and is downloading June (28.2 GB). **July's index run finished
+at 14:54, every check passing** (results in WORKLOG, "July's index run").
+**Next: write it up** as scripts/index-2026-07.txt, choose the format (Parquet
+was as small and a little faster), decide with Matthew where the whole index
+lives (~1.27 GB of rows a month), look at the long duplicated games (up to
+356 plies), and delete games/index/2026-07/lines.u16 (2.9 GB) once written up.
 
 1. **Done: the Texel fit on September, no gain.** sf2 (13.58 M positions)
    v sf1 (2.86 M): +668 -662 =670 over 2,000 games, Elo +1 [-11, +13]; the

@@ -1963,3 +1963,36 @@ rather than 48-byte boards, because that is the storage that scales.
   marked both done, and is downloading June.
 - Still to do: July's index run again (`scripts\index-month.cmd 2026-07`),
   which the outage stopped at 4.55 of 29 GB.
+
+## 2026-10-15 (13:33-14:54): July's index run, sessions 1 and 1b, all passing
+
+Matthew started `scripts\index-month.cmd 2026-07`; log
+games/index/index-2026-07.log. Not yet written up (scripts/index-2026-07.txt
+is the next chat's first job).
+
+- **rows**: 6,177 frames, **89,288,408 games**, read in 2,516 s (11.5 MB/s,
+  the June download alongside); SHA-256 matches. Rows 1,268 MB packed,
+  **14.20 bytes a game** (the sample said 14.2). First 16 moves:
+  lines.u16, 2,857 MB, 3,246 different moves in SAN.
+- **check**: 1,000 of 1,000 games fetched by number match the read, and
+  1,000 of 1,000 games cut by a frame's end; their saved moves all right.
+- **dups**: 87,604,543 distinct move sequences; **2.05% of games share
+  their exact moves with another** (2013-01: 0.83%), in 150,418 groups.
+  Mostly short: 383,336 games with no move at all (100% duplicates), 99% of
+  1-4 plies, 59% of 5-10, 12% of 11-20, then 0.3% / 0.02% / 0.04%. But
+  ~17,000 duplicated games are 41+ plies, the longest 356 plies (2013 had
+  none over 20): worth a look (bots playing each other the same way?). The
+  20 biggest groups all confirmed by fetching two games each.
+- **trial, plain columns v Parquet** (answers agree): 1,268.3 v 1,267.1 MB;
+  written in 8.5 v 7.7 s; the three queries 6.2 v 4.8 s. Parquet as small
+  and a little faster.
+- **lines trial, the first 8 M games**: 7,348,088 distinct 16-move lines
+  (91.9%); games sharing their first k moves with no other: 0.2% at 4,
+  15.3% at 8, 58.9% at 12, 88.8% at 16. Memory: sorted array 265 MB, burst
+  trie 847 MB (3.2x). Median a query, sorted / trie every line / trie ends /
+  scan (µs): 1 move (4.6 M games found) 1,650 / 41,043 / 1,645 / 53,870;
+  4 moves 6.9 / 234 / 6.9 / 21,303; 8 moves 2.6 / 6.5 / 3.1; 12 moves 2.5 /
+  3.0 / 2.5; 16 moves 2.3 / 2.9 / 2.4. All 1,000: 166 / 4,279 / 165 ms.
+  **At this size the trie with TryGetPrefixRange ties the sorted array**
+  (on 2013-01 it was ahead; here memory misses dominate both) and costs
+  3.2x the memory; without it, 26x slower. Answers agree.

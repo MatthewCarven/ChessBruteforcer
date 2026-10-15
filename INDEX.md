@@ -217,10 +217,11 @@ Session 1 is done when:
       121,332 of 121,332 fetched byte for byte; duplicates 0.83% (none
       longer than 20 plies; the biggest group, 80 games, is 1.e4 e5 and
       nothing more); Parquet and plain columns agree on all three queries.
-- [ ] July 2026: the frame table covers the file to its last byte; the
-      SHA-256 matches; the game count equals counts.txt.
-- [ ] `check` passes on 1,000 random games.
-- [ ] Duplicate examples confirmed by their moves.
+- [x] July 2026: the frame table covers the file to its last byte; the
+      SHA-256 matches (2026-10-15: 6,177 frames, 89,288,408 games).
+      Still to compare: the count against Lichess's counts.txt.
+- [x] `check` passes on 1,000 random games (and 1,000 cut by a frame's end).
+- [x] Duplicate examples confirmed by their moves (all 20).
 - [ ] The trial's table written up, the format chosen, and where the whole
       index will live decided with Matthew.
 
