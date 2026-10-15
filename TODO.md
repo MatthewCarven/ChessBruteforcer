@@ -210,6 +210,20 @@ Sessions, in order:
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
+- [ ] **Pondering** (2026-10-15, branch claude/vigilant-murdock-d223f5, built on
+      the threads branch; WORKLOG "pondering, and what it's worth"): the engine
+      thinks on the opponent's time (`go ponder`, `ponderhit`, `bestmove ...
+      ponder`). Against itself at 10+0.1, ponder on v off: 119 games, +48 -20
+      =51, **Elo +83 [+37, +133]**, the reply right 71.5% of the time (on
+      Lichess 51%, so expect less there). The bot is unchanged.
+      - [ ] Turning it on is Matthew's (section 4).
+      - [ ] A clean re-run (the harness lost one game to a script bug, since
+            fixed), or longer (~400 games, ~1 h), once no index run is going.
+      - [ ] Spend the banked clock: the pondering side ended games with 4.8 s
+            of 10 left, the other 2.1. Stockfish plans 25% more time a move
+            when Ponder is on; try that, measured the same way.
+      - [ ] A Lichess-like hit rate: ponder on and off each against a third
+            engine (Stockfish, as book-match.py does), not each other.
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering and threads;
       the hash keying en passant only when a capture is legal (now it keys
@@ -240,6 +254,12 @@ Sessions, in order:
 - [x] Push `compression` (GitHub matched d13b55c at 00:47 on 2026-10-15).
 - [ ] A second pull request from `compression` into `main` (PR #1 took only
       the first commit).
+- [ ] Pondering for the bot, if wanted (section 2): merge
+      claude/vigilant-murdock-d223f5 (it carries the threads branch too), build
+      the engine into bot/lichess-bot/engines/bruteforcer, and set `ponder:
+      true` in bot/lichess-bot/config.yml; restart the bot between games. The
+      ponder search takes a core for the whole game, from the learner and any
+      index run.
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;
