@@ -11,4 +11,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- The tests run commands through Cli.Run (nnue data against tune positions, 2026-10-16). -->
+    <InternalsVisibleTo Include="ChessBruteforcer.Tests" />
+  </ItemGroup>
+
 </Project>
