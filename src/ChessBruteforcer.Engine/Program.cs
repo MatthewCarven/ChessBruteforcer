@@ -162,7 +162,8 @@ static class SelfPlay
 /// read a block at a time as probed), every position is searched once by
 /// the last arm before the timed rounds (so the table files are in the
 /// disk cache for all the arms alike), and the compressed tables' block
-/// caches are emptied before each search, as the hash table is.
+/// caches are emptied before each search, as the hash table is, and their
+/// memory let go (kept, 20 endings on 8 threads passed 4 GB in a minute).
 ///
 ///   bench-threads positions.txt 12 [--arms 1,L2,L4,L8,R2,R4,R8] [--rounds 2]
 ///                 [--hash 64] [--eval eval.txt] [--step 15] [--tsv out.tsv]
@@ -244,6 +245,7 @@ static class BenchThreads
             foreach (string fen in fens)
             {
                 table.Clear();
+                tablebase.ClearBlockCaches();
                 search.Run(Position.FromFen(fen), new SearchLimits { Depth = depth });
             }
             Console.WriteLine($"every position searched once on {arms[^1].Name} in {warming.Elapsed.TotalSeconds:0.0} s, off the record " +

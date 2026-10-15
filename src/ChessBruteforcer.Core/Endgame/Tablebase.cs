@@ -274,7 +274,7 @@ public sealed class Tablebase : IDisposable
     public BlockCacheCounts BlockCacheCounts() =>
         _tables.Values.Concat(_dtzTables.Values).Aggregate(default(BlockCacheCounts), (sum, table) => sum + table.BlockCacheCounts);
 
-    /// <summary>Empty every compressed table's block cache, so a bench's searches start alike.  Not while a search runs.</summary>
+    /// <summary>Empty every compressed table's block cache and let go of its memory, so a bench's searches start alike.</summary>
     public void ClearBlockCaches()
     {
         foreach (var table in _tables.Values.Concat(_dtzTables.Values))

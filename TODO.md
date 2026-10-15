@@ -220,9 +220,21 @@ Sessions, in order:
       - [ ] The bot's clock: one thread v LazySMP 8 at 300+2, 20 games one at
         a time, ~4-4.5 h (not alongside an index run: they'd skew each
         other). Or head-to-head, LazySMP 8 v Ranges 8, to settle the 47 Elo.
-      - [ ] 8 threads with the 5-piece tables loaded: each compressed table
-        reads its blocks under one lock, so threads probing one ending may
-        queue there. Measure before the bot gets threads.
+      - [x] 8 threads with the 5-piece tables loaded (2026-10-16, branch
+        claude/practical-cerf-df4df1 on top of the threads branch; WORKLOG
+        2026-10-16 00:16): they did queue. Under one lock a compressed table,
+        LazySMP 8 reached depth 12 in 20 endings 1.09x as fast as one
+        thread, its threads waiting on the lock 70% of the time. The cache
+        is read without a lock now (a version a slot): 2.08x and 6.90x the
+        nodes a second, like the middlegame's 1.95x and 6.96x.
+      - [ ] The block cache itself, before the bot gets threads (WORKLOG
+        2026-10-16): one thread spends ~2/3 of its endgame search
+        decompressing 64 KB blocks (~20,700 a search for ~63,400 table hits,
+        ~120 us each), and the caches never give memory back: up to 64 MB a
+        table, 220 compressed tables, so up to 14 GB. An 8-thread pass over
+        the 20 endings went past 4 GB in under a minute. Bound it (one
+        budget for all the tables) and find where the misses come from
+        (DTZ probes, slot collisions, cold blocks) before cutting them.
       - [ ] Then merge, and `Threads: 8` in the bot's uci_options
         (bot/make-config.py), rebuilt between games. Hash 256 is shared by
         all the threads.

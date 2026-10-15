@@ -2315,3 +2315,85 @@ threads-bench-d12-ranges.txt and threads-ceiling-d11.txt. To repeat:
 bot\eval\eval-sf1.txt` (default arms 1,L2,L4,L8,R2,R4,R8; ~30 min) and
 `dotnet run -c Release scripts\window-ceiling.cs -- scripts\threads-positions.txt
 11 bot\eval\eval-sf1.txt` (~8 min).
+
+## 2026-10-16 (00:16-01:00): threads with the endgame tables loaded
+
+The question left open above: with the bot's tables loaded, do 8 threads
+queue on the compressed tables? Each 5-piece table (220 files, 12 GB, read
+from disk a 64 KB block at a time) decompressed its blocks, and read even a
+block it already held, under one lock a table. A side session, on branch
+claude/practical-cerf-df4df1 (on top of the threads branch; the bot
+untouched). They do queue, and badly; the cache is read without a lock now.
+
+**The bench.** `bench-threads` takes `--tables <dir>` and loads them as the
+UCI engine does (796 MB of plain tables into memory, the 220 compressed ones
+read as probed). 20 positions from bot/games (scripts/pick-endgame-positions.py:
+the first position with 6 or 7 pieces and the bot to move, in 20 of the 96
+games that reach one, spread over them, a material once where it could), so
+the search runs down into 5 pieces. Depth 12, the bot's evaluation (sf1), a
+64 MB hash table and the tables' block caches emptied before every search,
+every position searched once before the timed rounds (so the table files
+were in the disk cache for every arm alike), 2 rounds. Two builds, run A B A
+B: the old cache under its lock (commit a3cae87, which counts the reads that
+found the lock taken and the time they waited, with this commit's two bench
+fixes: the caches emptied in the warm-up too, and their memory let go) and
+the new one. Alone on the
+machine (July's index run was stopped at Matthew's word when the desktop
+share went away; the bot wasn't running), below normal, a 4 GB heap cap.
+One thread repeated itself exactly in every run, and the two builds' one
+thread searched the same nodes.
+
+| arm | build | speedup to depth 12 (total time) | median search | searches slower than 1 thread | nodes searched v 1 thread | nodes a second v 1 thread | waiting, of the threads' time |
+|---|---|---:|---:|---:|---:|---:|---:|
+| one thread | either | 1.00 | 1.00 | | 1.00 | 1.00 (0.55 M/s) | |
+| LazySMP 2 | one lock a table | 1.21 | 1.18 | 17 of 64 | 1.34 | 1.63 | 26% |
+| LazySMP 4 | one lock a table | 1.26 | 1.30 | 9 | 1.90 | 2.38 | 51% |
+| LazySMP 8 | one lock a table | **1.09** | 1.28 | 12 | 2.69 | 2.93 | **70%** |
+| LazySMP 2 | no lock | 1.49 | 1.35 | 10 | 1.36 | 2.04 | 15% |
+| LazySMP 4 | no lock | 1.79 | 1.62 | 4 | 2.22 | 3.96 | 30% |
+| LazySMP 8 | no lock | **2.08** | 2.04 | 6 | 3.31 | 6.90 | 33% |
+
+(Two runs a build, 40 searches an arm. The median and the slower count are
+over the 64 searches one thread took 100 ms or more over; the rest are mates
+the tables settle in a millisecond. A run's own L8 speedup was 0.97 and 1.24
+under the lock, 2.36 and 1.86 without it.)
+
+- **Under the lock, 8 threads were no faster than one.** They spent 70% of
+  their time waiting for a table's lock: Lazy SMP's threads search the same
+  ending, so they probe the same few tables, and one of them decompressing a
+  block (~120 us) held up the rest. Adding threads past 4 made it worse.
+- **Without it, the endgame scales like the middlegame**: 2.08x to depth 12
+  on 8 threads and 6.90x the nodes a second, against 1.95x and 6.96x on the
+  31 middlegame positions above.
+- How it works now: a cache slot has a version, odd while one thread fills
+  it. A read takes no lock and writes nothing: it reads the version, the
+  slot's block, the value and the version again, and keeps the value if the
+  version didn't move. Filling a slot belongs to the one thread that moves
+  its version from even to odd; a read that finds its slot being filled
+  waits for that. So a block already there is read by every thread at once,
+  and blocks for different slots are decompressed at once. A new test reads
+  one table from 8 threads on 3 cache slots (every value right; it fails
+  when filling takes no claim). 323 tests pass, 2 skipped as before.
+
+**What's left is the cache itself.** Even on one thread, two-thirds of the
+endgame search is decompressing blocks: 67.8% of its time, ~20,700 blocks a
+search (a block for every 3 table hits), ~120 us each with the file read. A
+table keeps 1,024 blocks, each in a fixed slot (64 MB at most), which holds
+little of what a search needs. And it never gives memory back. With 220
+compressed tables that's up to 14 GB, and the first try at this bench, which
+didn't empty the caches between searches, went past the 4 GB cap in under a
+minute on 8 threads ("Out of memory"; the cap kept it to the bench). With
+the caches emptied and let go before each search, a run peaked at 2.8-3.0
+GB. The bot keeps its caches for as long as it runs, so they grow with every
+ending it meets, faster on 8 threads. The waiting left on 8 threads (33%) is
+reads waiting while another thread fills the slot they want, about one for
+every block decompressed: either threads wanting the same block (Lazy SMP's
+threads follow each other) or two blocks sharing a slot, not yet told apart.
+Fewer misses would cut both.
+
+The raw output is in scripts/: threads-endgame-positions.txt (the 20),
+threads-tables-d12-{lock,free}-{1,2}.txt and .tsv, and
+threads-tables-summary.py (the table above from the .tsv files). To repeat:
+`ChessBruteforcer.Engine bench-threads scripts\threads-endgame-positions.txt
+12 --arms 1,L2,L4,L8 --eval bot\eval\eval-sf1.txt --tables tables` (~7 min
+without the lock, ~10 with it; peak ~3 GB, so check commit headroom first).

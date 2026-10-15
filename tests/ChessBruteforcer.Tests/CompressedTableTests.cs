@@ -88,6 +88,33 @@ public class CompressedTableTests : IClassFixture<CompressedTables>
         }
     }
 
+    [Fact]
+    public void ManyThreadsReadingOneTableAllGetItsValues()
+    {
+        // 8 threads on 3 cache slots: each reads a scattered sequence of its own, half the time
+        // from a few hot blocks, so reads of a block already there race with other threads
+        // filling the same slots, and two threads often want one slot at once.
+        var plain = _tables.PlainTable("KRRvK", dtz: false);
+        using var compressed = CompressedTable.Open(_tables.PathOf("KRRvK", dtz: false), cacheSlots: 3);
+        const int Threads = 8, Reads = 3000;
+        var wrong = new int[Threads];
+        var workers = Enumerable.Range(0, Threads).Select(t => Task.Factory.StartNew(() =>
+        {
+            var random = new Random(t);
+            for (int n = 0; n < Reads; n++)
+            {
+                long index = n % 2 == 0 ? random.Next(3 * 32768) : random.NextInt64(compressed.Size);
+                if (Decode(compressed[index]) != plain[index])
+                    wrong[t]++;
+            }
+        }, TaskCreationOptions.LongRunning)).ToArray();
+        Assert.True(Task.WaitAll(workers, TimeSpan.FromMinutes(2)), "the readers didn't finish");
+        Assert.Equal(new int[Threads], wrong);
+        var counts = compressed.Counts;
+        Assert.True(counts.Decompressed > Reads, $"{counts.Decompressed} blocks decompressed");   // (it was a test of the slots)
+        Assert.True(counts.Waits > 0, "no read ever waited for a slot being filled");
+    }
+
     /// <summary>A stored value as a complete table means it (see EndgameTable.DecodeRaw).</summary>
     private static Outcome? Decode(short value) => value switch
     {
