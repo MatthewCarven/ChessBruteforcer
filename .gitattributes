@@ -1,0 +1,2 @@
+# Networks are binary: no line-ending conversion, no text diffs.
+*.nnue binary

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using ChessBruteforcer.Core;
 using ChessBruteforcer.Core.Endgame;
 using ChessBruteforcer.Core.Engine;
+using ChessBruteforcer.Core.Engine.Nnue;
 using ChessBruteforcer.Core.Game;
 
 // ChessBruteforcer as a UCI engine: point a GUI or match runner at this
@@ -16,8 +17,20 @@ if (tablesAt >= 0 && tablesAt + 1 < args.Length)
 
 if (args.Length > 0 && args[0] == "bench")
 {
+    // bench [depth] [--eval <numbers .txt or network .nnue>]
     int depth = args.Length > 1 && int.TryParse(args[1], out int d) ? d : 8;
-    return Bench(depth);
+    int evalAt = Array.IndexOf(args, "--eval");
+    Network? network = null;
+    if (evalAt >= 0 && evalAt + 1 < args.Length)
+    {
+        if (Network.IsNetworkFile(args[evalAt + 1]))
+            network = Network.Load(args[evalAt + 1]);
+        else
+            Evaluation.Parameters = EvalParams.Load(args[evalAt + 1]);
+        Console.WriteLine($"evaluation: {(network is null ? "numbers" : "network")} from {args[evalAt + 1]}" +
+                          (network is null ? "" : $" ({network})"));
+    }
+    return Bench(depth, network);
 }
 
 if (args.Length > 0 && args[0] == "bench-threads")
@@ -33,7 +46,7 @@ if (args.Length > 0 && args[0] == "selfplay")
 new UciEngine(Console.Out, tables).Run(Console.In);
 return 0;
 
-static int Bench(int depth)
+static int Bench(int depth, Network? network)
 {
     string[] positions =
     {
@@ -49,7 +62,7 @@ static int Bench(int depth)
     foreach (string fen in positions)
     {
         var search = new Search(new TranspositionTable(16));
-        var result = search.Run(Position.FromFen(fen), new SearchLimits { Depth = depth });
+        var result = search.Run(Position.FromFen(fen, network), new SearchLimits { Depth = depth });
         Console.WriteLine($"{result.BestMove?.ToUci(),-6} score {result.Score,6}  nodes {result.Nodes,12:N0}  {fen}");
         total += result.Nodes;
     }

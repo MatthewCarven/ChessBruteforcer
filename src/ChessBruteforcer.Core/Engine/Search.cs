@@ -352,7 +352,7 @@ public sealed class Search
         for (int i = 0; i < count; i++)
         {
             var helper = _helpers[i];
-            var copy = Position.FromFen(root.ToFen());
+            var copy = Position.FromFen(root.ToFen(), root.Network);   // its own accumulators, the same weights
             helper.Prepare(copy, new SearchLimits { Infinite = true }, previousHashes);
             int firstDepth = i % 2 == 0 ? 2 : 1;
             threads[i] = new Thread(() => helper.Deepen(copy, firstDepth))
@@ -429,7 +429,7 @@ public sealed class Search
             _workers = new Worker[owner.Threads];
             for (int i = 0; i < _workers.Length; i++)
             {
-                var copy = Position.FromFen(root.ToFen());
+                var copy = Position.FromFen(root.ToFen(), root.Network);
                 var helper = owner._helpers[i];
                 helper.Prepare(copy, new SearchLimits { Infinite = true }, previousHashes);
                 var worker = new Worker { Helper = helper, Root = copy };

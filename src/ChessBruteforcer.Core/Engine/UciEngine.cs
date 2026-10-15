@@ -1,5 +1,6 @@
 using System.Globalization;
 using ChessBruteforcer.Core.Endgame;
+using ChessBruteforcer.Core.Engine.Nnue;
 using ChessBruteforcer.Core.Game;
 
 namespace ChessBruteforcer.Core.Engine;
@@ -29,6 +30,7 @@ public sealed class UciEngine
     private bool _tablesLoaded;
     private int _tableCacheMegabytes = BlockCache.DefaultMegabytes;
     private List<ulong> _previousHashes = new();
+    private Network? _network;   // EvalFile's network: this engine's positions carry its accumulators
 
     public UciEngine(TextWriter output, string? tablePath = null)
     {
@@ -117,7 +119,7 @@ public sealed class UciEngine
                     break;
             }
         }
-        catch (Exception e) when (e is FormatException or ArgumentException or InvalidOperationException)
+        catch (Exception e) when (e is FormatException or ArgumentException or InvalidOperationException or IOException)
         {
             Send($"info string error: {e.Message}");
         }
@@ -163,10 +165,27 @@ public sealed class UciEngine
                 // engine plan its time differently when it may ponder; this one doesn't, yet.)
                 break;
             case "evalfile":
-                // Tuned evaluation numbers (EvalParams text); empty for the built-in ones. Process-wide.
-                Evaluation.Parameters = value is "" or "<empty>" ? EvalParams.Original() : EvalParams.Load(value);
+                // A network (.nnue, told apart by its magic), this engine's own; or tuned evaluation numbers
+                // (EvalParams text), process-wide; empty for the built-in numbers.
+                if (value is "" or "<empty>")
+                {
+                    _network = null;
+                    Evaluation.Parameters = EvalParams.Original();
+                    Send("info string evaluation: built in");
+                }
+                else if (Network.IsNetworkFile(value))
+                {
+                    _network = Network.Load(value);
+                    Send($"info string evaluation: network {value} ({_network})");
+                }
+                else
+                {
+                    _network = null;
+                    Evaluation.Parameters = EvalParams.Load(value);
+                    Send($"info string evaluation from {value}");
+                }
+                _position.UseNetwork(_network);
                 _table.Clear();
-                Send(value is "" or "<empty>" ? "info string evaluation: built in" : $"info string evaluation from {value}");
                 break;
             case "tablecache":
                 // MB for the compressed tables' decompressed blocks, all the tables together.
@@ -234,6 +253,7 @@ public sealed class UciEngine
                 position.MakeMove(move);
             }
         }
+        position.UseNetwork(_network);
         _position = position;
         _previousHashes = hashes;
     }
@@ -264,7 +284,7 @@ public sealed class UciEngine
     private void StartSearch(SearchLimits limits)
     {
         // The search works on its own copy so "position" can't change the board under it.
-        var root = Position.FromFen(_position.ToFen());
+        var root = Position.FromFen(_position.ToFen(), _network);
         var history = _previousHashes.ToList();
         var search = _search;
         search.Threads = _threads;
