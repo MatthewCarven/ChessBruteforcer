@@ -246,6 +246,12 @@ Sessions, in order:
       keep games/2026-09-part-tables.cbg (64 MB) as the takeover check file.
 - [ ] Keep the laptop awake on long runs (a Windows power setting; it slept
       48 h of the pawn-table build).
+- [ ] A second memory stick, due in about a week (from 2026-10-15). The laptop
+      (Acer Nitro AN515-57) has one Samsung M471A2K43EB1-CWE, 16 GB DDR4-3200
+      SO-DIMM, in channel A, with the second slot free: a matching 16 GB
+      makes 32 GB, in both channels. Fit it between long runs (a full
+      shutdown stops the bot, the learner, the queue and any index run).
+      Until then commit headroom stays ~2.4-5 GB: one heavy job at a time.
 
 ### Done lately (details in WORKLOG)
 
