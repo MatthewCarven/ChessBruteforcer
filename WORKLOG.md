@@ -2025,3 +2025,11 @@ remaining ~1,260 GB ~28 days at 500 KiB/s, not ~16 at the ~0.9 MB/s June
 got. What it leaves: two downloads once ran 1.30 MB/s together, so the line
 carries at least that (~10 Mbit/s); 500 KiB/s (~4 Mbit/s) leaves ≥ ~6
 Mbit/s, enough for 1080p video. If YouTube still waits, 300k.
+
+Restarted on his yes at 17:38 (`Start-Process scripts\month-queue.cmd`,
+its own window); the queue logged "downloads capped at 500k a second",
+watched June's part for 150 s, and curl resumed it at 17:41:11 from 22.32
+GiB. Measured on the share, eight 30 s readings from 17:41:32: 501, 499,
+465, 536, 498, 499, 499, 499 KiB/s, **499 KiB/s over 240 s**. So June
+(4.15 GB to go at 17:45) lands about 20:00, then its count. Matthew pushed
+to 8f714fc (ls-remote agrees).
