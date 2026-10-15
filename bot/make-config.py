@@ -31,6 +31,7 @@ engine["ponder"] = False                                      # our engine doesn
 engine["uci_options"] = {
     "EndgameTables": os.path.join(repo, "tables"),            # every table of 5 pieces or fewer
     "Hash": 256,
+    "Threads": 8,                                             # LazySMP on the 8 cores (WORKLOG 2026-10-15 21:25, 2026-10-16)
     "Move Overhead": 100,
 }
 # The evaluation's numbers, Texel-tuned towards Stockfish's verdicts on Lichess's analysed games (2026-10-14:

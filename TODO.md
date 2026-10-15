@@ -249,11 +249,16 @@ Sessions, in order:
         a search 20,731 -> 6,358; every arm ~2x faster (one thread 1.96x,
         LazySMP 8 2.20x), 8 threads 2.40x one thread and 6.98x its nodes a
         second; peak 2.9 -> 1.9 GB, and memory now has a ceiling.
-      - [ ] Then merge (practical-cerf, then this), and `Threads: 8` in the
-        bot's uci_options (bot/make-config.py), rebuilt between games. Hash
-        256 is shared by all the threads; the table cache (512 MB) by all
-        the tables, so the bot needs ~0.5 GB more than its hash and plain
-        tables at most, not up to 14 GB.
+      - [ ] Then merge: all of it is on claude/threads-and-tables (from main,
+        2026-10-16), with `"Threads": 8` in the bot's uci_options
+        (bot/make-config.py) on the same branch, so the setting arrives
+        with the engine that has it (python-chess refuses an option the
+        engine doesn't list, and start-bot.cmd builds the engine from the
+        main checkout). Merge into main, bring compression up to it, then
+        restart the bot between games. Hash 256 is shared by all the
+        threads; the table cache (512 MB) by all the tables, so the bot
+        needs ~0.5 GB more than its hash and plain tables at most, not up
+        to 14 GB.
       - [ ] Smaller blocks (a step of its own, a night; WORKLOG 2026-10-16
         01:11): recompress the 220 compressed tables in 8 KB blocks (16 KB
         the cautious choice). Estimated from sampled blocks: files 1.19x
