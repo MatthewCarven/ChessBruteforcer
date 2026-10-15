@@ -72,6 +72,14 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          scripts at ee66600 (an 18:18 start died at 18:35 for memory, from
          another session's probes; WORKLOG). 89,288,421 games, SHA-256
          matching, check 4,000 of 4,000, dups 2.05% as before.
+   - [ ] **Tonight (2026-10-16 from ~00:08) the laptop is on Matthew's phone
+         hotspot**, so the desktop share is out for a few hours. July's
+         new-layout run (started 23:36) was stopped at 00:16, halfway; start
+         it again once the share is back (after the 5-piece-tables bench).
+         May 2026 is downloading into the laptop's games\ (uncapped, his
+         unlimited data; 00:30 on): move it to the share afterwards, and
+         run download-lichess-month.ps1 2026-05 again to save its SHA-256
+         (the list couldn't be fetched). June's .part waits on the share.
    - [ ] **July's rows into the new layout**: that run used the old
          scripts, so its games.json has no `"format": "parquet"` and the new
          `check` / `dups` / `trial` refuse it ("run rows again").

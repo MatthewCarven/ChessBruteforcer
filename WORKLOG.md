@@ -2203,3 +2203,23 @@ long duplicates likewise (16,999, 96.8% BOT v BOT). scripts/index-2026-07.txt
 is updated to this run. Since it ran the old scripts, its rows are plain
 columns plus the trial's Parquet, and the new tools refuse its games.json:
 July needs `rows` once more (TODO item 3).
+
+## 2026-10-15/16 (23:36-00:35): July's new-layout run stopped; on the phone's hotspot
+
+- **July with the new `rows`** started 23:36 by itself (index-month.cmd's
+  wait for the parallel-search match's "final:" line), read 14.27 of 29.05
+  GB, and lost the share at ~00:08. The cause wasn't the desktop: **the
+  laptop had moved onto Matthew's phone hotspot** ("Opel Mobile SmartX65",
+  10.197.60.x), from which the desktop can't be reached. On his yes the
+  5-piece-tables session stopped the run at 00:16 ("a step failed"). The
+  20:58 index is untouched: the new `rows` writes into parquet.new and swaps
+  it in only at the end. To run again once the share is back.
+- **May 2026 downloading onto the laptop** (games\, uncapped: his unlimited
+  data), started 00:28 by the parallel-search session on his word. Its first
+  try met an empty HEAD from the slow server: size 0, a blank date in the
+  stamp, which would have stopped every resume. That session restarted it
+  at 00:30; **fixed in download-lichess-month.ps1** (20f80d2): the HEAD is
+  asked again, up to 30 times a minute apart, until it gives both; a blank
+  stamp takes the server's date; a list that couldn't be fetched says so.
+  Tested against a dead address (30 tries, then a clean stop) and a local
+  web server (size and date read right).
