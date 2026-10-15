@@ -2780,3 +2780,44 @@ downloaded or installed, and the engine is unchanged.
   reading records over it would take 4.4 h a run, so each machine keeps its
   own copy, and a split run's gradient swap (0.8 MB each way, ~0.18 s a
   step against 8-33 ms of work) would be 5-20x slower than the laptop alone.
+
+## 2026-10-16 (07:00-08:50): NNUE session 1, the data
+
+A side session, in its own worktree (branch `claude/nnue-data-7d1bea`), beside
+session 3 (the network in C#) in another. Matthew's C(a): September, every quiet
+position, all speeds. Report: [scripts/nnue-data-2026-09.txt](scripts/nnue-data-2026-09.txt).
+
+- **One quiet rule**: `QuietPositions.Walk` (Core/Records) is the tuner's rule
+  word for word; `tune positions` now walks games through it, and so does the
+  new `nnue data`, so the two can't drift.
+- **The record** (`NnueRecord`, 32 bytes): occupancy u64 at 0, 32 pieces as
+  4-bit codes at 8, flags at 24 (black to move, mate), result at 25, white's
+  score i16 at 26 (mates +-32000), game number u32 at 28. The result moved
+  before the score so every field is aligned (NNUE.md has the table).
+  `nnue data <out> <file>... [--per-game all|N] [--speeds ...] [--buckets 64]`
+  writes 64 buckets chosen at random, held-back.bin (games 0 mod 50), and
+  data.json last; `nnue show` prints records as FEN. `scripts/nnue/records.py`
+  reads them with numpy only; `scripts\nnue-data.cmd <month>` runs a month in
+  its own window.
+- **A trial first** (the first 100,000 games, 29 s): `--speeds
+  blitz,rapid,classical` wrote exactly the 1,999,783 positions `tune positions
+  --min-elo 0 --per-game 1000 --lambda 0` did, plus 104,589 mates.
+- **September, 07:40-08:26** (45.6 min, below-normal, beside the bot):
+  **234,264,966 records, 7.50 GB**: 220,933,142 scored in centipawns (NNUE.md
+  predicted ~224 M: -1.4%) and 13,331,824 mates (5.7%). 229.6 M in the
+  buckets (3.58-3.59 M each, ~115 MB), 4,685,639 held back (2.0001%, 174,322
+  games). Blitz or slower 188.2 M (80.3%), bullet 44.5 M, ultrabullet 1.3 M.
+- **The 1.4% is Swiss games.** Lichess's Swiss tournament games have an Event
+  like "Rapid swiss https://lichess.org/swiss/..." with no "Rated", so the
+  tuner's rule (and this one) leaves them out: 95,237 games, 1.07% of
+  September's analysed games, ~2.5 M positions. NNUE.md's 25.2 a game came
+  from count.cs, which didn't look at Event; on the same 100,000 games the
+  two differ by 12,699 positions, exactly the 534 Swiss games'.
+- **Checks**: records.py check over every record (sizes against data.json,
+  codes, kings, pawn ranks, flags, no held-back game in a bucket); C#'s `nnue
+  show` and Python's `show` agree on 15,000 real records; 20 new tests (the
+  rule restated from its words over random games, 10,000 FEN -> record -> FEN,
+  the bytes by hand, `nnue data` v `tune positions` one for one, held-back,
+  --per-game), the suite 361 passed, 2 skipped; Python's test-records.py on
+  C#'s fixture. **Mutation battery: 35 of 35 red.** The rule's own 8 are seen
+  only by the restated rule, as they must be: both commands share it.

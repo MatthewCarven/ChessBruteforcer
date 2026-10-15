@@ -175,8 +175,8 @@ def check(directory):
         n = count(path)
         if n != expected:
             fail(f"{os.path.basename(path)}: {n:,} records, data.json says {expected:,}")
-        for at in range(0, n, 1 << 22):
-            part = read(path, at, 1 << 22)
+        for at in range(0, n, 1 << 20):   # a million records at a time: ~400 MB at the peak
+            part = read(path, at, 1 << 20)
             for what, k in problems(part).items():
                 fail(f"{os.path.basename(path)}: {k:,} records with {what}")
             games = part["game"].astype(np.int64)

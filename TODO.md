@@ -201,6 +201,20 @@ Sessions, in order:
       the match against sf1. **Matthew chose (2026-10-16): A(a) PyTorch,
       B(a) 768 -> 256 x2 -> 1, C(a) September, all speeds, D a + c** (the
       laptop alongside the bot, then the desktop).
+      - [x] **Session 1, the data** (2026-10-16, branch
+            `claude/nnue-data-7d1bea`): `nnue data`, September in
+            games\nnue\2026-09\ on this laptop: 234,264,966 records (220.9 M
+            scored in centipawns + 13.3 M mates), 7.50 GB, 45.6 min; 35 of 35
+            mutations red. [scripts/nnue-data-2026-09.txt](scripts/nnue-data-2026-09.txt).
+      - [ ] Matthew: merge `claude/nnue-data-7d1bea` into compression (it
+            touches Program.cs's `tune positions`, the Cli and test .csproj,
+            NNUE.md, WORKLOG, TODO; not Core/Engine or Position).
+      - [ ] Swiss tournament games (1.07% of analysed games, ~2.5 M
+            positions) are rated but their Event lacks "Rated", so both the
+            tuner and `nnue data` leave them out. Matthew's call whether to
+            count them (one line in each command, the parity test kept).
+      - [ ] Session 2 reads the records with scripts/nnue/records.py; the
+            hand-over note is in NNUE.md ("As built").
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by
