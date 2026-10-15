@@ -524,8 +524,18 @@ public class NnueTests
         for (int depth = 4; depth <= 5; depth++)
         {
             var search = new Search(new TranspositionTable(8)) { Threads = threads, Split = split };
-            var result = search.Run(Position.FromFen(MoveGeneratorTests.Middlegame, network), new SearchLimits { Depth = depth });
+            var root = Position.FromFen(MoveGeneratorTests.Middlegame, network);
+            var result = search.Run(root, new SearchLimits { Depth = depth });
             Assert.Equal(1000, Math.Abs(result.Score));
+            // (Lazy SMP's answer is the main thread's, which a helper reaches only through the table, so
+            // the score alone may miss a helper on the wrong evaluation: look at each one's position.)
+            var helpers = search.HelperRoots.ToList();
+            Assert.Equal(threads == 1 ? 0 : split == ParallelMode.LazySmp ? threads - 1 : threads, helpers.Count);
+            foreach (var helperRoot in helpers)
+            {
+                Assert.NotSame(root, helperRoot);
+                Assert.Same(network, helperRoot!.Network);
+            }
         }
     }
 

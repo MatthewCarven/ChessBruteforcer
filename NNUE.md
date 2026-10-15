@@ -175,7 +175,14 @@ and a result blend. Each is a lever for session 5, measured one at a time.
    inputs (768), hidden (H), i32 QA (255), QB (64), scale (400); then
    little-endian int16 arrays: feature weights [768][H] (feature-major, so
    a column is contiguous), feature biases [H], output weights [2H]; i32
-   output bias; then the SHA-256 of all of it, checked on load.
+   output bias; then the SHA-256 of all of it, checked on load. (As built,
+   session 3: H a multiple of 16 from 16 to 1024, QA 1-255; the output bias
+   is in QA x QB units, so the trainer writes round(b x QA x QB); the loader
+   also refuses any |output weight| x QA over 32,767 and any hidden unit
+   whose bias plus its 32 largest weights of one sign leaves int16, which a
+   net clamped to +-1.98 never does: 127 x 255 = 32,385, 32 x 505 + 505 =
+   16,665. `scripts/nnue-reference/nnue_reference.py` writes and reads the
+   format in numpy.)
 2. **The feature index**, perspective p (0 white, 1 black), square s with
    a1 = 0 as in Position: `((piece colour == p ? 0 : 6) + kind - 1) * 64 +
    (p == 0 ? s : s ^ 56)`. Written down once, in C# and in the Python
@@ -185,8 +192,10 @@ and a result blend. Each is a lever for session 5, measured one at a time.
    needed. `MakeMove` collects its 2-4 piece changes (mover off, mover or
    promotion on, a capture off, the rook for castling, the pawn for en
    passant) and writes child = parent + changes in one pass; `UnmakeMove`
-   pops; the null move pushes an unchanged copy (or shares the slot).
-   `FromFen` and `SetPiece` refresh from the board. Every Lazy SMP helper
+   pops; the null move pushes an unchanged copy (or shares the slot: as
+   built, it shares it). `FromFen` and `SetPiece` refresh from the board
+   (as built: `Position.FromFen(fen, network)` and `UseNetwork(network)`
+   attach and refresh; a take-back past where the stack starts refreshes). Every Lazy SMP helper
    builds its own Position from the root's FEN (Search.cs 355, 432), so each
    thread has its own stack, and the weights (395 KB) are shared read-only.
 4. **SIMD** through `System.Runtime.Intrinsics`: `Vector256<short>` adds
@@ -207,7 +216,10 @@ and a result blend. Each is a lever for session 5, measured one at a time.
    tune-match.cmd and the match tool need no new option (python-chess
    refuses options the engine doesn't list). Texel tuning keeps
    `Evaluate(position, params)`. The endgame tables still settle 5 pieces
-   or fewer before any evaluation.
+   or fewer before any evaluation. (As built: "loaded" means the position
+   carries a network. A .nnue in EvalFile is that UCI engine's own, not
+   process-wide like the numbers, so tests running side by side and two
+   engines in one process can't meet each other's net.)
 
 ## Training
 
@@ -374,9 +386,28 @@ Done when:
   sf1 until the match says otherwise).
 
 Done when:
-- [ ] every test passes and every mutation goes red;
-- [ ] the bench is within the probe's range (-9% to -18% at 256);
-- [ ] the full suite passes (341 tests at the pondering merge).
+- [x] every test passes and every mutation goes red (NnueTests, 36; 30
+      mutations, 30 red);
+- [x] the bench is within the probe's range (-9% to -18% at 256): better
+      than it, **-2.1%** at 256 (`bench 9`, 8 rounds alternated; the
+      tree-free costs predict about -5%), +5.3% at 128, -11.7% at 512;
+- [x] the full suite passes (377 passed, 2 skipped).
+
+**Built 2026-10-16** (branch `claude/nnue-csharp-8117d8`; WORKLOG has the
+details, scripts/nnue-bench/results-2026-10-16.txt the numbers). What
+session 2 and 4 should know:
+- The trainer writes the output bias as round(b x QA x QB), and can take
+  `write_nnue` and `feature` from `scripts/nnue-reference/nnue_reference.py`
+  (numpy, written from this file alone; the C# equals it exactly).
+- **Random weights make the capture search explode** (Kiwipete, depth 1:
+  1.37 M nodes against 3,422): an untrained or badly scaled net looks like
+  a hang. `Network.FromPieceSquares` builds a net that computes a numbers
+  file's material and piece-square values exactly; `scripts/nnue-bench/`
+  benches with it (`pst-net.cs`, `bench.ps1`, `costs.cs`).
+- Per operation, net 256: 52 ns to update a move, 55 ns an evaluation
+  (today's: 104 ns). 512 hidden costs ~10% against 256 on the identical
+  tree, so session 5's 512 lever is cheaper than the probe said (-30 to
+  -36%).
 
 ### Session 4: the match
 
@@ -390,7 +421,8 @@ Done when:
 
 ### Session 5 (outline): the levers, one match each
 
-More data (July and August: ~670 M); 512 hidden (-30 to -36% speed); a
+More data (July and August: ~670 M); 512 hidden (-30 to -36% speed by the
+probe; ~-10% against 256 as built, session 3); a
 result blend (lambda); king buckets or output buckets by material; mate
 scores in; the AVX-512 path; labels from our own search on these positions,
 which only the CPU can make. Each lever is a match against the net before.

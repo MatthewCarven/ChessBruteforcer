@@ -10,11 +10,13 @@ param(
     [string]$Tsv
 )
 
-$arms = foreach ($arm in $Arms) { $name, $file = $arm -split '=', 2; [pscustomobject]@{ Name = $name; File = $file } }
+# (pwsh -File hands a list over as one string, so split it here; and $armList, since PowerShell's
+# names ignore case, so $arms would be the [string[]] parameter itself)
+$armList = foreach ($arm in ($Arms | ForEach-Object { $_ -split ',' })) { $name, $file = $arm -split '=', 2; [pscustomobject]@{ Name = $name; File = $file } }
 $runs = @()
 for ($round = 1; $round -le $Rounds; $round++) {
     # Rotate the order each round, so no arm always runs first or after the same neighbour.
-    $order = @(0..($arms.Count - 1) | ForEach-Object { $arms[($_ + $round - 1) % $arms.Count] })
+    $order = @(0..($armList.Count - 1) | ForEach-Object { $armList[($_ + $round - 1) % $armList.Count] })
     foreach ($arm in $order) {
         $start = New-Object System.Diagnostics.ProcessStartInfo 'dotnet', "`"$Engine`" bench $Depth --eval `"$($arm.File)`""
         $start.RedirectStandardOutput = $true
@@ -33,10 +35,10 @@ for ($round = 1; $round -le $Rounds; $round++) {
 if ($Tsv) { $runs | Export-Csv -Path $Tsv -Delimiter "`t" -NoTypeInformation }
 
 function Median($values) { $s = @($values | Sort-Object); if ($s.Count % 2) { $s[[int][math]::Floor($s.Count / 2)] } else { ($s[$s.Count / 2 - 1] + $s[$s.Count / 2]) / 2 } }
-$baseline = Median ($runs | Where-Object Arm -eq $arms[0].Name | ForEach-Object Knps)
+$baseline = Median ($runs | Where-Object Arm -eq $armList[0].Name | ForEach-Object Knps)
 ""
-"arm          nodes (tree)   median knps   best knps   vs $($arms[0].Name)"
-foreach ($arm in $arms) {
+"arm          nodes (tree)   median knps   best knps   vs $($armList[0].Name)"
+foreach ($arm in $armList) {
     $mine = $runs | Where-Object Arm -eq $arm.Name
     $median = Median ($mine | ForEach-Object Knps)
     "{0,-10} {1,14:N0} {2,13:N0} {3,11:N0}   {4,6:+0.0;-0.0}%" -f $arm.Name, $mine[0].Nodes, $median, ($mine | Measure-Object Knps -Maximum).Maximum, (100.0 * $median / $baseline - 100)

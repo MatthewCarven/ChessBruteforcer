@@ -107,6 +107,7 @@ public sealed class Search
     private Search? _main;
     private Search[] _helpers = Array.Empty<Search>();
     private int _activeHelpers;   // helpers in this search, whose nodes count as its own
+    private Position? _root;      // the position this search (or helper) was last prepared on: its own copy
 
     public Search(TranspositionTable table, Tablebase? tablebase = null)
     {
@@ -267,6 +268,9 @@ public sealed class Search
     /// <summary>Nodes searched in the current or last search, by this thread and its helpers.</summary>
     public long Nodes => TotalNodes;
 
+    /// <summary>The positions the current or last search's helpers searched from (each thread's own copy of the root).</summary>
+    internal IEnumerable<Position?> HelperRoots => _helpers.Take(_activeHelpers).Select(helper => helper._root);
+
     private long TotalNodes
     {
         get
@@ -303,6 +307,7 @@ public sealed class Search
     /// <summary>Ready this search (or helper) for a new root.</summary>
     private void Prepare(Position root, SearchLimits limits, IReadOnlyList<ulong>? previousHashes)
     {
+        _root = root;
         _stop = false;
         _nodes = 0;
         _tableHits = 0;

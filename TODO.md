@@ -201,6 +201,14 @@ Sessions, in order:
       the match against sf1. **Matthew chose (2026-10-16): A(a) PyTorch,
       B(a) 768 -> 256 x2 -> 1, C(a) September, all speeds, D a + c** (the
       laptop alongside the bot, then the desktop).
+      - [x] Session 3, the network in C# (2026-10-16, branch
+        `claude/nnue-csharp-8117d8`, to merge into compression): EvalFile
+        takes a .nnue; 36 tests, 30 of 30 mutations red; `bench 9` -2.1% at
+        256 hidden against sf1 (the probe's bound was -9 to -18%). The bot
+        stays on sf1 until session 4's match.
+      - [ ] Later speed steps, each measured with scripts/nnue-bench: AVX-512
+        (this CPU has it), 64-byte-aligned weights and stack, a lazy update
+        (only nodes that evaluate pay for their accumulators).
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by
