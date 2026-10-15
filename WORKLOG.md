@@ -2007,3 +2007,21 @@ of its 19th attempt; curl had dropped 18 times, exits 35 and 56, before
 14:53). The bot and the learner are still running. To carry on, run
 start.cmd (it starts only the queue) or scripts\month-queue.cmd: it checks
 the part isn't growing for 150 s, then resumes it with `curl -C -`.
+
+Then his (b): a speed cap. `download-lichess-month.ps1 -LimitRate` hands
+curl `--limit-rate` (no cap unless asked), and `month-queue.ps1` asks for
+**500k by default**; `-LimitRate 0` is full speed, and a bad value stops
+before any network use. Both log the cap. Checked against a local HTTP
+server (curl ignores the cap on file://), 3 MiB each:
+
+| cap  | time  | speed        |
+|------|-------|--------------|
+| 500k | 6.2 s | 498 KiB/s    |
+| 1m   | 2.9 s | 1,046 KiB/s  |
+| 0    | 0.0 s | uncapped     |
+
+What it costs: June's last 4.3 GB take ~2.3 h, not ~70 min; the queue's
+remaining ~1,260 GB ~28 days at 500 KiB/s, not ~16 at the ~0.9 MB/s June
+got. What it leaves: two downloads once ran 1.30 MB/s together, so the line
+carries at least that (~10 Mbit/s); 500 KiB/s (~4 Mbit/s) leaves ≥ ~6
+Mbit/s, enough for 1080p video. If YouTube still waits, 300k.

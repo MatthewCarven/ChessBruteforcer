@@ -2,6 +2,11 @@
 #
 #   scripts\month-queue.cmd                      (its own window; or: pwsh -File scripts\month-queue.ps1)
 #   pwsh -File scripts\month-queue.ps1 -DryRun   (what it would do, touching nothing)
+#   scripts\month-queue.cmd -LimitRate 0         (full speed: no cap)
+#
+# The download is capped at -LimitRate, 500k (~500 KB/s) unless told otherwise, so the rest of the house
+# still gets the line (Matthew, 2026-10-15: at full speed YouTube waited on it).  To change the cap, close
+# the window and start it again with another -LimitRate (1m, 300k, 0 for none): the month carries on.
 #
 # Each month: downloaded to -Dir with Lichess's SHA-256 (download-lichess-month.ps1, which resumes and
 # rides out drops); then, if it has no counts yet, counted for the book (make-book.py count, which checks
@@ -14,13 +19,14 @@
 # damaged ones in games\month-queue.damaged (left where they are, for Matthew to look at).  A month whose
 # .part is growing (month-book.cmd downloading it in another window) is left for the end, and waited for.
 # Its log: games\month-queue.log.
-param([string] $Dir = '\\id10terror-desktop\chessbruteforcer\lichess', [int] $KeepFreeGB = 100, [switch] $DryRun)
+param([string] $Dir = '\\id10terror-desktop\chessbruteforcer\lichess', [int] $KeepFreeGB = 100, [string] $LimitRate = '500k', [switch] $DryRun)
 $ErrorActionPreference = 'Continue'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $py = 'bot\lichess-bot\.venv\Scripts\python.exe'
 $log = 'games\month-queue.log'
 $doneFile = 'games\month-queue.done'
 $damagedFile = 'games\month-queue.damaged'
+$capText = if ($LimitRate -in '', '0', 'none') { 'no speed cap' } else { "capped at $LimitRate a second" }
 
 function Log([string] $text) {
     $line = '{0:yyyy-MM-dd HH:mm:ss}  {1}' -f (Get-Date), $text
@@ -83,8 +89,8 @@ function Do-Month([string] $month) {
             Log ('STOPPING before {0}: {1:N1} GB to fetch, {2:N0} GB free on the share, keeping {3} GB free' -f $month, (($bytes - $have) / 1e9), $free, $KeepFreeGB)
             return 'stop'
         }
-        Log ('{0}: downloading {1:N1} GB ({2:N0} GB free)' -f $month, (($bytes - $have) / 1e9), $free)
-        & .\scripts\download-lichess-month.ps1 -Month $month -Dir $Dir | Out-Host
+        Log ('{0}: downloading {1:N1} GB ({2:N0} GB free; {3})' -f $month, (($bytes - $have) / 1e9), $free, $capText)
+        & .\scripts\download-lichess-month.ps1 -Month $month -Dir $Dir -LimitRate $LimitRate | Out-Host
         if (-not (Test-Path -LiteralPath $final)) { Log "STOPPING: $month's download didn't finish (run this again to carry on)"; return 'stop' }
     }
     if (Test-Path $counts) {
@@ -125,7 +131,7 @@ if ($months.Count -lt 100) { Log "STOPPING: Lichess's list gave only $($months.C
 $done = @(if (Test-Path $doneFile) { Get-Content $doneFile })
 $damaged = @(if (Test-Path $damagedFile) { Get-Content $damagedFile })
 $todo = @($months | Where-Object { $_ -notin $done -and $_ -notin $damaged })
-Log ('=== {0} months on Lichess, {1} done, {2} damaged, {3} to go, newest first ({4}); {5:N0} GB free on the share' -f $months.Count, $done.Count, $damaged.Count, $todo.Count, $todo[0], (Free-GB))
+Log ('=== {0} months on Lichess, {1} done, {2} damaged, {3} to go, newest first ({4}); {5:N0} GB free on the share; downloads {6}' -f $months.Count, $done.Count, $damaged.Count, $todo.Count, $todo[0], (Free-GB), $capText)
 
 if ($DryRun) {
     $free = Free-GB

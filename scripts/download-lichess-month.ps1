@@ -2,6 +2,7 @@
 #
 #   scripts\download-lichess-month.cmd 2026-09
 #   pwsh -File scripts\download-lichess-month.ps1 2026-07 -Dir \\id10terror-desktop\chessbruteforcer\lichess
+#   pwsh -File scripts\download-lichess-month.ps1 2026-07 -LimitRate 500k   (at most ~500 KB/s; 0 = no cap)
 #
 # Resumes from whatever is already there: <Dir>\lichess_db_standard_rated_<month>.pgn.zst.part,
 # or the first-1GB file of 2026-10-12 (bytes 0 .. 1,073,741,823 of the same file), which it
@@ -15,7 +16,11 @@
 # a drop is picked up by the next attempt from the bytes that reached the share (curl -C - only
 # ever appends), and anything that went wrong in the middle shows up in the checksum.  The log
 # stays on this machine: games\download-<month>.log.
-param([Parameter(Mandatory)] [string] $Month, [string] $Dir = 'games')
+#
+# -LimitRate caps the speed (curl's --limit-rate: 500k, 1m, ...; k = 1,024 bytes), so the download
+# leaves room on the line for everyone else (2026-10-15: at full speed YouTube at home waited on it).
+# No cap unless asked; the month queue asks for one.
+param([Parameter(Mandatory)] [string] $Month, [string] $Dir = 'games', [string] $LimitRate = '')
 $ErrorActionPreference = 'Continue'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $name = "lichess_db_standard_rated_$Month.pgn.zst"
@@ -44,6 +49,10 @@ function Wait-Dir {
     if ($since) { Log ('{0} is back after {1:N0} min' -f $Dir, ((Get-Date) - $since).TotalMinutes) }
 }
 
+if ($LimitRate -in '0', 'none') { $LimitRate = '' }
+if ($LimitRate -and $LimitRate -notmatch '^\d+[kKmMgG]?$') { Log "STOPPING: -LimitRate $LimitRate isn't a speed curl knows (500k, 1m, or 0 for none)"; exit 1 }
+$rateArgs = if ($LimitRate) { @('--limit-rate', $LimitRate) } else { @() }
+
 Wait-Dir
 if (Test-Path -LiteralPath $final) { Log "$final is already here: nothing to do"; return }
 if (-not (Test-Path $part) -and (Test-Path $first)) {
@@ -62,6 +71,7 @@ if (Test-Path $stamp) {
     Set-Content $stamp $modified
 }
 Log "=== $name`: $expected bytes on the server ($modified)"
+Log $(if ($LimitRate) { "speed capped at $LimitRate a second" } else { 'no speed cap' })
 if (-not (Test-Path -LiteralPath $sums)) {
     $line = curl.exe -sS https://database.lichess.org/standard/sha256sums.txt |
         Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($name))$" } | Select-Object -First 1
@@ -74,7 +84,7 @@ for ($try = 1; $try -le 100; $try++) {
     $have = if (Test-Path -LiteralPath $part) { (Get-Item -LiteralPath $part).Length } else { 0 }
     if ($have -ge $expected) { break }
     Log ('attempt {0}: {1:N2} of {2:N2} GB' -f $try, ($have / 1GB), ($expected / 1GB))
-    curl.exe -sS -C - -o $part $url
+    curl.exe -sS -C - @rateArgs -o $part $url
     if ($LASTEXITCODE -ne 0) { Log "curl exit $LASTEXITCODE; again in a minute"; Start-Sleep -Seconds 60 }
 }
 

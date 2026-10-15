@@ -28,7 +28,9 @@ that could go wrong does.
   each with Lichess's SHA-256), stopping before the share has < 100 GB free;
   each month counted into the books as it lands (Jul-Sep 2026 in: 497,607
   main moves, median line 15 plies). Restartable. On 2026-10-15 it was
-  downloading August again. Later: `-Parallel 2` (two downloads ran 1.30
+  downloading August again. **Capped at ~500 KB/s** from 2026-10-15
+  (`-LimitRate`, so the house keeps its internet): the rest takes ~28 days
+  rather than ~16; `scripts\month-queue.cmd -LimitRate 0` is full speed. Later: `-Parallel 2` (two downloads ran 1.30
   MB/s together v ~0.85 alone: ~16 days -> ~11); his spill-over drive (`-Dir`
   a list, filled in turn); recount the book deeper (16 moves) once ~12
   months are in. The whole archive is 165 months, 2.6 TB, 8.22 B games.
