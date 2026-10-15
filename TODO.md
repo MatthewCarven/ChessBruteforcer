@@ -80,6 +80,18 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          (games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7 GB; C: had
          30 GB free) can go: Matthew's delete. June's .part waits on the
          share; the month queue isn't running.
+   - [x] **Share traffic at or under ~8 MB/s** (Matthew, 2026-10-16: faster
+         knocks the laptop off the internet). make-book.py's Steady now
+         paces reads of a network path at 8,000,000 bytes/s (CB_SHARE_RATE
+         sets another; 0 = none): month counts, verify, index-month rows.
+         Measured at a 4 MB/s setting: 4.06 MB/s. Left to do:
+      - [ ] A copy to the share needs its own cap (robocopy /IPG, or a
+            Python copy through the same pacing): May's /Z copy happened to
+            run at ~2.7 MB/s.
+      - [ ] index-month's `check`/`get` read frames with plain open(): ~5.7
+            MB/s on average over July's check, but in 4.7 MB bursts.
+      - [ ] The cap is per reader, so one big share job at a time (the
+            month queue's download writes only ~0.5 MB/s).
    - [ ] **lichess-bot gives up on a game whose stream drops** (2026-10-16
          07:52: "Game over" logged three book moves into a live game against
          TroutBot). A restart rejoined it a minute later; it lost on the board.
