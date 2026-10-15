@@ -27,7 +27,8 @@ engine = config["engine"]
 engine["dir"] = os.path.join(bot, "engines", "bruteforcer")   # a copy of the engine build (see start-bot.cmd)
 engine["name"] = "ChessBruteforcer.Engine.exe"
 engine["working_dir"] = engine["dir"]
-engine["ponder"] = False                                      # our engine doesn't ponder
+engine["ponder"] = True                                       # think on the opponent's time (+83 Elo against itself
+                                                              # at 10+0.1; on from 2026-10-16, WORKLOG "pondering")
 engine["uci_options"] = {
     "EndgameTables": os.path.join(repo, "tables"),            # every table of 5 pieces or fewer
     "Hash": 256,

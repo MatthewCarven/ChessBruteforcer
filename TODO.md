@@ -269,8 +269,13 @@ Sessions, in order:
       thinks on the opponent's time (`go ponder`, `ponderhit`, `bestmove ...
       ponder`). Against itself at 10+0.1, ponder on v off: 119 games, +48 -20
       =51, **Elo +83 [+37, +133]**, the reply right 71.5% of the time (on
-      Lichess 51%, so expect less there). The bot is unchanged.
-      - [ ] Turning it on is Matthew's (section 4).
+      Lichess 51%, so expect less there). Merged into compression 2026-10-16
+      (ddc54c8; 341 tests pass).
+      - [x] Turned on in the bot, on Matthew's word (2026-10-16, 06:00):
+            `engine["ponder"] = True` in bot/make-config.py, which
+            start-bot.cmd writes into config.yml on its next start (with the
+            engine rebuilt from this checkout). Watch its first games: moves
+            on time, the bot's log free of ponder errors, the clock it banks.
       - [ ] A clean re-run (the harness lost one game to a script bug, since
             fixed), or longer (~400 games, ~1 h), once no index run is going.
       - [ ] Spend the banked clock: the pondering side ended games with 4.8 s
