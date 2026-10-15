@@ -2766,3 +2766,17 @@ downloaded or installed, and the engine is unchanged.
   training on 32-byte records; judged by held-back error against sf1's first,
   then the bench, then 10+0.1 SPRT [0, 10] against sf1. Four sessions, and
   Matthew's decisions A-D are at its end.
+- **Matthew's decisions**: A(a) PyTorch, B(a) 768 -> 256 x2 -> 1, C(a)
+  September, all speeds, and D "a + c?" with "there is a 1650 in the desktop".
+  A GTX 1650 has 4 GB and 128-192 GB/s against the laptop card's 448, so
+  about a third of the speed on this net: 2-7 h a run, overnight. So "a + c"
+  means two trainers, each on its own net, not one run split across the
+  house's network. NNUE.md gains session 2b: the scripts, the wheel (copied
+  over the share, not downloaded twice) and the records on the share;
+  Matthew checks the desktop's driver (CUDA 13.2 or more), installs Python
+  3.14 and runs a setup .cmd there, since nothing here can reach the desktop.
+  The link between the machines is 9 MB/s at best (Matthew): the wheel 3.7
+  min, September's records 13 min (once), a net back in under a second;
+  reading records over it would take 4.4 h a run, so each machine keeps its
+  own copy, and a split run's gradient swap (0.8 MB each way, ~0.18 s a
+  step against 8-33 ms of work) would be 5-20x slower than the laptop alone.

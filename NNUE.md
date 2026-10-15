@@ -38,12 +38,25 @@ repo, and nothing crosses the share but the month files.
 | driver | 595.79, **CUDA 13.2** (nvidia-smi). Windows' own WMI reports 4 GB, which is its 32-bit field's limit, not the card |
 | CPU | i9-11900H, 8 cores / 16 threads; .NET 8.0.31 accelerates AVX2 **and AVX-512** here (`Avx512BW`, `Vector512.IsHardwareAccelerated` both true) |
 | memory | 15.8 GB RAM, commit limit 20.8 GB; 10.1 GB of commit free at 06:40 with the bot mid-game (the usual headroom, with the Claude app's processes up, is nearer 4 GB) |
-| disk | C: 41 GB free; the share (Z:) 1,305 GB free at ~10 MB/s |
+| disk | C: 41 GB free; the share (Z:) 1,305 GB free; the link to the desktop 9 MB/s at best (Matthew) |
 | installed | Python 3.14.4 with numpy and DuckDB; **no PyTorch, no CUDA toolkit, no Rust**; .NET SDK 10.0.401 (the engine targets net8.0); WSL Ubuntu 24.04 sees the GPU (`/usr/lib/wsl/lib/libcuda.so`), Python 3.12.3, 7 GB |
 | PyTorch for it | `torch-2.14.1+cu132-cp314-cp314-win_amd64.whl`: one wheel for the Python already here, **2,001,146,779 bytes** (HEAD request; published 2026-09-30). It carries its own CUDA runtime, so no toolkit is needed. Plus ~15 MB of small dependencies from PyPI. At the household cap (500 KB/s) it takes **~67 minutes** |
 
-The desktop (id10terror-desktop) holds the share; nobody has looked at its
-graphics card, and this plan doesn't need it (decision D).
+**The desktop** (id10terror-desktop, which holds the share) has a **GTX
+1650** (Matthew, 2026-10-16). From the card's published specifications, not
+measured here:
+
+| | laptop: RTX 3070 Laptop | desktop: GTX 1650 |
+|---|---|---|
+| memory | 8 GB | 4 GB |
+| memory bandwidth | 448 GB/s | 128 GB/s (GDDR5) or 192 GB/s (GDDR6) |
+| CUDA cores | 5,120 | 896 |
+| compute capability | 8.6 (Ampere) | 7.5 (Turing; CUDA 13 still supports it) |
+| likely speed on this net | 1x | **about a third** (the work is mostly memory traffic) |
+
+4 GB is plenty for a 768 x 256 net. A run that takes 40 min to 2.5 h on the
+laptop would take roughly 2-7 h on the desktop: an overnight job. How the
+two are used together is decision D, below.
 
 ### What today's evaluation costs, and what a network would
 
@@ -255,8 +268,8 @@ nothing to +200 is plausible here. The match decides.
 
 Session 0 is this one: the plan and the measurements above. **Sessions 1
 and 3 need nothing from each other** (the formats are fixed here) and can
-run side by side. Session 2 needs 1's data and Matthew's yes to the
-download; 4 needs 2 and 3.
+run side by side. Session 2 needs 1's data (the download is agreed: A(a));
+2b needs 2's trainer and Matthew at the desktop; 4 needs 2 and 3.
 
 ### Session 1: the data (no downloads)
 
@@ -283,11 +296,13 @@ Done when:
       predicts it; a big miss means the rule differs from the tuner's);
 - [ ] the report is in git.
 
-### Session 2: the trainer (needs Matthew's yes: decision A)
+### Session 2: the trainer, on the laptop (Matthew chose A(a): PyTorch)
 
 - The wheel through curl with the household cap (`--limit-rate 500k`, ~67
   min; pip has no cap), then `pip install` from the file into
-  `scripts/nnue/.venv`. The script is written meanwhile.
+  `scripts/nnue/.venv`. The script is written meanwhile. Keep the wheel
+  file: the desktop takes the same one (session 2b), so the house downloads
+  it once.
 - `train.py` as above; `--max-positions` for trials.
 - Checks: the net learns 10,000 positions almost perfectly (proof the
   pipeline is right); the float and int16 nets agree to a few centipawns on
@@ -300,6 +315,46 @@ Done when:
 - [ ] `nnue1.nnue` is exported, and its held-back error is below sf1's on
       the same positions;
 - [ ] WORKLOG has the run.
+
+### Session 2b: the desktop's GTX 1650 as a second trainer (D(c))
+
+Nothing here can run commands on the desktop, so this session prepares
+everything and Matthew does three things there by hand.
+
+- **On the share** (`\\id10terror-desktop\chessbruteforcer\nnue\`, which is
+  the desktop's own disk when seen from the desktop): the trainer scripts,
+  the wheel file (no second download), a copy of the records, and
+  `train-desktop.cmd <run name> <options>`, which logs to the share, so its
+  runs can be followed from the laptop.
+- **What crosses the link**: Matthew's figure is 9 MB/s between the two
+  machines at 100% efficiency, so these times are the best case:
+
+  | what | size | at 9 MB/s |
+  |---|---|---|
+  | the wheel | 2.0 GB | 3.7 min |
+  | September's records | 7.2 GB | 13 min, once |
+  | three months' records (C(b), later) | 21 GB | 40 min, once |
+  | a trained net coming back | 395 KB | under a second |
+  | the trainer reading its records over the link instead | 7.2 GB a pass x 20 | 4.4 h a run, more than the training: **each machine keeps its own copy** |
+  | one run split over both GPUs | 0.8 MB of gradients each way, every step | ~0.18 s a step for the swap against 8-33 ms of work: 5-20x slower than the laptop alone |
+- **Matthew, at the desktop**: (1) `nvidia-smi`: its "CUDA Version" must be
+  13.2 or more for this wheel. If it isn't, update the driver, or use the
+  cu126 wheel (sized first). (2) Python 3.14 from python.org, then
+  `setup-desktop.cmd`, which makes the venv and installs the wheel from the
+  share. (3) Double-click a run.
+- Checks: `torch.cuda.get_arch_list()` includes sm_75; the same short run
+  on both machines gives the same held-back error to within noise (same
+  data, same seed); the 1650's positions a second, written down.
+- **Not one run split over both machines**: the swap of gradients every
+  step (the table's last line) costs far more than the third of the
+  laptop's speed that the 1650 adds. Instead, each trains its own net: the
+  levers of session 5 two at a time, or the desktop takes the long runs
+  while the bot has the laptop.
+
+Done when:
+- [ ] a short run on the desktop matches the laptop's;
+- [ ] the desktop's speed is written down, and a full run's `.nnue` comes
+      back over the share and loads in the engine.
 
 ### Session 3: the network in C# (no downloads; can run beside session 1)
 
@@ -339,6 +394,7 @@ More data (July and August: ~670 M); 512 hidden (-30 to -36% speed); a
 result blend (lambda); king buckets or output buckets by material; mate
 scores in; the AVX-512 path; labels from our own search on these positions,
 which only the CPU can make. Each lever is a match against the net before.
+With the desktop training too (2b), two levers train at once.
 "Where our losses turn" (TODO section 2) says which matters most.
 
 ## Risks
@@ -358,7 +414,12 @@ which only the CPU can make. Each lever is a match against the net before.
 
 ## Decisions for Matthew
 
-**A. The trainer**
+**Taken 2026-10-16: A(a), B(a), C(a), and D "a + c"**: PyTorch; 768 -> 256
+x2 -> 1; September, every quiet position, all speeds; the laptop first,
+alongside the bot, then the desktop's GTX 1650 as a second trainer
+(session 2b). The options as they were put:
+
+**A. The trainer** (chosen: a)
 - **(a) PyTorch on Windows** (recommended): one 2.0 GB wheel for the Python
   already here, capped download (~67 min), nothing else to install. Our own
   ~300-line script, which we can read end to end.
@@ -369,7 +430,7 @@ which only the CPU can make. Each lever is a match against the net before.
   threads with the bot, which the GPU route leaves alone, and run several
   times slower.
 
-**B. The first network**
+**B. The first network** (chosen: a)
 - **(a) 768 -> 256 x2 -> 1** (recommended): -9% to -18% speed, 197 k
   numbers.
 - (b) 768 -> 128 x2 -> 1: -4% to -12%, half the numbers; the safer
@@ -377,21 +438,23 @@ which only the CPU can make. Each lever is a match against the net before.
 - (c) HalfKP 256 x2 -> 32 -> 32 (Stockfish 12's shape): -49% to -55% as
   probed, 10.5 M numbers, wants billions of positions. Not first.
 
-**C. The first data**
+**C. The first data** (chosen: a)
 - **(a) September, every quiet position, all speeds** (recommended): ~224
   M, already imported, ~7.2 GB on C:.
 - (b) July + August + September: ~670 M, after ~8 h of filtering and
   importing (two months through tune-data.cmd). On C: (41 GB free) that is
   ~8.4 GB more .cbg plus ~21 GB of records instead of 7.2: it fits, just.
   The records have to be local: twenty passes over the share would spend
-  ~12 h reading.
+  ~13 h reading (at 9 MB/s).
 - (c) September, blitz or slower only, as the tuner chose: ~176 M.
 
-**D. Where and when it trains**
+**D. Where and when it trains** (chosen: a + c, the desktop having a GTX
+1650: two trainers, each on its own net, as session 2b says; not one run
+split over both)
 - **(a) This laptop, alongside the bot**, below-normal priority (recommended),
   watching the bot's speed in its log and stopping if it drops more than
   ~10%.
 - (b) This laptop, only while the bot is stopped (overnight, say).
 - (c) The desktop, if it has an NVIDIA card. Tell me which card and it gets
   measured. It would free the laptop entirely, with the data copied over
-  the share (~12 min for 7.2 GB).
+  the share (13 min for 7.2 GB at 9 MB/s).
