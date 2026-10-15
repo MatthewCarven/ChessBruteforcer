@@ -2155,3 +2155,29 @@ took 200 s for one HEAD request, and then refused even to connect within 15 s.
 Nothing to do here: the queue retries every minute (100 attempts, then it
 stops with "run this again to carry on") and resumes the part from its last
 byte when the server comes back.
+
+## 2026-10-15 (21:15): how often the bot's forecast comes true
+
+Matthew asked whether the engine predicts future positions. It searches
+ahead (iterative-deepening alpha-beta, assuming both sides play its best),
+and its principal variation is the forecast. lichess-bot saves it in every
+game's PGN, as a side line after each of our moves, with the score and depth.
+`scripts/forecast-hits.py` (new; the bot venv's python, for python-chess)
+compares the forecast reply with the reply played, over bot/games (241 games,
+every one against another bot; depth median 13, 10% / 90% 11 / 16):
+
+| | forecasts | reply right | blind guess (1 / legal moves) | only one legal move |
+|---|---:|---:|---:|---:|
+| all | 11,795 | 51.0% | 6.6% | 0.8% |
+| moves 1-10 | 793 | 44.6% | 3.5% | 0.0% |
+| moves 11-20 | 2,256 | 48.8% | 3.7% | 0.2% |
+| moves 21-40 | 4,297 | 52.0% | 6.0% | 1.0% |
+| moves 41+ | 4,449 | 52.4% | 9.3% | 1.1% |
+
+Plies of the forecast in a row that came true after our move: 1+ 51.0%, 2+
+42.7%, 3+ 24.0%, 4+ 18.7%, 5+ 11.1%, 6+ 8.3%. So the opponent's reply is
+right about half the time (~56% for its second, given the first), and our own
+next move matches the forecast ~80% of the time: a fresh search mostly agrees
+with the last one. Every opponent was an engine, which tends to see the same
+best move; against people it would likely be lower, with no data here to say.
+The engine searches on one thread; the laptop has 8 cores (16 threads).
