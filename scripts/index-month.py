@@ -21,7 +21,9 @@ get: a game's PGN by its number, through the frame table: one frame read and unp
 into the next frame).
 
 check: fetches the games `rows` kept a hash of (one random game a frame, and every game cut by a frame's end;
-every game with --hash-all) and compares them byte for byte, up to --sample of each kind (0: all).
+every game with --hash-all) and compares them byte for byte, up to --sample of each kind (0: all). It checks
+`rows` against `get`, which share the frame joins: a game lost at a join (July 2026 lost 13 before the fix) shows
+only in the count against Lichess's standard/counts.txt. scripts/test-index-month.py tests the joins.
 
 dups: games with exactly the same moves, from the fingerprints: groups, sizes, lengths, endings, and examples
 confirmed by fetching two games of each group and comparing their moves.
@@ -139,6 +141,12 @@ def parse_game(text, start_ordinal):
              int(base) if base.isdigit() else 0, min(int(inc), 255) if inc.isdigit() else 0, start, flags,
              fingerprint(moves)),
             tags.get(b"Termination", b"?"), tags.get(b"ECO", b"?"), moves)
+
+
+def split_games(text):
+    """text cut at every game start after its first byte: what comes before the first such start, then each game."""
+    starts = [0] + [m.start() for m in GAME_START.finditer(text, 1)]
+    return [text[a:b] for a, b in zip(starts, starts[1:] + [len(text)])]
 
 
 NUMERIC = ["plies", "result", "white_elo", "black_elo", "clock_base", "increment", "start", "flags", "fingerprint"]
@@ -301,12 +309,21 @@ def rows_command(args):
         columns.add(as_arrays([row], [term], [eco], [moves[:keep]], keep))
         games += 1
 
+    def carry_on(more):
+        """The game still open at a frame's end, carried on with the next frame's text. A game whose [Event line
+        the frame's end cut shows up only here (neither frame holds the whole line; July 2026 had 13 in 6,177
+        frames), so every game before it is finished."""
+        nonlocal tail
+        *done, tail = split_games(tail + more)
+        for text in done:
+            finish_tail(text)
+
     def take(result, offset, packed_size):
         """Fold one frame's result in, in file order. A frame's "first game" is the number of the first game
         starting in it or after it: every game begun before it, including one still running into it."""
         nonlocal tail, tail_frame, games, stray
         if tail is not None:
-            tail += result["head"]
+            carry_on(result["head"])
         elif result["head"].strip():
             stray += 1                                    # text before the file's first game: shouldn't happen
         if result["first_at"] < 0:                        # no game starts here: all of it continues the last one
@@ -498,7 +515,14 @@ class Index:
         k = number - self.first[f]
         if k + 1 < len(starts):
             return text[starts[k]:starts[k + 1]]
-        out = [text[starts[k]:]]
+        # The frame's last game, or one after it whose [Event line the frame's end cuts (neither frame holds the
+        # whole line): from the last game start a frame shows (an earlier frame's, if this one shows none) to the
+        # next one, split at every game start in between.
+        while not starts:
+            f -= 1
+            text, starts = self.frame(f)
+        last = self.first[f] + len(starts) - 1
+        out = [text[starts[-1]:]]
         while f + 1 < len(self.frames):              # it runs into the next frame(s)
             f += 1
             text, starts = self.frame(f)
@@ -506,7 +530,10 @@ class Index:
                 out.append(text[:starts[0]])
                 break
             out.append(text)
-        return b"".join(out)
+        games = split_games(b"".join(out))
+        if number - last >= len(games):
+            raise SystemExit(f"game {number:,}: the frame table and the file disagree")
+        return games[number - last]
 
 
 def get_command(args):

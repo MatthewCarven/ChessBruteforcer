@@ -93,7 +93,10 @@ lines and parses each game that starts and ends in it; it hands back the
 text before its first game and its last game whole. The main process joins
 the one to the other, so a game cut by a frame's end is finished from the
 next frame's start, and parses it itself (one game a frame). Results are
-taken in frame order, so game numbers are the file's order.
+taken in frame order, so game numbers are the file's order. A frame's end
+can fall inside a game's `[Event` line (13 of July's 6,177 did), where
+neither frame sees that game start; the joined text is split at every game
+start, so that game is found where the two frames meet.
 
 The frame walk follows pzstd's notes (a skippable frame holding the next
 frame's packed size). 2013-01 and 2026-07 both have them before every
@@ -219,11 +222,19 @@ Session 1 is done when:
       nothing more); Parquet and plain columns agree on all three queries.
 - [x] July 2026: the frame table covers the file to its last byte; the
       SHA-256 matches (2026-10-15: 6,177 frames, 89,288,408 games).
-      Still to compare: the count against Lichess's counts.txt.
+- [ ] July's count equals Lichess's counts.txt: **13 short** (89,288,421).
+      13 frame ends fell inside an `[Event` line, so neither frame saw that
+      game start and the game was glued onto the one before. Fixed in
+      `rows` and `get` (both split the joined text at every game start);
+      scripts/test-index-month.py cuts real games through every such point.
+      Done when July, run again, counts 89,288,421.
 - [x] `check` passes on 1,000 random games (and 1,000 cut by a frame's end).
+      But `check` compares `rows` with `get`, and they shared the bug: the
+      count against counts.txt is the completeness check.
 - [x] Duplicate examples confirmed by their moves (all 20).
-- [ ] The trial's table written up, the format chosen, and where the whole
-      index will live decided with Matthew.
+- [x] The trial's table written up (scripts/index-2026-07.txt) and the
+      format chosen: **Parquet** (as small, a little faster, SQL for later).
+- [ ] Where the whole index will live: decided with Matthew.
 
 Time: writing and testing on 2013-01 first (minutes a run), then one July
 read of ~50-60 minutes in its own window (slower while the queue downloads

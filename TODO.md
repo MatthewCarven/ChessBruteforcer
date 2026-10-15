@@ -44,10 +44,16 @@ the "DAMAGED" at 04:54 was the share going away. `start.cmd` ran at 09:12:
 the bot, the learner and the queue are up; the queue marked August and
 July done and is downloading June (28.2 GB). **July's index run finished
 at 14:54, every check passing** (results in WORKLOG, "July's index run").
-**Next: write it up** as scripts/index-2026-07.txt, choose the format (Parquet
-was as small and a little faster), decide with Matthew where the whole index
-lives (~1.27 GB of rows a month), look at the long duplicated games (up to
-356 plies), and delete games/index/2026-07/lines.u16 (2.9 GB) once written up.
+**Written up 18:30** as [scripts/index-2026-07.txt](scripts/index-2026-07.txt).
+It found **13 games short** of Lichess's counts.txt (89,288,408 v 421): a
+frame's end falling inside an `[Event` line glued that game onto the one
+before, and `check` couldn't see it because `get` joined the same way. Fixed
+in both, with scripts/test-index-month.py. The long duplicates are bots
+(96.8% BOT v BOT). Format: Parquet. **Next: run July again** with the fix
+(`scripts\index-month.cmd 2026-07`, ~1.5 h, its own window; the count should
+be 89,288,421), then **Matthew decides where the whole index lives** (~1.27 GB
+of rows a month, ~58 GB for 46 months; laptop ~71 GB free, share ~1.4 TB),
+and lines.u16 (2.9 GB) can go once the re-run is checked.
 
 1. **Done: the Texel fit on September, no gain.** sf2 (13.58 M positions)
    v sf1 (2.86 M): +668 -662 =670 over 2,000 games, Elo +1 [-11, +13]; the
@@ -56,17 +62,21 @@ lives (~1.27 GB of rows a month), look at the long duplicated games (up to
 2. **Done: the build plan for the index**, [INDEX.md](INDEX.md): what a
    sample of July says, the files and formats, session 1 in full, sessions
    2-5 outlined.
-3. **Index session 1 and 1b: to run again** (Matthew: (b) the Lookuptables
-   trial now, (c) July's read after the match). It started at 04:11 when
-   the match ended, read 4.55 of 29 GB (~7.3 MB/s, so ~66 min a month), and
-   failed at 04:54 when the share went away (~04:23, the same outage that
-   stopped August's check). Run `scripts\index-month.cmd 2026-07` again (no
-   second argument now; it can share the network with the queue's
-   download, which is ~1 MB/s): ~1 hour, then check, dups, the Parquet
-   trial and scripts/lines-trial.cs on 8 M games (the trie both ways); log
-   games/index/index-2026-07.log.
-   Then: write up scripts/index-2026-07.txt, choose the format, decide with
-   Matthew where the index lives, and delete lines.u16 (2.9 GB).
+3. **Index session 1 and 1b: run and written up, one re-run to go.** July
+   ran 13:33-14:54 (after the share outage stopped the 04:11 attempt);
+   [scripts/index-2026-07.txt](scripts/index-2026-07.txt) has it all. Left:
+   - [ ] Run July again with the 13-game fix (`scripts\index-month.cmd
+         2026-07`, ~1.5 h; log games/index/index-2026-07.log, appended): the
+         count must be 89,288,421 (counts.txt).
+   - [ ] Where the whole index lives: Matthew's call.
+   - [ ] `rows` writes Parquet directly (the format chosen), and the plain
+         .zst columns go; compare every month's count with counts.txt
+         automatically (save its line beside the .sha256 when downloading?).
+   - [ ] lines.u16 (2.9 GB) can go once the re-run is checked (Matthew's
+         delete, or scripts/clean-up.ps1).
+   - [ ] For the thesis: BOT v BOT games replay whole games (96.8% of the
+         duplicates of 41+ plies; 0.46% of all games). Set them apart when
+         counting how often positions happen.
 
 ### 1. The index over the games (the main line)
 
@@ -108,6 +118,8 @@ Sessions, in order:
       duplicate games are a sort and a count (2013: 0.8% exact repeats). On
       trial: the rows in Parquet through DuckDB (`pip install duckdb`)
       against a plain binary file, for size and speed; keep whichever wins.
+      *Run and written up 2026-10-15 (scripts/index-2026-07.txt); Parquet
+      chosen; July to run again for 13 games a frame cut lost (item 3 above).*
 - [ ] **2. The measurement**, on 16 threads (a frame each; C#, since
       replaying ~6 B moves a month needs it): per ply, positions, distinct,
       seen 2+ / 10+ times; materials passed through; positions with <= 5 /

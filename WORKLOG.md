@@ -2033,3 +2033,40 @@ GiB. Measured on the share, eight 30 s readings from 17:41:32: 501, 499,
 465, 536, 498, 499, 499, 499 KiB/s, **499 KiB/s over 240 s**. So June
 (4.15 GB to go at 17:45) lands about 20:00, then its count. Matthew pushed
 to 8f714fc (ls-remote agrees).
+
+## 2026-10-15 (18:00-18:40): July's index written up; 13 games a frame cut lost
+
+[scripts/index-2026-07.txt](scripts/index-2026-07.txt) has the whole run:
+the read, the columns, check, dups, the trial and the lines trial.
+
+- **13 games short.** Lichess's counts.txt says 89,288,421 for July; `rows`
+  read 89,288,408. A scan of every frame's first bytes (217 s over the
+  share) found 17 frames beginning part-way through an `[Event "Rated` line.
+  13 of those cut before the space after `[Event`, so neither frame held a
+  whole game start, and each of those games was glued onto the one before it
+  (their rows have 115-230 plies, the second game's tags read as moves). The
+  other 4 cut after `[Event `, which the earlier frame finds whole. 13 exactly.
+  Expected ~16 a month (6 harmful places in ~2,321 bytes a game, 6,176 frame
+  ends), so ~600 games over the 46 months queued.
+- **`check` couldn't see it**: `get` joined the frames the same way `rows`
+  did, so the two agreed. Only Lichess's count catches a lost game.
+- **Fixed**: `rows` and `get` split the joined text at every game start
+  (`split_games`); `get` also walks back when a frame shows no whole game
+  start. **scripts/test-index-month.py** (new): 7,892 real 2013-01 games cut
+  into 20 frames through every point of an `[Event` line, mid-move, a frame
+  with no game start, and one whose only game start is cut at its end. The
+  old code indexed 7,883 (`check` passed); the fixed one 7,892, all fetched
+  right with the right plies and fingerprints. 2013-01 again: 121,332
+  (counts.txt agrees), all fetched byte for byte.
+- **The long duplicates are bots** (Matthew's guess): of 16,999 duplicated
+  games of 41+ plies, 96.8% BOT v BOT, 3.1% BOT v human, 26 games human v
+  human. The 356-ply pair is one Ruy Lopez replayed by weak bots
+  (~1200-1450) three weeks apart at different clocks, to the same two-queen
+  mate. BOT games are 0.46% of the month.
+- **The columns**: the fingerprint is 56% of the rows (8.0 of 14.2 bytes a
+  game). Median 62 plies; ratings median 1658; 99.5% have clocks, 10.1%
+  Lichess's evaluations, 8.5% are tournament games; 499 ECO codes.
+- **Format: Parquet** (1,267 v 1,268 MB, queries 4.8 v 6.2 s, and SQL).
+
+Next: July again with the fix (~1.5 h, its own window), then where the
+whole index lives (Matthew's call).
