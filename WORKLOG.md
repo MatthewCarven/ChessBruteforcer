@@ -2586,3 +2586,128 @@ block-size-probe.txt, dtz-skip-check.txt. To repeat the trace:
 12 --arms 1 --rounds 1 --eval bot\eval\eval-sf1.txt --tables tables --tsv
 t.tsv --trace t.bin`, then `python -I scripts\block-cache-trace.py t.bin
 t.tsv` (~2 min; the trace is ~60 MB for one thread and L8, so it isn't kept).
+## 2026-10-15 (22:45) to 2026-10-16 (00:15): pondering, and what it's worth
+
+A side session, on top of the threads work (branch claude/vigilant-murdock-d223f5,
+from claude/nostalgic-greider-09538a at 9424597). The UCI engine now thinks on
+the opponent's time. **The bot is unchanged**: config.yml keeps `ponder: false`
+and its engine folder wasn't touched. Turning it on is Matthew's call (TODO,
+section 4).
+
+**What lichess-bot sends.** It drives the engine through python-chess (1.11.2
+in the bot's venv), and its source says: after `bestmove <move> ponder <reply>`,
+`go ponder` on the position after that reply, with the clocks moved on (ours
+less the time we used, plus the increment); then, if the next move asked for is
+from that same position, only `ponderhit` (no new position, no new clock), and
+otherwise `stop` followed by the usual `position` and `go`. So the clock in
+`go ponder` is the one that counts after a ponderhit.
+
+**What the engine does** (Search.cs, UciEngine.cs):
+- `go ponder <clock>`: searches with no time limit until `ponderhit` or `stop`,
+  and holds its answer until one of them comes, even when the search ends by
+  itself (a mate seen, a depth limit).
+- `ponderhit`: the same search goes on, keeping its tree, table and depth, under
+  the clock from its `go ponder`. **The time spent pondering counts**: it's as
+  if the search began on our own time at `go ponder`. No new depth is started
+  past half the planned time, and a depth begun past that point while pondering
+  is dropped, since the clock would never have started it. So a ponder hit plays
+  as deep as our own time would have taken us, usually at once, and the clock
+  saved goes to the moves we didn't foresee. The alternative was to start the
+  clock at ponderhit. That spends a full budget on the moves we foresaw, which
+  are often the easy ones (recaptures). It also lets a depth begun while
+  pondering run on to the hard limit, three times the planned time. As far as I
+  know, Stockfish counts the time too.
+- `bestmove <move> ponder <reply>`: the principal variation's second move. When
+  the line stops at our move (cut short by the table, or a repetition), the
+  table's move in the position after ours, checked legal.
+- `option name Ponder type check default false`: accepted, changes nothing.
+- With `Threads`: Lazy SMP helpers and Ranges workers stop on the main search's
+  limits, which ponderhit sets. Tested with 1, L4 and R4.
+- **A race, found and fixed**: the search reset its stop flag when its thread
+  began, so a `ponderhit` (or `stop`) arriving straight after `go` was lost, and
+  that search pondered forever. `go` now returns only once the search is ready.
+  Removing the wait fails three tests.
+- One thread without pondering searches as before. The soft-limit check moved
+  to the top of the next depth, which is the same moment.
+
+Tests: PonderTests, 13 of them (ponder then stop answers at once and legally,
+with 1, L4, R4; ponder then ponderhit answers within the clock, both straight
+away and after pondering past the whole budget; a ponder search that ends by
+itself still waits; the ponder move is legal and comes from the table when the
+line is one move long; a ponder hit keeps the deeper search). Six mutations of
+the new code, all caught. Full suite: 335 passed, 2 skipped.
+
+**The match**: scripts/ponder-match.py (new; the bot venv's python). It plays
+our engine with ponder on against the same build with ponder off, driven
+exactly as lichess-bot drives it (python-chess's `play(..., ponder=True)`).
+Setup: the bot's evaluation (eval-sf1), Hash 64, one thread, no endgame tables;
+10+0.1; the 300 book openings in colour-reversed pairs; 3 games at a time.
+Every engine was pinned to a logical CPU of its own (2, 4, ... 12, one per
+physical core), at below-normal priority, and the two engines of a game
+swapped CPUs every game. The games are in games/ponder/ponder-10+0.1-run1.jsonl
+(a row each, moves included), and `--summary` on that file prints the main
+numbers below.
+
+| ponder on v ponder off, 10+0.1 | games | +W -L =D | score | Elo [95%] |
+|---|---:|---|---:|---|
+| by game | 119 | +48 -20 =51 | 61.8% | **+83 [+37, +133]** |
+| by opening pair | 59 pairs | | 62.3% | +87 [+43, +134] |
+| ponder side White | 59 | +28 -8 =23 | 66.9% | |
+| ponder side Black | 60 | +20 -12 =28 | 56.7% | |
+
+| the pondering side | |
+|---|---|
+| moves | 7,639 |
+| a reply named to ponder on | 7,584 (99.3%) |
+| **the reply right (ponder hit rate)** | 5,400 of 7,557 replies: **71.5%** |
+| clock used a move | 180 ms (ponder off: 224); after a hit 138, after a miss 283 |
+| clock left at the end of a game | 4.84 s of 10 (ponder off: 2.05) |
+
+No games lost on time. Endings: 68 mates, 31 threefold repetitions, 16
+insufficient material, 4 fifty-move draws.
+
+**How this differs from Lichess:**
+- The hit rate. Here it's 71.5%; on Lichess our forecast reply comes true 51.0%
+  of the time (scripts/forecast-hits.py). The opponent here is the same engine,
+  which mostly sees what we see. Most of the gain comes from hits (misses only
+  warm the table), so expect less there, perhaps two-thirds of +83. Not
+  measured.
+- Cores. Here each engine had a core of its own, as if the opponent were on
+  another computer, which is how it is on Lichess. But on the laptop the ponder
+  search keeps a core busy for the whole game, a core that's otherwise free on
+  the opponent's time. The learner, an index run and a sibling's benches share
+  that core now.
+- Time. The bot plays blitz (3+2 and the like) with ~1.2 s of connection per
+  move from Australia and lichess-bot's 2 s move overhead. Everything the
+  opponent spends, connection included, is pondering time. 10+0.1 is just the
+  repo's quick control.
+- Banked clock. The pondering side finished games with more than twice the
+  clock the other side had, and never spent it. Stockfish plans 25% more time a
+  move when Ponder is on. Worth trying here (TODO).
+
+**A bug in the match script, not the engine**: game 90 crashed when the
+pondering engine answered `f5f4` in a fresh opening. python-chess keeps the
+board object passed to `play()` and later compares it with the board it pondered
+on, to spot a ponder hit. My script passed its own board, which then moved on.
+Game 87 (the same engines) ended in a threefold repetition on exactly the reply
+the pondering side expected. python-chess then read my end-of-game ping as a
+ponder hit and never sent `stop`. In the next game, its first `play()` sent
+`ponderhit` to the old search instead of the new position. Fixed by passing a
+copy. A small repro shows the stale ponder flag with the shared board and none
+with a copy. lichess-bot makes a new board every move and a new engine every
+game (lib/lichess_bot.py:694, :736), so the bot can't meet this. Only the
+crashed game was lost (it isn't counted), and the bug could only ever have hurt
+the pondering side. The only way it could have struck unseen is if a leftover
+move happened to be legal in the new opening. A search for such games flagged
+four, but each "match" is an ordinary opening move (e6, c3, c4, e3), and three
+of them point at the same earlier game, which can only leave one leftover. So
+there's no sign of one. A clean re-run is in TODO.
+
+**Overlaps.** The match ran 23:37-23:55 beside an index run (`index-month.py
+rows` for 2026-07, started 23:36:18), which began a minute before it while I
+wasn't looking. The index run went on fine: 13 of 29 GB at 00:05, no errors,
+6.7 GB of commit free. Since the cores swap every game, its CPU fell on both arms
+alike. Before that, my full test run (22:59:45-23:03:30) overlapped the first
+~8 games of the threads session's 8-thread match, and I told that session. The
+bot and the learner stopped at 23:04:50 and 23:05:01 ("Termination requested":
+Matthew's Ctrl-C). I didn't restart them.
