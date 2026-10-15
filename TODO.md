@@ -72,13 +72,11 @@ and lines.u16 (2.9 GB) can go once the re-run is checked.
          of the scripts (WORKLOG says why); **failed at 18:35:50** for memory
          (MemoryError in `rows`; Windows low-memory events at 18:35:48 and
          18:36:26), caused by another session's memory probes running beside
-         it (WORKLOG). To run again: the repo's `scripts\index-month.cmd
-         2026-07` now writes the rows as Parquet and prints `count: ...
-         MATCHES` (or SHORT BY n, which stops the run there); July's `.count`
-         is on the share. The 14:15 index is still there except lines.u16,
-         which the failed run half rewrote (549 MB; the next run writes it
-         afresh). It also left games/index/2026-07/tmp (426 MB of raw columns
-         from the old `rows`), which nothing reads now: Matthew's delete.
+         it (WORKLOG). **Restarted 18:39:42 from the same snapshot**, done
+         ~20:10: it tests the 13-game fix on its own, its trial step makes
+         July's Parquet from the plain columns, and its count is compared
+         with counts.txt by hand. The new `rows` (Parquet, and the count
+         printed) proves itself on the next month indexed.
    - [ ] Where the whole index lives: Matthew's call.
    - [x] `rows` writes Parquet directly (10 M games a part, zstd, through
          DuckDB) and the plain .zst columns are gone; `check`, `dups`,

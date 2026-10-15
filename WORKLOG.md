@@ -2131,5 +2131,6 @@ GB of commit. 3.6 GB was free when I started them, but I hadn't checked for
 a running job, and July had started at 18:18 from its own window. The bot
 and the queue's June download came through. The 14:15 index is intact
 except lines.u16 (half rewritten, 549 MB), plus a `tmp/` of raw columns
-(426 MB) the old `rows` left. Restarting it is Matthew's; the repo's
-index-month.cmd now gives the Parquet rows and the count in the same run.
+(426 MB) the old `rows` left. The session running it restarted it at
+18:39:42 from the same snapshot, so the 13-game fix is tested on its own;
+the new `rows` proves itself on the next month indexed.
