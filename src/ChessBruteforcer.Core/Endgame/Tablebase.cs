@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using ChessBruteforcer.Core.Game;
 
 namespace ChessBruteforcer.Core.Endgame;
@@ -52,8 +53,10 @@ public sealed class Tablebase : IDisposable
     /// <summary>Largest piece count any table covers.</summary>
     public const int MaxPieces = 5;
 
-    private readonly HashSet<Material> _missing = new();
-    private readonly HashSet<Material> _missingDtz = new();
+    // Materials found to have no table, so a probe needn't look again.  Written mid-search,
+    // and several search threads probe at once: concurrent sets, not HashSets.
+    private readonly ConcurrentDictionary<Material, byte> _missing = new();
+    private readonly ConcurrentDictionary<Material, byte> _missingDtz = new();
 
     /// <summary>
     /// How deep, in plies, tables are solved when <see cref="SolveMissing"/>
@@ -72,7 +75,7 @@ public sealed class Tablebase : IDisposable
         {
             if (!LoadOnDemand)
             {
-                _missing.Add(material);
+                _missing.TryAdd(material, 0);
                 throw new TableMissingException(material);
             }
 
@@ -82,7 +85,7 @@ public sealed class Tablebase : IDisposable
             }
             else if (!SolveMissing)
             {
-                _missing.Add(material);
+                _missing.TryAdd(material, 0);
                 throw new TableMissingException(material);
             }
             else
@@ -114,7 +117,7 @@ public sealed class Tablebase : IDisposable
         string? path = Directory is null ? null : Path.Combine(Directory, material + ".cbz");
         if (!LoadOnDemand)
         {
-            _missingDtz.Add(material);
+            _missingDtz.TryAdd(material, 0);
             throw new TableMissingException(material);
         }
         if (path is not null && File.Exists(path))
@@ -123,7 +126,7 @@ public sealed class Tablebase : IDisposable
         }
         else if (!SolveMissing)
         {
-            _missingDtz.Add(material);
+            _missingDtz.TryAdd(material, 0);
             throw new TableMissingException(material);
         }
         else
@@ -257,7 +260,7 @@ public sealed class Tablebase : IDisposable
             if (tables.Remove(table.Material, out var old))
                 old.Dispose();
             tables[table.Material] = table;
-            missing.Remove(table.Material);
+            missing.TryRemove(table.Material, out _);
             count++;
             if (intoMemory)
                 bytes += table.Size * sizeof(short);
@@ -312,7 +315,7 @@ public sealed class Tablebase : IDisposable
         if (pieces > MaxPieces)
             return false;
         var material = Material.FromPosition(position).Canonical;
-        if ((dtz ? _missingDtz : _missing).Contains(material))
+        if ((dtz ? _missingDtz : _missing).ContainsKey(material))
             return false;
         try
         {

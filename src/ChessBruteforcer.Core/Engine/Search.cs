@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using ChessBruteforcer.Core.Endgame;
 using ChessBruteforcer.Core.Game;
@@ -30,11 +31,35 @@ public sealed record SearchInfo(int Depth, int Score, long Nodes, TimeSpan Elaps
 
 public sealed record SearchResult(Move? BestMove, int Score, int Depth, long Nodes, IReadOnlyList<Move> PrincipalVariation);
 
+/// <summary>How a search on more than one thread shares out the work (see <see cref="Search.Threads"/>).</summary>
+public enum ParallelMode
+{
+    /// <summary>
+    /// Lazy SMP: every thread searches the whole tree from the root, and they
+    /// share the transposition table, so each finds much of its work already
+    /// done by the others.  Half the helpers start a depth ahead.  The main
+    /// thread's result is the answer.
+    /// </summary>
+    LazySmp,
+
+    /// <summary>
+    /// Matthew's "ranges of possibility": at each depth the score range is
+    /// cut into one window a thread, narrow near the last depth's score and
+    /// wider further out, and every thread searches the root in its own
+    /// window.  Exactly one window holds the true score, and its thread gives
+    /// the answer; the others fail high or low and are stopped.  This is
+    /// Baudet's parallel aspiration search (1978).  The threads share the
+    /// transposition table too.
+    /// </summary>
+    Ranges,
+}
+
 /// <summary>
 /// Iterative-deepening alpha-beta (negamax, principal variation search) with
 /// a transposition table, null-move pruning, late-move reductions,
 /// check extension, quiescence search on captures, killer / history move
 /// ordering, repetition and 50-move draws, and endgame-table probing.
+/// On more than one thread, see <see cref="ParallelMode"/>.
 ///
 /// Scores are centipawns from the side to move's point of view; mates are
 /// <see cref="Mate"/> minus the distance in plies.
@@ -45,6 +70,9 @@ public sealed class Search
     public const int MateBound = Mate - 1_000;
     private const int Infinity = 32_000;
     private const int MaxPly = 128;
+
+    /// <summary>Ranges search starts at this depth; the shallower ones take microseconds and run on one thread.</summary>
+    public const int RangesFromDepth = 4;
 
     private readonly TranspositionTable _table;
     private readonly Tablebase? _tablebase;
@@ -62,14 +90,52 @@ public sealed class Search
     private long _hardLimitMs;
     private volatile bool _stop;
 
+    // Threads: each helper is a Search of its own (move lists, killers, history, repetition
+    // list), sharing this one's table.  A helper's _main is the search it works for.
+    private Search? _main;
+    private Search[] _helpers = Array.Empty<Search>();
+    private int _activeHelpers;   // helpers in this search, whose nodes count as its own
+
     public Search(TranspositionTable table, Tablebase? tablebase = null)
     {
         _table = table;
         _tablebase = tablebase;
     }
 
+    /// <summary>
+    /// Threads to search on (1, the default: this one alone).  Set between
+    /// searches.  With more than one, the endgame tables must be ones that
+    /// never load or solve a table mid-search (LoadOnDemand off, as the UCI
+    /// engine has them): probes from several threads at once are safe, a
+    /// table arriving under them is not.
+    /// </summary>
+    public int Threads { get; set; } = 1;
+
+    /// <summary>How the threads share the work when <see cref="Threads"/> is more than 1.</summary>
+    public ParallelMode Split { get; set; } = ParallelMode.LazySmp;
+
+    /// <summary>Width in centipawns of the narrowest windows in a <see cref="ParallelMode.Ranges"/> search.</summary>
+    public int RangeStep { get; set; } = 15;
+
+    /// <summary>
+    /// Centipawns each <see cref="ParallelMode.Ranges"/> window reaches into
+    /// its neighbours, both ways.  With none, a score near a boundary can be
+    /// pushed out of both windows by pruning that depends on the window (on 8
+    /// positions at depth 10 and 8 threads, 20 of ~56 depths had no window
+    /// hold the score; with 10, 2).
+    /// </summary>
+    public int RangeOverlap { get; set; } = 10;
+
+    /// <summary>Depths in the last <see cref="ParallelMode.Ranges"/> search at which no window held the score, so it was searched again on one thread with the full window.</summary>
+    public int RangeFallbacks { get; private set; }
+
     /// <summary>Ask a running search to finish as soon as possible (thread-safe).</summary>
-    public void Stop() => _stop = true;
+    public void Stop()
+    {
+        _stop = true;
+        foreach (var helper in _helpers)
+            helper._stop = true;
+    }
 
     /// <summary>
     /// Search <paramref name="root"/>.  <paramref name="previousHashes"/> are
@@ -79,19 +145,9 @@ public sealed class Search
     public SearchResult Run(Position root, SearchLimits limits, IReadOnlyList<ulong>? previousHashes = null,
                             Action<SearchInfo>? onInfo = null)
     {
-        _stop = false;
-        _nodes = 0;
-        _clock = Stopwatch.StartNew();
-        _nodeLimit = limits.Nodes ?? long.MaxValue;
-        var (softLimitMs, hardLimitMs) = TimeBudget(root, limits);
-        _hardLimitMs = hardLimitMs;
-        Array.Clear(_history);
-        Array.Clear(_killers);
-
-        _hashes.Clear();
-        if (previousHashes is not null)
-            _hashes.AddRange(previousHashes);
-        _hashes.Add(root.Hash);
+        _activeHelpers = 0;
+        RangeFallbacks = 0;
+        long softLimitMs = Prepare(root, limits, previousHashes);
 
         var legal = MoveGenerator.Legal(root);
         if (legal.Count == 0)
@@ -106,28 +162,68 @@ public sealed class Search
 
         var result = new SearchResult(legal[0], 0, 0, 0, new[] { legal[0] });
         int maxDepth = Math.Min(limits.Depth ?? MaxPly - 8, MaxPly - 8);
-        for (int depth = 1; depth <= maxDepth; depth++)
+        Thread[] threads = Array.Empty<Thread>();
+        RangeWorkers? ranges = null;
+        if (Threads > 1 && Split == ParallelMode.LazySmp)
+            threads = StartHelpers(root, previousHashes);
+        try
         {
-            int score = Negamax(root, depth, -Infinity, Infinity, 0, allowNull: false);
-            if (_stop && depth > 1)
-                break;   // an unfinished iteration can't be trusted; keep the last complete one
+            for (int depth = 1; depth <= maxDepth; depth++)
+            {
+                int score;
+                Move[] pv;
+                bool complete;
+                if (Threads > 1 && Split == ParallelMode.Ranges && depth >= RangesFromDepth)
+                {
+                    ranges ??= new RangeWorkers(this, root, previousHashes);
+                    (score, pv, complete) = ranges.SearchDepth(depth, result.Score);
+                }
+                else
+                {
+                    score = Negamax(root, depth, -Infinity, Infinity, 0, allowNull: false);
+                    pv = _pv[0].Take(_pvLength[0]).ToArray();
+                    complete = !_stop;
+                }
+                if (!complete && depth > 1)
+                    break;   // an unfinished iteration can't be trusted; keep the last complete one
 
-            var pv = _pv[0].Take(_pvLength[0]).ToArray();
-            if (pv.Length > 0)
-                result = new SearchResult(pv[0], score, depth, _nodes, pv);
-            onInfo?.Invoke(new SearchInfo(depth, score, _nodes, _clock.Elapsed, pv));
+                if (pv.Length > 0)
+                    result = new SearchResult(pv[0], score, depth, TotalNodes, pv);
+                onInfo?.Invoke(new SearchInfo(depth, score, TotalNodes, _clock.Elapsed, pv));
 
-            if (_stop)
-                break;
-            if (softLimitMs > 0 && _clock.ElapsedMilliseconds > softLimitMs / 2)
-                break;   // the next depth would likely overrun the budget
-            if (Math.Abs(score) >= MateBound && depth > 2 * (Mate - Math.Abs(score)) + 2 && !limits.Infinite)
-                break;   // a forced mate is fully seen
+                if (_stop)
+                    break;
+                if (softLimitMs > 0 && _clock.ElapsedMilliseconds > softLimitMs / 2)
+                    break;   // the next depth would likely overrun the budget
+                if (Math.Abs(score) >= MateBound && depth > 2 * (Mate - Math.Abs(score)) + 2 && !limits.Infinite)
+                    break;   // a forced mate is fully seen
+            }
         }
-        return result with { Nodes = _nodes };
+        finally
+        {
+            for (int i = 0; i < _activeHelpers; i++)
+                _helpers[i]._stop = true;
+            foreach (var thread in threads)
+                thread.Join();
+            ranges?.Dispose();
+        }
+        return result with { Nodes = TotalNodes };
     }
 
-    public long Nodes => _nodes;
+    /// <summary>Nodes searched in the current or last search, by this thread and its helpers.</summary>
+    public long Nodes => TotalNodes;
+
+    private long TotalNodes
+    {
+        get
+        {
+            long total = _nodes;
+            var helpers = _helpers;
+            for (int i = 0; i < _activeHelpers; i++)
+                total += helpers[i]._nodes;   // (another thread's count, read as it runs: near enough)
+            return total;
+        }
+    }
 
     /// <summary>Moves to mate for a mate score (positive: side to move mates), otherwise null.</summary>
     public static int? MateIn(int score)
@@ -135,6 +231,233 @@ public sealed class Search
         if (score >= MateBound) return (Mate - score + 1) / 2;
         if (score <= -MateBound) return -(Mate + score) / 2;
         return null;
+    }
+
+    /// <summary>Ready this search (or helper) for a new root; returns the soft time limit.</summary>
+    private long Prepare(Position root, SearchLimits limits, IReadOnlyList<ulong>? previousHashes)
+    {
+        _stop = false;
+        _nodes = 0;
+        _clock = Stopwatch.StartNew();
+        _nodeLimit = limits.Nodes ?? long.MaxValue;
+        var (softLimitMs, hardLimitMs) = TimeBudget(root, limits);
+        _hardLimitMs = hardLimitMs;
+        Array.Clear(_history);
+        Array.Clear(_killers);
+
+        _hashes.Clear();
+        if (previousHashes is not null)
+            _hashes.AddRange(previousHashes);
+        _hashes.Add(root.Hash);
+        return softLimitMs;
+    }
+
+    /// <summary>At least <paramref name="count"/> helpers, made once and kept: each holds ~250 KB of move lists and tables.</summary>
+    private void EnsureHelpers(int count)
+    {
+        if (_helpers.Length >= count)
+            return;
+        var helpers = new Search[count];
+        Array.Copy(_helpers, helpers, _helpers.Length);
+        for (int i = _helpers.Length; i < count; i++)
+            helpers[i] = new Search(_table, _tablebase) { _main = this };
+        _helpers = helpers;
+    }
+
+    /// <summary>
+    /// Lazy SMP: start <see cref="Threads"/> - 1 helpers, each deepening on a
+    /// copy of the root until told to stop.  Helpers 1, 3, 5, ... start at
+    /// depth 2, the rest at 1, so that at any moment about half of them are
+    /// a depth ahead of the others and fill the table for them.
+    /// </summary>
+    private Thread[] StartHelpers(Position root, IReadOnlyList<ulong>? previousHashes)
+    {
+        int count = Threads - 1;
+        EnsureHelpers(count);
+        var threads = new Thread[count];
+        for (int i = 0; i < count; i++)
+        {
+            var helper = _helpers[i];
+            var copy = Position.FromFen(root.ToFen());
+            helper.Prepare(copy, new SearchLimits { Infinite = true }, previousHashes);
+            int firstDepth = i % 2 == 0 ? 2 : 1;
+            threads[i] = new Thread(() => helper.Deepen(copy, firstDepth))
+            {
+                IsBackground = true,
+                Name = $"search helper {i + 1}",
+            };
+        }
+        _activeHelpers = count;
+        foreach (var thread in threads)
+            thread.Start();
+        return threads;
+    }
+
+    /// <summary>A Lazy SMP helper's whole job: deeper and deeper, until stopped.</summary>
+    private void Deepen(Position root, int firstDepth)
+    {
+        for (int depth = firstDepth; depth <= MaxPly - 8 && !_stop; depth++)
+            Negamax(root, depth, -Infinity, Infinity, 0, allowNull: false);
+    }
+
+    /// <summary>
+    /// The boundaries between <paramref name="windows"/> score windows around
+    /// <paramref name="previous"/>, lowest first, with -infinity and +infinity
+    /// at the ends: at the previous score itself, then 1, 2, 4, 8, ... times
+    /// <paramref name="step"/> below and above it, nearest first.
+    /// </summary>
+    public static int[] RangeBounds(int previous, int windows, int step)
+    {
+        // (Near a mate score, or with very many windows, the far cuts run into the ends and
+        // there are fewer windows than asked for; the threads left over sit that depth out.)
+        var cuts = new List<int> { -Infinity, Infinity };
+        for (int k = 0; cuts.Count < windows + 1 && k < 64; k++)
+        {
+            long offset = k == 0 ? 0 : (long)Math.Max(1, step) << Math.Min(30, (k - 1) / 2);
+            int cut = (int)Math.Clamp(k % 2 == 1 ? previous - offset : previous + offset, -Infinity + 2, Infinity - 2);
+            if (!cuts.Contains(cut))
+                cuts.Add(cut);
+        }
+        cuts.Sort();
+        return cuts.ToArray();
+    }
+
+    /// <summary>
+    /// The threads of a <see cref="ParallelMode.Ranges"/> search, one helper
+    /// each, kept for the whole of a <see cref="Run"/>.  The thread calling
+    /// <see cref="SearchDepth"/> hands out the windows and waits.
+    /// </summary>
+    private sealed class RangeWorkers : IDisposable
+    {
+        private readonly Search _owner;
+        private readonly Position _root;   // the owner's own, for a depth it has to settle itself
+        private readonly Worker[] _workers;
+        private readonly BlockingCollection<Worker> _finished = new();
+
+        private sealed class Worker
+        {
+            public required Search Helper;
+            public required Position Root;
+            public readonly SemaphoreSlim Go = new(0);
+            public Thread? Thread;
+            public bool Quit;
+            public int Depth, Alpha, Beta;   // the job
+            public int Score;                // and its answer
+            public bool Complete;
+            public Move[] Pv = Array.Empty<Move>();
+        }
+
+        public RangeWorkers(Search owner, Position root, IReadOnlyList<ulong>? previousHashes)
+        {
+            _owner = owner;
+            _root = root;
+            owner.EnsureHelpers(owner.Threads);
+            _workers = new Worker[owner.Threads];
+            for (int i = 0; i < _workers.Length; i++)
+            {
+                var copy = Position.FromFen(root.ToFen());
+                var helper = owner._helpers[i];
+                helper.Prepare(copy, new SearchLimits { Infinite = true }, previousHashes);
+                var worker = new Worker { Helper = helper, Root = copy };
+                worker.Thread = new Thread(() => Work(worker)) { IsBackground = true, Name = $"search range {i + 1}" };
+                _workers[i] = worker;
+            }
+            owner._activeHelpers = _workers.Length;
+            foreach (var worker in _workers)
+                worker.Thread!.Start();
+        }
+
+        private void Work(Worker worker)
+        {
+            var helper = worker.Helper;
+            while (true)
+            {
+                worker.Go.Wait();
+                if (worker.Quit)
+                    return;
+                worker.Score = helper.Negamax(worker.Root, worker.Depth, worker.Alpha, worker.Beta, 0, allowNull: false);
+                worker.Complete = !helper._stop;
+                worker.Pv = helper._pv[0].Take(helper._pvLength[0]).ToArray();
+                _finished.Add(worker);
+            }
+        }
+
+        /// <summary>
+        /// One depth: every thread its own window, the answer from the one
+        /// whose window holds the score.  Not complete if the search was
+        /// stopped before any window settled it.
+        /// </summary>
+        public (int Score, Move[] Pv, bool Complete) SearchDepth(int depth, int previous)
+        {
+            int[] bounds = RangeBounds(previous, _workers.Length, _owner.RangeStep);
+            int windows = bounds.Length - 1;
+            for (int i = 0; i < windows; i++)
+            {
+                var worker = _workers[i];
+                worker.Depth = depth;
+                // Each window overlaps the one below by a point at least, so that a score lying
+                // exactly on a boundary is strictly inside a window, and that window's search returns it.
+                int overlap = Math.Max(0, _owner.RangeOverlap);
+                worker.Alpha = i == 0 ? -Infinity : bounds[i] - 1 - overlap;
+                worker.Beta = i == windows - 1 ? Infinity : bounds[i + 1] + overlap;
+                worker.Helper._stop = false;
+                worker.Go.Release();
+            }
+            if (_owner._stop)
+                StopAll();
+
+            Worker? exact = null;
+            for (int pending = windows; pending > 0;)
+            {
+                if (!_finished.TryTake(out var worker, 20))
+                {
+                    _owner.CheckLimits();   // (the workers watch the clock too; this is the backstop)
+                    if (_owner._stop)
+                        StopAll();
+                    continue;
+                }
+                pending--;
+                if (exact is null && worker.Complete && worker.Score > worker.Alpha && worker.Score < worker.Beta)
+                {
+                    exact = worker;
+                    StopAll();   // the rest only fail high or low now
+                }
+            }
+            if (exact is not null)
+                return (exact.Score, exact.Pv, true);
+
+            _owner.CheckLimits();
+            if (_owner._stop)
+                return (0, Array.Empty<Move>(), false);
+            // No window held it: pruning that depends on the window (null move above all) can
+            // make neighbouring windows disagree about which side of their boundary the score is.
+            // Settle the depth on this thread with the full window.
+            _owner.RangeFallbacks++;
+            int score = _owner.Negamax(_root, depth, -Infinity, Infinity, 0, allowNull: false);
+            return (score, _owner._pv[0].Take(_owner._pvLength[0]).ToArray(), !_owner._stop);
+        }
+
+        private void StopAll()
+        {
+            foreach (var worker in _workers)
+                worker.Helper._stop = true;
+        }
+
+        public void Dispose()
+        {
+            StopAll();
+            foreach (var worker in _workers)
+            {
+                worker.Quit = true;
+                worker.Go.Release();
+            }
+            foreach (var worker in _workers)
+            {
+                worker.Thread!.Join();
+                worker.Go.Dispose();
+            }
+            _finished.Dispose();
+        }
     }
 
     private int Negamax(Position position, int depth, int alpha, int beta, int ply, bool allowNull)
@@ -409,7 +732,9 @@ public sealed class Search
 
     private void CheckLimits()
     {
-        if (_nodes >= _nodeLimit || (_hardLimitMs > 0 && _clock.ElapsedMilliseconds >= _hardLimitMs))
+        var owner = _main ?? this;   // a helper stops on the limits of the search it works for
+        if (owner.TotalNodes >= owner._nodeLimit
+            || (owner._hardLimitMs > 0 && owner._clock.ElapsedMilliseconds >= owner._hardLimitMs))
             _stop = true;
     }
 

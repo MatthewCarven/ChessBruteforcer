@@ -24,6 +24,8 @@ public sealed class UciEngine
 
     private Position _position = Position.Start();
     private int _moveOverheadMs = 50;
+    private int _threads = 1;
+    private ParallelMode _split = ParallelMode.LazySmp;
     private bool _tablesLoaded;
     private List<ulong> _previousHashes = new();
 
@@ -65,6 +67,8 @@ public sealed class UciEngine
                     Send("option name EndgameTables type string default <empty>");
                     Send("option name Move Overhead type spin default 50 min 0 max 5000");
                     Send("option name EvalFile type string default <empty>");
+                    Send("option name Threads type spin default 1 min 1 max 64");
+                    Send("option name ThreadSplit type combo default LazySMP var LazySMP var Ranges");
                     Send("uciok");
                     break;
                 case "isready":
@@ -133,6 +137,19 @@ public sealed class UciEngine
                 break;
             case "move overhead":
                 _moveOverheadMs = int.Parse(value, CultureInfo.InvariantCulture);
+                break;
+            case "threads":
+                _threads = Math.Clamp(int.Parse(value, CultureInfo.InvariantCulture), 1, 64);
+                break;
+            case "threadsplit":
+                // LazySMP: every thread searches the whole tree, sharing the table.  Ranges (Matthew's
+                // "ranges of possibility"): each thread searches with its own slice of the score range.
+                _split = value.ToLowerInvariant() switch
+                {
+                    "lazysmp" => ParallelMode.LazySmp,
+                    "ranges" => ParallelMode.Ranges,
+                    _ => throw new ArgumentException($"ThreadSplit is LazySMP or Ranges, not {value}."),
+                };
                 break;
             case "evalfile":
                 // Tuned evaluation numbers (EvalParams text); empty for the built-in ones. Process-wide.
@@ -231,6 +248,8 @@ public sealed class UciEngine
         var root = Position.FromFen(_position.ToFen());
         var history = _previousHashes.ToList();
         var search = _search;
+        search.Threads = _threads;
+        search.Split = _split;
         _searchThread = new Thread(() =>
         {
             var result = search.Run(root, limits, history, ReportInfo);
