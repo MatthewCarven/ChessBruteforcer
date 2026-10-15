@@ -391,7 +391,23 @@ Done when:
 - [x] the bench is within the probe's range (-9% to -18% at 256): better
       than it, **-2.1%** at 256 (`bench 9`, 8 rounds alternated; the
       tree-free costs predict about -5%), +5.3% at 128, -11.7% at 512;
-- [x] the full suite passes (377 passed, 2 skipped).
+      -3.8% at 256 after the bounds checks below;
+- [x] the full suite passes (377 passed, 2 skipped; 379 after the
+      fixes below).
+
+**An access violation, answered (2026-10-16, commit e4ffd61).** A
+"testhost.exe - System Error, 0xc0000005" dialog at 08:02:52 was the
+mutation battery's "the stack never grows" mutant writing past the array,
+as that mutant does. The event log, the popup at the same second and the
+battery's own process times agree (WORKLOG has the evidence). The kernels'
+unchecked writes would have let a real capacity bug do the same, so every
+slot and weight column now reaches them as a bounds-checked span: a bug of
+that kind throws instead. Cost: 1.6% on an identical tree; `bench 9` is now
+**-3.8%** against sf1. Checked further by the random-games walk over 300
+seeds and 300 deep games, in Debug and Release: all green, no crash events.
+The battery re-run gave 31 of 31 red. An empty path in `bench --eval` (the
+08:16 and 08:18 crashes, from my bench script) is now a clean error; UCI's
+empty EvalFile was always the built-in evaluation.
 
 **Built 2026-10-16** (branch `claude/nnue-csharp-8117d8`; WORKLOG has the
 details, scripts/nnue-bench/results-2026-10-16.txt the numbers). What

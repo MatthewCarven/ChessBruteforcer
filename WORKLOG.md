@@ -2845,9 +2845,10 @@ reference and the piece-square net catch it. And the helpers' network was
 caught at first only by the UCI test's timing (Lazy SMP's answer is the
 main thread's, which a helper reaches only through the table), so each
 search now remembers the position it was prepared on and the test looks at
-every helper's: red every time since. "The stack never grows" is red by
-timeout: past the array, unchecked writes corrupt memory and the test host
-hangs.
+every helper's: red every time since. "The stack never grows" was red by
+timeout: past the array, unchecked writes corrupted memory. It was a crash
+behind a Windows dialog, not a hang; see "an access violation, answered"
+below.
 
 **Random weights make the capture search explode**: on Kiwipete, depth 1
 took 1,365,855 nodes with a random 256 net against 3,422 without (depth 3:
@@ -2884,3 +2885,61 @@ that evaluate).
 
 Full suite: 377 passed, 2 skipped (36 new). Not merged into compression,
 not pushed: Matthew's.
+
+**Later (10:00-10:50): an access violation, answered.** Matthew found a
+"testhost.exe - System Error, 0xc0000005" dialog on his screen, and the
+parent session traced it in the Application log to this worktree, with two
+engine crashes on an empty path. Its questions and the answers:
+
+1. **What wrote out of bounds?** The mutation battery's "the stack never
+   grows" mutant, which deletes the stack's `Array.Resize` on purpose.
+   - The Application log: .NET Runtime 1026 at 08:02:52, an
+     AccessViolationException in `Stack<(Move?, Undo)>.Push` inside the
+     random-games test. That is the only test deeper than the stack's
+     first 32 slots, so the only one where that mutant writes past the
+     array.
+   - The System log: Application Popup 26 at the same second, "testhost.exe
+     - System Error ... 0xc0000005". That is the dialog Matthew found (safe
+     to close).
+   - The battery's test host for that mutant started at 08:02:42. It was
+     the only run of 30 that "timed out", and still alive at 08:11, when I
+     killed it. The popup had kept the crashed process alive. My unmutated
+     runs were before 07:52 and after 08:12.
+   I logged that mutant as "red by timeout" without asking why it hung. I
+   should have read the event log then.
+2. **Why can't it come back?** It could have, in a different form. The
+   kernels wrote through unchecked refs, so a real capacity or index bug
+   would have corrupted the heap the same way. Commit e4ffd61 changes that.
+   Each push takes the parent's and child's slots as one bounds-checked
+   span, and each weight column as another. Each kernel checks its
+   operands' lengths before touching a lane, so a wrong slot or column now
+   throws. The re-run battery shows it: the stack mutant fails two tests
+   with an exception, with no crash and no popup. One new mutation, a
+   column read unchecked, goes red too: a move from an empty square now
+   throws, where it used to read 64 columns before the weights.
+3. **Stress**, as asked. The random-games walk over 300 seeds, each 72
+   games of up to 150 steps with null moves and take-backs, the
+   accumulators checked against a refresh at every step. Plus 300 deep
+   games of up to 400 plies, where the stack doubles to 512 slots. All in
+   one test host: 600 of 600 in Debug (3 min 50 s) and 638 of 638 in
+   Release (with the 38 NNUE tests). The Application log shows no crash
+   event after either run. With the checks in, any out-of-range access in
+   those 600 runs would have thrown and failed a case.
+4. **The empty path** (08:16 and 08:18): that was the engine's `bench --eval
+   ""`. My own bench script passed an empty path, because PowerShell's
+   variable names ignore case (WORKLOG above), and `IsNetworkFile("")`
+   threw from `File.OpenRead`. Now `IsNetworkFile("")` is false, and
+   bench checks the path first: an empty, missing or absent path prints
+   `bench: no evaluation file "..."` and exits 1. UCI was never exposed:
+   an empty EvalFile value, or none, is the built-in evaluation, and a
+   missing file answers `info string error`. Tests cover both forms.
+
+Battery re-run on the new code: 31 mutations, 31 red, no crash events. NnueTests: 38. Full suite: 379
+passed, 2 skipped.
+
+Speed with the checks: `bench 9`, 8 rounds, three arms in turn. sf1 ran
+at 1,320 knps. Net 256 with the checks ran at 1,270, which is **-3.8%**;
+the same net in the build before them ran at 1,290, -2.3%. Both net arms
+made the identical tree (4,625,058 nodes), so the checks cost 1.6%. Still
+well inside the probe's bound. Per operation (costs.cs), a move's update
+is 54 ns with the checks, against 52 before, within the laptop's drift.

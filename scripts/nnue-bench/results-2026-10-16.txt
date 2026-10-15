@@ -35,3 +35,10 @@ random, out 127      1,365,855        5,446,250       11,462,656 (20 s, stopped)
 random, out 8          390,082        1,722,314       12,105,728 (20 s, stopped)
 A random evaluation swings by thousands of centipawns from one capture to the next, so the capture search
 explores nearly every capture sequence. An untrained or badly scaled net would look like a hang.
+
+=== after the bounds checks (commit e4ffd61), 10:25-10:27: bench 9, 8 rounds, three arms in turn ===
+sf1             median   1320 knps    +0.0% vs sf1     (tree 4,767,261 nodes)
+net256 checked  median   1270 knps    -3.8% vs sf1     (tree 4,625,058 nodes)
+net256 before   median   1290 knps    -2.3% vs sf1     (the same tree: the checks cost 1.6%)
+costs.cs 7 rounds with the checks: update 35.6 / 53.9 / 96.0 ns a move (128 / 256 / 512), evaluation
+35.6 / 43.0 / 91.2 ns, sf1 92.7 ns (a faster phase of the laptop than the first run).

@@ -203,9 +203,11 @@ Sessions, in order:
       laptop alongside the bot, then the desktop).
       - [x] Session 3, the network in C# (2026-10-16, branch
         `claude/nnue-csharp-8117d8`, to merge into compression): EvalFile
-        takes a .nnue; 36 tests, 30 of 30 mutations red; `bench 9` -2.1% at
-        256 hidden against sf1 (the probe's bound was -9 to -18%). The bot
-        stays on sf1 until session 4's match.
+        takes a .nnue; 38 tests, 31 of 31 mutations red; `bench 9` -3.8% at
+        256 hidden against sf1 with bounds-checked slots and columns (-2.3%
+        without; the probe's bound was -9 to -18%). The 08:02 access
+        violation was a battery mutant (WORKLOG). The bot stays on sf1
+        until session 4's match.
       - [ ] Later speed steps, each measured with scripts/nnue-bench: AVX-512
         (this CPU has it), 64-byte-aligned weights and stack, a lazy update
         (only nodes that evaluate pay for their accumulators).
