@@ -2735,3 +2735,34 @@ alike. Before that, my full test run (22:59:45-23:03:30) overlapped the first
 ~8 games of the threads session's 8-thread match, and I told that session. The
 bot and the learner stopped at 23:04:50 and 23:05:01 ("Termination requested":
 Matthew's Ctrl-C). I didn't restart them.
+
+## 2026-10-16 (06:30-06:55): an NNUE plan, and what it would cost
+
+Matthew asked whether his GPU could help. It can train an evaluation; it can't
+run one inside the search (the search wants one about every microsecond on each thread). A side
+session wrote the build plan, [NNUE.md](NNUE.md), measuring first. Nothing was
+downloaded or installed, and the engine is unchanged.
+
+- **The GPU is in this laptop** (Matthew: "This machine has a 3070 laptop
+  gpu"): RTX 3070 Laptop, 8,192 MiB, compute capability 8.6, driver 595.79
+  (CUDA 13.2). WMI says 4 GB, which is its 32-bit field's limit. No PyTorch, CUDA
+  toolkit or Rust here. The wheel that fits, torch 2.14.1+cu132 for Python
+  3.14 on Windows, is 2,001,146,779 bytes (a HEAD request): ~67 min at the
+  household cap.
+- **A cost probe** (scripts/nnue-probe/, a patched copy of the source in the
+  scratchpad): one thread, the six bench positions, the same tree for every
+  arm, arms interleaved, the bot playing alongside. Today's evaluation is **68-120
+  ns, 5.4-10.7% of search time**, 0.65 evaluations a node. A network in its
+  place, as an upper bound (updates on unmake too): 768 -> 128 x2 -4/-12%
+  speed, **768 -> 256 x2 -9/-18%**, 768 -> 512 x2 -30/-36%, HalfKP 256 x2 -> 32
+  -> 32 -49/-55% (depth 7 / depth 9). The evaluation is cheap because the rest
+  of the search is expensive.
+- **The data**: an analysed game gives 25.2 positions under the tuner's quiet
+  rule (61.3 with any numeric score; the first 100,000 of September's), so
+  **September alone holds ~224 M** against sf2's 13.6 M. July's index counts
+  9,005,321 analysed games (10.1%), so ~227 M more; with August, ~670 M.
+- The plan: 768 -> 256 x2 -> 1 SCReLU, int16, accumulators on a stack in
+  Position, `Vector256` through System.Runtime.Intrinsics; PyTorch on Windows
+  training on 32-byte records; judged by held-back error against sf1's first,
+  then the bench, then 10+0.1 SPRT [0, 10] against sf1. Four sessions, and
+  Matthew's decisions A-D are at its end.

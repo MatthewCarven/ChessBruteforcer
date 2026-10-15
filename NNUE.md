@@ -1,0 +1,397 @@
+# A neural-network evaluation (NNUE): the build plan
+
+Matthew asked (2026-10-16) whether his GPU could help the engine. The
+honest answer is that it can **train** an evaluation, not run one: the
+search asks for an evaluation about once a microsecond on each thread (0.65
+a node, 1.2-1.6 million nodes a second), and today's takes a tenth of that,
+while a single call to a GPU typically costs several microseconds just to
+start. The network is trained on the GPU and played on the CPU.
+
+Why now: Texel tuning has stopped giving Elo. sf2, fitted on 5x the
+positions of sf1 (13.58 M against 2.86 M), scored **+1 Elo [-11, +13]**
+over 2,000 games against it (WORKLOG 2026-10-15). The data did its work in
+step 2a (+208); what limits us now is the evaluation's *shape*: a value for
+each piece on each square, blended by phase, plus the bishop pair. An NNUE
+is a small neural network that reads the same thing (which piece stands on
+which square) but learns its own combinations of them instead of us naming
+terms one by one (step 2b). Its first layer is updated cheaply move by
+move, the "efficiently updatable" part, which is what makes it affordable
+inside a search.
+
+This file is the plan, in the shape of INDEX.md: what was measured, the
+network, what the C# engine needs, training, how it is judged, then the
+sessions in order, each with "done when", the risks, and Matthew's decisions.
+Nothing has been downloaded or installed for it.
+
+## What was measured (2026-10-16)
+
+### The hardware
+
+Matthew: *"This machine has a 3070 laptop gpu."* So the GPU is in the same
+laptop as the repo, the data and the bot: scripts get there by being in the
+repo, and nothing crosses the share but the month files.
+
+| | |
+|---|---|
+| machine | this laptop (ID10TError-Laptop1) |
+| GPU | NVIDIA GeForce RTX 3070 Laptop GPU: **8,192 MiB**, compute capability 8.6 (Ampere), up to 65 W, SM clock up to 2,100 MHz |
+| driver | 595.79, **CUDA 13.2** (nvidia-smi). Windows' own WMI reports 4 GB, which is its 32-bit field's limit, not the card |
+| CPU | i9-11900H, 8 cores / 16 threads; .NET 8.0.31 accelerates AVX2 **and AVX-512** here (`Avx512BW`, `Vector512.IsHardwareAccelerated` both true) |
+| memory | 15.8 GB RAM, commit limit 20.8 GB; 10.1 GB of commit free at 06:40 with the bot mid-game (the usual headroom, with the Claude app's processes up, is nearer 4 GB) |
+| disk | C: 41 GB free; the share (Z:) 1,305 GB free at ~10 MB/s |
+| installed | Python 3.14.4 with numpy and DuckDB; **no PyTorch, no CUDA toolkit, no Rust**; .NET SDK 10.0.401 (the engine targets net8.0); WSL Ubuntu 24.04 sees the GPU (`/usr/lib/wsl/lib/libcuda.so`), Python 3.12.3, 7 GB |
+| PyTorch for it | `torch-2.14.1+cu132-cp314-cp314-win_amd64.whl`: one wheel for the Python already here, **2,001,146,779 bytes** (HEAD request; published 2026-09-30). It carries its own CUDA runtime, so no toolkit is needed. Plus ~15 MB of small dependencies from PyPI. At the household cap (500 KB/s) it takes **~67 minutes** |
+
+The desktop (id10terror-desktop) holds the share; nobody has looked at its
+graphics card, and this plan doesn't need it (decision D).
+
+### What today's evaluation costs, and what a network would
+
+A cost probe (`scripts/nnue-probe/`, scratch only: the engine's own source,
+with hooks added in a copy) runs the engine's six bench positions on one
+thread and adds work beside the real evaluation. Each network arm keeps
+its accumulators up to date on every change to the board and runs a full
+forward pass, with random weights, at every evaluation. Every arm searches
+the identical tree (checked: same node count), and the arms take turns
+round by round, because the laptop's speed drifts and the bot was playing
+an 8-thread game alongside. Two runs: depth 7, one round, the built-in
+numbers; depth 9, five rounds, the bot's sf1 (medians).
+
+| | depth 7 | depth 9 |
+|---|---|---|
+| nodes / evaluations | 934,689 / 629,771 | 4,767,261 / 3,103,771 (**0.65 a node**) |
+| today's speed, one thread | 1,168 knps | 1,374 knps |
+| **today's evaluation** | **68 ns, 5.4% of search time** | **120 ns, 10.7%** |
+
+Speed with a network **in place of** today's evaluation (its probe cost
+added, today's taken away):
+
+| network | weights (int16) | depth 7 | depth 9 |
+|---|---|---|---|
+| 768 -> 128 x2 -> 1 | 197 KB | -4% | -12% |
+| **768 -> 256 x2 -> 1** | **395 KB** | **-9%** | **-18%** |
+| 768 -> 512 x2 -> 1 | 790 KB | -30% | -36% |
+| HalfKP 40,960 -> 256 x2 -> 32 -> 32 -> 1 (Stockfish 12's shape) | 21 MB | -49% | -55% |
+
+These are **upper bounds**. The probe updates the accumulators on unmake as
+well as make (13.2 column updates a node; a real engine keeps a stack and
+pops it, about half that), calls its hooks through every board change, and
+sums HalfKP's hidden layer the slow way. The engine is cheap to evaluate
+because everything else is expensive: a 64-square board with move lists,
+so the evaluation is a tenth of the time or less. A network that costs
+three times as much as today's evaluation still loses only a sixth of the
+speed. (If bitboards come later and make the rest of the search faster,
+the network's share grows with them.)
+
+The bot itself: 12.9 M nodes a second on 8 threads (its log, 06:37), about
+1.6 M a thread.
+
+### The data
+
+Lichess's analysed games carry Stockfish's score after every move (its own
+server analysis; how deep isn't recorded in the file). These are the
+labels.
+
+| what | games | positions | where |
+|---|---|---|---|
+| sf1 (step 2a) | first 3 GB of July: 948,918 analysed, 721,358 used | **2,855,253** (4 a game) | games/tune/positions-2026-07-sf.tsv, 216 MB |
+| sf2 | all of September: 8,896,948 analysed, 6,811,130 used (blitz or slower) | **13,580,216** (2 a game) | games/tune/positions-2026-09-sf.tsv, 1.04 GB |
+| September's analysed games, imported | 8,896,948 (9.9% of 89,616,462) | 587,847,024 plies | games/tune/eval-games-2026-09.cbg, 4.18 GB |
+
+How many positions a game can give (the first 100,000 of September's
+analysed games, the tuner's own rules, `scripts/nnue-probe/count.cs`):
+
+| per analysed game | |
+|---|---|
+| plies | 65.7 |
+| with a numeric score | 61.3 |
+| with a mate score instead | 3.4 |
+| after move 8, not in check | 42.9 |
+| **the tuner's quiet rule** (after move 8, not in check, no capture or promotion just before or as the move played, more than 5 pieces) | **25.2** (25.8 a blitz-or-slower game) |
+
+So **September alone holds ~224 M quiet labelled positions** (all speeds;
+~176 M blitz or slower; ~545 M with every numeric score), against the
+13.6 M sf2 used. sf2 took 2 a game.
+
+What the game index adds: July's rows (`flags` bit 0 = has [%eval]) count it
+in seconds, no read of the month needed:
+
+| July 2026 (index) | |
+|---|---|
+| games | 89,288,421 |
+| analysed | **9,005,321** (10.1%), 595,554,594 plies |
+| analysed, blitz or slower | 7,065,134 |
+| analysed, both players 2000+ | 1,430,570 |
+
+So **~227 M quiet positions in July** too, and August (91.9 M games) is on
+the share as well: **~670 M over the three whole months**. The positions
+still need the moves and scores from the PGN, so each further month costs
+the same pipeline September went through (tune-data.cmd: the analysed
+games filtered over the share in 83 min, imported in 142 min; ~4 h a month,
+its own window, 7.6 GB of .pgn that can go and 4.2 GB of .cbg that stays).
+The index's part is choosing (by speed, rating, bots) and counting.
+
+## The network
+
+**Proposed first net: 768 -> 256 x2 -> 1, SCReLU, int16.** In words:
+
+- **Inputs, 768**: for each of the 12 pieces (6 kinds x 2 colours) on each
+  of the 64 squares, a 1 or a 0. About 32 are 1 at a time.
+- **Two perspectives**: the same 256 hidden numbers computed twice, once with
+  the board as white sees it and once as black sees it (colours swapped,
+  board flipped top to bottom). The side to move's 256 go first. One set of
+  weights serves both, so the network is colour-symmetric by construction.
+- **The accumulator**: the 256 hidden numbers before the activation are just
+  a sum of one column of weights per piece on the board. A move changes 2-4
+  inputs, so the accumulator changes by 2-4 column adds and subtracts, not a
+  recount. That is the whole trick.
+- **Output**: each of the 512 numbers clamped to [0, 1] and squared
+  (SCReLU), times a weight, summed: one score, in Lichess's centipawns (the
+  same scale as the labels; sf1's fitted K of 1.12 says today's numbers are
+  close to it already).
+- **197,377 numbers** to learn: ~1,100 positions each from September alone.
+  HalfKP's 10.5 M would get ~21 each, spread over 64 king squares, which is
+  why Stockfish trained its first nets on billions of positions.
+
+The first net leaves out king buckets and output buckets, the layers between,
+and a result blend. Each is a lever for session 5, measured one at a time.
+
+## What the C# engine needs
+
+1. **The file format** (`.nnue`, ours): magic `CBNNUE01`, then u32 version,
+   inputs (768), hidden (H), i32 QA (255), QB (64), scale (400); then
+   little-endian int16 arrays: feature weights [768][H] (feature-major, so
+   a column is contiguous), feature biases [H], output weights [2H]; i32
+   output bias; then the SHA-256 of all of it, checked on load.
+2. **The feature index**, perspective p (0 white, 1 black), square s with
+   a1 = 0 as in Position: `((piece colour == p ? 0 : 6) + kind - 1) * 64 +
+   (p == 0 ? s : s ^ 56)`. Written down once, in C# and in the Python
+   trainer, and tested against each other.
+3. **Accumulators on a stack, in Position.** `Position` owns an optional
+   network state: a stack of accumulator pairs (2 x H int16), growing as
+   needed. `MakeMove` collects its 2-4 piece changes (mover off, mover or
+   promotion on, a capture off, the rook for castling, the pawn for en
+   passant) and writes child = parent + changes in one pass; `UnmakeMove`
+   pops; the null move pushes an unchanged copy (or shares the slot).
+   `FromFen` and `SetPiece` refresh from the board. Every Lazy SMP helper
+   builds its own Position from the root's FEN (Search.cs 355, 432), so each
+   thread has its own stack, and the weights (395 KB) are shared read-only.
+4. **SIMD** through `System.Runtime.Intrinsics`: `Vector256<short>` adds
+   and subtracts for the columns (16 lanes, AVX2); the output as clamp, then
+   (v x w) x v with `Avx2.MultiplyAddAdjacent` into int32. The (v x w) step
+   fits in 16 bits because v <= 255 and |w| <= 127. This is what the probe
+   ran. A plain scalar version beside it is the tests' reference. AVX-512 is
+   accelerated on this CPU too: a later speed step, measured.
+5. **Quantisation**: trained in float32. The trainer clamps weights to
+   +-1.98 throughout, so the feature layer becomes int16 at x255 (QA) and
+   the output weights at x64 (QB) with no overflow. The export checks the
+   worst case per hidden unit (bias + the 32 largest weights) against
+   32,767 and refuses a file that could overflow. Score = (the sum of
+   clamp(a)^2 x w, divided by QA, plus the output bias) x scale / (QA x QB).
+6. **Plugging in**: `Evaluation.Evaluate(position)` uses the network when
+   one is loaded, today's numbers otherwise. The UCI option `EvalFile`
+   takes either kind of file, told apart by the magic, so make-config.py,
+   tune-match.cmd and the match tool need no new option (python-chess
+   refuses options the engine doesn't list). Texel tuning keeps
+   `Evaluate(position, params)`. The endgame tables still settle 5 pieces
+   or fewer before any evaluation.
+
+## Training
+
+- **Data out of the .cbg** (C#, `nnue data`): the tuner's quiet rule by
+  default, a record per position of **32 bytes**: occupancy u64 (a1 = bit
+  0), the 32 pieces as 4-bit codes in square order (16 bytes), side to move
+  u8, white's score i16 (mates as +-32000, kept and flagged; the trainer
+  leaves them out at first, as the tuner did), the result u8, the game
+  number u32 (for the split, and to keep a game's positions together). They
+  are written to 64 bucket files chosen at random, so the trainer can read
+  buckets in a random order and shuffle each one (~110 MB) in memory: one
+  copy on disk, well mixed. September: **~224 M x 32 bytes = ~7.2 GB** on
+  C:. Held back: every game whose number is 0 mod 50 (2%).
+- **The trainer** (`scripts/nnue/train.py`, PyTorch on Windows, in a venv at
+  `scripts/nnue/.venv`, ignored by git): numpy reads a bucket and the raw
+  records go to the GPU as they are, ~512 KB a batch of 16,384, where torch
+  unpacks them into feature indices, so the CPU does almost nothing. The
+  feature layer is a sum of embedding rows. Loss: (sigmoid(out / 400) -
+  sigmoid(cp / 400))^2, the tuner's target. AdamW, the learning rate stepped
+  down over ~20 passes, the clamp of +-1.98 after every step, held-back
+  error every pass. It exports the `.nnue` file and a float checkpoint.
+- **How long** (an estimate; session 2 measures it in its first ten
+  minutes): a 768 x 256 net is small for this GPU (well under 1 GB of its
+  8). The likely limit is memory traffic, so probably 0.5-2 M positions a
+  second: 20 passes over 224 M is **~40 min to ~2.5 h** a run.
+- **Host memory**: Python, torch and the CUDA libraries, probably 1.5-2.5 GB.
+  The buckets are read a piece at a time, not loaded whole. Measured before
+  any long run, beside the bot's ~1 GB, against the ~4 GB headroom.
+
+## How it is judged
+
+1. **Offline first, on held-back positions.** Held-back error computed the
+   same way for sf1, sf2 and the net (fit K, then mean squared error against
+   sigmoid(cp / 400)) on the same 2% of September's games. The trainer has
+   sf1's 770 numbers in numpy for this. The net must beat sf1 clearly here
+   before any games are played. (For scale: sf2 went from 0.0388 to 0.0327
+   on its own held-back positions.)
+2. **Speed**: `bench 9`, today against the net, alternated A B A B. The probe
+   says -9% to -18% at 256 hidden, as an upper bound. Worse than -25% means
+   the code needs work before the match.
+3. **The match, as before**: `scripts\nnue-match.cmd <net> sf1`, built like
+   tune-match.cmd: the engine and both files copied to `%TEMP%\cb-match`
+   (the match tool splits its command at the first space), then
+   `ChessBruteforcer.Match` at **10+0.1**, 5 at a time, the 300 book
+   openings in colour-reversed pairs, our tables adjudicating, **SPRT [0,
+   10]**, at most 2,000 games. sf2's 2,000 took ~3 h; a big difference
+   settles in tens of games, as sf1's +208 did in 69. Logged in MATCHES.md
+   and WORKLOG.
+4. **Then the bot**, on Matthew's word: EvalFile in make-config.py points at
+   the net. Then its first ~30 rated games, against sf1's record.
+
+What to expect: other engines' first nets over a tuned hand evaluation
+commonly gain hundreds of Elo, but those were trained on their own search's
+positions. Ours learns from human games scored by Stockfish, so anything from
+nothing to +200 is plausible here. The match decides.
+
+## The sessions
+
+Session 0 is this one: the plan and the measurements above. **Sessions 1
+and 3 need nothing from each other** (the formats are fixed here) and can
+run side by side. Session 2 needs 1's data and Matthew's yes to the
+download; 4 needs 2 and 3.
+
+### Session 1: the data (no downloads)
+
+- `nnue data <out dir> <eval-games .cbg>... [--per-game all|N] [--speeds
+  blitz,rapid,classical] [--buckets 64]`: the record above, the quiet rule
+  as the tuner applies it (one shared function, so the two can't drift),
+  bucket files plus `data.json` (counts, rule, source files, held-back
+  share).
+- A reader in Python (`scripts/nnue/records.py`, numpy only), which the
+  trainer will use.
+- Tests: FEN -> record -> FEN round trips for 10,000 positions (castling
+  rights and en passant aren't stored: the network doesn't see them, and
+  the test says so); with `--speeds blitz,rapid,classical` the count equals
+  `tune positions ... --min-elo 0 --per-game 1000 --lambda 0` on the same
+  games; held-back games never in the training buckets; the Python reader
+  decodes C#'s records to the same pieces.
+- Run on September, its own window, below-normal priority (~45 min, like
+  `tune positions` was).
+- Report `scripts/nnue-data-2026-09.txt`.
+
+Done when:
+- [ ] the round trip, the count and the split tests pass;
+- [ ] September's buckets are written: ~224 M positions (25.2 a game
+      predicts it; a big miss means the rule differs from the tuner's);
+- [ ] the report is in git.
+
+### Session 2: the trainer (needs Matthew's yes: decision A)
+
+- The wheel through curl with the household cap (`--limit-rate 500k`, ~67
+  min; pip has no cap), then `pip install` from the file into
+  `scripts/nnue/.venv`. The script is written meanwhile.
+- `train.py` as above; `--max-positions` for trials.
+- Checks: the net learns 10,000 positions almost perfectly (proof the
+  pipeline is right); the float and int16 nets agree to a few centipawns on
+  1,000 positions; held-back error falls pass by pass. Measured: positions a
+  second, GPU memory, host memory, the bot's nodes a second while it trains.
+- The full run on September in its own window, logging to a file.
+
+Done when:
+- [ ] the checks pass, the speed and memory are written down;
+- [ ] `nnue1.nnue` is exported, and its held-back error is below sf1's on
+      the same positions;
+- [ ] WORKLOG has the run.
+
+### Session 3: the network in C# (no downloads; can run beside session 1)
+
+- `Core/Engine/Nnue/`: the loader, the accumulator stack in Position, the
+  SIMD forward pass, and a scalar reference.
+- Tests: **incremental equals a refresh** at every node of perft walks to
+  depth 3-4 from positions with castling, en passant and promotions, and over
+  random games, the null move included; SIMD equals scalar; the net is
+  colour-symmetric (a position and its mirror score the same, exactly);
+  **C# equals a numpy reference exactly** on 1,000 positions (a test file
+  with random weights until session 2's net exists); the loader refuses a
+  bad checksum or magic. Then the usual mutation battery (forget the
+  castling rook, the en passant pawn, the promotion, swap the
+  perspectives): every one must go red.
+- `bench` speed against today's, alternated.
+- `EvalFile` takes the `.nnue`; make-config.py untouched (the bot stays on
+  sf1 until the match says otherwise).
+
+Done when:
+- [ ] every test passes and every mutation goes red;
+- [ ] the bench is within the probe's range (-9% to -18% at 256);
+- [ ] the full suite passes (341 tests at the pondering merge).
+
+### Session 4: the match
+
+- `scripts\nnue-match.cmd nnue1 sf1` (above), its own window, ~1-3 h; the
+  bot keeps playing alongside, as it did during sf2's match.
+
+Done when:
+- [ ] SPRT decides, or 2,000 games are played;
+- [ ] MATCHES.md and WORKLOG have it;
+- [ ] if the net is better, Matthew decides whether the bot switches.
+
+### Session 5 (outline): the levers, one match each
+
+More data (July and August: ~670 M); 512 hidden (-30 to -36% speed); a
+result blend (lambda); king buckets or output buckets by material; mate
+scores in; the AVX-512 path; labels from our own search on these positions,
+which only the CPU can make. Each lever is a match against the net before.
+"Where our losses turn" (TODO section 2) says which matters most.
+
+## Risks
+
+| risk | what it would look like | what limits it |
+|---|---|---|
+| The labels' positions aren't the search's | Human middlegames, quiet ones only, while quiescence evaluates lopsided positions mid-capture: wild scores there | Humans hang pieces too, so lopsided positions are in the data. The match is the judge. Labels from our own search in session 5 |
+| Lichess's analysis varies in depth | Noisy targets | 224 M positions average a lot out; held-back error shows it |
+| Slow C# | Bounds checks, allocation, a virtual call per update: -30% instead of -10% | The probe as a yardstick; the bench gate before the match |
+| Silent update bugs | A missed rook or en passant pawn: scores slightly wrong, no crash | Incremental-equals-refresh at every node of the test walks; the mutation battery |
+| int16 overflow | Garbage scores in crowded positions | Clamping in training; the export's worst-case check |
+| Memory on the laptop | Torch and CUDA beside the bot and the Claude app (~4 GB headroom): a Windows low-memory event, as in October | Measured first; buckets read in pieces; one job at a time beside the bot |
+| Heat and the bot | GPU (65 W) and CPU share one laptop's cooling: the bot's nodes a second drop while training runs | Measured in session 2 from the bot's log (Speed line); decision D |
+| The household's internet | A 2.0 GB download | curl capped at 500 KB/s (~67 min), as the month queue is |
+| The score's scale moves | Null-move pruning compares the evaluation with beta; resigning is off, so nothing else reads it | Trained on Lichess's centipawn scale, which today's numbers already sit near |
+| Bitboards later | The rest of the search speeds up, so the net's share grows | Re-run the probe after any big speed change |
+
+## Decisions for Matthew
+
+**A. The trainer**
+- **(a) PyTorch on Windows** (recommended): one 2.0 GB wheel for the Python
+  already here, capped download (~67 min), nothing else to install. Our own
+  ~300-line script, which we can read end to end.
+- (b) bullet, the Rust trainer many hobby engines use: faster, made for
+  exactly these nets, but needs Rust and NVIDIA's CUDA toolkit (several GB;
+  sizes checked before asking).
+- (c) No download: a trainer in C# on the CPU. It would share the 16
+  threads with the bot, which the GPU route leaves alone, and run several
+  times slower.
+
+**B. The first network**
+- **(a) 768 -> 256 x2 -> 1** (recommended): -9% to -18% speed, 197 k
+  numbers.
+- (b) 768 -> 128 x2 -> 1: -4% to -12%, half the numbers; the safer
+  first try if speed matters more.
+- (c) HalfKP 256 x2 -> 32 -> 32 (Stockfish 12's shape): -49% to -55% as
+  probed, 10.5 M numbers, wants billions of positions. Not first.
+
+**C. The first data**
+- **(a) September, every quiet position, all speeds** (recommended): ~224
+  M, already imported, ~7.2 GB on C:.
+- (b) July + August + September: ~670 M, after ~8 h of filtering and
+  importing (two months through tune-data.cmd). On C: (41 GB free) that is
+  ~8.4 GB more .cbg plus ~21 GB of records instead of 7.2: it fits, just.
+  The records have to be local: twenty passes over the share would spend
+  ~12 h reading.
+- (c) September, blitz or slower only, as the tuner chose: ~176 M.
+
+**D. Where and when it trains**
+- **(a) This laptop, alongside the bot**, below-normal priority (recommended),
+  watching the bot's speed in its log and stopping if it drops more than
+  ~10%.
+- (b) This laptop, only while the bot is stopped (overnight, say).
+- (c) The desktop, if it has an NVIDIA card. Tell me which card and it gets
+  measured. It would free the laptop entirely, with the data copied over
+  the share (~12 min for 7.2 GB).

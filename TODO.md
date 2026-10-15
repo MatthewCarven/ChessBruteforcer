@@ -189,6 +189,16 @@ Sessions, in order:
       - [ ] Step 2b: new terms (passed / doubled / isolated pawns, mobility,
         king safety), tuned the same way towards Stockfish. "Where our
         losses turn" says which matter.
+- [ ] **An NNUE evaluation, trained on the laptop's GPU** (2026-10-16; the
+      build plan is [NNUE.md](NNUE.md)): the next step for the evaluation,
+      since sf2 showed the Texel shape is the limit. Measured: today's
+      evaluation is 5-11% of search time, so a 768 -> 256 x2 -> 1 network in
+      its place costs 9-18% of the speed (upper bound); September alone
+      holds ~224 M labelled quiet positions (sf2 used 13.6 M). Sessions: 1
+      data, 2 trainer (PyTorch, a 2.0 GB download: **Matthew's yes**), 3 the
+      network in C# (1 and 3 can run side by side), 4 the match against
+      sf1. **Matthew's decisions A-D** (trainer, size, data, where and when
+      it trains) are at the end of NNUE.md.
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by
