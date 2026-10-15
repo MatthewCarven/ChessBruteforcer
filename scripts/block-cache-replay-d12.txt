@@ -1,0 +1,77 @@
+7,643,054 reads in 40 searches; 20 on one thread, replayed below.
+The replay against the bench: 20 of 20 searches decompressed exactly the blocks replayed (414,619 measured, 414,619 replayed).
+
+Per search (mean of 20):
+| | per search |
+|---|---:|
+| reads | 107,040 |
+| dtz reads | 43,637 |
+| dtz settled | 43,251 |
+| direct-mapped misses | 20,731 |
+| cold | 7,910 |
+| per-table LRU misses | 14,047 |
+| direct-mapped misses, settled DTZ skipped | 13,760 |
+| cold, settled DTZ skipped | 4,838 |
+| dtm cold | 4,759 |
+
+The old cache's misses: cold 38%, capacity 30%, conflict (two blocks sharing a slot) 32%.
+
+One cache for every table, least recently used out, 64 KB blocks; misses a search:
+| cache | MB | all reads | settled DTZ skipped |
+|---|---:|---:|---:|
+| each table its own, direct-mapped, 1,024 | up to 14,080 | 20,731 | 13,760 |
+| shared LRU 256 | 16 | 46,812 | 24,190 |
+| shared LRU 512 | 32 | 39,234 | 19,829 |
+| shared LRU 1,024 | 64 | 31,643 | 15,687 |
+| shared LRU 2,048 | 128 | 24,377 | 11,879 |
+| shared LRU 4,096 | 256 | 17,768 | 8,475 |
+| shared LRU 8,192 | 512 | 12,068 | 6,001 |
+| shared LRU 16,384 | 1,024 | 8,533 | 4,851 |
+| shared LRU 32,768 | 2,048 | 7,910 | 4,838 |
+| shared LRU 65,536 | 4,096 | 7,910 | 4,838 |
+| shared 16-way, clock, 4,096 | 256 | 18,603 | 8,936 |
+| shared 16-way, clock, 8,192 | 512 | 12,830 | 6,350 |
+| shared 16-way, clock, 16,384 | 1,024 | 9,113 | 4,989 |
+| shared 8-way, clock, 4,096 | 256 | 18,967 | 9,121 |
+| shared 8-way, clock, 8,192 | 512 | 13,178 | 6,494 |
+| shared 8-way, clock, 16,384 | 1,024 | 9,378 | 5,067 |
+| (cold: every block read once) | | 7,910 | 4,838 |
+
+Smaller blocks, the same memory, settled DTZ skipped, shared LRU; misses a search:
+| MB | 64 KB | 32 KB | 16 KB | 8 KB | 4 KB |
+|---:|---:|---:|---:|---:|---:|
+| 16 | 24,190 | 23,476 | 22,453 | 20,810 | 20,220 |
+| 32 | 19,829 | 19,335 | 18,643 | 17,268 | 16,786 |
+| 64 | 15,687 | 15,495 | 15,095 | 13,855 | 13,999 |
+| 128 | 11,879 | 11,970 | 11,829 | 11,237 | 11,794 |
+| 256 | 8,475 | 8,930 | 9,356 | 9,493 | 11,043 |
+| 512 | 6,001 | 6,712 | 7,985 | 9,186 | 11,013 |
+| 1,024 | 4,851 | 6,312 | 7,862 | 9,186 | 11,013 |
+| 2,048 | 4,838 | 6,312 | 7,862 | 9,186 | 11,013 |
+| 4,096 | 4,838 | 6,312 | 7,862 | 9,186 | 11,013 |
+
+By table (the 20 with the most misses in the old cache), a search:
+| table | kind | reads | settled DTZ | blocks read (cold) | misses, old cache | share of misses |
+|---|---|---:|---:|---:|---:|---:|
+| KQPvKQ | DTM | 17,584 | 0 | 533 | 2,962 | 14.3% |
+| KPPvKP | DTM | 10,885 | 0 | 665 | 2,715 | 13.1% |
+| KQPvKP | DTM | 7,123 | 0 | 747 | 2,292 | 11.1% |
+| KPPvKP | DTZ | 8,775 | 8,717 | 476 | 1,509 | 7.3% |
+| KQPvKP | DTZ | 6,958 | 6,948 | 526 | 1,439 | 6.9% |
+| KBNvKP | DTM | 4,151 | 0 | 187 | 991 | 4.8% |
+| KQPvKQ | DTZ | 5,045 | 4,733 | 243 | 778 | 3.8% |
+| KRPvKP | DTM | 1,966 | 0 | 366 | 758 | 3.7% |
+| KQPPvK | DTM | 4,103 | 0 | 321 | 696 | 3.4% |
+| KBNvKP | DTZ | 3,734 | 3,734 | 122 | 615 | 3.0% |
+| KQQvKP | DTM | 2,972 | 0 | 214 | 506 | 2.4% |
+| KRPvKP | DTZ | 1,622 | 1,618 | 273 | 480 | 2.3% |
+| KQQvKQ | DTM | 3,855 | 0 | 147 | 477 | 2.3% |
+| KQPPvK | DTZ | 4,081 | 4,081 | 217 | 418 | 2.0% |
+| KRPvKR | DTM | 1,317 | 0 | 200 | 370 | 1.8% |
+| KQQvKP | DTZ | 2,945 | 2,945 | 131 | 293 | 1.4% |
+| KQPvKB | DTM | 1,155 | 0 | 131 | 263 | 1.3% |
+| KQPvKN | DTM | 964 | 0 | 108 | 208 | 1.0% |
+| KRPvKR | DTZ | 777 | 777 | 109 | 162 | 0.8% |
+| KQQvKQ | DTZ | 1,958 | 1,958 | 74 | 158 | 0.8% |
+
+DTZ tables' share of the old cache's misses: 34.1%; tables read at all: 136.

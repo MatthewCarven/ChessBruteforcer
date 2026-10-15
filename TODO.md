@@ -227,17 +227,31 @@ Sessions, in order:
         thread, its threads waiting on the lock 70% of the time. The cache
         is read without a lock now (a version a slot): 2.08x and 6.90x the
         nodes a second, like the middlegame's 1.95x and 6.96x.
-      - [ ] The block cache itself, before the bot gets threads (WORKLOG
-        2026-10-16): one thread spends ~2/3 of its endgame search
-        decompressing 64 KB blocks (~20,700 a search for ~63,400 table hits,
-        ~120 us each), and the caches never give memory back: up to 64 MB a
-        table, 220 compressed tables, so up to 14 GB. An 8-thread pass over
-        the 20 endings went past 4 GB in under a minute. Bound it (one
-        budget for all the tables) and find where the misses come from
-        (DTZ probes, slot collisions, cold blocks) before cutting them.
-      - [ ] Then merge, and `Threads: 8` in the bot's uci_options
-        (bot/make-config.py), rebuilt between games. Hash 256 is shared by
-        all the threads.
+      - [x] The block cache itself (2026-10-16, branch
+        claude/angry-kirch-aa4068 on top of practical-cerf; WORKLOG
+        2026-10-16 01:11): every read traced and replayed. DTZ reads were a
+        third of the misses and 99% of them changed nothing (a mate within
+        100 plies of the count settles the rule), so DTZ is read only where
+        it can matter; and one cache for every table, 512 MB (UCI
+        `TableCache`), sets of 16 with a clock, read without a lock. Blocks
+        a search 20,731 -> 6,358; every arm ~2x faster (one thread 1.96x,
+        LazySMP 8 2.20x), 8 threads 2.40x one thread and 6.98x its nodes a
+        second; peak 2.9 -> 1.9 GB, and memory now has a ceiling.
+      - [ ] Then merge (practical-cerf, then this), and `Threads: 8` in the
+        bot's uci_options (bot/make-config.py), rebuilt between games. Hash
+        256 is shared by all the threads; the table cache (512 MB) by all
+        the tables, so the bot needs ~0.5 GB more than its hash and plain
+        tables at most, not up to 14 GB.
+      - [ ] Smaller blocks (a step of its own, a night; WORKLOG 2026-10-16
+        01:11): recompress the 220 compressed tables in 8 KB blocks (16 KB
+        the cautious choice). Estimated from sampled blocks: files 1.19x
+        (~12 -> ~14 GB), a block 0.15x the time, decompression a search
+        ~790 -> ~180 ms, a one-thread ending ~1.9 -> ~1.3 s, and 128 MB of
+        cache would do. Needs the reader to take the block size from the
+        header (it holds it; only the 64 KB check goes), cache places of
+        that size, and 4-byte block offsets (~55 MB in memory at 8 KB).
+        Recompress from the compressed files, one at a time, each checked
+        against the old before it replaces it.
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);

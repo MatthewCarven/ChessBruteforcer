@@ -2397,3 +2397,148 @@ threads-tables-summary.py (the table above from the .tsv files). To repeat:
 `ChessBruteforcer.Engine bench-threads scripts\threads-endgame-positions.txt
 12 --arms 1,L2,L4,L8 --eval bot\eval\eval-sf1.txt --tables tables` (~7 min
 without the lock, ~10 with it; peak ~3 GB, so check commit headroom first).
+
+## 2026-10-16 (01:11-02:15): the block cache: where its misses came from, one budget, half the time
+
+The step left open above, before the bot gets threads. A side session, on
+branch claude/angry-kirch-aa4068 on top of claude/practical-cerf-df4df1
+(138e089), so it fast-forwards from it; the bot untouched. Alone on the
+machine for every bench (July's index run waiting for the share, the bot
+not running; only May's capped download), below normal, a 4 GB heap cap.
+
+**Where the misses came from.** Every read of a compressed table in the
+timed searches traced (`bench-threads --trace`, commit 04cd475), the 20
+endings at depth 12, one thread, and the reads replayed offline through
+other caches (scripts/block-cache-trace.py). Replaying the old cache
+decompressed exactly the blocks the bench did, in all 20 searches (414,619),
+so the other caches below are the same reads, not a model of them. A
+search, on average:
+
+| | a search |
+|---|---:|
+| reads of a compressed table | 107,040 |
+| of them DTZ | 43,637 |
+| DTZ reads after a mate distance that had already settled the result | 43,251 (99.1%) |
+| blocks decompressed (each table its own 1,024 slots) | 20,731 |
+| blocks read at all (the least a cache emptied before the search can do) | 7,910 |
+
+- The old cache's misses: 38% cold (the block's first read), 30% capacity
+  (more blocks than a table's 1,024 slots, even if any could go anywhere),
+  32% conflict (two blocks wanting one slot).
+- DTZ tables: 34% of the misses. `TryProbeWithClock` read DTZ after every
+  win or loss, but in a search nearly every probe comes straight after a
+  capture (the count at 0), where a mate within 100 plies settles it.
+- By table: the mate distances of KQPvKQ (14%), KPPvKP (13%) and KQPvKP
+  (11%) are 38% of the misses between them; 136 tables are read at all.
+- On 8 threads, 99% of the reads that waited (old cache) were waiting for
+  the very block another thread was decompressing, not for another block
+  sharing their slot: Lazy SMP's threads search the same positions. Only
+  fewer misses cut those waits.
+
+The same reads through one cache for all the tables (blocks decompressed a
+search; the replay's numbers, with the bench's where measured):
+
+| cache | memory | all reads | DTZ read only where it can matter |
+|---|---:|---:|---:|
+| each table its own, 1,024 slots, direct-mapped (138e089) | up to 14 GB | 20,731 | 13,760 |
+| one for all, least recently used goes, 128 MB | 128 MB | 24,377 | 11,879 |
+| the same, 256 MB | 256 MB | 17,768 | 8,475 |
+| the same, 512 MB | 512 MB | 12,068 | 6,001 |
+| the same, 1 GB | 1 GB | 8,533 | 4,851 |
+| the same, 2 GB | 2 GB | 7,910 | 4,838 |
+| one for all, sets of 16 with a clock (now), 256 MB | 256 MB | 18,603 | 8,936 (measured 8,931) |
+| the same, 512 MB (the default) | 512 MB | 12,830 | **6,350 (measured 6,358)** |
+| the same, 1 GB | 1 GB | 9,113 | 4,989 (measured 4,987) |
+| every block read once | | 7,910 | 4,838 |
+
+Sets of 16 cost ~6% more misses than true least-recently-used; sets of 8
+another ~2%.
+
+**What changed** (commit a5b38fa):
+- **DTZ only where the mate can't settle it.** Mating in d plies is a way to
+  win under the 50-move rule that starts the count again (or mates) within
+  d plies, so when the clock + d is at most 100 the DTZ table has the same
+  win or loss, in time, and reading it changes nothing. Checked four ways:
+  every position of the test tables (CompressedTableTests, >100,000 wins
+  and losses); probes through the compressed test tables at clocks either
+  side of both distances, against the old definition; every position of
+  four real tables (scripts/dtz-skip-check.cs, below: 0 exceptions in 2.96
+  billion positions, 6.0 M of them mates at 90-100 plies; every rule draw
+  among wins and losses has a mate of 121 plies or more); and the slow
+  cursed-win test on the real KBBvKN. One thread searched exactly the same
+  nodes, moves and scores in every run of both builds.
+- **One cache for every table** (`BlockCache`): all the compressed tables a
+  Tablebase opens share 512 MB of places by default (UCI option
+  `TableCache`, in MB; `bench-threads --table-cache`). A block goes into one
+  of 16 places in its set (a hash of table and block), a clock hand within
+  the set picks what goes. Read without a lock as before (a version a
+  place); a thread filling a place names its block first, so reads of that
+  block wait for it and the rest pass by. Memory is taken as places are
+  first used and never passes the budget (it was up to 64 MB a table, 14 GB
+  in all, never let go).
+- The engine lets go of its old tables when `EndgameTables` changes (their
+  files stayed mapped).
+- 328 tests pass, 2 skipped as before (5 new: tables sharing a cache within
+  its budget, 8 threads on 4 tables through 6 places, the two DTZ checks,
+  the UCI option).
+
+**Re-measured**, A B A B (138e089, this branch, 138e089, this branch), two
+runs a build, 40 searches an arm (scripts/block-cache-d12-*):
+
+| arm | 138e089, s | now, s | now faster | to depth 12 v one thread (138e089 -> now) | nodes a second v one thread | decompressing, of thread time | waiting, of thread time | blocks a search |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| one thread | 294.1 | 149.8 | **1.96x** | 1.00 | 1.00 (0.55 -> 1.09 M/s) | 67.6% -> 42.1% | | 20,731 -> 6,358 |
+| LazySMP 2 | 203.8 | 101.4 | 2.01x | 1.44 -> 1.48 | 1.96 -> 2.00 | 50.9% -> 33.5% | 17.7% -> 9.2% | 20,626 -> 6,449 |
+| LazySMP 4 | 163.1 | 88.2 | 1.85x | 1.80 -> 1.70 | 3.73 -> 3.83 | 41.6% -> 26.3% | 27.9% -> 17.3% | 26,245 -> 8,352 |
+| LazySMP 8 | 137.2 | 62.4 | **2.20x** | **2.14 -> 2.40** | **6.42 -> 6.98** | 38.8% -> 22.2% | 32.6% -> 22.2% | 37,401 -> 9,036 |
+
+- Every arm about twice as fast; 8 threads still ~2.4x one thread, which
+  is itself twice as fast now. A run's own L8 speedup: 2.47 and 1.89 on
+  138e089 (2.36 and 1.86 last time), 2.43 and 2.38 now; the median search
+  2.04 -> 1.97.
+- Peak memory 2.92 / 2.74 GB -> 1.91 / 1.92 GB.
+- Every wait left on 8 threads is for a block another thread is
+  decompressing.
+- The budget, one run each (1 and L8): 256 MB 86.8 s one thread (8,931
+  blocks a search), 37.4 s L8, peak 1.44 GB; 512 MB 74.5-75.2 s, 31.0-31.4
+  s, 1.92 GB; 1 GB 76.1 s (4,987 blocks), 35.5 s, 2.80 GB. 1 GB
+  decompresses a fifth less but isn't faster here: the bench empties the
+  cache and lets its memory go before every search, so it allocates up to
+  1 GB a search, which the bot (never emptied) pays once. 512 MB, then:
+  the bot's laptop has ~2.4-5 GB of commit headroom with the bot running.
+
+**Smaller blocks, proposed (not run).** What's left on one thread is 42% of
+its time in ~6,400 decompressions a search, ~120 us each, and most of those
+are blocks read once (4,838 of the 6,358). A smaller block costs less to
+decompress almost in proportion. Sampled blocks of the six tables with the
+most misses, recompressed in memory at quality 10 (scripts/block-size-probe.cs,
+nothing written):
+
+| block | x smaller | files against 64 KB blocks | us to decompress a block | replayed misses a search, 512 MB | decompressing a search, estimated |
+|---|---:|---:|---:|---:|---:|
+| 64 KB (now) | 12.5 | 1.00x | 91.6 | 6,001 | ~790 ms (measured) |
+| 32 KB | 11.9 | 1.04x | 47.3 | 6,712 | ~460 ms |
+| 16 KB | 11.3 | 1.10x | 24.3 | 7,985 | ~280 ms |
+| 8 KB | 10.5 | 1.19x | 14.0 | 9,186 | ~180 ms |
+| 4 KB | 9.4 | 1.32x | 8.6 | 11,013 | ~130 ms |
+
+(The estimate scales the measured 64 KB time by the decompression times and
+the replayed misses.) 8 KB blocks would take a one-thread search from ~1.9 s
+to ~1.3 s here, and need far less cache: 128 MB of 8 KB blocks replays to
+11,237 misses, ~220 ms. The cost: recompressing the 220 tables (~12 GB ->
+~14 GB) from the compressed files themselves, ~4 h on all 16 threads (the
+pawnless 28.7 GB took 48 minutes the first time), a night; the reader then takes the block size from the file's header (it
+already holds it; only the check that it is 64 KB has to go) and the cache
+places shrink to match; block offsets held in memory grow from ~14 MB to
+~110 MB at 8 KB (half that as 4-byte offsets, every file being under 4 GB).
+A step of its own.
+
+The raw output is in scripts/: block-cache-trace-d12.{txt,tsv} (the traced
+run on the old cache, with same-block waits), block-cache-replay-d12.txt
+(the replay), block-cache-d12-{old,shared}-{1,2}.{txt,tsv} and
+block-cache-d12-summary.txt (the A B A B), block-cache-d12-shared-{256,1024}-MB.*,
+block-size-probe.txt, dtz-skip-check.txt. To repeat the trace:
+`ChessBruteforcer.Engine bench-threads scripts\threads-endgame-positions.txt
+12 --arms 1 --rounds 1 --eval bot\eval\eval-sf1.txt --tables tables --tsv
+t.tsv --trace t.bin`, then `python -I scripts\block-cache-trace.py t.bin
+t.tsv` (~2 min; the trace is ~60 MB for one thread and L8, so it isn't kept).

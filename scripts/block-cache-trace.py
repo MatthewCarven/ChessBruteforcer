@@ -4,7 +4,9 @@
 # Every cache is emptied before each search, as the bench empties the real one.
 #   python -I block-cache-trace.py <trace.bin> [<bench.tsv>]
 # The .tsv (the same run's --tsv) checks the replay: the current cache replayed must decompress
-# exactly the blocks the real one did.
+# exactly the blocks the real one did (for a trace of the per-table cache, before commit a5b38fa).
+# "Settled DTZ" reads (bit 58) are marked only in traces from commit 04cd475: since a5b38fa they
+# aren't read at all, so in a newer trace the two columns agree.
 import sys, csv
 from collections import OrderedDict, defaultdict
 import numpy as np

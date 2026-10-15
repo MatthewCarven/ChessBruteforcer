@@ -482,7 +482,8 @@ ride out the share dropping, and the count checks every byte against it.
 would not fit plain (~115 GB against ~96 GB free). A table's values are cut
 into 64 KB blocks, each compressed on its own with Brotli (quality 10), with
 the blocks' offsets up front, so a probe still goes straight to its position
-and decompresses one block (70-100 us, then cached). On the 60 pawnless
+and decompresses one block (70-100 us, then kept in one cache all the tables
+share: 512 MB by default, the engine's `TableCache` option). On the 60 pawnless
 5-piece tables: **28.7 GB became 3.15 GB (9.1x)**, mate distances 10.1x
 (4.7x for the hardest, 78x for K+N+N v K+N, nearly all draws), DTZ 7.7x;
 48 minutes. The pawn tables did better still: 107 GB became 8.8 GB (12x).
