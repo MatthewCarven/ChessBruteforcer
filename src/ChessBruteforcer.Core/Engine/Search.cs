@@ -18,6 +18,13 @@ public sealed record SearchLimits
     public int? MovesToGo { get; init; }
     public bool Infinite { get; init; }
 
+    /// <summary>
+    /// "go ponder": think on the opponent's time, with no time limit, until
+    /// <see cref="Search.PonderHit"/> (then the clock fields above apply) or
+    /// <see cref="Search.Stop"/>.  <see cref="Search.Run"/> doesn't return before one of them.
+    /// </summary>
+    public bool Ponder { get; init; }
+
     /// <summary>Time kept back on every move for communication and the operating system.</summary>
     public int MoveOverheadMs { get; init; } = 50;
 }
@@ -87,8 +94,12 @@ public sealed class Search
     private Stopwatch _clock = new();
     private long _nodes;
     private long _nodeLimit;
-    private long _hardLimitMs;
+    private long _softLimitMs, _hardLimitMs;       // in force now (0: none); written by PonderHit from another thread
+    private long _plannedSoftMs, _plannedHardMs;   // the clock's budget, held back while pondering
+    private long _iterationStartMs;                // when the depth being searched began
     private volatile bool _stop;
+    private volatile bool _pondering;
+    private readonly ManualResetEventSlim _ponderOver = new(true);
 
     // Threads: each helper is a Search of its own (move lists, killers, history, repetition
     // list), sharing this one's table.  A helper's _main is the search it works for.
@@ -135,20 +146,56 @@ public sealed class Search
         _stop = true;
         foreach (var helper in _helpers)
             helper._stop = true;
+        _pondering = false;
+        _ponderOver.Set();
+    }
+
+    /// <summary>
+    /// The opponent played the move a <see cref="SearchLimits.Ponder"/> search
+    /// was pondering on, so that search becomes the real one (thread-safe),
+    /// keeping its tree, table and depth.  From now on the clock in its limits
+    /// applies, with the time spent pondering counted, as if the search had
+    /// begun on our own time at "go ponder": no new depth past half the
+    /// planned time, none at all if pondering is already past it, and a depth
+    /// begun past it (which the clock would never have started) is dropped.
+    /// So a ponder hit plays as deep as our own time would have taken us, and
+    /// usually at once, banking the clock for the moves we didn't foresee.
+    /// </summary>
+    public void PonderHit()
+    {
+        if (!_pondering)
+            return;
+        Interlocked.Exchange(ref _hardLimitMs, _plannedHardMs);
+        Interlocked.Exchange(ref _softLimitMs, _plannedSoftMs);
+        _pondering = false;
+        if (_plannedSoftMs > 0 && Interlocked.Read(ref _iterationStartMs) > _plannedSoftMs / 2)
+            Stop();
+        _ponderOver.Set();
     }
 
     /// <summary>
     /// Search <paramref name="root"/>.  <paramref name="previousHashes"/> are
     /// the hashes of the game's earlier positions (oldest first, not
-    /// including the root), for spotting repetitions.
+    /// including the root), for spotting repetitions.  <paramref name="onStarted"/>
+    /// is called once the search is ready for <see cref="Stop"/> and
+    /// <see cref="PonderHit"/> (both are lost if they come any earlier).
     /// </summary>
     public SearchResult Run(Position root, SearchLimits limits, IReadOnlyList<ulong>? previousHashes = null,
-                            Action<SearchInfo>? onInfo = null)
+                            Action<SearchInfo>? onInfo = null, Action? onStarted = null)
     {
         _activeHelpers = 0;
         RangeFallbacks = 0;
-        long softLimitMs = Prepare(root, limits, previousHashes);
+        Prepare(root, limits, previousHashes);
+        onStarted?.Invoke();
+        var result = IterativeDeepening(root, limits, previousHashes, onInfo);
+        // Pondering, the answer waits for ponderhit or stop, even when the search has nothing left to do.
+        _ponderOver.Wait();
+        return result;
+    }
 
+    private SearchResult IterativeDeepening(Position root, SearchLimits limits, IReadOnlyList<ulong>? previousHashes,
+                                            Action<SearchInfo>? onInfo)
+    {
         var legal = MoveGenerator.Legal(root);
         if (legal.Count == 0)
             return new SearchResult(null, root.InCheck() ? -Mate : 0, 0, 0, Array.Empty<Move>());
@@ -170,6 +217,14 @@ public sealed class Search
         {
             for (int depth = 1; depth <= maxDepth; depth++)
             {
+                // (A full fence each side, here and in PonderHit: if a ponderhit lands just as this
+                // depth begins, this check or PonderHit's sees the other's write, so it isn't searched.)
+                long started = _clock.ElapsedMilliseconds;
+                Interlocked.Exchange(ref _iterationStartMs, started);
+                long softLimitMs = Interlocked.Read(ref _softLimitMs);
+                if (depth > 1 && softLimitMs > 0 && started > softLimitMs / 2)
+                    break;   // the next depth would likely overrun the budget
+
                 int score;
                 Move[] pv;
                 bool complete;
@@ -193,8 +248,6 @@ public sealed class Search
 
                 if (_stop)
                     break;
-                if (softLimitMs > 0 && _clock.ElapsedMilliseconds > softLimitMs / 2)
-                    break;   // the next depth would likely overrun the budget
                 if (Math.Abs(score) >= MateBound && depth > 2 * (Mate - Math.Abs(score)) + 2 && !limits.Infinite)
                     break;   // a forced mate is fully seen
             }
@@ -233,15 +286,22 @@ public sealed class Search
         return null;
     }
 
-    /// <summary>Ready this search (or helper) for a new root; returns the soft time limit.</summary>
-    private long Prepare(Position root, SearchLimits limits, IReadOnlyList<ulong>? previousHashes)
+    /// <summary>Ready this search (or helper) for a new root.</summary>
+    private void Prepare(Position root, SearchLimits limits, IReadOnlyList<ulong>? previousHashes)
     {
         _stop = false;
         _nodes = 0;
         _clock = Stopwatch.StartNew();
         _nodeLimit = limits.Nodes ?? long.MaxValue;
-        var (softLimitMs, hardLimitMs) = TimeBudget(root, limits);
-        _hardLimitMs = hardLimitMs;
+        (_plannedSoftMs, _plannedHardMs) = TimeBudget(root, limits);
+        _softLimitMs = limits.Ponder ? 0 : _plannedSoftMs;
+        _hardLimitMs = limits.Ponder ? 0 : _plannedHardMs;
+        _iterationStartMs = 0;
+        _pondering = limits.Ponder;
+        if (limits.Ponder)
+            _ponderOver.Reset();
+        else
+            _ponderOver.Set();
         Array.Clear(_history);
         Array.Clear(_killers);
 
@@ -249,7 +309,6 @@ public sealed class Search
         if (previousHashes is not null)
             _hashes.AddRange(previousHashes);
         _hashes.Add(root.Hash);
-        return softLimitMs;
     }
 
     /// <summary>At least <paramref name="count"/> helpers, made once and kept: each holds ~250 KB of move lists and tables.</summary>
@@ -733,8 +792,9 @@ public sealed class Search
     private void CheckLimits()
     {
         var owner = _main ?? this;   // a helper stops on the limits of the search it works for
+        long hardLimitMs = Volatile.Read(ref owner._hardLimitMs);   // (0 while pondering)
         if (owner.TotalNodes >= owner._nodeLimit
-            || (owner._hardLimitMs > 0 && owner._clock.ElapsedMilliseconds >= owner._hardLimitMs))
+            || (hardLimitMs > 0 && owner._clock.ElapsedMilliseconds >= hardLimitMs))
             _stop = true;
     }
 

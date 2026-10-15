@@ -8,7 +8,7 @@ namespace ChessBruteforcer.Core.Engine;
 /// The Universal Chess Interface: the text protocol every chess GUI and
 /// match runner (cutechess-cli, fastchess, lichess-bot) uses to drive an
 /// engine.  Commands arrive one per line; the search runs on a background
-/// thread so "stop" and "isready" are answered while it thinks.
+/// thread so "stop", "ponderhit" and "isready" are answered while it thinks.
 /// </summary>
 public sealed class UciEngine
 {
@@ -69,6 +69,7 @@ public sealed class UciEngine
                     Send("option name EvalFile type string default <empty>");
                     Send("option name Threads type spin default 1 min 1 max 64");
                     Send("option name ThreadSplit type combo default LazySMP var LazySMP var Ranges");
+                    Send("option name Ponder type check default false");
                     Send("uciok");
                     break;
                 case "isready":
@@ -90,6 +91,10 @@ public sealed class UciEngine
                     StopSearch();
                     EnsureTablesLoaded();
                     StartSearch(ParseGo(words) with { MoveOverheadMs = _moveOverheadMs });
+                    break;
+                case "ponderhit":
+                    // The opponent played the move we were pondering on: the search goes on, on our clock.
+                    _search.PonderHit();
                     break;
                 case "stop":
                     StopSearch();
@@ -117,7 +122,7 @@ public sealed class UciEngine
         return true;
     }
 
-    /// <summary>Wait for a running search to finish on its own (for tests and scripts).</summary>
+    /// <summary>Wait for a running search to finish on its own (for tests and scripts; a "go ponder" search never does).</summary>
     public void WaitForSearch() => _searchThread?.Join();
 
     private void SetOption(string[] words)
@@ -150,6 +155,10 @@ public sealed class UciEngine
                     "ranges" => ParallelMode.Ranges,
                     _ => throw new ArgumentException($"ThreadSplit is LazySMP or Ranges, not {value}."),
                 };
+                break;
+            case "ponder":
+                // Only tells us the GUI may send "go ponder", which works either way.  (UCI lets an
+                // engine plan its time differently when it may ponder; this one doesn't, yet.)
                 break;
             case "evalfile":
                 // Tuned evaluation numbers (EvalParams text); empty for the built-in ones. Process-wide.
@@ -229,6 +238,7 @@ public sealed class UciEngine
             switch (words[i])
             {
                 case "infinite": limits = limits with { Infinite = true }; break;
+                case "ponder": limits = limits with { Ponder = true }; break;
                 case "depth": limits = limits with { Depth = int.Parse(next) }; i++; break;
                 case "nodes": limits = limits with { Nodes = long.Parse(next) }; i++; break;
                 case "movetime": limits = limits with { MoveTimeMs = int.Parse(next) }; i++; break;
@@ -250,16 +260,48 @@ public sealed class UciEngine
         var search = _search;
         search.Threads = _threads;
         search.Split = _split;
+        // "go" returns once the search is ready, so a "stop" or "ponderhit" straight after it isn't lost.
+        var started = new ManualResetEventSlim();
         _searchThread = new Thread(() =>
         {
-            var result = search.Run(root, limits, history, ReportInfo);
-            Send($"bestmove {(result.BestMove is Move move ? move.ToUci() : "0000")}");
+            try
+            {
+                var result = search.Run(root, limits, history, ReportInfo, started.Set);
+                if (result.BestMove is not Move move)
+                    Send("bestmove 0000");
+                else if (PonderMove(root, result) is Move reply)
+                    Send($"bestmove {move.ToUci()} ponder {reply.ToUci()}");
+                else
+                    Send($"bestmove {move.ToUci()}");
+            }
+            finally
+            {
+                started.Set();
+            }
         })
         {
             IsBackground = true,
             Name = "search",
         };
         _searchThread.Start();
+        started.Wait();
+    }
+
+    /// <summary>
+    /// The reply we expect to our best move, for "bestmove ... ponder": the
+    /// principal variation's second move, or where the line stops at our move
+    /// (cut short by the table, or an endgame-table move) the table's move in
+    /// the position after it.  Null when there's no legal one.
+    /// </summary>
+    private Move? PonderMove(Position root, SearchResult result)
+    {
+        var pv = result.PrincipalVariation;
+        var after = Position.FromFen(root.ToFen());
+        after.MakeMove(result.BestMove!.Value);
+        Move? reply = pv.Count > 1 && pv[0] == result.BestMove ? pv[1]
+                    : _table.TryGet(after.Hash, out var entry) ? entry.Move
+                    : null;
+        return reply is Move candidate ? after.ParseUciMove(candidate.ToUci()) : null;
     }
 
     private void StopSearch()
