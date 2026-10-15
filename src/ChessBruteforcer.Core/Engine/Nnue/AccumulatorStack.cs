@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using ChessBruteforcer.Core.Game;
 
 namespace ChessBruteforcer.Core.Engine.Nnue;
@@ -9,7 +8,8 @@ namespace ChessBruteforcer.Core.Engine.Nnue;
 /// each slot is white's H numbers, then black's. <see cref="Position.MakeMove"/> writes the child slot as
 /// the parent plus the move's 2-4 piece changes, in one pass per perspective; unmake pops. A null move
 /// changes no piece, so it shares the slot. Each search thread has its own position, so its own stack;
-/// the network's weights are shared, read only.
+/// the network's weights are shared, read only. Every slot and column is a bounds-checked span, so a
+/// mistake throws rather than writing past the array.
 /// </summary>
 internal sealed class AccumulatorStack
 {
@@ -71,62 +71,50 @@ internal sealed class AccumulatorStack
     /// <summary>A move with no capture: <paramref name="moved"/> off <paramref name="from"/>, <paramref name="placed"/> (itself, or what it promotes to) on <paramref name="to"/>.</summary>
     public void PushQuiet(Piece moved, int from, Piece placed, int to)
     {
-        int parent = NextSlot();
+        var slots = NextSlots();
         int h = _hidden;
-        ref short d = ref MemoryMarshal.GetArrayDataReference(_data);
-        ref short w = ref MemoryMarshal.GetArrayDataReference(Network.FeatureWeights);
-        Kernels.AddSub(ref Unsafe.Add(ref d, parent + _stride), ref Unsafe.Add(ref d, parent),
-                       ref Unsafe.Add(ref w, Network.Feature(placed, to, 0) * h),
-                       ref Unsafe.Add(ref w, Network.Feature(moved, from, 0) * h), h);
-        Kernels.AddSub(ref Unsafe.Add(ref d, parent + _stride + h), ref Unsafe.Add(ref d, parent + h),
-                       ref Unsafe.Add(ref w, Network.Feature(placed, to, 1) * h),
-                       ref Unsafe.Add(ref w, Network.Feature(moved, from, 1) * h), h);
+        Kernels.AddSub(slots.Slice(_stride, h), slots[..h], Column(placed, to, 0), Column(moved, from, 0));
+        Kernels.AddSub(slots.Slice(_stride + h, h), slots.Slice(h, h), Column(placed, to, 1), Column(moved, from, 1));
     }
 
     /// <summary>A capture, en passant included (<paramref name="capturedSquare"/> is then the pawn's, not <paramref name="to"/>).</summary>
     public void PushCapture(Piece moved, int from, Piece placed, int to, Piece captured, int capturedSquare)
     {
-        int parent = NextSlot();
+        var slots = NextSlots();
         int h = _hidden;
-        ref short d = ref MemoryMarshal.GetArrayDataReference(_data);
-        ref short w = ref MemoryMarshal.GetArrayDataReference(Network.FeatureWeights);
-        Kernels.AddSubSub(ref Unsafe.Add(ref d, parent + _stride), ref Unsafe.Add(ref d, parent),
-                          ref Unsafe.Add(ref w, Network.Feature(placed, to, 0) * h),
-                          ref Unsafe.Add(ref w, Network.Feature(moved, from, 0) * h),
-                          ref Unsafe.Add(ref w, Network.Feature(captured, capturedSquare, 0) * h), h);
-        Kernels.AddSubSub(ref Unsafe.Add(ref d, parent + _stride + h), ref Unsafe.Add(ref d, parent + h),
-                          ref Unsafe.Add(ref w, Network.Feature(placed, to, 1) * h),
-                          ref Unsafe.Add(ref w, Network.Feature(moved, from, 1) * h),
-                          ref Unsafe.Add(ref w, Network.Feature(captured, capturedSquare, 1) * h), h);
+        Kernels.AddSubSub(slots.Slice(_stride, h), slots[..h], Column(placed, to, 0), Column(moved, from, 0),
+                          Column(captured, capturedSquare, 0));
+        Kernels.AddSubSub(slots.Slice(_stride + h, h), slots.Slice(h, h), Column(placed, to, 1), Column(moved, from, 1),
+                          Column(captured, capturedSquare, 1));
     }
 
     /// <summary>Castling: the king and the rook both move.</summary>
     public void PushCastle(Piece king, int kingFrom, int kingTo, Piece rook, int rookFrom, int rookTo)
     {
-        int parent = NextSlot();
+        var slots = NextSlots();
         int h = _hidden;
-        ref short d = ref MemoryMarshal.GetArrayDataReference(_data);
-        ref short w = ref MemoryMarshal.GetArrayDataReference(Network.FeatureWeights);
-        Kernels.AddAddSubSub(ref Unsafe.Add(ref d, parent + _stride), ref Unsafe.Add(ref d, parent),
-                             ref Unsafe.Add(ref w, Network.Feature(king, kingTo, 0) * h),
-                             ref Unsafe.Add(ref w, Network.Feature(rook, rookTo, 0) * h),
-                             ref Unsafe.Add(ref w, Network.Feature(king, kingFrom, 0) * h),
-                             ref Unsafe.Add(ref w, Network.Feature(rook, rookFrom, 0) * h), h);
-        Kernels.AddAddSubSub(ref Unsafe.Add(ref d, parent + _stride + h), ref Unsafe.Add(ref d, parent + h),
-                             ref Unsafe.Add(ref w, Network.Feature(king, kingTo, 1) * h),
-                             ref Unsafe.Add(ref w, Network.Feature(rook, rookTo, 1) * h),
-                             ref Unsafe.Add(ref w, Network.Feature(king, kingFrom, 1) * h),
-                             ref Unsafe.Add(ref w, Network.Feature(rook, rookFrom, 1) * h), h);
+        Kernels.AddAddSubSub(slots.Slice(_stride, h), slots[..h], Column(king, kingTo, 0), Column(rook, rookTo, 0),
+                             Column(king, kingFrom, 0), Column(rook, rookFrom, 0));
+        Kernels.AddAddSubSub(slots.Slice(_stride + h, h), slots.Slice(h, h), Column(king, kingTo, 1), Column(rook, rookTo, 1),
+                             Column(king, kingFrom, 1), Column(rook, rookFrom, 1));
     }
 
-    /// <summary>Make room for a child slot and move to it; returns the parent slot's offset.</summary>
+    /// <summary>
+    /// Make room for a child slot and move to it; returns the parent's slot and the child's, as one span
+    /// (bounds-checked: if the room weren't there, this throws instead of anything writing past the array).
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int NextSlot()
+    private Span<short> NextSlots()
     {
         int parent = _top * _stride;
         if (parent + 2 * _stride > _data.Length)
             Array.Resize(ref _data, _data.Length * 2);
         _top++;
-        return parent;
+        return _data.AsSpan(parent, 2 * _stride);
     }
+
+    /// <summary>The weight column of a piece on a square, for one perspective (bounds-checked: an empty square has none).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private ReadOnlySpan<short> Column(Piece piece, int square, int perspective) =>
+        Network.FeatureWeights.AsSpan(Network.Feature(piece, square, perspective) * _hidden, _hidden);
 }

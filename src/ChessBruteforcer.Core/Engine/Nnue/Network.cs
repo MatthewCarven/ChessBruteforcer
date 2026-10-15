@@ -89,9 +89,14 @@ public sealed class Network
 
     // ---- the file ----
 
-    /// <summary>Does the file start with the .nnue magic? (EvalFile takes either kind of file.)</summary>
+    /// <summary>
+    /// Does the file start with the .nnue magic? (EvalFile takes either kind of file.) An empty path is
+    /// no network; a missing file throws FileNotFoundException, for the caller to report.
+    /// </summary>
     public static bool IsNetworkFile(string path)
     {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
         Span<byte> start = stackalloc byte[8];
         using var file = File.OpenRead(path);
         return file.ReadAtLeast(start, 8, throwOnEndOfStream: false) == 8 && start.SequenceEqual(Magic);
@@ -262,16 +267,17 @@ public sealed class Network
     /// <summary>Both perspectives' accumulators for the board, from scratch (SIMD where the column adds have it).</summary>
     internal void Refresh(Position position, Span<short> white, Span<short> black)
     {
+        white = white[..Hidden];
+        black = black[..Hidden];
         FeatureBiases.CopyTo(white);
         FeatureBiases.CopyTo(black);
-        ref short w = ref MemoryMarshal.GetArrayDataReference(FeatureWeights);
         for (int square = 0; square < 64; square++)
         {
             var piece = position[square];
             if (piece.IsEmpty)
                 continue;
-            Kernels.Add(ref MemoryMarshal.GetReference(white), ref Unsafe.Add(ref w, Feature(piece, square, 0) * Hidden), Hidden);
-            Kernels.Add(ref MemoryMarshal.GetReference(black), ref Unsafe.Add(ref w, Feature(piece, square, 1) * Hidden), Hidden);
+            Kernels.Add(white, FeatureWeights.AsSpan(Feature(piece, square, 0) * Hidden, Hidden));
+            Kernels.Add(black, FeatureWeights.AsSpan(Feature(piece, square, 1) * Hidden, Hidden));
         }
     }
 
@@ -317,6 +323,8 @@ public sealed class Network
     /// </summary>
     internal int ForwardSimd(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
     {
+        if (us.Length < Hidden || them.Length < Hidden)
+            throw new ArgumentOutOfRangeException(nameof(us), $"accumulators of {us.Length} and {them.Length} for a hidden size of {Hidden}");
         ref short ow = ref MemoryMarshal.GetArrayDataReference(OutputWeights);
         long sum = HalfSimd(ref MemoryMarshal.GetReference(us), ref ow)
                  + HalfSimd(ref MemoryMarshal.GetReference(them), ref Unsafe.Add(ref ow, Hidden));

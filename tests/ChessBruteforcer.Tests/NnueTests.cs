@@ -110,26 +110,56 @@ public class NnueTests
     [Fact]
     public void IncrementalEqualsRefreshOverRandomGamesWithNullMovesAndTakeBacks()
     {
-        var rng = new Random(20261016);
-        int nulls = 0, takeBacks = 0, plies = 0;
+        var (nulls, takeBacks, plies, _) = PlayRandomGames(20261016, games: 12, steps: 150);
+        Assert.True(nulls > 100 && takeBacks > 100 && plies > 5_000, $"nulls {nulls}, take-backs {takeBacks}, plies {plies}");
+    }
+
+    [Fact]
+    public void TheStackGrowsAsDeepAsTheGameGoes()
+    {
+        // No take-backs: the stack starts with 32 slots and must double (64, 128, 256, 512) under the game.
+        var (_, _, plies, deepest) = PlayRandomGames(7, games: 3, steps: 400, takeBackChance: 0, nullChance: 0.02);
+        Assert.True(deepest > 256, $"deepest {deepest} of {plies} plies");
+    }
+
+    [Fact]
+    public void AMoveFromAnEmptySquareThrowsRatherThanReadingPastTheWeights()
+    {
+        // The square's piece picks the weight column; an empty square has none. The column is a checked
+        // span, so this throws (before, an unchecked read went 64 columns before the weights).
+        var position = Position.FromFen(Fen.StartPosition, Net32);
+        var nothing = new Move((byte)Position.ParseSquare("e4"), (byte)Position.ParseSquare("e5"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => position.MakeMove(nothing));
+    }
+
+    /// <summary>
+    /// Random games from six starts, checking the accumulators against a refresh at every step: now and
+    /// then a null move, or 1-3 moves taken back; then the whole line unwound.
+    /// </summary>
+    internal static (int Nulls, int TakeBacks, int Plies, int Deepest) PlayRandomGames(
+        int seed, int games, int steps, double takeBackChance = 0.1, double nullChance = 0.1)
+    {
+        var rng = new Random(seed);
+        int nulls = 0, takeBacks = 0, plies = 0, deepest = 0;
         foreach (string start in new[] { Fen.StartPosition, MoveGeneratorTests.Kiwipete, MoveGeneratorTests.Promotions,
                                          MoveGeneratorTests.CastlingDiscovery, EnPassant, PromotionCaptures })
         {
-            for (int game = 0; game < 12; game++)
+            for (int game = 0; game < games; game++)
             {
                 var position = Position.FromFen(start, game % 3 == 0 ? Net256 : Net32);
                 var line = new Stack<(Move? Move, Undo Undo)>();
-                for (int step = 0; step < 150; step++)
+                for (int step = 0; step < steps; step++)
                 {
                     AssertMatchesRefresh(position);
+                    deepest = Math.Max(deepest, position.Accumulators!.Depth);
                     double roll = rng.NextDouble();
-                    if (roll < 0.1 && !position.InCheck())
+                    if (roll < nullChance && !position.InCheck())
                     {
                         line.Push((null, position.MakeNullMove()));
                         nulls++;
                         continue;
                     }
-                    if (roll < 0.2 && line.Count > 0)
+                    if (roll < nullChance + takeBackChance && line.Count > 0)
                     {
                         for (int back = rng.Next(1, 4); back > 0 && line.Count > 0; back--)
                         {
@@ -159,7 +189,7 @@ public class NnueTests
                 Assert.Equal(Position.FromFen(start).ToFen(), position.ToFen());
             }
         }
-        Assert.True(nulls > 100 && takeBacks > 100 && plies > 5_000, $"nulls {nulls}, take-backs {takeBacks}, plies {plies}");
+        return (nulls, takeBacks, plies, deepest);
     }
 
     [Fact]
@@ -438,6 +468,9 @@ public class NnueTests
             EvalParams.Original().Save(numbers);
             Assert.True(Network.IsNetworkFile(network));
             Assert.False(Network.IsNetworkFile(numbers));
+            Assert.False(Network.IsNetworkFile(""));
+            Assert.False(Network.IsNetworkFile("  "));
+            Assert.Throws<FileNotFoundException>(() => Network.IsNetworkFile(network + ".missing"));
             Assert.Equal(Net32.Sha256, Network.Load(network).Sha256);
         }
         finally
@@ -596,6 +629,14 @@ public class NnueTests
         engine.Handle("setoption name EvalFile value <empty>");
         Assert.Contains("evaluation: built in", output.ToString());
         Assert.Null(engine.Position.Network);
+        // An empty value is the built-in evaluation too, as is no value at all.
+        engine.Handle($"setoption name EvalFile value {path}");
+        engine.Handle("setoption name EvalFile value");
+        Assert.Null(engine.Position.Network);
+        engine.Handle($"setoption name EvalFile value {path}");
+        engine.Handle("setoption name EvalFile");
+        Assert.Null(engine.Position.Network);
+        Assert.DoesNotContain("info string error: The value cannot be an empty string", output.ToString());
         engine.Handle("eval");
         Assert.Contains($"eval {Evaluation.Evaluate(Position.Start(), EvalParams.Original())} cp", output.ToString());
     }

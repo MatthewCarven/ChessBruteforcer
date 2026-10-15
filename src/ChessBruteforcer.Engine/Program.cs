@@ -21,13 +21,27 @@ if (args.Length > 0 && args[0] == "bench")
     int depth = args.Length > 1 && int.TryParse(args[1], out int d) ? d : 8;
     int evalAt = Array.IndexOf(args, "--eval");
     Network? network = null;
-    if (evalAt >= 0 && evalAt + 1 < args.Length)
+    if (evalAt >= 0)
     {
-        if (Network.IsNetworkFile(args[evalAt + 1]))
-            network = Network.Load(args[evalAt + 1]);
-        else
-            Evaluation.Parameters = EvalParams.Load(args[evalAt + 1]);
-        Console.WriteLine($"evaluation: {(network is null ? "numbers" : "network")} from {args[evalAt + 1]}" +
+        string file = evalAt + 1 < args.Length ? args[evalAt + 1] : "";
+        if (string.IsNullOrWhiteSpace(file) || !File.Exists(file))
+        {
+            Console.Error.WriteLine($"bench: no evaluation file \"{file}\"");
+            return 1;
+        }
+        try
+        {
+            if (Network.IsNetworkFile(file))
+                network = Network.Load(file);
+            else
+                Evaluation.Parameters = EvalParams.Load(file);
+        }
+        catch (Exception e) when (e is FormatException or IOException)
+        {
+            Console.Error.WriteLine($"bench: {e.Message}");
+            return 1;
+        }
+        Console.WriteLine($"evaluation: {(network is null ? "numbers" : "network")} from {file}" +
                           (network is null ? "" : $" ({network})"));
     }
     return Bench(depth, network);
