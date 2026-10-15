@@ -28,6 +28,19 @@ and there is no reason the gain should be equal for both. The two runs overlap
 within their error bars, and the laptop result's main use is showing the Windows /
 WSL setup plays clean games: 20 finished, no forfeits, no illegal moves.
 
+## Threads against one thread (2026-10-15)
+
+Our engine against itself, Matthew's laptop (i9-11900H, 8 cores), 10+0.1,
+one game at a time at below-normal priority, 20 openings from
+games/tune/openings-300.txt in colour-reversed pairs, the tuned evaluation
+(sf1), Hash 64, no endgame tables. Branch claude/nostalgic-greider-09538a;
+the details, and the time-to-depth bench, are in WORKLOG (2026-10-15, 21:25).
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-15 | 8 threads, LazySMP | 1 thread | 40 | +26 -4 =10 | 77.5% | +215 [+124, +344] | no time losses; games 1-8 shared the cores with a test run |
+| 2026-10-15 | 8 threads, Ranges | 1 thread | 40 | +20 -2 =18 | 72.5% | +168 [+95, +259] | no time losses |
+
 ## Versions
 
 - **v0.1**: first engine (alpha-beta + PVS, TT, null move, LMR, quiescence,

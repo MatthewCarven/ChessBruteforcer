@@ -210,8 +210,27 @@ Sessions, in order:
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
+- [ ] **Threads for the bot** (2026-10-15, branch
+      claude/nostalgic-greider-09538a, not merged; WORKLOG 2026-10-15
+      21:25): UCI `Threads` (default 1) and `ThreadSplit` (LazySMP, or Ranges,
+      Matthew's split). Against one thread at 10+0.1, 40 games each: LazySMP
+      on 8 +215 Elo [+124, +344], Ranges on 8 +168 [+95, +259]. Both ~2x to
+      a fixed depth; the narrow windows themselves are worth ~1.3x at most
+      here (Baudet's 5-6x doesn't hold), so LazySMP. Matthew's call:
+      - [ ] The bot's clock: one thread v LazySMP 8 at 300+2, 20 games one at
+        a time, ~4-4.5 h (not alongside an index run: they'd skew each
+        other). Or head-to-head, LazySMP 8 v Ranges 8, to settle the 47 Elo.
+      - [ ] 8 threads with the 5-piece tables loaded: each compressed table
+        reads its blocks under one lock, so threads probing one ending may
+        queue there. Measure before the bot gets threads.
+      - [ ] Then merge, and `Threads: 8` in the bot's uci_options
+        (bot/make-config.py), rebuilt between games. Hash 256 is shared by
+        all the threads.
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
-      searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering and threads;
+      searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
+      on it from 2026-10-15, building on the threads branch);
+      the table holds 16-byte slots but is sized at 24 a slot (Hash 256 uses
+      ~171 MB; sizing it at 16 changes the one-thread search, so measure);
       the hash keying en passant only when a capture is legal (now it keys
       it after every double push, so a repetition through one can be missed:
       WORKLOG 2026-10-15);

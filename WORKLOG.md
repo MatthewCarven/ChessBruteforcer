@@ -2181,3 +2181,137 @@ next move matches the forecast ~80% of the time: a fresh search mostly agrees
 with the last one. Every opponent was an engine, which tends to see the same
 best move; against people it would likely be lower, with no data here to say.
 The engine searches on one thread; the laptop has 8 cores (16 threads).
+
+## 2026-10-15 (21:25-23:35): the search on more than one core
+
+Matthew asked whether the search could use the laptop's other cores (8 cores,
+16 threads; the engine used one), and proposed a way of his own: "describe our
+position in some ranges of possibility, split the job 4 or 8 or 16 ways". Both
+are built on branch claude/nostalgic-greider-09538a (from compression; commit
+9424597; not merged, the bot untouched), behind two new UCI options: `Threads`
+(default 1, so until it's set the bot searches exactly as before) and
+`ThreadSplit`:
+
+- **LazySMP**, the standard way: every thread searches the whole tree from the
+  root, all sharing the transposition table, half the helpers starting a depth
+  ahead. The main thread's answer is played.
+- **Ranges**, Matthew's idea (Baudet's parallel aspiration search, 1978): at
+  each depth from 4, the score range is cut into one window a thread around
+  the last depth's score (cuts at 0, ±15, ±30, ±60, ... cp, so the windows are
+  narrow where the score is likely to land), each reaching 10 cp into its
+  neighbours. Every thread searches the root in its own window; one of them
+  should hold the score, and its thread gives the answer while the rest are
+  stopped. When none holds it (pruning that depends on the window can make
+  neighbours disagree), that depth is searched again on one thread with the
+  full window.
+
+Underneath, the table is lockless (the key XORed with the entry, Hyatt and
+Mann), so a slot two threads write at once reads as a miss: a test of 8
+threads on 4 slots finds 0 mixed entries, and 14,711 in 0.4 s with the trick
+taken out. The endgame tables' sets of missing materials became concurrent.
+One thread searches exactly as before: the same move, score and node count as
+the previous build on 37 positions (the bench's 6, and the 31 below, depth 9).
+
+**Time to depth 12** (`ChessBruteforcer.Engine bench-threads`): 31 positions
+from bot/games (every 8th game, at ply 30, 40 or 50), the bot's evaluation
+(sf1), a 64 MB table cleared before every search. Every arm searched each
+position in turn (reverse order in round 2), 2 rounds, so 62 searches an arm,
+at below-normal priority, the bot playing at times alongside. One thread
+repeated itself exactly (0 of 31 differed). Two runs, each against its own
+one-thread baseline (349 s and 354 s for the 62); the Ranges rows are the
+second run's, with the 10 cp overlap:
+
+| arm | threads | speedup to depth 12 (total time) | median search | searches slower than 1 thread | nodes searched v 1 thread | nodes a second v 1 thread |
+|---|---:|---:|---:|---:|---:|---:|
+| one thread | 1 | 1.00 | 1.00 | | 1.00 | 1.00 (1.8 M/s) |
+| LazySMP | 2 | 1.25 | 1.27 | 13 of 62 | 1.59 | 1.99 |
+| LazySMP | 4 | 1.77 | 1.73 | 5 | 2.25 | 3.97 |
+| LazySMP | 8 | 1.95 | 2.12 | 5 | 3.57 | 6.96 |
+| LazySMP | 16 | 1.64 | 1.83 | 9 | 5.31 | 8.73 |
+| Ranges | 2 | 1.53 | 1.43 | 10 | 1.10 | 1.67 |
+| Ranges | 4 | 1.98 | 1.94 | 5 | 1.24 | 2.44 |
+| Ranges | 8 | 1.61 | 2.36 | 5 | 1.68 | 2.72 |
+| Ranges | 16 | 2.24 | 2.46 | 5 | 1.66 | 3.73 |
+
+(16 threads means the 8 cores' hyperthreads, with the bot and the book learner
+on them too.)
+
+- **To a fixed depth the two are about level**: ~2x at 4 to 8 threads either
+  way, and neither gets far past it.
+- **They spend the cores differently.** LazySMP keeps them all busy (7.0x the
+  nodes a second on 8) but puts most of it into searching wider, not deeper:
+  3.6x the nodes to reach the same depth. That's normal for LazySMP; its gain
+  shows in play more than in time to depth, since the wider search finds
+  better moves at the same depth. Ranges searches nearly the same tree (1.2 to
+  1.7x the nodes) and leaves cores idle (2.4 to 3.7x the nodes a second): once
+  the window holding the score is done the others are stopped, and that window
+  costs nearly what the full one did (next table).
+- **At a fixed depth neither gives the one-thread answer**: the same move in
+  84-90% of searches, the same score in 21-42%, 6-13 cp apart on average. The
+  threads change what the table holds when, so the tree changes. On one thread
+  nothing changed.
+- **The overlap matters to Ranges.** Without it (the first run), 194 of R8's
+  558 parallel depths (35%) had no window holding the score, each searched
+  again on one thread, and Ranges managed 1.21-1.29x at 2 to 8 threads. With
+  10 cp, 28 (5%), giving the table above. The 15 cp step and 10 cp overlap were
+  chosen on 8 other positions (bot games outside the 31, depth 10).
+
+**Baudet's 5-6x** (`scripts/window-ceiling.cs`). The most Ranges could gain,
+however many threads, is what a window just wide enough to hold the score
+saves over the full window at the same depth, from the same start (the table
+and move ordering the earlier depths leave, deterministic on one thread).
+Counted in nodes at depth 11 on the same 31 positions:
+
+| window around the score | held the score | full-window nodes / window's nodes |
+|---|---:|---:|
+| ±1 cp | 8 of 31 | 2.67 |
+| ±5 cp | 13 of 31 | 2.06 |
+| ±10 cp | 20 of 31 | 1.63 |
+| ±25 cp | 30 of 31 | 1.09 |
+| ±50 cp | 31 of 31 | 1.09 |
+| ±100 cp | 31 of 31 | 0.99 |
+| the narrowest that held it | 31 of 31 | **1.27** (median 1.06, best 2.17) |
+
+So the claim doesn't hold for this engine: its ceiling is ~1.3x, not 5-6x.
+Baudet's figure was for plain alpha-beta, where a full window really does cost
+far more than a narrow one. Principal variation search already searches every
+move but the first with a null window, and the table and move ordering do the
+rest, so a narrow window has little left to save. (The ±1 window looks better
+only because it mostly fails: a failed search is cheap and settles nothing.)
+What Ranges measures beyond 1.3x comes from sharing the table: the threads
+whose windows fail fill it for the one that holds the score, which is
+LazySMP's effect arriving by another road.
+
+**Matches**: one thread against 8, 40 games each at 10+0.1 (20 openings from
+games/tune/openings-300.txt in colour-reversed pairs), one game at a time,
+both engines at below-normal priority with the tuned evaluation, Hash 64 and
+no endgame tables. No time losses.
+
+| match | games | +W -L =D | score | Elo [95%] |
+|---|---:|---|---:|---|
+| LazySMP 8 v 1 thread | 40 | +26 -4 =10 | 77.5% | +215 [+124, +344] |
+| (its games 9-40) | 32 | +22 -2 =8 | 81.2% | +255 [+154, +416] |
+| Ranges 8 v 1 thread | 40 | +20 -2 =18 | 72.5% | +168 [+95, +259] |
+
+Games 1-8 of the first overlapped another session's test run (also below
+normal) on the same cores; leaving them out only raises LazySMP's score.
+
+**Does Ranges lose to LazySMP?** To a fixed depth, no: they're level. In play,
+by 47 Elo at 10+0.1, inside the noise of 40 games (only a head-to-head match
+would settle it). In what it is, yes: the narrow windows themselves are worth
+~1.3x at most here, and what makes Ranges work is the shared table, which
+LazySMP uses directly while keeping every core busy. So LazySMP for the bot,
+if Matthew wants threads.
+
+Not yet measured: the bot's own clock (300+2, ~12-14 min a game one at a
+time, so 20 games ~4-4.5 h: Matthew's call), and threads with the endgame
+tables loaded. A 5-piece table's compressed blocks are read under one lock
+per table, so 8 threads probing the same ending could queue there.
+
+The raw output is in scripts/: threads-positions.txt (the 31),
+threads-bench-d12.txt (the first run, Ranges without overlap),
+threads-bench-d12-ranges.txt and threads-ceiling-d11.txt. To repeat:
+`ChessBruteforcer.Engine bench-threads scripts\threads-positions.txt 12 --eval
+bot\eval\eval-sf1.txt` (default arms 1,L2,L4,L8,R2,R4,R8; ~30 min) and
+`dotnet run -c Release scripts\window-ceiling.cs -- scripts\threads-positions.txt
+11 bot\eval\eval-sf1.txt` (~8 min).
