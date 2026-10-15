@@ -86,6 +86,7 @@ public sealed class Search
 
     private Stopwatch _clock = new();
     private long _nodes;
+    private long _tableHits;   // nodes settled by an endgame table
     private long _nodeLimit;
     private long _hardLimitMs;
     private volatile bool _stop;
@@ -225,6 +226,19 @@ public sealed class Search
         }
     }
 
+    /// <summary>Nodes in the current or last search that an endgame table settled, by this thread and its helpers.</summary>
+    public long TableHits
+    {
+        get
+        {
+            long total = _tableHits;
+            var helpers = _helpers;
+            for (int i = 0; i < _activeHelpers; i++)
+                total += helpers[i]._tableHits;
+            return total;
+        }
+    }
+
     /// <summary>Moves to mate for a mate score (positive: side to move mates), otherwise null.</summary>
     public static int? MateIn(int score)
     {
@@ -238,6 +252,7 @@ public sealed class Search
     {
         _stop = false;
         _nodes = 0;
+        _tableHits = 0;
         _clock = Stopwatch.StartNew();
         _nodeLimit = limits.Nodes ?? long.MaxValue;
         var (softLimitMs, hardLimitMs) = TimeBudget(root, limits);
@@ -480,7 +495,10 @@ public sealed class Search
                 return alpha;
             // A table result, with the 50-move rule at this node's clock: a win too slow for it is a draw.
             if (_tablebase is not null && _tablebase.TryProbeWithClock(position, out var outcome))
+            {
+                _tableHits++;
                 return ScoreFromOutcome(outcome, ply);
+            }
         }
         if (ply >= MaxPly - 2)
             return Evaluation.Evaluate(position);

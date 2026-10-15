@@ -35,6 +35,10 @@ internal sealed class CompressedTable : IDisposable
     private byte[] _packed = Array.Empty<byte>();   // a block as stored, read under the lock
     private readonly object _lock = new();
 
+    // For a bench: blocks decompressed and the time it took (the file read included), and
+    // reads that found the lock taken, with the time they waited for it.  Kept under the lock.
+    private long _decompressed, _decompressTicks, _waits, _waitTicks;
+
     public Material Material { get; }
     public bool IsDtz { get; }
     public long Size { get; }
@@ -94,13 +98,43 @@ internal sealed class CompressedTable : IDisposable
         {
             int block = (int)(index / _valuesPerBlock);
             int within = (int)(index % _valuesPerBlock);
-            lock (_lock)
+            if (!Monitor.TryEnter(_lock))
+            {
+                long start = System.Diagnostics.Stopwatch.GetTimestamp();
+                Monitor.Enter(_lock);
+                _waits++;
+                _waitTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
+            }
+            try
             {
                 var bytes = Block(block);
                 return IsDtz ? EndgameTable.FromByte((sbyte)bytes[within])
                              : BitConverter.ToInt16(bytes, within * sizeof(short));
             }
+            finally
+            {
+                Monitor.Exit(_lock);
+            }
         }
+    }
+
+    /// <summary>What the cache has done since the table was opened (see <see cref="BlockCacheCounts"/>).</summary>
+    public BlockCacheCounts Counts
+    {
+        get
+        {
+            lock (_lock)
+                return new BlockCacheCounts(_decompressed, Ms(_decompressTicks), _waits, Ms(_waitTicks));
+        }
+    }
+
+    private static double Ms(long ticks) => ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+
+    /// <summary>Empty the cache, so the next reads decompress their blocks again (for a bench).</summary>
+    public void ClearCache()
+    {
+        lock (_lock)
+            Array.Fill(_cachedBlock, -1);
     }
 
     /// <summary>A block, decompressed: from the cache, or read and put in its slot.</summary>
@@ -109,6 +143,7 @@ internal sealed class CompressedTable : IDisposable
         int slot = block % _cache.Length;
         if (_cachedBlock[slot] == block)
             return _cache[slot]!;
+        long began = System.Diagnostics.Stopwatch.GetTimestamp();
         long start = _offsets[block];
         int length = (int)(_offsets[block + 1] - start);
         if (_packed.Length < length)
@@ -119,6 +154,8 @@ internal sealed class CompressedTable : IDisposable
         if (!BrotliDecoder.TryDecompress(_packed.AsSpan(0, length), bytes, out int written) || written != BlockLength(block))
             throw new InvalidDataException($"{Material}: block {block} doesn't decompress.");
         _cachedBlock[slot] = block;
+        _decompressed++;
+        _decompressTicks += System.Diagnostics.Stopwatch.GetTimestamp() - began;
         return bytes;
     }
 
@@ -251,4 +288,19 @@ internal sealed class CompressedTable : IDisposable
         _view.Dispose();
         _file.Dispose();
     }
+}
+
+/// <summary>
+/// What compressed tables' block caches did, for a bench: blocks
+/// decompressed and the milliseconds that took (the file read included),
+/// and reads that had to wait for another thread, with the milliseconds
+/// they waited.
+/// </summary>
+public readonly record struct BlockCacheCounts(long Decompressed, double DecompressMs, long Waits, double WaitMs)
+{
+    public static BlockCacheCounts operator +(BlockCacheCounts a, BlockCacheCounts b) =>
+        new(a.Decompressed + b.Decompressed, a.DecompressMs + b.DecompressMs, a.Waits + b.Waits, a.WaitMs + b.WaitMs);
+
+    public static BlockCacheCounts operator -(BlockCacheCounts a, BlockCacheCounts b) =>
+        new(a.Decompressed - b.Decompressed, a.DecompressMs - b.DecompressMs, a.Waits - b.Waits, a.WaitMs - b.WaitMs);
 }

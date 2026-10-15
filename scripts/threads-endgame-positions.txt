@@ -1,0 +1,41 @@
+# 20 positions from bot/games (of 96 games reaching 6-7 pieces with the bot to move): the first such position in each (pick-endgame-positions.py)
+# AetherBot vs matthewcarven - v13hxVRs.pgn, ply 87, 6 pieces, KPPvKPP
+1k6/pP6/5p2/8/P7/8/3K4/8 b - - 0 44
+# AshNostromo vs matthewcarven - gXumKaKn.pgn, ply 203, 7 pieces, KRPPvKRP
+8/8/1P1k3p/1r6/2R5/2P5/2K5/8 b - - 0 102
+# CalciumEngine vs matthewcarven - a74gjNST.pgn, ply 137, 7 pieces, KQQPvKPP
+8/2Q5/6pk/4Q2p/1K6/4P3/8/8 b - - 4 69
+# JenniferX vs matthewcarven - vayytpWG.pgn, ply 93, 7 pieces, KQPPvKPP
+8/8/6p1/1p6/1P3k2/2K5/2P3Q1/8 b - - 1 47
+# MinibruteforceBot vs matthewcarven - nBW2J8Np.pgn, ply 127, 7 pieces, KQQPvKRP
+Q1Q5/1P6/4p3/4k3/5r2/8/8/K7 b - - 0 64
+# TheChessblazer vs matthewcarven - HEydZjz5.pgn, ply 111, 6 pieces, KPvKPPP
+5k2/p5p1/7p/8/8/5K1P/8/8 b - - 0 56
+# TroutBot vs matthewcarven - 3xpCTwsw.pgn, ply 109, 7 pieces, KQPPvKPP
+8/7p/5k2/Q7/3pK1P1/8/6P1/8 b - - 0 55
+# anna-bot vs matthewcarven - 3eXeLfSi.pgn, ply 101, 7 pieces, KRPvKPPP
+2R5/8/1p6/2p5/k4p2/5K2/6P1/8 b - - 1 51
+# matthewcarven vs AetherBot - RKOhDgZf.pgn, ply 190, 6 pieces, KQPvKQQ
+8/5Q2/8/8/7K/4q3/6P1/2kq4 w - - 0 96
+# matthewcarven vs CalciumEngine - vE23qVfZ.pgn, ply 146, 7 pieces, KPvKQPPP
+8/6p1/8/2p3q1/4K3/1k4pP/8/8 w - - 0 74
+# matthewcarven vs Goldfish-Engine - GHdu9jUe.pgn, ply 130, 7 pieces, KvKRRPPP
+8/K4ppk/8/2p5/8/8/2r5/1r6 w - - 0 66
+# matthewcarven vs RavenEngine - 7e7AxAOD.pgn, ply 96, 7 pieces, KNPvKBPP
+8/2b3p1/5p2/7P/3k4/8/4K1N1/8 w - - 0 49
+# matthewcarven vs TopasBot - yOhPdyUn.pgn, ply 128, 7 pieces, KBPPvKPP
+8/3K4/1k4p1/6P1/8/8/1P3p2/5B2 w - - 1 65
+# matthewcarven vs bfiedler-bot - 4ffPZcpE.pgn, ply 116, 7 pieces, KQPvKNPP
+2n5/k5K1/2Q5/3p4/2p5/8/6P1/8 w - - 0 59
+# matthewcarven vs mate1-bot - 6cgX7eG8.pgn, ply 112, 7 pieces, KQPPvKBN
+8/2P5/4b3/3nk3/7Q/8/2P4K/8 w - - 1 57
+# matthewcarven vs sseh-c - Mw7jE8rs.pgn, ply 84, 7 pieces, KRPPPvKR
+8/8/R7/P3k3/1r6/7P/6PK/8 w - - 0 43
+# matthewcarven vs uSunfish - NHkwW9mo.pgn, ply 108, 7 pieces, KBPPPvKP
+1k6/4K3/P7/8/7p/3B3P/1P6/8 w - - 1 55
+# pi0w vs matthewcarven - XrwC78kG.pgn, ply 105, 6 pieces, KPPvKRP
+2k5/7p/7P/5K2/8/8/6P1/r7 b - - 0 53
+# stickshark99 vs matthewcarven - oreul00D.pgn, ply 167, 7 pieces, KRNPPvKP
+2k5/4R1K1/p1N5/PP6/8/8/8/8 b - - 0 84
+# wannalearnbot vs matthewcarven - BJ0K80W3.pgn, ply 109, 7 pieces, KRPvKRRP
+8/8/5pk1/8/2RP1K2/1r6/8/3r4 b - - 0 55

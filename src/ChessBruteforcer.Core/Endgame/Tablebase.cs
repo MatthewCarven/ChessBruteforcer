@@ -270,6 +270,17 @@ public sealed class Tablebase : IDisposable
         return (count, bytes, onDisk);
     }
 
+    /// <summary>What every compressed table's block cache has done since it was opened (see <see cref="Endgame.BlockCacheCounts"/>).</summary>
+    public BlockCacheCounts BlockCacheCounts() =>
+        _tables.Values.Concat(_dtzTables.Values).Aggregate(default(BlockCacheCounts), (sum, table) => sum + table.BlockCacheCounts);
+
+    /// <summary>Empty every compressed table's block cache, so a bench's searches start alike.  Not while a search runs.</summary>
+    public void ClearBlockCaches()
+    {
+        foreach (var table in _tables.Values.Concat(_dtzTables.Values))
+            table.ClearBlockCache();
+    }
+
     /// <summary>
     /// Probe without ever solving: false if the position has too many pieces,
     /// castling rights, no table on hand, or only a capped table that hasn't

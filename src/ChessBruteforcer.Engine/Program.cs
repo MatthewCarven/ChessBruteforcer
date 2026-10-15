@@ -157,21 +157,30 @@ static class SelfPlay
 /// a search, then a table of each arm against "1".  Runs at below-normal
 /// priority, so that a game the bot is playing comes first.
 ///
+/// With --tables, the endgame tables in that folder are loaded as the UCI
+/// engine loads them (plain ones into memory up to 1 GB, compressed ones
+/// read a block at a time as probed), every position is searched once by
+/// the last arm before the timed rounds (so the table files are in the
+/// disk cache for all the arms alike), and the compressed tables' block
+/// caches are emptied before each search, as the hash table is.
+///
 ///   bench-threads positions.txt 12 [--arms 1,L2,L4,L8,R2,R4,R8] [--rounds 2]
 ///                 [--hash 64] [--eval eval.txt] [--step 15] [--tsv out.tsv]
+///                 [--tables dir]
 /// </summary>
 static class BenchThreads
 {
     private sealed record Arm(string Name, int Threads, ParallelMode Split);
 
-    private sealed record Row(int Round, int Position, string Arm, double Ms, long Nodes, string Move, int Score, int Fallbacks);
+    private sealed record Row(int Round, int Position, string Arm, double Ms, long Nodes, string Move, int Score, int Fallbacks,
+                              long TableHits, BlockCacheCounts Blocks);
 
     public static int Run(string[] args)
     {
         if (args.Length < 2)
         {
             Console.Error.WriteLine("usage: bench-threads <fen file> <depth> [--arms 1,L2,R2,...] [--rounds n] [--hash mb] " +
-                                    "[--eval file] [--step cp] [--tsv file]");
+                                    "[--eval file] [--step cp] [--tsv file] [--tables dir]");
             return 1;
         }
         var fens = File.ReadLines(args[0]).Select(l => l.Trim()).Where(l => l.Length > 0 && !l.StartsWith('#')).ToArray();
@@ -179,11 +188,12 @@ static class BenchThreads
         string armText = "1,L2,L4,L8,R2,R4,R8";
         int rounds = 2, hash = 64;
         int? step = null, overlap = null;   // (unset: the search's own defaults)
-        string? tsv = null;
+        string? tsv = null, tables = null;
         for (int i = 2; i < args.Length; i++)
         {
             switch (args[i])
             {
+                case "--tables": tables = args[++i]; break;
                 case "--arms": armText = args[++i]; break;
                 case "--rounds": rounds = int.Parse(args[++i]); break;
                 case "--hash": hash = int.Parse(args[++i]); break;
@@ -200,15 +210,25 @@ static class BenchThreads
         using (var self = Process.GetCurrentProcess())
             self.PriorityClass = ProcessPriorityClass.BelowNormal;   // (threads made later inherit it)
 
+        // The tables as the UCI engine has them: never solved or loaded mid-search, read in before the first.
+        using var tablebase = tables is null ? null : new Tablebase(tables) { SolveMissing = false, LoadOnDemand = false };
+        if (tablebase is not null)
+        {
+            var loading = Stopwatch.StartNew();
+            var (count, bytes, onDisk) = tablebase.Preload();
+            Console.WriteLine($"loaded {count} endgame tables from {tables} in {loading.Elapsed.TotalSeconds:0.0} s " +
+                              $"({bytes / (1024 * 1024)} MB in memory, {onDisk} read from disk as probed)");
+        }
         var table = new TranspositionTable(hash);
-        var search = new Search(table);
+        var search = new Search(table, tablebase);
         search.RangeStep = step ?? search.RangeStep;
         search.RangeOverlap = overlap ?? search.RangeOverlap;
         var rows = new List<Row>();
         using var output = tsv is null ? null : new StreamWriter(tsv);
-        output?.WriteLine("round\tposition\tarm\tms\tnodes\tmove\tscore\tfallbacks");
+        output?.WriteLine("round\tposition\tarm\tms\tnodes\tmove\tscore\tfallbacks\ttable_hits\tblocks\tblock_ms\twaits\twait_ms");
         Console.WriteLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss}: {fens.Length} positions to depth {depth}, {rounds} rounds, " +
-                          $"arms {armText}, hash {hash} MB, range step {search.RangeStep} cp, overlap {search.RangeOverlap} cp");
+                          $"arms {armText}, hash {hash} MB, range step {search.RangeStep} cp, overlap {search.RangeOverlap} cp" +
+                          (tablebase is null ? "" : ", endgame tables on"));
         // Warm up first (the JIT, the caches), off the record: the first search ran a third slower.
         foreach (var arm in arms)
         {
@@ -216,6 +236,18 @@ static class BenchThreads
             search.Threads = arm.Threads;
             search.Split = arm.Split;
             search.Run(Position.FromFen(fens[0]), new SearchLimits { Depth = Math.Max(1, depth - 2) });
+        }
+        if (tablebase is not null)
+        {
+            // Every position once, so that the first arm timed doesn't pay alone for reading the table files from disk.
+            var warming = Stopwatch.StartNew();
+            foreach (string fen in fens)
+            {
+                table.Clear();
+                search.Run(Position.FromFen(fen), new SearchLimits { Depth = depth });
+            }
+            Console.WriteLine($"every position searched once on {arms[^1].Name} in {warming.Elapsed.TotalSeconds:0.0} s, off the record " +
+                              $"({Memory()})");
         }
         for (int round = 0; round < rounds; round++)
         {
@@ -225,23 +257,61 @@ static class BenchThreads
                 foreach (var arm in order)
                 {
                     table.Clear();
+                    tablebase?.ClearBlockCaches();
+                    var before = tablebase?.BlockCacheCounts() ?? default;
                     search.Threads = arm.Threads;
                     search.Split = arm.Split;
                     var clock = Stopwatch.StartNew();
                     var result = search.Run(Position.FromFen(fens[p]), new SearchLimits { Depth = depth });
                     double ms = clock.Elapsed.TotalMilliseconds;
+                    var blocks = (tablebase?.BlockCacheCounts() ?? default) - before;
                     var row = new Row(round, p, arm.Name, ms, result.Nodes, result.BestMove?.ToUci() ?? "0000", result.Score,
-                                      search.RangeFallbacks);
+                                      search.RangeFallbacks, search.TableHits, blocks);
                     rows.Add(row);
                     Console.WriteLine($"{round} {p,3} {arm.Name,-4} {ms,9:0.0} ms {row.Nodes,13:N0} nodes " +
                                       $"{row.Nodes / Math.Max(ms, 0.001):0} knps  {row.Move,-6} {row.Score,6}" +
-                                      (row.Fallbacks > 0 ? $"  ({row.Fallbacks} fallbacks)" : ""));
-                    output?.WriteLine($"{round}\t{p}\t{arm.Name}\t{ms:0.000}\t{row.Nodes}\t{row.Move}\t{row.Score}\t{row.Fallbacks}");
+                                      (row.Fallbacks > 0 ? $"  ({row.Fallbacks} fallbacks)" : "") +
+                                      (tablebase is null ? "" : $"  tb {row.TableHits:N0}, {blocks.Decompressed:N0} blocks in " +
+                                                                $"{blocks.DecompressMs:0} ms, {blocks.Waits:N0} waits {blocks.WaitMs:0.0} ms"));
+                    output?.WriteLine($"{round}\t{p}\t{arm.Name}\t{ms:0.000}\t{row.Nodes}\t{row.Move}\t{row.Score}\t{row.Fallbacks}\t" +
+                                      $"{row.TableHits}\t{blocks.Decompressed}\t{blocks.DecompressMs:0.000}\t{blocks.Waits}\t{blocks.WaitMs:0.000}");
                 }
             }
+            Console.WriteLine($"round {round} done, {Memory()}");
         }
         Summarise(rows, arms);
+        if (tablebase is not null)
+            SummariseTables(rows, arms);
         return 0;
+    }
+
+    private static string Memory()
+    {
+        using var self = Process.GetCurrentProcess();
+        return $"private {self.PrivateMemorySize64 / (1024 * 1024):N0} MB, peak {self.PeakPagedMemorySize64 / (1024 * 1024):N0} MB";
+    }
+
+    /// <summary>The endgame tables' share of each arm's searches: table hits, blocks decompressed, and waits, as shares of the arm's thread time.</summary>
+    private static void SummariseTables(List<Row> rows, Arm[] arms)
+    {
+        var baseline = rows.Where(r => r.Arm == "1").ToDictionary(r => (r.Round, r.Position));
+        Console.WriteLine();
+        Console.WriteLine("| arm | threads | table hits a search | table hits v 1 | table hits a second | blocks a search | " +
+                          "decompressing, of thread time | waits a search | waiting, of thread time |");
+        Console.WriteLine("|---|---:|---:|---:|---:|---:|---:|---:|---:|");
+        foreach (var arm in arms)
+        {
+            var mine = rows.Where(r => r.Arm == arm.Name).ToList();
+            if (mine.Count == 0)
+                continue;
+            double threadMs = mine.Sum(r => r.Ms) * arm.Threads;
+            long hits = mine.Sum(r => r.TableHits);
+            long baseHits = mine.Where(r => baseline.ContainsKey((r.Round, r.Position))).Sum(r => baseline[(r.Round, r.Position)].TableHits);
+            Console.WriteLine($"| {arm.Name} | {arm.Threads} | {hits / mine.Count:N0} | {(baseHits > 0 ? $"{(double)hits / baseHits:0.00}" : "")} | " +
+                              $"{hits / (mine.Sum(r => r.Ms) / 1000):N0} | {mine.Average(r => r.Blocks.Decompressed):N0} | " +
+                              $"{mine.Sum(r => r.Blocks.DecompressMs) / threadMs:P1} | {mine.Average(r => r.Blocks.Waits):N0} | " +
+                              $"{mine.Sum(r => r.Blocks.WaitMs) / threadMs:P1} |");
+        }
     }
 
     private static Arm ParseArm(string text) => text switch
