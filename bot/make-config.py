@@ -76,11 +76,11 @@ challenge["modes"] = ["casual", "rated"]                      # rated from 2026-
 challenge["time_controls"] = ["bullet", "blitz", "rapid", "classical"]
 
 config["greeting"] = {
-    "hello": "Hi! I'm {me}: a brute-force engine that plays every position with 5 pieces or fewer perfectly. "
-             "Good luck! (!help)",
+    "hello": "Hi Bots! - I am {me}: a brute-force engine that plays every position with 5 pieces or fewer perfectly. "
+             "Good luck! (!help).",                     # Matthew's wording, 2026-10-16: 131 with our name
     "goodbye": "Good game!",
-    "hello_spectators": "Hi! I'm {me}. Once 5 pieces or fewer are left, every move I make comes from solved tables. "
-                        "!info says how close we are.",
+    "hello_spectators": "Hi! I'm {me}: tables solve 5 pieces or fewer, an opening book learns from my games, and I think on "
+                        "my opponent's time. !info",          # 133 with our name: Lichess's limit is 140, or it isn't sent
     "goodbye_spectators": "Thanks for watching!",
 }
 matchmaking = config["matchmaking"]                           # it challenges other bots when idle (2026-10-13)
