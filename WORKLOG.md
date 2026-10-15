@@ -2134,3 +2134,24 @@ except lines.u16 (half rewritten, 549 MB), plus a `tmp/` of raw columns
 (426 MB) the old `rows` left. The session running it restarted it at
 18:39:42 from the same snapshot, so the 13-game fix is tested on its own;
 the new `rows` proves itself on the next month indexed.
+
+## 2026-10-15 (20:50): a check on everything; June's download stalled at Lichess's end
+
+Matthew closed Chrome and Discord for memory and asked whether anything had
+broken. Nothing had: commit 5.0 of 20.8 GB free, no low-memory events since
+18:37; the bot playing (a game at 20:49; its ERROR lines are only "No
+suitable bots found to challenge"), the learner writing (20:47), and July's
+re-run counted **89,288,421 games, Lichess's count exactly** (SHA-256
+matching), its `check` step running since 20:00 (busy: 14 s of CPU in 30;
+3.4 GB, the old script loading all of lines.u16).
+
+**June's download has stalled since ~18:53**: 23.43 of 26.30 GiB, attempts
+4-19 each ending in curl exit 56 (one 28) after 3-20 minutes with almost
+nothing added. Lichess's database server is the cause, not the line:
+lichess.org answered in 0.7 s and Google in 1.1 s, while
+database.lichess.org (141.95.66.62, IPv4 only from here) sent 15,983 bytes in
+30 s (532 B/s), didn't return its 8 KB counts.txt in 20 s (2 s at 18:35),
+took 200 s for one HEAD request, and then refused even to connect within 15 s.
+Nothing to do here: the queue retries every minute (100 attempts, then it
+stops with "run this again to carry on") and resumes the part from its last
+byte when the server comes back.
