@@ -2403,8 +2403,10 @@ without the lock, ~10 with it; peak ~3 GB, so check commit headroom first).
 The step left open above, before the bot gets threads. A side session, on
 branch claude/angry-kirch-aa4068 on top of claude/practical-cerf-df4df1
 (138e089), so it fast-forwards from it; the bot untouched. Alone on the
-machine for every bench (July's index run waiting for the share, the bot
-not running; only May's capped download), below normal, a 4 GB heap cap.
+machine for every bench, 01:23-02:07 (July's index run waiting for the
+share and never started, the bot not running; only May's download, uncapped
+on Matthew's phone data, network but barely any CPU), below normal, a 4 GB
+heap cap.
 
 **Where the misses came from.** Every read of a compressed table in the
 timed searches traced (`bench-threads --trace`, commit 04cd475), the 20
