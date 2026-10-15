@@ -129,7 +129,9 @@ for ($try = 1; $try -le 100; $try++) {
     $have = if (Test-Path -LiteralPath $part) { (Get-Item -LiteralPath $part).Length } else { 0 }
     if ($have -ge $expected) { break }
     Log ('attempt {0}: {1:N2} of {2:N2} GB' -f $try, ($have / 1GB), ($expected / 1GB))
-    curl.exe -sS -C - @rateArgs -o $part $url
+    # Under 1 KB/s for 2 minutes ends the try (curl exit 28), and the loop resumes from the last byte: on
+    # 2026-10-16 May's connection froze at 241,664 bytes and curl waited on it, while a fresh one got 787 KB/s.
+    curl.exe -sS -C - --speed-limit 1024 --speed-time 120 @rateArgs -o $part $url
     if ($LASTEXITCODE -ne 0) { Log "curl exit $LASTEXITCODE; again in a minute"; Start-Sleep -Seconds 60 }
 }
 
