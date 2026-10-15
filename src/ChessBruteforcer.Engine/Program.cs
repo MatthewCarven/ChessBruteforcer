@@ -162,15 +162,15 @@ static class SelfPlay
 /// read a block at a time as probed), every position is searched once by
 /// the last arm before the timed rounds (so the table files are in the
 /// disk cache for all the arms alike), and the compressed tables' block
-/// caches are emptied before each search, as the hash table is, and their
-/// memory let go (kept, 20 endings on 8 threads passed 4 GB in a minute).
+/// cache (--table-cache MB, the engine's default if not given) is emptied
+/// before each search, as the hash table is, and its memory let go.
 /// With --trace, every read of a compressed table in the timed searches is
 /// written to that file (see TableReadTrace; scripts/block-cache-trace.py
 /// reads it), with the tables' numbering beside it in &lt;file&gt;.tables.tsv.
 ///
 ///   bench-threads positions.txt 12 [--arms 1,L2,L4,L8,R2,R4,R8] [--rounds 2]
 ///                 [--hash 64] [--eval eval.txt] [--step 15] [--tsv out.tsv]
-///                 [--tables dir] [--trace reads.bin]
+///                 [--tables dir] [--table-cache mb] [--trace reads.bin]
 /// </summary>
 static class BenchThreads
 {
@@ -184,13 +184,13 @@ static class BenchThreads
         if (args.Length < 2)
         {
             Console.Error.WriteLine("usage: bench-threads <fen file> <depth> [--arms 1,L2,R2,...] [--rounds n] [--hash mb] " +
-                                    "[--eval file] [--step cp] [--tsv file] [--tables dir] [--trace file]");
+                                    "[--eval file] [--step cp] [--tsv file] [--tables dir] [--table-cache mb] [--trace file]");
             return 1;
         }
         var fens = File.ReadLines(args[0]).Select(l => l.Trim()).Where(l => l.Length > 0 && !l.StartsWith('#')).ToArray();
         int depth = int.Parse(args[1]);
         string armText = "1,L2,L4,L8,R2,R4,R8";
-        int rounds = 2, hash = 64;
+        int rounds = 2, hash = 64, tableCache = BlockCache.DefaultMegabytes;
         int? step = null, overlap = null;   // (unset: the search's own defaults)
         string? tsv = null, tables = null, trace = null;
         for (int i = 2; i < args.Length; i++)
@@ -199,6 +199,7 @@ static class BenchThreads
             {
                 case "--tables": tables = args[++i]; break;
                 case "--trace": trace = args[++i]; break;
+                case "--table-cache": tableCache = int.Parse(args[++i]); break;
                 case "--arms": armText = args[++i]; break;
                 case "--rounds": rounds = int.Parse(args[++i]); break;
                 case "--hash": hash = int.Parse(args[++i]); break;
@@ -216,13 +217,15 @@ static class BenchThreads
             self.PriorityClass = ProcessPriorityClass.BelowNormal;   // (threads made later inherit it)
 
         // The tables as the UCI engine has them: never solved or loaded mid-search, read in before the first.
-        using var tablebase = tables is null ? null : new Tablebase(tables) { SolveMissing = false, LoadOnDemand = false };
+        using var tablebase = tables is null ? null
+            : new Tablebase(tables, blockCache: new BlockCache(tableCache)) { SolveMissing = false, LoadOnDemand = false };
         if (tablebase is not null)
         {
             var loading = Stopwatch.StartNew();
             var (count, bytes, onDisk) = tablebase.Preload();
             Console.WriteLine($"loaded {count} endgame tables from {tables} in {loading.Elapsed.TotalSeconds:0.0} s " +
-                              $"({bytes / (1024 * 1024)} MB in memory, {onDisk} read from disk as probed)");
+                              $"({bytes / (1024 * 1024)} MB in memory, {onDisk} read from disk as probed, " +
+                              $"their blocks cached in {tablebase.BlockCache.Megabytes} MB at most)");
         }
         var table = new TranspositionTable(hash);
         var search = new Search(table, tablebase);
@@ -308,7 +311,7 @@ static class BenchThreads
             names.WriteLine("id\tmaterial\tdtz\tsize\tvalues_per_block");
             foreach (var info in TableReadTrace.Tables)
                 names.WriteLine($"{info.Id}\t{info.Material}\t{(info.Dtz ? 1 : 0)}\t{info.Size}\t{info.ValuesPerBlock}");
-            Console.WriteLine($"traced to {trace}; probes the mate distance settled that DTZ made a draw: {TableReadTrace.Contradictions}");
+            Console.WriteLine($"traced to {trace}");
         }
         Summarise(rows, arms);
         if (tablebase is not null)

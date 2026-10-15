@@ -133,11 +133,8 @@ public sealed class EndgameTable : IDisposable
     /// <summary>Read from a compressed file (see <see cref="SaveCompressed"/>).</summary>
     public bool IsCompressed => _compressed is not null;
 
-    /// <summary>What a compressed table's block cache has done since it was opened (nothing for any other table).</summary>
+    /// <summary>What reading a compressed table through its block cache has cost since it was opened (nothing for any other table).</summary>
     public BlockCacheCounts BlockCacheCounts => _compressed?.Counts ?? default;
-
-    /// <summary>Empty a compressed table's block cache (for a bench).</summary>
-    public void ClearBlockCache() => _compressed?.ClearCache();
 
     /// <summary>True for a table file written by <see cref="SaveCompressed"/> ("CBC1").</summary>
     public static bool IsCompressedFile(string path) => CompressedTable.IsCompressedFile(path);
@@ -394,13 +391,16 @@ public sealed class EndgameTable : IDisposable
     /// Open a saved table.  By default the file is memory-mapped: opening is
     /// instant and each probe reads just the page it needs.  With
     /// <paramref name="intoMemory"/> the whole table is read in, so later
-    /// probes never touch the disk (what a playing engine wants).
+    /// probes never touch the disk (what a playing engine wants).  A
+    /// compressed file read as probed keeps its blocks in <paramref name="cache"/>
+    /// (a <see cref="Tablebase"/> passes the one all its tables share), or in
+    /// a cache of its own.
     /// </summary>
-    public static EndgameTable Load(string path, bool intoMemory = false)
+    public static EndgameTable Load(string path, bool intoMemory = false, BlockCache? cache = null)
     {
         if (CompressedTable.IsCompressedFile(path))
         {
-            var compressed = CompressedTable.Open(path);
+            var compressed = CompressedTable.Open(path, intoMemory ? null : cache);
             if (!intoMemory)
                 return new EndgameTable(new TableIndex(compressed.Material), compressed) { FilePath = path };
             using (compressed)

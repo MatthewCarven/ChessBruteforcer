@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.IO.MemoryMappedFiles;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace ChessBruteforcer.Core.Endgame;
@@ -9,7 +8,8 @@ namespace ChessBruteforcer.Core.Endgame;
 /// <summary>
 /// A table file compressed in blocks ("CBC1"), for disk: the values cut into
 /// blocks of 64 KB, each compressed on its own with Brotli, so a probe
-/// decompresses only the block it needs (~80-100 us a block, cached after).
+/// decompresses only the block it needs (~100-120 us a block with the file
+/// read, kept after in a <see cref="BlockCache"/> shared by every table).
 /// Measured on the 5-piece tables, 13-18x smaller than the plain file at
 /// quality 10 (draws, holes and runs of one value squeeze well).  Putting a
 /// block's low and high bytes in two planes gained nothing with Brotli.
@@ -24,32 +24,25 @@ namespace ChessBruteforcer.Core.Endgame;
 internal sealed class CompressedTable : IDisposable
 {
     public const string Magic = "CBC1";
-    private const int BlockBytes = 1 << 16;
-    public const int CacheSlots = 1024;   // decompressed blocks kept: 64 MB at most per table
+    private const int BlockBytes = BlockCache.BlockBytes;
+
+    /// <summary>The cache a table opened on its own gets, in MB (what each table had to itself before the caches were shared).</summary>
+    public const int OwnCacheMegabytes = 64;
+
+    private static int s_nextId;
 
     private readonly MemoryMappedFile _file;
     private readonly MemoryMappedViewAccessor _view;
     private readonly long[] _offsets;
     private readonly long _dataStart;
     private readonly int _valuesPerBlock;
-    // The cache, read without a lock, since several search threads probe one table at once.  A
-    // slot holds one decompressed block and a version, odd while a thread fills it: a value read
-    // while the version stayed the same even number is good (a seqlock).  Filling is the job of
-    // the one thread that moves the version from even to odd; a read that finds its slot being
-    // filled waits for it.  So a block already there is read by every thread at once, and blocks
-    // for different slots are decompressed at once.  (Under one lock a table, 8 threads in an
-    // ending spent 70% of their time waiting for it and reached depth 12 1.09x as soon as one
-    // thread; without it, 2.08x: WORKLOG, 2026-10-16.)
-    private readonly byte[]?[] _cache;
-    private readonly int[] _cachedBlock;   // the block in each slot, -1 for none
-    private readonly int[] _version;       // each slot's, odd while it is being filled
-    private readonly int[] _filling;       // the block each slot was last filled with (for counting waits)
+    private readonly BlockCache _cache;
     private readonly int _traceId;
-    [ThreadStatic] private static byte[]? t_packed;   // a block as stored, read by the thread filling a slot
+    [ThreadStatic] private static byte[]? t_packed;   // a block as stored, read by the thread decompressing it
 
     // For a bench: blocks decompressed and the time it took (the file read included), and reads
-    // that found their slot being filled by another thread, with the time they waited, and of
-    // those the ones waiting for the very block they wanted.
+    // that waited for another thread, with the time they waited, and of those the ones waiting
+    // for the very block they wanted.
     private long _decompressed, _decompressTicks, _waits, _waitTicks, _sameWaits, _sameWaitTicks;
 
     public Material Material { get; }
@@ -57,8 +50,11 @@ internal sealed class CompressedTable : IDisposable
     public long Size { get; }
     public int Width => IsDtz ? 1 : 2;
 
+    /// <summary>The table's number in its cache, unique in the process.</summary>
+    internal int CacheId { get; } = Interlocked.Increment(ref s_nextId);
+
     private CompressedTable(string path, Material material, bool dtz, long size, int valuesPerBlock,
-                            long[] offsets, long dataStart, int cacheSlots)
+                            long[] offsets, long dataStart, BlockCache cache)
     {
         Material = material;
         IsDtz = dtz;
@@ -66,11 +62,7 @@ internal sealed class CompressedTable : IDisposable
         _valuesPerBlock = valuesPerBlock;
         _offsets = offsets;
         _dataStart = dataStart;
-        _cache = new byte[cacheSlots][];
-        _cachedBlock = new int[cacheSlots];
-        Array.Fill(_cachedBlock, -1);
-        _version = new int[cacheSlots];
-        _filling = new int[cacheSlots];
+        _cache = cache;
         _traceId = TableReadTrace.Register(material, dtz, size, valuesPerBlock);
         _file = MemoryMappedFile.CreateFromFile(path, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
         _view = _file.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
@@ -83,7 +75,8 @@ internal sealed class CompressedTable : IDisposable
         return stream.Read(magic) == magic.Length && Encoding.ASCII.GetString(magic) == Magic;
     }
 
-    public static CompressedTable Open(string path, int cacheSlots = CacheSlots)
+    /// <summary>Open a compressed file, its blocks kept in <paramref name="cache"/> (or a cache of its own, 64 MB).</summary>
+    public static CompressedTable Open(string path, BlockCache? cache = null)
     {
         using var reader = new BinaryReader(File.OpenRead(path), Encoding.ASCII);
         if (Encoding.ASCII.GetString(reader.ReadBytes(Magic.Length)) != Magic)
@@ -104,7 +97,8 @@ internal sealed class CompressedTable : IDisposable
         long dataStart = reader.BaseStream.Position;
         if (reader.BaseStream.Length < dataStart + offsets[blocks])
             throw new InvalidDataException($"{path} is truncated.");
-        return new CompressedTable(path, material, dtz, size, valuesPerBlock, offsets, dataStart, cacheSlots);
+        return new CompressedTable(path, material, dtz, size, valuesPerBlock, offsets, dataStart,
+                                   cache ?? new BlockCache(OwnCacheMegabytes));
     }
 
     /// <summary>The stored value at an index (as the plain table would hold it).</summary>
@@ -113,82 +107,29 @@ internal sealed class CompressedTable : IDisposable
         get
         {
             if (TableReadTrace.On)
-                TableReadTrace.Read(_traceId, index, IsDtz);
-            int block = (int)(index / _valuesPerBlock);
-            int within = (int)(index % _valuesPerBlock);
-            int slot = block % _cache.Length;
-            long waiting = 0;   // since when, if the slot was being filled
-            bool same = false;  // and whether with this block
-            var spinner = new SpinWait();
-            while (true)
-            {
-                // Every read here is an acquire, so each happens before the next: the version,
-                // the slot's block, the value, then the version again.
-                int version = Volatile.Read(ref _version[slot]);
-                if ((version & 1) == 0)
-                {
-                    var bytes = Volatile.Read(ref _cachedBlock[slot]) == block ? _cache[slot] : null;
-                    if (bytes is not null)   // (null only if ClearCache let go of the slot as this read it)
-                    {
-                        short value = IsDtz
-                            ? EndgameTable.FromByte((sbyte)Volatile.Read(ref bytes[within]))
-                            : Volatile.Read(ref Unsafe.As<byte, short>(ref bytes[within * sizeof(short)]));
-                        if (Volatile.Read(ref _version[slot]) == version)
-                        {
-                            if (waiting != 0)
-                                CountWait(waiting, same);
-                            return value;
-                        }
-                        continue;   // refilled as it was read: again
-                    }
-                    if (Interlocked.CompareExchange(ref _version[slot], version + 1, version) == version)
-                    {
-                        Fill(slot, block, version + 1);
-                        continue;   // and read it like any other
-                    }
-                }
-                if (waiting == 0)
-                {
-                    waiting = Stopwatch.GetTimestamp();
-                    same = Volatile.Read(ref _filling[slot]) == block;
-                }
-                spinner.SpinOnce(sleep1Threshold: -1);   // (a fill takes ~100 us; a Sleep(1) can take 15 ms)
-            }
+                TableReadTrace.Read(_traceId, index);
+            return _cache.Read(this, (int)(index / _valuesPerBlock), (int)(index % _valuesPerBlock));
         }
     }
 
-    /// <summary>
-    /// Decompress a block into a slot this thread has claimed (moved its
-    /// version to <paramref name="claimed"/>, odd).  The slot is let go
-    /// however it ends, holding no block if this one failed.
-    /// </summary>
-    private void Fill(int slot, int block, int claimed)
+    /// <summary>Decompress a block into <paramref name="bytes"/> (for the cache), counting it and its time.</summary>
+    internal void Decompress(int block, byte[] bytes)
     {
-        try
-        {
-            _cachedBlock[slot] = -1;   // (the slot's old block is overwritten below, even if this one fails)
-            Volatile.Write(ref _filling[slot], block);
-            long began = Stopwatch.GetTimestamp();
-            long start = _offsets[block];
-            int length = (int)(_offsets[block + 1] - start);
-            var packed = t_packed;
-            if (packed is null || packed.Length < length)
-                t_packed = packed = new byte[Math.Max(length, BlockBytes / 4)];
-            _view.ReadArray(_dataStart + start, packed, 0, length);
-            var bytes = _cache[slot] ??= new byte[BlockBytes];
-            if (!BrotliDecoder.TryDecompress(packed.AsSpan(0, length), bytes, out int written) || written != BlockLength(block))
-                throw new InvalidDataException($"{Material}: block {block} doesn't decompress.");
-            _cachedBlock[slot] = block;
-            Interlocked.Increment(ref _decompressed);
-            Interlocked.Add(ref _decompressTicks, Stopwatch.GetTimestamp() - began);
-        }
-        finally
-        {
-            Volatile.Write(ref _version[slot], claimed + 1);   // even again: everything above is seen before it
-        }
+        long began = Stopwatch.GetTimestamp();
+        long start = _offsets[block];
+        int length = (int)(_offsets[block + 1] - start);
+        var packed = t_packed;
+        if (packed is null || packed.Length < length)
+            t_packed = packed = new byte[Math.Max(length, BlockBytes / 4)];
+        _view.ReadArray(_dataStart + start, packed, 0, length);
+        if (!BrotliDecoder.TryDecompress(packed.AsSpan(0, length), bytes, out int written) || written != BlockLength(block))
+            throw new InvalidDataException($"{Material}: block {block} doesn't decompress.");
+        Interlocked.Increment(ref _decompressed);
+        Interlocked.Add(ref _decompressTicks, Stopwatch.GetTimestamp() - began);
     }
 
-    private void CountWait(long since, bool same)
+    /// <summary>A read of this table waited for another thread from <paramref name="since"/> (for <paramref name="same"/>, its very block).</summary>
+    internal void CountWait(long since, bool same)
     {
         long ticks = Stopwatch.GetTimestamp() - since;
         Interlocked.Increment(ref _waits);
@@ -200,29 +141,13 @@ internal sealed class CompressedTable : IDisposable
         }
     }
 
-    /// <summary>What the cache has done since the table was opened (see <see cref="BlockCacheCounts"/>).</summary>
+    /// <summary>What reading this table has cost since it was opened (see <see cref="BlockCacheCounts"/>).</summary>
     public BlockCacheCounts Counts =>
         new(Interlocked.Read(ref _decompressed), Ms(Interlocked.Read(ref _decompressTicks)),
             Interlocked.Read(ref _waits), Ms(Interlocked.Read(ref _waitTicks)),
             Interlocked.Read(ref _sameWaits), Ms(Interlocked.Read(ref _sameWaitTicks)));
 
     private static double Ms(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;
-
-    /// <summary>Empty the cache and let go of its memory, so the next reads decompress their blocks again (for a bench).</summary>
-    public void ClearCache()
-    {
-        for (int slot = 0; slot < _cache.Length; slot++)
-        {
-            var spinner = new SpinWait();
-            int version;
-            while (((version = Volatile.Read(ref _version[slot])) & 1) != 0
-                   || Interlocked.CompareExchange(ref _version[slot], version + 1, version) != version)
-                spinner.SpinOnce(sleep1Threshold: -1);
-            _cachedBlock[slot] = -1;
-            _cache[slot] = null;
-            Volatile.Write(ref _version[slot], version + 2);
-        }
-    }
 
     private int BlockLength(int block) =>
         (int)(Math.Min(_valuesPerBlock, Size - (long)block * _valuesPerBlock) * Width);

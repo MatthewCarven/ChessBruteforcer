@@ -17,10 +17,18 @@ public sealed class Tablebase : IDisposable
     /// <summary>Where tables are loaded from and saved to, or null to keep them in memory only.</summary>
     public string? Directory { get; }
 
-    public Tablebase(string? directory = null, IProgress<string>? progress = null)
+    /// <summary>
+    /// The decompressed blocks of every compressed table here, in one budget
+    /// (<see cref="Endgame.BlockCache.DefaultMegabytes"/> unless given; the
+    /// UCI option TableCache resizes it).
+    /// </summary>
+    public BlockCache BlockCache { get; }
+
+    public Tablebase(string? directory = null, IProgress<string>? progress = null, BlockCache? blockCache = null)
     {
         Directory = directory;
         _progress = progress;
+        BlockCache = blockCache ?? new BlockCache();
         if (directory is not null)
             System.IO.Directory.CreateDirectory(directory);
     }
@@ -81,7 +89,7 @@ public sealed class Tablebase : IDisposable
 
             if (path is not null && File.Exists(path))
             {
-                table = EndgameTable.Load(path);
+                table = EndgameTable.Load(path, cache: BlockCache);
             }
             else if (!SolveMissing)
             {
@@ -122,7 +130,7 @@ public sealed class Tablebase : IDisposable
         }
         if (path is not null && File.Exists(path))
         {
-            table = EndgameTable.Load(path);
+            table = EndgameTable.Load(path, cache: BlockCache);
         }
         else if (!SolveMissing)
         {
@@ -255,7 +263,7 @@ public sealed class Tablebase : IDisposable
         {
             long need = path.EndsWith(".cbz", StringComparison.OrdinalIgnoreCase) ? length * 2 : length;   // (DTZ: 1 byte on disk, 2 in memory)
             bool intoMemory = bytes + need <= memoryBytes && !EndgameTable.IsCompressedFile(path);
-            var table = EndgameTable.Load(path, intoMemory);
+            var table = EndgameTable.Load(path, intoMemory, BlockCache);
             var (tables, missing) = table.IsDtz ? (_dtzTables, _missingDtz) : (_tables, _missing);
             if (tables.Remove(table.Material, out var old))
                 old.Dispose();
@@ -270,16 +278,12 @@ public sealed class Tablebase : IDisposable
         return (count, bytes, onDisk);
     }
 
-    /// <summary>What every compressed table's block cache has done since it was opened (see <see cref="Endgame.BlockCacheCounts"/>).</summary>
+    /// <summary>What reading every compressed table has cost since it was opened (see <see cref="Endgame.BlockCacheCounts"/>).</summary>
     public BlockCacheCounts BlockCacheCounts() =>
         _tables.Values.Concat(_dtzTables.Values).Aggregate(default(BlockCacheCounts), (sum, table) => sum + table.BlockCacheCounts);
 
-    /// <summary>Empty every compressed table's block cache and let go of its memory, so a bench's searches start alike.</summary>
-    public void ClearBlockCaches()
-    {
-        foreach (var table in _tables.Values.Concat(_dtzTables.Values))
-            table.ClearBlockCache();
-    }
+    /// <summary>Empty the block cache and let go of its memory, so a bench's searches start alike.</summary>
+    public void ClearBlockCaches() => BlockCache.Clear();
 
     /// <summary>
     /// Probe without ever solving: false if the position has too many pieces,
@@ -301,22 +305,23 @@ public sealed class Tablebase : IDisposable
     /// cursed win or blessed loss), or its next capture, pawn move or mate lies
     /// further off than the plies left before 100.  Without a DTZ table on
     /// hand, the mate distance as it stands.  This is what play should use.
+    ///
+    /// A mate that comes before the count reaches 100 settles it without the
+    /// DTZ table: mating in d plies is a way to win under the rule that resets
+    /// the count (or mates) within d plies, so the DTZ table has the same win
+    /// or loss at d plies or fewer, in time too.  In a search nearly every
+    /// probe is right after a capture, count 0, so this skips 99% of the DTZ
+    /// reads, which were a third of the blocks decompressed (WORKLOG
+    /// 2026-10-16; TablebaseTests check it on every position of the tables
+    /// they solve).
     /// </summary>
     public bool TryProbeWithClock(Position position, out Outcome outcome)
     {
         if (!TryProbe(position, out outcome))
             return false;
-        bool settled = DecisiveInTime(outcome, position.HalfmoveClock);
-        if (TableReadTrace.On)
-            TableReadTrace.Settled = settled;
-        if (outcome.Kind != OutcomeKind.Draw && TryProbeDtz(position, out var dtz) && !DecisiveInTime(dtz, position.HalfmoveClock))
-        {
-            if (settled && TableReadTrace.On)
-                TableReadTrace.Contradicted();
+        if (outcome.Kind != OutcomeKind.Draw && !DecisiveInTime(outcome, position.HalfmoveClock)
+            && TryProbeDtz(position, out var dtz) && !DecisiveInTime(dtz, position.HalfmoveClock))
             outcome = Outcome.Draw;
-        }
-        if (TableReadTrace.On)
-            TableReadTrace.Settled = false;
         return true;
     }
 

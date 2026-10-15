@@ -3,15 +3,14 @@ namespace ChessBruteforcer.Core.Endgame;
 /// <summary>
 /// Every read of a compressed table, recorded for a bench (bench-threads
 /// --trace), so that other caches can be tried on the same reads offline
-/// (scripts/block-cache-trace.py): the table, the value's index, the thread,
-/// and for a DTZ read whether the mate distance read just before had already
-/// settled what the 50-move rule makes of the position (see
-/// <see cref="Tablebase.TryProbeWithClock"/>).  Off unless started; while
-/// off, a read costs one test of a static field.
+/// (scripts/block-cache-trace.py): the table, the value's index and the
+/// thread.  Off unless started; while off, a read costs one test of a static
+/// field.
 ///
 /// A read is one long: the index in bits 0-39, the table in 40-51, the
-/// thread (from 1, in the order threads first read) in 52-57, and bit 58
-/// set for a DTZ read the mate distance had settled.
+/// thread (from 1, in the order threads first read) in 52-57.  (Bit 58 marked
+/// a DTZ read the mate distance had already settled, in the traces taken
+/// before <see cref="Tablebase.TryProbeWithClock"/> skipped those reads.)
 /// </summary>
 public static class TableReadTrace
 {
@@ -24,7 +23,6 @@ public static class TableReadTrace
     private static readonly List<List<long>> s_lists = new();
     [ThreadStatic] private static List<long>? t_reads;
     [ThreadStatic] private static long t_thread;
-    [ThreadStatic] private static bool t_settled;
 
     public static bool On => s_on;
 
@@ -48,20 +46,7 @@ public static class TableReadTrace
         }
     }
 
-    /// <summary>Whether the DTZ reads this thread makes next were settled by the mate distance (set around them).</summary>
-    internal static bool Settled
-    {
-        set => t_settled = value;
-    }
-
-    private static long s_contradicted;
-
-    /// <summary>Probes the mate distance settled whose DTZ said otherwise: there should be none.</summary>
-    public static long Contradictions => Interlocked.Read(ref s_contradicted);
-
-    internal static void Contradicted() => Interlocked.Increment(ref s_contradicted);
-
-    internal static void Read(int table, long index, bool dtz)
+    internal static void Read(int table, long index)
     {
         var reads = t_reads;
         if (reads is null)
@@ -73,7 +58,7 @@ public static class TableReadTrace
                 t_thread = s_lists.Count;
             }
         }
-        reads.Add(index | (long)table << 40 | t_thread << 52 | (dtz && t_settled ? 1L << 58 : 0));
+        reads.Add(index | (long)table << 40 | t_thread << 52);
     }
 
     /// <summary>The reads recorded since the last call, thread by thread (each thread's in order), and forget them.  Call it with no search running.</summary>
