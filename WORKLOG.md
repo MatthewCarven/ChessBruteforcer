@@ -1269,3 +1269,957 @@ rather than 48-byte boards, because that is the storage that scales.
   kinds): https://claude.ai/artifact/AC7GVV8rmuefFj1AEEJEE6 (private).
 - Output: scripts/takeover-moves-2026-09-clocks.txt (6 min, peak 1.77 GB,
   heap capped). Tests: 296 pass, 2 skipped.
+
+## 2026-10-13: the Lichess bot, session 1
+
+- lichess-bot (2026.10.11.1, AGPL) in `bot/lichess-bot` with its own venv
+  (out of git, with config.yml and the token). Our settings in
+  `bot/make-config.py`; `bot/start-bot.cmd` refreshes a copy of the engine
+  build, rewrites the config (keeping the token) and runs it with a dated
+  log in bot/logs; games go to bot/games. Engine over UCI with the tables:
+  ready in 1.5 s (292 tables, 796 MB in memory), table moves instant.
+- The account is Matthew's own, **matthewcarven** (made 2026-10-13 for
+  this, no games; he chose it over a separate BruteForceBot). Upgraded to
+  BOT at 04:15; Lichess shows it online with the BOT title.
+- One snag: lichess-bot `-u` carries on as the bot after upgrading, so
+  start-bot.cmd made a second copy, and Lichess rate-limited its event
+  stream (one per account) until the first was closed; it recovered alone.
+- Settings for now: casual only, one game at a time, no resigning, draws
+  offered as lichess-bot's default, no matchmaking. Next: its first games
+  (a challenger, or matchmaking against other bots), then rated.
+- Matchmaking on (casual blitz, 3+2 or 5+3). Lichess starts a new bot at a
+  provisional 3000 in every speed, and casual games never move it, so
+  lichess-bot's "within 300 of our rating" only picked 2700-3300 bots
+  (grail-bot and caiporaBot ignored us). Now a fixed band, 1800-2400.
+- **First game** (https://lichess.org/Ifx8xL7J, 5+2 casual, 04:28-04:40):
+  Bongaclang (2389, the top of the band, opened with the Bongcloud) beat us
+  with Black, mate on move 56. Behind on material from the middlegame; 40 s
+  left at the end, so not the clock. Nothing went wrong in the plumbing: no
+  crash, no illegal move, saved to bot/games. The Stockfish run was going
+  on alongside (single-threaded engines on a 16-thread laptop).
+- Casual, overnight: 4 won, 4 lost, 1 drawn (wins over MinibruteforceBot
+  2014, StockfishLowDepth 1975, agentc313 2204, sseh-c 1950; losses to
+  Bongaclang 2389, CalciumEngine 1856, bot64jaques 2330). Search depth a
+  median 12-14 plies. Some bots refuse casual challenges, so rated from
+  06:04 (a restart between games; a restart mid-game would forfeit it).
+- Rated, the first three: won on time v Iskelt-Corax 1854 (+2), lost v
+  VidBot 2243 (-700: the provisional 3000 falling), won v Botkingteam33
+  2153 by mate in 32 (+148): 2450 provisional at 06:50. The VidBot game
+  reached 4 pieces (K+B v K+R+N) already lost by the tables (mate or a
+  zeroing move against us in 28 plies, the 50-move rule counted), so it was
+  lost before the tables, as every loss so far has been.
+- The whole of September 2026 for (b): `scripts/month-tables.cmd 2026-09`,
+  04:44-06:37. The filter read 89,616,462 games, exactly Lichess's
+  counts.txt, so the download (resumed across three restarts) is intact; it
+  kept 5,260,601 (5.87%) in 46 min, 5.5 GB of PGN; imported in 66 min into
+  `games/2026-09-tables.cbg` (1.86 GB, 669.9 M moves). Next: make `game
+  takeover` stream in batches, then `--moves` on it (TODO).
+- By 08:48: 11 rated games, 5 won, 5 lost, 1 drawn; blitz 2092
+  (provisional), close to the ~2100 estimated from Stockfish matches. Every
+  game that reached the tables had its result settled before it got there
+  (checked by probing the entry position). One loss on time (Voigtsbach,
+  aWLxeu2F) was the network: the connection to Lichess failed from 08:04:15
+  for about a minute while our clock ran. And every move re-makes the
+  connection ("Resetting dropped connection", 586 times overnight, ~1.2 s
+  each from Australia to Lichess's servers), which lichess-bot's 2 s move
+  overhead absorbs. A server nearer Lichess would remove both.
+
+## 2026-10-13: the hard positions at 1 s a move
+
+- `scripts\hard-vs-stockfish.cmd` (Matthew, 01:57-08:18, plugged in, with
+  the bot and the September import running alongside on other threads):
+  the same 252 positions as the 100 ms runs, 504 games in 381 min.
+
+  | | 100 ms (2026-10-09) | 100 ms, battery | **1 s** |
+  |---|---|---|---|
+  | Stockfish's long wins converted (of 108) | 44 | 29 | **76** |
+  | its defences of cursed wins held (of 72) | 5 | 5 | **19** |
+  | its defences of blessed losses held (of 72) | 4 | 2 | **16** |
+  | our points (the tables' 252) | 351.5 | 360 | **322.5** |
+
+- Ten times the time helps Stockfish a lot (41% -> 70% of long wins, and a
+  quarter of the knife-edge defences held instead of a few), but it still
+  can't do what the tables do, and we still score 70.5 points over the
+  tables' figure. Our engine again never did worse than its table in any of
+  the 504 games. Hardest for Stockfish still: K+B+N v K+N (0 of 6 long wins
+  converted at both speeds), K+R+N v K+Q (1 of 6), K+N+N v K+Q (2 of 6).
+  Output: scripts/hard-vs-stockfish-1000ms.txt.
+
+## 2026-10-13: an opening book from our own games
+
+- Matthew: use the human games for an advantage early on ("solid positions
+  to set sail from"). `scripts/make-book.py` streams a month: rated games
+  from the start position, both players 2200+, blitz or slower; every
+  move of the first 24 plies with how the game went for the side playing
+  it; moves played 10+ times scoring 40%+ go in a Polyglot .bin, weighted
+  2 x wins + draws. Two parsing traps found on the 100 MB trial: clock
+  comments split into tokens, and analysed games' move marks (f4?!).
+- September 2026: 89,616,462 games read, **1,594,859 kept**, 54 min (one
+  thread); 12.7 M position-moves seen once dropped along the way (memory a
+  few hundred MB). **Book: 190,079 moves in 128,425 positions, 3.0 MB**
+  (`bot/books/lichess-2026-09-2200.bin`, out of git; rebuild with the
+  script). Read back as lichess-bot reads it: 1.e4 48%, 1.d4 32%, 1.Nf3
+  9%; 1.e4 c5 36%, e5 21%; the Najdorf (5...a6) 65% in the Open Sicilian;
+  even 2.Ke2 has an answer (Nf6 74%). Both sides following it at random,
+  it lasts a median 14 plies (quartiles 11 and 18); 5% reach all 24.
+- The bot's config turns it on when the file exists (weighted random,
+  12 moves). To measure: clock saved from its games, and later a match
+  with and without it against Stockfish (a few hundred games, overnight).
+- First book game (10:20, rated 3+3 v lamprook 1817, Black): the book
+  played our first 8 moves (a Grünfeld), our clock went 180 -> 198 s over
+  them (before the book the engine spent ~7-8 s a move there), and we won,
+  mate in 36 (+16).
+- Matthew asked for more data and 10-15 moves. Measured on the 1 GB sample:
+  15 moves instead of 12 adds 35 moves of 6,785 (no position past ply 24
+  has 10 games); 2000+ or 1800+ make it 3x or 7.5x wider but a line lasts
+  9-10 plies all the same; a whole month (29x the games) took the median
+  line from 9 to 14 plies. So about one ply per doubling of the games.
+- Depth needs more months, so (his pick, no drive): `make-book.py count`
+  saves a month's counts (~50 MB) so its 30 GB download can go, and
+  `make-book.py book` merges every counts file into
+  `bot/books/lichess-2200.bin`; `scripts/month-book.cmd <month>` does the
+  lot. Running from 11:28: September's count, and August 2026 (30.1 GB,
+  91.9 M games) downloading at ~1 MB/s, then counted and merged (~20:00).
+  Disk: 38.8 GB free before August, ~8.7 GB after; each later month needs
+  the last one's .zst deleted first (his), or 6.8 GB of spare files.
+- September counted 11:28-12:19: 4,547,455 position-moves saved (95 MB;
+  fewer dropped than the first build, the threshold being 6 M not 4 M),
+  book 193,322 moves in 130,617 positions. August downloaded 11:28-19:29
+  (30.1 GB, ~1 MB/s), counting from 19:29. `scripts/clean-up.ps1` offers
+  only imported PGNs, unpacked copies and counted downloads, deleting on a
+  typed YES; Matthew ran it (5.84 GB).
+- The bot by 19:50: blitz **1974**, settled after 61 rated games. Rated
+  before the book 6-12-1 (34%, 19 games), with it 17-20-5 (46%, 42 games),
+  each +-10 points or so. One win (v simpleEval 2100, PwB9TEEz) promoted
+  twice and mated with two queens once the tables had it. Matchmaking back
+  to within 300 of its own rating from its next restart.
+- `scripts/book-match.py`: our engine (the bot's copy, with tables) v
+  Stockfish (WSL, UCI_LimitStrength), alternating book / no book and
+  colours, real clocks, each game appended to a .jsonl, summary with 95%
+  intervals and the arms' difference. Smoke test (6 games at 5-8 s): it
+  first hung on exit (engines never quit keep Python alive; fixed), and
+  the book lasted only ~4 of our moves a game against weakened Stockfish.
+- August 2026 counted 19:29-20:24: 91,912,325 games read, 1,650,345 kept,
+  4,999,063 position-moves (105 MB). **The book from both months: 363,447
+  moves in 243,720 positions from 3,245,204 games** (5.5 MB, built in 6 s).
+  Depth, both sides following it at random (4,000 lines): median 14 -> 15
+  plies, average 14.4 -> 15.1, all 24 plies 5.9% -> 7.0%. Doubling the
+  games gave one more ply, as the samples predicted.
+
+## 2026-10-13 evening: where the book runs out against bots
+
+- The bot restarted 20:42 on the two-month book (lichess-2200.bin) with
+  matchmaking within 300. Its first game on it (v uSunfish 1768, Black,
+  5+2): the book played our first two moves, then uSunfish played a move
+  at its third that the 2200+ games don't have; one more book move by
+  transposition, then the engine from our move 5 (7-15 s a move).
+- Matthew's idea: record our own games into the book, in the background,
+  loaded lazily after each game. Measured on the bot's 76 games so far (the
+  first 12 moves each; the 2-month book as it is now): our moves the book
+  couldn't answer 447; **met before in an earlier game: 9 (2%)**; games
+  whose first out-of-book position had come up before: **3 of 74**. Our
+  book picks at random and the opponents vary, so positions rarely repeat
+  (17 opponents met more than once, every one of them at a different exit).
+- Where the book first ran out, by our move: 2-4: 12 games, 5-6: 15,
+  7-8: 33, 9-12: 14, never in 12: 2. Bots leave it with rare moves, so
+  what's missing is width (rare replies), not depth.
+- The same counts with lower thresholds (built in 7 s each, nothing new
+  downloaded), the first exits each would have answered:
+
+  | book (2200+, 2 months, score 40%+) | moves | first exits answered |
+  |---|---|---|
+  | played 10+ times (the bot's now) | 363,447 | 0 of 74 |
+  | 5+ | 640,568 | 19 |
+  | 3+ | 940,807 | 33 |
+  | 2+ | 1,478,677 | 39 |
+
+- lichess-bot (engine_wrapper.get_book_move) tries the listed books in
+  order and reopens each file every move, so a second or third book file
+  is picked up live, with no change to lichess-bot; the engine is one
+  thread, on 16 logical cores, so a background job on one more costs the
+  live game no CPU.
+- Matthew picked (a) now with 3+, then (c). Done: `bot/books/lichess-2200-wide.bin`
+  (moves played 3+ times, 40%+: 940,807 moves in 663,859 positions, 15 MB,
+  7 s), listed after the main book in bot/make-config.py (lichess-bot's
+  list, tried in order); `month-book.cmd` rebuilds both books each month;
+  `book-match.py --book` takes a comma-separated list, by default the bot's
+  two. Config checked by generating it into a scratch file (the real
+  config.yml, with the token, untouched). Live from the bot's next restart.
+- Matthew asked whether to keep the raw months for when the goalposts move.
+  What we keep is the counts (~105 MB a month): any threshold or weighting
+  of 2200+, blitz-or-slower, first 24 plies is a 7 s rebuild; anything
+  outside that (other ratings, bullet, later plies, clocks, per-game
+  questions) needs the month's .zst again: a re-count is ~1 h, a
+  re-download ~8 h. He may map a network drive to his desktop (a few hard
+  disks) to keep the .zst files there (~30 GB a month).
+- Storage, Matthew's (a): the months stay on his desktop, mapped as Z:
+  (`\id10terror-desktop\chessbruteforcer`, 1.8 TB, 1.4 TB free). The share
+  first refused writes (a new share is read-only; his account given Change).
+  Speed: ~10 MB/s each way, about what counting reads (~9 MB/s), so a month
+  is counted straight from there. The six 2013 months copied to
+  `Z:\lichess` and checked byte for byte, each with Lichess's SHA-256
+  beside it (`<name>.sha256`, from database.lichess.org/standard/sha256sums.txt;
+  all six match).
+- Hardened against the share dropping (his ask): `make-book.py count` reads
+  through `Steady`, which on a failed or empty read waits (5 s doubling to
+  60 s), reopens and carries on from the same byte, for up to 30 min in a
+  row; it hashes as it reads and checks the whole file against the
+  `.sha256` (a mismatch stops with nothing written; the hash goes in the
+  counts header). Test (scratch): 2013-01 counted plain, then through a
+  reader failing 2% of reads and reading nothing 1%: 11 failures, counts
+  byte for byte the same; from the share, same records and the checksum
+  checked; a wrong checksum stops; a share that never returns gives up.
+  `download-lichess-month.ps1 -Dir`: waits for the share (up to 6 h) without
+  using attempts, saves the month's SHA-256, logs on the laptop.
+  `month-book.cmd`: `MONTHS` (default the share), waits up to 10 min for it,
+  checks free space there. Counts and books stay on the laptop, so the bot
+  never depends on the desktop.
+- The bot since the 20:42 restart: won v uSunfish 1768 (the out-of-book
+  game: it ended with our pawn promoting), lost v AetherBot 2022, won v
+  sseh-c 1945, TopasBot 1870, Axiom_BOT 1816 (4-1). The wide book is live
+  from its next restart.
+- July started 22:26 (month-book.cmd, its own window, to the share), then
+  Matthew: "queue the lot up, even the ones I deleted". Lichess's archive
+  (list.txt, counts.txt, sizes by HEAD): 165 months, **2.6 TB, 8.22 B
+  games** (2013 0.5 GB; 2017 41 GB; 2020 243 GB; 2021-2025 ~360 GB a year;
+  2026 so far 263 GB). The share has 1.5 TB (decimal) free, so
+  `scripts/month-queue.ps1` goes newest first and stops before leaving
+  < 100 GB: dry run, 2026-09 back to 2022-12, 46 months. Months counted
+  before (08, 09) are downloaded again and checked (`make-book.py verify`);
+  the rest are counted and the books rebuilt after each. A month another
+  window is downloading (July) is left for the end. Tested: verify on a
+  good file, one already checked by its count, a damaged one (exit 1); a
+  child script's `exit` doesn't end the queue. Started 22:36.
+- Two downloads at once: July 0.72 + September 0.59 = 1.30 MB/s, against
+  ~0.85 for one alone, so ~1.4x. Matthew may add a spill-over drive later.
+
+## 2026-10-13 late: planning an index over the games
+
+- Matthew's idea: index files with offsets (a) by moves played, (b) by the
+  board's pieces as a sorted list; every game and position "on the map",
+  streamed from the desktop or cached. The numbers for the 46 months the
+  queue fetches: ~4.3 B games, ~290 B positions passed through (~68 plies a
+  game, as in 2013). Every position as an 8-byte key: ~1.9 TB of keys alone,
+  ~80% saying "one game went here" (2013: 84% of positions distinct, the
+  sharing in the first ~10 plies, one ply deeper per doubling). Every game
+  as a path at 1 byte a move: ~290 GB. So the games themselves are the
+  cheapest map; positions get their own entries only where they repeat (the
+  opening) and by material in the endgame (where the tables are).
+- His order: **(c) game pointers, then (a) the opening layer, then (b) the
+  endgame layer (material, and exact positions with few pieces)**; "on the
+  map" means games and positions (not usernames).
+- (c)'s first question answered on the first 1.24 GB of July already on the
+  share (scratch scripts frames.py, frame_games.py): Lichess's 2026 files
+  are pzstd's layout, a skippable note of each frame's size, then the frame;
+  264 frames there, **4.65-4.73 MB compressed, each exactly 32 MiB of PGN**
+  (7.2x), ~14,400 games starting in each, each decompressed on its own in
+  ~90 ms. The cuts fall at 32 MiB, not between games (frame 1 begins
+  mid-game), so a game can run into the next frame. 2013-01 is 3 frames of
+  4.9-6.4 MB. So:
+  - pointers go straight into Lichess's files, no second copy: per month a
+    frame table (offset, first game starting in it: ~6,200 rows, ~75 KB),
+    and per game what we filter on (moves played: 1-2 bytes, ~180 MB a
+    month). Reaching game g: one frame read (~0.5 s over the share) and
+    ~90 ms to unpack.
+  - frames are independent, so a month can be worked on 16 threads at once,
+    a frame each. That is what makes (a) and (b) affordable: replaying every
+    move of a month (~6 B moves) on one thread would take most of a day.
+
+## 2026-10-14: chat commands for the bot
+
+- The VPS idea (download and pack in Europe, fetch home): four downloads at
+  once came to ~0.95 MB/s, the same as two, so the home line is what's full
+  (shared with the family's streaming). A VPS would only help by sending
+  fewer bytes home (counts only, or slimmed games); Matthew: we can just
+  wait. If ever, the desktop fetches from it; no reverse proxy into it.
+- Matthew: `!help` listing `!info`, which says how many tables we have and
+  whether we're in them now. lichess-bot's commands are written into its
+  lib/conversation.py with no hook, so `bot/chat_commands.py` holds ours and
+  `bot/lichess-bot-chat.patch` (10 lines) makes Conversation.command ask it
+  first; anything it doesn't answer, or any fault in it, goes on to
+  lichess-bot's own. `start-bot.cmd` copies it in as lib/bruteforcer_chat.py
+  and applies the patch unless it's in (or says it couldn't, and starts
+  without), and sets BRUTEFORCER_TABLES.
+- `!info`: "Tables: 146 endings, all with 5 pieces or fewer. Now 30 pieces on
+  the board: not yet. Book: out since my move 4." (or "Now 4 pieces: every
+  move I make comes from them."); the book from the source lichess-bot
+  records for each of our moves. To spectators and the bot's own account
+  (Matthew's (a), as with !eval) a second line: "The tables say: I win, mate
+  in 6." / "I lose, mated in 4." / "a draw" (a 0 includes wins the 50-move
+  rule runs out on), or "no say yet" when a capture has only just brought
+  the game into them. Greetings mention !help / !info (122 and 128 chars).
+- Tested in a scratch copy of lichess-bot (no token) with its real
+  Conversation and Game, Lichess faked: 13 checks (both colours, restarted
+  mid-game, the verdict's three kinds and who sees it, !queue still
+  lichess-bot's, a fault in ours falls back to its !help, every message
+  <= 140 chars). The start block: skips when the patch is in, applies it
+  fresh, and on a changed lichess-bot says so and starts without. Live from
+  the next restart.
+
+## 2026-10-14: what 6-piece tables would be worth
+
+- Matthew asked how much disk 6 pieces would take. Estimated from our own
+  5-piece numbers: 365 tables (110 now), each ~50-64x bigger; ~2-3 TB
+  compressed, up to ~0.2 TB uncompressed while solving the biggest, and
+  ~100+ GB of memory for the pawnless ones (which every pawn table leads
+  into by promotion): years on the laptop, and memory, not disk, is the
+  wall. Syzygy's 6-piece set is ~150 GB (it stores far less). He picked
+  (b): measure what they would be worth first.
+- `game reach <files> [--sample N <tsv>]`: the fewest pieces each game gets
+  down to, time at exactly 6 pieces, how games that stop at 6 end, the
+  6-piece materials games enter by, and a sample of first 6-piece positions.
+  `scripts/six-piece-check.py` judges such positions with Lichess's
+  tablebase (Syzygy, to 7 pieces), under the 50-move rule at the game's
+  count, as `game takeover` does with ours.
+- 1 September 2026, 3,284,165 games (800 s): down to 5 or fewer 5.8%, 6
+  2.4%, 7 2.7%. **6-piece tables would reach 8.2% of games (5.8% now)**;
+  of games reaching 6, 70.6% go on to 5 anyway, after a median 1.5 moves
+  at 6 (quartiles 0.5 and 4). Those that stop at 6 end on time 36%,
+  resigned 30%, mate 25%. The commonest ways in: KPPvKPP 8.7%, KPPPvKP
+  8.0%, KRPPvKR 7.5%, KRPvKRP 6.6%; the top 20 of 319 materials 70%.
+  January 2013 the same shape (9.1% v 6.6%).
+- 600 first 6-piece positions judged: **29.5% ended otherwise than perfect
+  play** (26.7% at 5 pieces, same games), 58% of those on time; bullet
+  34%, blitz 30%, rapid 22%.
+- **The bot (111 games): 30% get down to 5 pieces** (bots play on to mate),
+  6-piece tables would add 4.5%. Its first 6-piece positions: 38 of 38
+  ended as the tablebase says; first 7-piece positions: 49 of 49. Bigger
+  tables would have gained it 0 points: its results are settled before 7
+  pieces, so its strength is in the middlegame (and the book).
+- Outputs: scripts/six-piece-2026-10-14.txt, the 600 judged positions in
+  scripts/six-piece-check-2026-09-part.tsv.
+
+## 2026-10-14: Texel tuning, step 1
+
+- Matthew: "let's do the Texel tuning". The evaluation was Michniewski's
+  simplified one (fixed piece values, one square table each, the king's
+  blended by phase, a bishop pair). Now every piece on every square has a
+  middlegame and an endgame value, blended by phase, plus the bishop pair
+  both ways: 770 numbers (`EvalParams`, saved and loaded as text; the UCI
+  option `EvalFile` loads a set). The built-in set is the old evaluation:
+  3,542 positions, 2,657 identical and 885 a centipawn off (the blend's
+  rounding), none further.
+- `Tuner`: error = mean (result - 1/(1 + 10^(-K eval/400)))^2 over quiet
+  positions with their game's result; K fitted once to the starting
+  numbers; the evaluation is linear in its numbers, so the gradient is
+  exact; Adam, full batch, 16 threads; a tenth of the games held back and
+  the numbers that judge best there kept. Tests: gradient against finite
+  differences, the tuner's evaluation is the engine's, it finds a knight
+  made worth 200 more. A first test with 3,000 coin-flip results overfitted
+  at once (770 numbers): a warning about data size.
+- `tune positions`: 1 September 2026, rated, both 2000+, blitz or slower,
+  ended normally (not on time), positions after move 8, not in check, no
+  capture or promotion just before or as the move played, more than 5
+  pieces; up to 8 a game. 157,870 games, **1,235,527 positions** (815 s).
+- `tune fit`, 1,500 epochs (47 s): K 0.8427; held-back error **0.199653 ->
+  0.191633 (4.0% less)**, still falling slowly, never overfitting. Average
+  values, middlegame / endgame: pawn 77 / 220, knight 249 / 474, bishop
+  247 / 468, rook 355 / 816, queen 997 / 1294, bishop pair 14 / 135 (all
+  were 114 / 307 / 328 / 500 / 897, pair 30). Material counts about double
+  in endgames (an extra unit converts more surely with fewer pieces), and
+  the bishop pair is an endgame asset. 6,000 epochs: 0.191509, but the
+  values drift along a flat valley (endgame queen 1,721, middlegame values
+  shrinking), so the 1,500-epoch set goes to the match:
+  games/tune/eval-v1.txt.
+- Match: tuned v original, same engine (EvalFile), no tables in the
+  engines (ours adjudicate), 10+0.1, 300 openings drawn from our book (8
+  plies), 6 at a time, SPRT [0, 20]. The match tool splits its command at
+  the first space, so the engine runs from a copy in the scratchpad.
+- **Result: no gain.** 1,951 games, tuned +892 -885 =174, 50.2%, Elo +1
+  [-13, +16]; SPRT [0, 20] accepted H0 (09:00-11:22). Better prediction of
+  who wins human games didn't make the engine play better: human results
+  are a noisy target (2000+ players throw a fifth of won endings), and
+  square tables alone can only say so much.
+
+## 2026-10-14: Texel tuning, step 2a: towards Stockfish's judgement
+
+- Matthew picked (c): Stockfish's evaluations first, new evaluation terms
+  after. One Lichess game in ten carries [%eval] after every move (10.1% of
+  306,873 sampled, ~66 evaluated plies each): ~9 M games, ~590 M positions
+  a month. `scripts/eval-games.py` keeps those games with an [Evals] tag
+  (centipawns for white after each ply; M<n> mates; ? none). First 3 GB of
+  July 2026 (on the share): 9,211,656 games read, 948,918 kept (10.3%),
+  466 s; imported 451 s (`games/tune/eval-games-2026-07.cbg`).
+- `tune positions ... --lambda L`: target L x result + (1 - L) x
+  1/(1 + 10^(-cp/400)) from the eval of that position (the one after the
+  ply before); numeric evals only; any rating, blitz or slower, any
+  termination. L = 0, 4 a game: 721,358 games, **2,855,253 positions**.
+- Fit, 1,500 epochs (127 s): K 1.1214; held-back error **0.032367 ->
+  0.027099 (16.3% less**, against 4.0% with results). Values, middlegame /
+  endgame: pawn 94 / 178, knight 292 / 423, bishop 314 / 436, rook 426 /
+  749, queen 1001 / 1282, bishop pair 20 / 84. games/tune/eval-sf1.txt.
+- Match sf1 v original from 15:54, the same setup, 5 at a time (the bot was
+  playing alongside).
+- Aborts: two games v MinibruteforceBot (14:22, 14:58) aborted after 30 s
+  because it never made its first move (we'd played 1.e4 from the book at
+  once). Matthew: don't block it.
+- **Result: sf1 +48 -11 =10 (76.8%), Elo +208 [+130, +311]**: SPRT [0, 20]
+  accepted H1 after 69 games (15:54-16:00). Same tuner, same shape of
+  evaluation, similar data size: Stockfish's verdicts teach what human
+  results couldn't. So the data was the limit, not the evaluation's shape.
+- The bot gets it: `bot/eval/eval-sf1.txt` (in git, 16 KB), and
+  make-config.py sets EvalFile to it when the file is there (delete it to
+  go back). Checked: the engine loads it from that path (spaces and all),
+  and the evaluation changes. Matthew had stopped the bot between games;
+  it takes the new numbers at its next start (start.cmd).
+- First 5 rated games on sf1: 5 won (Stepbot_Chess 1905, ThrorBjorn 1866,
+  Tigrament 2045, laura-bot 1917, mochi_bot 1771), 2009 -> 2026. Too few to
+  measure (at the book era's 53%, 5 of 5 is ~1 in 25); check again at ~30.
+- July 2026 counted (17:12): the books from three months, 4,850,017 games:
+  main 497,607 moves (median line 15 plies, average 15.6, all 24: 8.9%),
+  wide 1,227,739. September back on the share and matching its SHA-256.
+
+## 2026-10-14: the book learner (the book's option c)
+
+- Matthew picked (c), the background job first. `bot/learn.py` (window:
+  `bot/learn.cmd`; `start.cmd` starts it with the bot and the queue):
+  after each finished game, our positions within the book's reach (12
+  moves) where the main book had nothing: no book at all, thought about 45
+  s; only the wide book, its move checked (best v the wide move, 20 s
+  each) and vetoed at 75 cp or more behind. At most 4 a game, nearest the
+  book first. Kept in bot/books/ours.jsonl; bot/books/ours.bin rebuilt
+  after each game (temporary file, moved over; lichess-bot opens books
+  afresh each move). make-config.py lists main, ours, wide, and makes
+  ours.bin if missing with one inert entry (key 0): lichess-bot's
+  open_reader can't take an empty file. Its own engine copy (the tuned
+  evaluation, no tables), below-normal priority (ctypes needs the
+  handle's types on 64-bit, or SetPriorityClass quietly fails).
+- Tested in a scratch folder on 3 games (2 s thinks): 12 positions, each
+  read back from ours.bin as lichess-bot reads it (castling included);
+  the inert entry answers nothing. Started 18:46 on the backlog (~150
+  games). The bot needs one restart to list ours.bin; after that the
+  learner's book goes live as it grows. `learn.py --summary` reports what
+  it has learnt, vetoes, and how many bot moves came from it.
+- Two faults found at 21:15. The learner's Python had exited at ~20:45
+  after 43 games (152 positions learnt); the reason went to its window,
+  which can't be read from here. And its list of studied games was read
+  with split(), but the bot's file names have spaces, so a restart
+  re-read every game (harmless, as learnt positions are skipped, but
+  slow). Fixed: the list read by lines; its log also written to
+  bot/logs/learn-<date>.log; a fault on one game logged with its traceback
+  and skipped, and a dead engine restarted (the game tried again once).
+  Restarted 21:23: below-normal priority confirmed on the interpreter
+  and its engine. If it stops again, the log file says why.
+- Texel step 2a with September (`scripts/tune-data.cmd 2026-09`, its own
+  window from 17:22): filter and import done (games/tune/eval-games-
+  2026-09.cbg, 4.18 GB); positions (2 a game) running at 21:18. Next:
+  `tune fit` on them (with July's 2.86 M, or alone), then a match v sf1.
+
+## 2026-10-14 (night): the bot rides out network changes; start.cmd builds once
+
+- Matthew moves between the upstairs and downstairs wireless networks.
+  lichess-bot already retries each request for 60 s, a game's stream for
+  10 minutes, and restarts itself after a network error at startup; any
+  other fault ("Quitting lichess-bot due to an error") ended it for good.
+  `bot/run-bot.ps1` (run by start-bot.cmd) loops: wait until lichess.org
+  answers, run lichess-bot, start it again 20 s after it stops by itself;
+  Ctrl+C stops all; 5 stops within 2 minutes of starting gives up with a
+  message (a token problem, say). Restarts logged to bot/logs/restarts.log.
+  Tested with a stand-in that fails at once: 4 restarts, then the give-up.
+- start.cmd opened the bot and the learner together; both built the engine
+  at once and the bot's build failed. start.ps1 now builds once first and
+  spaces the windows 15 s apart, and start-bot.cmd / learn.cmd retry a
+  failed build after 20 s. Matthew had stopped everything at 21:26-21:31
+  (the bot cleanly, between games); restarted 21:42-21:44: bot (guard,
+  sf1, our book listed), learner, queue, September's Texel positions.
+
+## 2026-10-14 (late): `game takeover` in batches; the whole of September running
+
+- Matthew picked (a): the code for the month's `--moves` run tonight, the
+  Texel fit tomorrow. `game takeover` held every game that enters a table
+  whole (moves, tags, hashes): 1.8 GB for one day's 190k, ~50 GB for the
+  month. Now it reads in batches (100,000; `--batch N`): each batch gets
+  the tables' verdicts and its moves walked, then each game keeps only a
+  small summary (table, both verdicts, result, plies left, termination,
+  rating band, speed, ended in mate) and the move tallies carry on.
+  Examples go to the first met among equals in the old single pass (the
+  entry table's first appearance, then the game, then the ply), so the
+  batch size can't change them; ties in the report's rankings go by name.
+  --play and --versus still take everything at once.
+- Check on games/2026-09-part-tables.cbg: batches of 20,000 and 100,000
+  both reproduce scripts/takeover-moves-2026-09-clocks.txt line for line,
+  the examples included, apart from the two timing lines (the walk 187 s
+  and 218 s against 234 s).
+- `scripts\takeover-month.cmd 2026-09` started 22:08 in its own window
+  (build copied to games\.cli-takeover): output
+  scripts/takeover-moves-2026-09-month.txt, log games/takeover-2026-09.log.
+- The bot lost to latrunculi-bot (2329, blitz, we challenged it):
+  https://lichess.org/SrwnQEj5, mated on move 57. Our engine had us +1.1
+  at move 17; it turned between moves 21 and 24 (-0.5 to -2.6).
+
+## 2026-10-15 (small hours): the index plan, with three additions
+
+- Matthew's picture: index files pointing into the big files by moves
+  played and the pieces as a sorted list, then positions; duplicates found
+  by checksumming and run-length encoding; a map from beginning to
+  endgame. Most of it was the 2026-10-13 plan. His checksum + RLE is the
+  right tool where positions repeat (sort the 64-bit fingerprints; runs of
+  equal ones are counts; the gaps between sorted ones take ~4 bytes, not
+  8), which is only the opening and the last few pieces: in 2013, 84% of
+  positions were seen once. Collisions: ~1 pair a month (~6 B positions),
+  ~2,300 over 46 months, so exact lookups confirm by replaying.
+- He took all three additions and left the sort order to us: (a) a
+  fingerprint per game in session 1, for duplicate games; (b) the bow-tie
+  map (opening exit x table entry x result) as session 5; (c) per-game
+  rows as Parquet columns through DuckDB, on trial in session 1. Moves
+  played and material become columns rather than sort orders; positions
+  are sorted by fingerprint. TODO has the sessions.
+
+## 2026-10-15 (00:33): the whole of September, move by move
+
+- `scripts\takeover-month.cmd 2026-09`, 22:08-00:33: 5,260,601 games read
+  (55 min), 5,226,962 enter a table, 95.5 M moves walked; memory peaked
+  ~2.3 GB. Output scripts/takeover-moves-2026-09-month.txt; set beside the
+  one day (1 September) by a scratch script.
+- **The one day was representative.** Every headline number held:
+
+  | | 1 Sept | September |
+  |---|---|---|
+  | games entering a table | 189,913 | 5,226,962 |
+  | ended otherwise than the table | 26.7% | 26.6% |
+  | of the won endings not won, on time | 54.3% | 53.8% |
+  | moves played in the tables | 3.44 M | 95.5 M |
+  | mistakes, of moves that could go wrong | 1 in 31 | 1 in 31 |
+  | games with at least one mistake | 20.4% | 20.5% |
+  | checks (better than the table / unread) | 0 / 0 | 0 / 0 |
+
+- **The thin rows are solid now** (mistakes per 100 moves that could go
+  wrong, 95% margins): by the mover's rating 3.81 / 3.08 / 2.88 / 2.38
+  (+-0.01-0.02; 2400 and up make 38% fewer than under 1500), yet games
+  end otherwise ~27% in every band, because the clock takes more of them
+  as ratings rise (on time 37% -> 79%). By time control: ultrabullet 5.83
+  +-0.15 (13,193 games), bullet 3.44, blitz 3.21, rapid 3.12, classical
+  2.69 +-0.04 (39,085 games, 17.6% ended otherwise, 11% of those on time).
+- The clock, confirmed: 4.61 per 100 with under 5 s left against ~2.9 from
+  10 s up; long thinks 30 s+ 6.29 (hard positions, not proof that thinking
+  hurts). Late in an ending (41+ own moves) 2.25 +-0.03, a little worse
+  than the day's 2.05 suggested.
+- New at this size, the hardest tables (1,000+ moves that could go wrong):
+  two minor pieces against a queen, KBBvKQ 19.5 +-2.3 and KNNvKQ 18.9
+  +-1.4 per 100 (about 1 move in 5), KBBvKN 12.7; then KRPvKQ 11.0,
+  KQPvKQ 10.3, KPPvKR 10.0 as before. Kinds of mistake as before (king
+  33%, hung 21%, piece 20%, pawn 10%, stalemate 9%; KQvK 58% stalemates).
+  KRvK shows 19% "too slow": the 50-move count running out on K+R v K.
+- Examples now reach 3000+ (bullet: 3085 threw a K+Q+P v K+Q win with 24 s
+  left). Ratings of exactly 3000 are probably new bots at their
+  provisional start (ours began there), so the top band has some bots in.
+- The one-day sample files can go once Matthew likes (his call):
+  games/2026-09-part.cbg (1.28 GB); keep 2026-09-part-tables.cbg (64 MB)
+  as the line-for-line check for `game takeover`.
+
+## 2026-10-15 (small hours): the plan consolidated
+
+- Matthew asked for the plan consolidated before the next session, which
+  makes the build plan for the index. TODO.md now opens with one plan in
+  order: what runs in the background, the next session (start the Texel
+  fit and its match in the background, the September positions being
+  ready: 13,580,216 from 6,811,130 games; then the index build plan),
+  then four sections: the index (sessions 1-5), the engine's strength,
+  findings for the thesis, and Matthew's own items. The older sections
+  stay below as the record; their open items moved up. Stale entries
+  fixed: KRPvKR was already compressed (CBC1), compression is done, and two
+  paths an old heredoc had mangled.
+
+## 2026-10-15 (00:45 on): the September Texel fit; the index's build plan
+
+- `compression` is pushed (GitHub at d13b55c). Running: the bot (a game
+  on), the learner, and the queue on August (~1 MB/s). Commit 15.1 of 19.0
+  GB used before anything new started.
+- `scripts\tune-match.cmd <new> <old> <positions>`: one round of Texel
+  tuning in its own window. Builds, fits `games\tune\eval-<new>.txt` with
+  every thread at below-normal priority (the bot's games come first) and
+  the .NET heap capped at 3.5 GB, then plays the match the way sf1's was
+  played (engine and evaluations copied to %TEMP%\cb-match, as the match
+  tool splits its engine command at the first space; 10+0.1, 5 at a time,
+  300 book openings, our tables adjudicating, at most 2000 games), with
+  SPRT [0, 10]. Started 00:49 as `sf2 sf1
+  games\tune\positions-2026-09-sf.tsv`: 13,580,216 positions loaded in 48
+  s (12.2 M tuned on, 1.36 M held back), K 1.2669, held-back error 0.038818
+  at the start; ~0.7-0.8 s an epoch, so ~20 minutes for 1,500.
+- The index's build plan is INDEX.md. A sample first (24 frames spread
+  over July, 346,962 games, scratch script): 6,177 frames, ~89.3 M games;
+  Python parses a frame's games in 1.7 s on one thread, so 8 processes
+  keep up with the share (~50 min a month) and session 1 needs no C#;
+  walking the frame notes over the share took 165 s (27 ms a read), so the
+  frame table is made during the one read. A row needs no location (its
+  number and the frame table find it). Packed, a row is 14.2 bytes, 8 of
+  them the fingerprint: 1.27 GB a month, ~58 GB for 46 months. 1.19% of
+  the sample's games share their exact moves with another. 2013-01 has
+  pzstd's notes too.
+- Found while planning session 2: the engine's Zobrist hash keys the en
+  passant square after every double pawn push, so 1.e4 e5 2.Nf3 and 1.Nf3
+  e5 2.e4 hash differently. The index's position fingerprint keys it only
+  when an en passant capture is legal. (In the engine itself, its hash
+  table and repetition checks, the same quirk can only miss a
+  transposition or a repetition, never confuse two positions.)
+
+## 2026-10-15 (01:10 on): index session 1 begun; the sf2 fit done
+
+- The fit finished in 1,128 s (games/tune/eval-sf2.txt); sf2 v sf1 started
+  by itself. At game 116: +43 -37 =36, 52.6%, undecided.
+- Matthew: yes to DuckDB (1.5.6 installed, global Python 3.14), and
+  session 1 now with July's read held until the match ends. He asked that
+  his CSharp-Lookuptables not be forgotten; the answer from its own README
+  is in INDEX.md (session 3): its winning disk design (a small index in RAM
+  into one flat file) is the shape the index already uses, the trial needs
+  no .NET upgrade, and an upgrade only follows if the trie wins.
+- `scripts/index-month.py` (rows, get, check, dups, trial). 2013-01: 121,332
+  games (Lichess's count), SHA-256 matches, every game fetched by number
+  matches the read byte for byte; duplicates 0.83%, none longer than 20
+  plies (75.6% of games of 1-4 plies are duplicates; the biggest group is
+  80 games of 1.e4 e5); Parquet and plain columns agree (17.3 / 17.5
+  bytes a game; too small to time).
+- A first run with 8 workers failed to unpack a frame ("Unable to allocate
+  output buffer") at the moment Windows logged a low-memory event
+  (Resource-Exhaustion-Detector 2004, 01:17:37). The bot (mid-game) and the
+  match were unharmed. 3.9 GB of commit was free with nothing of ours
+  running; the Claude app's 17 processes held 4.8 GB. The default is 4
+  workers now, which still keeps up with the share.
+- DuckDB reads a dict of numpy arrays directly (unsigned types kept), so
+  the trial needs no pandas or pyarrow. In SQL, 40 x a UINT8 column
+  overflows: cast first.
+- Matthew picked (b), the Lookuptables trial brought forward, and (c),
+  July's read after the match. `rows --lines 16` keeps each game's first 16
+  moves as two-byte codes (2013-01: 1,304 different moves in SAN; all
+  121,332 games' saved moves match their fetched PGN), and
+  scripts/lines-trial.cs (.NET 10, his library referenced as it is) sets
+  his burst trie against a sorted array and a scan. 2013-01: equal (~0.9 µs)
+  where a prefix picks out a game or two, the sorted array 20x faster where
+  it picks out tens of thousands (its games are one run; the trie lists
+  every line), the trie 3x the memory. Games become unique fast: 46% share
+  their first 8 moves with no other game, 96.5% their first 16 (2013).
+- July-sized memory: `dups` and `trial` loaded whole columns (~2-4 GB for
+  July's 89 M games). Now columns stream out of their .zst into numpy
+  arrays a piece at a time (zstd.open + readinto), duplicates come from one
+  sorted copy of the fingerprints, the Parquet goes out as 10 M-row parts,
+  and DuckDB is capped at 1 GB with its spill folder in the index folder
+  (its default is .tmp in the working directory). Same answers on 2013-01.
+- scripts\index-month.cmd runs the lot in order, after waiting for a log's
+  "final:" line; started 01:32 for July, waiting on the sf2 match (264
+  games at 01:32: +97 -86 =81, Elo +14 [-20, +50]).
+- The PowerShell guard refused a whole call ("system path '/c'") over a
+  `Remove-Item` beside a `cmd /c "..."`, so nothing in it ran: one
+  `Remove-Item` per call, on its own, as the notebook says.
+
+## 2026-10-15 (~02:00): a fairer trie, on Matthew's branch
+
+- Matthew: "we might have to rerun the benchmark", then (b): give his trie
+  the shortcut the sorted array had. `BurstTrie.TryGetPrefixRange` on a new
+  branch `prefix-range` in ..\Lookuptables (f1063ff, his to push): the
+  first and last key with a prefix, down the first and last children from
+  the prefix's node (a key ending at a node sorts first), scanning only the
+  two end leaves. Tests against a sorted reference (strings with keys that
+  are prefixes of others, small-alphabet bytes, sequential IDs with skipped
+  runs; thresholds 1, 2, 3, 32, 128): 45 of 45 pass, and four deliberate
+  faults (terminal not first, largest going left, no check past the
+  fingerprint, a leaf's max taken as its min) all turned them red.
+- lines-trial.cs measures the trie both ways. 2013-01: with the range
+  method the trie is fastest at every prefix length (0.4 µs against 0.8
+  for the sorted array on long prefixes; 4.7 against 9.0 µs at 2 moves),
+  answers agreeing; 3x the memory.
+- Matthew pushed it and merged it into his main (PR #1, merge commit
+  b9ca823, the same tree as f1063ff); his local main fast-forwarded to it
+  and the merged branch deleted. The trial builds and agrees against main.
+  Match at 659 games: +227 -212 =220, Elo +8 [-14, +30].
+
+## 2026-10-15 (to ~05:15): sf2 no better; the share went away
+
+- **sf2 v sf1 ran its full 2,000 games: +668 -662 =670, 50.1%, Elo +1
+  [-11, +13]**; SPRT [0, 10] undecided (LLR -0.99). Fitting on September's
+  13.58 M positions instead of July's 2.86 M changed the numbers a little
+  and the play not at all: the data size has done its work, and this
+  evaluation's shape (piece-square tables and the bishop pair) is now the
+  limit. The bot keeps sf1. Next for strength: step 2b (new terms), guided
+  by "where our losses turn".
+- July's index run started at 04:11:45 when the match ended and read 965
+  frames (4.55 GB, 13.9 M games) at ~7.3 MB/s; then the share went away
+  (~04:23). make-book.py's reader waits 30 minutes, so both it and August's
+  SHA-256 check (in the month queue, at byte 23.18 G of 30.1 G) gave up at
+  04:54:46 with "No such file", and the share was still unreachable at
+  05:12. The queue logged August as DAMAGED and listed it in
+  games/month-queue.damaged, which would have skipped it from then on;
+  Matthew stopped the queue and agreed it was likely the network.
+- The queue now calls a month damaged only when this run's make-book.py
+  says "doesn't match Lichess's SHA-256"; any other failure of the check
+  waits for the share (up to 6 hours, as for downloads) and tries once
+  more, then stops. The count step's test reads only this run's lines too
+  (it searched the whole log, so an old mismatch line would have counted).
+  Checked: the script parses, and the rule on a stand-in log (an old
+  mismatch above a lost share: not damaged; a mismatch in this run:
+  damaged). August taken off the damaged list. Matthew is rebooting before
+  testing it again.
+
+## 2026-10-15 (05:16 on): after the reboot, August is sound
+
+- The share answered again after the reboot (Z: mapped, all three 2026
+  months there). Matthew asked for August's checksum again:
+  `scripts\verify-month.cmd <month>` (new: make-book.py verify in its own
+  window, log games/verify-<month>.log) ran 05:19-06:03: **SHA-256 matches
+  Lichess's**, 30,145,862,359 bytes in 2,622 s (11.5 MB/s, faster than the
+  ~7 MB/s while the queue also used the share). So the file was never
+  damaged; the share going away was.
+- Matthew ran start.cmd at 09:12: bot, learner, queue. The queue checked
+  August again (matches, 09:55) and July (checked when counted: at once),
+  marked both done, and is downloading June.
+- Still to do: July's index run again (`scripts\index-month.cmd 2026-07`),
+  which the outage stopped at 4.55 of 29 GB.
+
+## 2026-10-15 (13:33-14:54): July's index run, sessions 1 and 1b, all passing
+
+Matthew started `scripts\index-month.cmd 2026-07`; log
+games/index/index-2026-07.log. Not yet written up (scripts/index-2026-07.txt
+is the next chat's first job).
+
+- **rows**: 6,177 frames, **89,288,408 games**, read in 2,516 s (11.5 MB/s,
+  the June download alongside); SHA-256 matches. Rows 1,268 MB packed,
+  **14.20 bytes a game** (the sample said 14.2). First 16 moves:
+  lines.u16, 2,857 MB, 3,246 different moves in SAN.
+- **check**: 1,000 of 1,000 games fetched by number match the read, and
+  1,000 of 1,000 games cut by a frame's end; their saved moves all right.
+- **dups**: 87,604,543 distinct move sequences; **2.05% of games share
+  their exact moves with another** (2013-01: 0.83%), in 150,418 groups.
+  Mostly short: 383,336 games with no move at all (100% duplicates), 99% of
+  1-4 plies, 59% of 5-10, 12% of 11-20, then 0.3% / 0.02% / 0.04%. But
+  ~17,000 duplicated games are 41+ plies, the longest 356 plies (2013 had
+  none over 20): worth a look (bots playing each other the same way?). The
+  20 biggest groups all confirmed by fetching two games each.
+- **trial, plain columns v Parquet** (answers agree): 1,268.3 v 1,267.1 MB;
+  written in 8.5 v 7.7 s; the three queries 6.2 v 4.8 s. Parquet as small
+  and a little faster.
+- **lines trial, the first 8 M games**: 7,348,088 distinct 16-move lines
+  (91.9%); games sharing their first k moves with no other: 0.2% at 4,
+  15.3% at 8, 58.9% at 12, 88.8% at 16. Memory: sorted array 265 MB, burst
+  trie 847 MB (3.2x). Median a query, sorted / trie every line / trie ends /
+  scan (µs): 1 move (4.6 M games found) 1,650 / 41,043 / 1,645 / 53,870;
+  4 moves 6.9 / 234 / 6.9 / 21,303; 8 moves 2.6 / 6.5 / 3.1; 12 moves 2.5 /
+  3.0 / 2.5; 16 moves 2.3 / 2.9 / 2.4. All 1,000: 166 / 4,279 / 165 ms.
+  **At this size the trie with TryGetPrefixRange ties the sorted array**
+  (on 2013-01 it was ahead; here memory misses dominate both) and costs
+  3.2x the memory; without it, 26x slower. Answers agree.
+
+## 2026-10-15 (~17:25): the month queue paused for the household
+
+Matthew stopped the month queue's window: the download was filling the
+line and YouTube at home was waiting on it. Nothing lost: June's .part on
+the share holds 23.96 of 28.24 GB (22.32 of 26.30 GiB), so ~4.3 GB to go,
+about 70 minutes at the ~1 MB/s it had been getting (8.9 GiB in the 2.5 h
+of its 19th attempt; curl had dropped 18 times, exits 35 and 56, before
+14:53). The bot and the learner are still running. To carry on, run
+start.cmd (it starts only the queue) or scripts\month-queue.cmd: it checks
+the part isn't growing for 150 s, then resumes it with `curl -C -`.
+
+Then his (b): a speed cap. `download-lichess-month.ps1 -LimitRate` hands
+curl `--limit-rate` (no cap unless asked), and `month-queue.ps1` asks for
+**500k by default**; `-LimitRate 0` is full speed, and a bad value stops
+before any network use. Both log the cap. Checked against a local HTTP
+server (curl ignores the cap on file://), 3 MiB each:
+
+| cap  | time  | speed        |
+|------|-------|--------------|
+| 500k | 6.2 s | 498 KiB/s    |
+| 1m   | 2.9 s | 1,046 KiB/s  |
+| 0    | 0.0 s | uncapped     |
+
+What it costs: June's last 4.3 GB take ~2.3 h, not ~70 min; the queue's
+remaining ~1,260 GB ~28 days at 500 KiB/s, not ~16 at the ~0.9 MB/s June
+got. What it leaves: two downloads once ran 1.30 MB/s together, so the line
+carries at least that (~10 Mbit/s); 500 KiB/s (~4 Mbit/s) leaves ≥ ~6
+Mbit/s, enough for 1080p video. If YouTube still waits, 300k.
+
+Restarted on his yes at 17:38 (`Start-Process scripts\month-queue.cmd`,
+its own window); the queue logged "downloads capped at 500k a second",
+watched June's part for 150 s, and curl resumed it at 17:41:11 from 22.32
+GiB. Measured on the share, eight 30 s readings from 17:41:32: 501, 499,
+465, 536, 498, 499, 499, 499 KiB/s, **499 KiB/s over 240 s**. So June
+(4.15 GB to go at 17:45) lands about 20:00, then its count. Matthew pushed
+to 8f714fc (ls-remote agrees).
+
+## 2026-10-15 (17:57-18:15): July's index written up; 13 games a frame cut lost
+
+[scripts/index-2026-07.txt](scripts/index-2026-07.txt) has the whole run:
+the read, the columns, check, dups, the trial and the lines trial.
+
+- **13 games short.** Lichess's counts.txt says 89,288,421 for July; `rows`
+  read 89,288,408. A scan of every frame's first bytes (217 s over the
+  share) found 17 frames beginning part-way through an `[Event "Rated` line.
+  13 of those cut before the space after `[Event`, so neither frame held a
+  whole game start, and each of those games was glued onto the one before it
+  (their rows have 115-230 plies, the second game's tags read as moves). The
+  other 4 cut after `[Event `, which the earlier frame finds whole. 13 exactly.
+  Expected ~16 a month (6 harmful places in ~2,321 bytes a game, 6,176 frame
+  ends), so ~600 games over the 46 months queued.
+- **`check` couldn't see it**: `get` joined the frames the same way `rows`
+  did, so the two agreed. Only Lichess's count catches a lost game.
+- **Fixed**: `rows` and `get` split the joined text at every game start
+  (`split_games`); `get` also walks back when a frame shows no whole game
+  start. **scripts/test-index-month.py** (new): 7,892 real 2013-01 games cut
+  into 20 frames through every point of an `[Event` line, mid-move, a frame
+  with no game start, and one whose only game start is cut at its end. The
+  old code indexed 7,883 (`check` passed); the fixed one 7,892, all fetched
+  right with the right plies and fingerprints. 2013-01 again: 121,332
+  (counts.txt agrees), all fetched byte for byte.
+- **The long duplicates are bots** (Matthew's guess): of 16,999 duplicated
+  games of 41+ plies, 96.8% BOT v BOT, 3.1% BOT v human, 26 games human v
+  human. The 356-ply pair is one Ruy Lopez replayed by weak bots
+  (~1200-1450) three weeks apart at different clocks, to the same two-queen
+  mate. BOT games are 0.46% of the month.
+- **The columns**: the fingerprint is 56% of the rows (8.0 of 14.2 bytes a
+  game). Median 62 plies; ratings median 1658; 99.5% have clocks, 10.1%
+  Lichess's evaluations, 8.5% are tournament games; 499 ECO codes.
+- **Format: Parquet** (1,267 v 1,268 MB, queries 4.8 v 6.2 s, and SQL).
+
+Next: July again with the fix (~1.5 h, its own window), then where the
+whole index lives (Matthew's call).
+
+**July running again, from 18:18** on Matthew's yes, in its own window. It
+runs index-month.py and make-book.py from a snapshot of ee66600 in the
+scratchpad (a copy of index-month.cmd beside them, output and log to the
+repo as usual: games/index/index-2026-07.log, appended), because another
+session is moving `rows` to Parquet in this checkout meanwhile, and each of
+the five steps starts the script afresh. lines-trial.cs runs from the repo.
+
+## 2026-10-15 (18:17-18:50): `rows` writes Parquet; the count against Lichess's, every month
+
+TODO item 3's follow-up, in a side session.
+
+- **`rows` writes the rows straight to Parquet** through DuckDB as the read
+  goes: `parquet/part-NNN.parquet`, 10 M games a part (`--part-rows`), zstd,
+  the same 11 columns and types. Parts go to `parquet.new/` and move into
+  `parquet/` only once the read is whole and its SHA-256 matches;
+  `games.json` (written last) lists the parts and each column's size from
+  Parquet's own metadata. The plain .zst columns are gone. `check`, `dups`,
+  `trial` and `Index.column` read the parts a part at a time, and an index
+  from before (no `"format": "parquet"`) is refused with "run rows again".
+  `check` now also compares every sampled game's row (all 11 columns) with
+  the fetched game parsed again, so row n is shown to be game n. `trial`
+  runs its three queries two ways on the Parquet rows (SQL; numpy over the
+  columns) and compares them, and prints each column's size.
+- **Memory**: the COPY of a 10 M-row part costs +140-180 MB on DuckDB's 4
+  threads and +16 MB on 1 (1.5 s a part instead of 0.75), so the writer uses
+  one. On 20 M synthetic rows the main process peaks ~580 MB over its
+  baseline during the read (~260 MB of it the part being gathered); the old
+  packing step peaked ~1.4 GB, after the read. DuckDB capped at 1 GB,
+  spilling into the index folder.
+- **The count**: download-lichess-month.ps1 saves the month's line of
+  Lichess's standard/counts.txt beside its `.sha256` as `<name>.count`, and
+  run on a month already there it downloads nothing and saves whichever of
+  the two is missing. `rows` reads it first (a bad one stops before the
+  read) and ends `count: 121,332 games, Lichess's counts.txt 121,332:
+  MATCHES`, or SHORT BY n / OVER BY n with exit 1, every file written. The
+  month queue picks the new download script up from May on (each month runs
+  it afresh). Saved by hand: 2013-01 locally (with its `.sha256`), and July
+  (89,288,421), August (91,912,325), September (89,616,462) on the share.
+  June's download began before the change, so it has none yet (TODO).
+- **Proof**: scripts/test-index-month.py (updated) passes: 7,892 games in 8
+  parts of 1,000, MATCHES, `check` 7,892 of 7,892 rows right, `dups` and
+  `trial` run, and a `.count` 13 high gives SHORT BY 13 and exit 1. Six
+  mutations: four went red (rows read without the part's offset, a column
+  filled from 0, `<=` for the count, a part's remainder dropped); two stayed
+  green and are harmless (part order doesn't matter since each piece carries
+  its first game; one only removed a check). 2013-01 in games/index/2013-01:
+  121,332 games, SHA-256 and count matching, all 121,332 fetched byte for
+  byte with their rows right, `dups` as before (120,521 distinct, 1,001 in
+  190 groups), `trial`'s two ways agree; Parquet 2,104,260 bytes, the same
+  as the trial made from the plain columns.
+- scripts/clean-up.ps1 offers an index's old plain columns once it has
+  been indexed again in Parquet (only 2013-01's for now).
+
+**July's re-run failed at 18:35:50, and that was me.** `rows` died with a
+MemoryError unpacking a frame. Windows logged Resource-Exhaustion-Detector
+2004 at 18:35:48 and 18:36:26, just as my memory probes (above) reached ~1.5
+GB of commit. 3.6 GB was free when I started them, but I hadn't checked for
+a running job, and July had started at 18:18 from its own window. The bot
+and the queue's June download came through. The 14:15 index is intact
+except lines.u16 (half rewritten, 549 MB), plus a `tmp/` of raw columns
+(426 MB) the old `rows` left. The session running it restarted it at
+18:39:42 from the same snapshot, so the 13-game fix is tested on its own;
+the new `rows` proves itself on the next month indexed.
+
+## 2026-10-15 (20:50): a check on everything; June's download stalled at Lichess's end
+
+Matthew closed Chrome and Discord for memory and asked whether anything had
+broken. Nothing had: commit 5.0 of 20.8 GB free, no low-memory events since
+18:37; the bot playing (a game at 20:49; its ERROR lines are only "No
+suitable bots found to challenge"), the learner writing (20:47), and July's
+re-run counted **89,288,421 games, Lichess's count exactly** (SHA-256
+matching), its `check` step running since 20:00 (busy: 14 s of CPU in 30;
+3.4 GB, the old script loading all of lines.u16).
+
+**June's download has stalled since ~18:53**: 23.43 of 26.30 GiB, attempts
+4-19 each ending in curl exit 56 (one 28) after 3-20 minutes with almost
+nothing added. Lichess's database server is the cause, not the line:
+lichess.org answered in 0.7 s and Google in 1.1 s, while
+database.lichess.org (141.95.66.62, IPv4 only from here) sent 15,983 bytes in
+30 s (532 B/s), didn't return its 8 KB counts.txt in 20 s (2 s at 18:35),
+took 200 s for one HEAD request, and then refused even to connect within 15 s.
+Nothing to do here: the queue retries every minute (100 attempts, then it
+stops with "run this again to carry on") and resumes the part from its last
+byte when the server comes back.
+
+## 2026-10-15 (21:15): how often the bot's forecast comes true
+
+Matthew asked whether the engine predicts future positions. It searches
+ahead (iterative-deepening alpha-beta, assuming both sides play its best),
+and its principal variation is the forecast. lichess-bot saves it in every
+game's PGN, as a side line after each of our moves, with the score and depth.
+`scripts/forecast-hits.py` (new; the bot venv's python, for python-chess)
+compares the forecast reply with the reply played, over bot/games (241 games,
+every one against another bot; depth median 13, 10% / 90% 11 / 16):
+
+| | forecasts | reply right | blind guess (1 / legal moves) | only one legal move |
+|---|---:|---:|---:|---:|
+| all | 11,795 | 51.0% | 6.6% | 0.8% |
+| moves 1-10 | 793 | 44.6% | 3.5% | 0.0% |
+| moves 11-20 | 2,256 | 48.8% | 3.7% | 0.2% |
+| moves 21-40 | 4,297 | 52.0% | 6.0% | 1.0% |
+| moves 41+ | 4,449 | 52.4% | 9.3% | 1.1% |
+
+Plies of the forecast in a row that came true after our move: 1+ 51.0%, 2+
+42.7%, 3+ 24.0%, 4+ 18.7%, 5+ 11.1%, 6+ 8.3%. So the opponent's reply is
+right about half the time (~56% for its second, given the first), and our own
+next move matches the forecast ~80% of the time: a fresh search mostly agrees
+with the last one. Every opponent was an engine, which tends to see the same
+best move; against people it would likely be lower, with no data here to say.
+The engine searches on one thread; the laptop has 8 cores (16 threads).
+
+## 2026-10-15 (18:39-20:58): July with the 13-game fix, Lichess's count exactly
+
+July's index ran again from the scratchpad snapshot of the scripts at
+ee66600 (restarted after the 18:35 failure above):
+
+| | first run (14:54) | with the fix |
+|---|---:|---:|
+| games | 89,288,408 | **89,288,421** (counts.txt: 89,288,421) |
+| games cut by a frame's end | 6,177 | 6,190 (6,176 ends + the 13 + the last) |
+| distinct move sequences | 87,604,543 | 87,604,555 |
+| games in duplicate groups | 1,834,283 | 1,834,284 (one more 1.e4) |
+| different moves in SAN | 3,246 | 3,231 (15 were tag fragments of glued games) |
+| check | 4,000 of 4,000 | 4,000 of 4,000 |
+| read | 2,516 s, 11.5 MB/s | 4,799 s, 6.1 MB/s |
+
+The read and `check` (3,294 s) were slower on a busier laptop and share; the
+column statistics came out the same at the precision the write-up shows, the
+long duplicates likewise (16,999, 96.8% BOT v BOT). scripts/index-2026-07.txt
+is updated to this run. Since it ran the old scripts, its rows are plain
+columns plus the trial's Parquet, and the new tools refuse its games.json:
+July needs `rows` once more (TODO item 3).
+
+## 2026-10-15/16 (23:36-00:35): July's new-layout run stopped; on the phone's hotspot
+
+- **July with the new `rows`** started 23:36 by itself (index-month.cmd's
+  wait for the parallel-search match's "final:" line), read 14.27 of 29.05
+  GB, and lost the share at ~00:08. The cause wasn't the desktop: **the
+  laptop had moved onto Matthew's phone hotspot** ("Opel Mobile SmartX65",
+  10.197.60.x), from which the desktop can't be reached. On his yes the
+  5-piece-tables session stopped the run at 00:16 ("a step failed"). The
+  20:58 index is untouched: the new `rows` writes into parquet.new and swaps
+  it in only at the end. To run again once the share is back.
+- **May 2026 downloading onto the laptop** (games\, uncapped: his unlimited
+  data), started 00:28 by the parallel-search session on his word. Its first
+  try met an empty HEAD from the slow server: size 0, a blank date in the
+  stamp, which would have stopped every resume. That session restarted it
+  at 00:30; **fixed in download-lichess-month.ps1** (20f80d2): the HEAD is
+  asked again, up to 30 times a minute apart, until it gives both; a blank
+  stamp takes the server's date; a list that couldn't be fetched says so.
+  Tested against a dead address (30 tries, then a clean stop) and a local
+  web server (size and date read right).

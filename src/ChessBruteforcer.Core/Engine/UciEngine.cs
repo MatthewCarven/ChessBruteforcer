@@ -64,6 +64,7 @@ public sealed class UciEngine
                     Send("option name Hash type spin default 64 min 1 max 4096");
                     Send("option name EndgameTables type string default <empty>");
                     Send("option name Move Overhead type spin default 50 min 0 max 5000");
+                    Send("option name EvalFile type string default <empty>");
                     Send("uciok");
                     break;
                 case "isready":
@@ -132,6 +133,12 @@ public sealed class UciEngine
                 break;
             case "move overhead":
                 _moveOverheadMs = int.Parse(value, CultureInfo.InvariantCulture);
+                break;
+            case "evalfile":
+                // Tuned evaluation numbers (EvalParams text); empty for the built-in ones. Process-wide.
+                Evaluation.Parameters = value is "" or "<empty>" ? EvalParams.Original() : EvalParams.Load(value);
+                _table.Clear();
+                Send(value is "" or "<empty>" ? "info string evaluation: built in" : $"info string evaluation from {value}");
                 break;
             case "endgametables":
                 SetTablePath(value is "" or "<empty>" ? null : value);

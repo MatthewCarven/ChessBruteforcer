@@ -1,0 +1,90 @@
+table    longest DTZ long from      long wins       cursed      blessed
+KBNvK             65        50        793,686            0            0
+KQvKR             61        49         51,401            0            0
+KBBvKN            99        50      3,353,366    3,875,033    7,665,338
+KBNvKN            99        50        389,364      133,575       64,672
+KRBvKR            99        50         91,891        2,180          675
+KQRvKQ            99        50         17,322          230        1,106
+KBBvKQ            99        50        281,328      476,033    2,081,513
+KNNvKQ            99        50        459,649        3,595       11,850
+KRNvKQ            91        50         37,859            0            0
+KQNvKQ            69        50            553            0            0
+KRNvKR            65        50          6,974            0            0
+KQPvKQ            99        50        426,126       28,468       22,411
+KRPvKQ            99        50        631,485       31,315       72,803
+KRPvKB            99        50        126,950           35           83
+KNNvKP           100        50      8,419,113   10,695,845    9,511,999
+KBPvKN            59        48          1,432          257          264
+KRPvKR            69        50         11,466            0            0
+KPPvKP            41        33             43        1,834        2,054
+(sampled in 299s; counts are positions, either side to move)
+
+Against wsl.exe -d Ubuntu-24.04 -- /usr/games/stockfish, 1000 ms a move: 252 positions, each played twice (our engine on each side), 504 games in 381.4 min.
+
+long DTZ wins: 108 positions
+  our engine (every table): what the table says for its side, against what it got
+    table says    games              won          drawn           lost
+    won             108     108 (100.0%)       0 (0.0%)       0 (0.0%)
+    lost            108         0 (0.0%)     32 (29.6%)     76 (70.4%)
+  the opponent (no tables): what the table says for its side, against what it got
+    table says    games              won          drawn           lost
+    won             108       76 (70.4%)     32 (29.6%)       0 (0.0%)
+    lost            108         0 (0.0%)       0 (0.0%)   108 (100.0%)
+  points: ours 124.0 (the table's 108.0), theirs 92.0 (the table's 108.0)
+  how they ended: checkmate 184, insufficient material 16, threefold repetition 9, 50-move rule 6, stalemate 1
+  e.g. they had Win, got Draw: KBBvKN 8/8/8/8/2nK2B1/8/2kB4/8 w - - 0 1: they white; 50-move rule after 100 plies
+  e.g. they had Win, got Draw: KBNvKN 8/8/8/8/2n5/8/8/kNKB4 w - - 0 1: they white; insufficient material after 85 plies
+  e.g. they had Win, got Draw: KBNvKN 8/8/8/1B4n1/3N4/3K4/8/k7 w - - 0 1: they white; insufficient material after 83 plies
+  e.g. they had Win, got Draw: KBNvKN 6B1/8/8/4n3/8/8/8/k2K1N2 w - - 0 1: they white; stalemate after 79 plies
+  e.g. they had Win, got Draw: KBNvKN 8/8/8/8/NB6/2K2n2/8/1k6 w - - 0 1: they white; insufficient material after 100 plies
+
+cursed wins: 72 positions
+  our engine (every table): what the table says for its side, against what it got
+    table says    games              won          drawn           lost
+    drawn           144       53 (36.8%)     91 (63.2%)       0 (0.0%)
+  the opponent (no tables): what the table says for its side, against what it got
+    table says    games              won          drawn           lost
+    drawn           144         0 (0.0%)     91 (63.2%)     53 (36.8%)
+  points: ours 98.5 (the table's 72.0), theirs 45.5 (the table's 72.0)
+  how they ended: checkmate 53, 50-move rule 43, insufficient material 27, threefold repetition 18, stalemate 3
+  e.g. they had Draw, got Loss: KBBvKN 2n5/3kB3/8/8/2B5/8/8/1K6 w - - 0 1: we white; checkmate after 109 plies
+  e.g. they had Draw, got Loss: KBBvKN 8/6B1/8/8/4n1k1/8/8/3K1B2 w - - 0 1: we white; checkmate after 105 plies
+  e.g. they had Draw, got Loss: KBBvKN 8/6k1/8/8/5B2/7B/8/K3n3 w - - 0 1: we white; checkmate after 123 plies
+  e.g. they had Draw, got Loss: KBBvKN 6B1/8/8/8/4k3/6Bn/8/1K6 w - - 0 1: we white; checkmate after 103 plies
+  e.g. they had Draw, got Loss: KBBvKN 8/8/5n1B/8/3k4/5B2/3K4/8 w - - 0 1: we white; checkmate after 121 plies
+
+blessed losses: 72 positions
+  our engine (every table): what the table says for its side, against what it got
+    table says    games              won          drawn           lost
+    drawn           144       56 (38.9%)     88 (61.1%)       0 (0.0%)
+  the opponent (no tables): what the table says for its side, against what it got
+    table says    games              won          drawn           lost
+    drawn           144         0 (0.0%)     88 (61.1%)     56 (38.9%)
+  points: ours 100.0 (the table's 72.0), theirs 44.0 (the table's 72.0)
+  how they ended: 50-move rule 56, checkmate 56, insufficient material 19, threefold repetition 10, stalemate 3
+  e.g. they had Draw, got Loss: KBBvKN 8/8/7B/3B4/5k2/6n1/1K6/8 b - - 0 1: we white; checkmate after 122 plies
+  e.g. they had Draw, got Loss: KBBvKN 8/B7/8/3n4/4k3/8/6B1/K7 b - - 0 1: we white; checkmate after 100 plies
+  e.g. they had Draw, got Loss: KBBvKN 8/8/8/n7/2B4B/8/5k2/2K5 b - - 0 1: we white; checkmate after 114 plies
+  e.g. they had Draw, got Loss: KBBvKN 8/6B1/8/8/3nB3/8/7k/K7 b - - 0 1: we white; checkmate after 110 plies
+  e.g. they had Draw, got Loss: KBBvKN 8/8/6k1/1B6/8/8/8/BKn5 b - - 0 1: we white; checkmate after 106 plies
+
+By table, the opponent's side: wins it should convert, draws it should hold; our points against the table's.
+  table             long DTZ wins            cursed wins         blessed losses         our points
+  KBNvK                won 6 of 6                      -                      -              6 (6)
+  KQvKR                won 6 of 6                      -                      -              6 (6)
+  KBBvKN               won 5 of 6           held 7 of 12           held 6 of 12            24 (18)
+  KBNvKN               won 0 of 6           held 6 of 12           held 6 of 12            27 (18)
+  KRBvKR               won 4 of 6           held 6 of 12           held 7 of 12          24.5 (18)
+  KQRvKQ               won 4 of 6          held 11 of 12           held 8 of 12          21.5 (18)
+  KBBvKQ               won 3 of 6           held 6 of 12           held 8 of 12          24.5 (18)
+  KNNvKQ               won 2 of 6           held 6 of 12           held 6 of 12            26 (18)
+  KRNvKQ               won 1 of 6                      -                      -            8.5 (6)
+  KQNvKQ               won 6 of 6                      -                      -              6 (6)
+  KRNvKR               won 6 of 6                      -                      -              6 (6)
+  KQPvKQ               won 3 of 6           held 8 of 12           held 8 of 12          23.5 (18)
+  KRPvKQ               won 5 of 6          held 11 of 12           held 7 of 12          21.5 (18)
+  KRPvKB               won 6 of 6           held 7 of 12           held 6 of 12          23.5 (18)
+  KNNvKP               won 2 of 6          held 10 of 12          held 11 of 12          21.5 (18)
+  KBPvKN               won 6 of 6           held 6 of 12           held 7 of 12          23.5 (18)
+  KRPvKR               won 5 of 6                      -                      -            6.5 (6)
+  KPPvKP               won 6 of 6           held 7 of 12           held 8 of 12          22.5 (18)

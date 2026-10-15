@@ -454,7 +454,32 @@ and queen against king, 59% are stalemates. Against Stockfish 16 without tables 
 endings are no trouble for it (1,000 games, all as the tables say), but
 positions sampled from the tables (`hard`: long wins, and wins and losses the
 rule draws) are: it converted only 29-44 of 108 long wins, and our engine
-scored 351.5 and 360 of 504 where the tables give 252. Details in WORKLOG.
+scored 351.5 and 360 of 504 where the tables give 252. At 1 s a move it
+converts 76 of 108, and we still score 322.5. Details in WORKLOG.
+
+**On Lichess** (2026-10-13). The engine plays as the bot
+[matthewcarven](https://lichess.org/@/matthewcarven) through lichess-bot
+(`bot/`: `make-config.py` holds the settings, `start-bot.cmd` runs it; the
+lichess-bot download and its config, which holds the token, stay out of git).
+`start.cmd`, in the repo's folder, starts the bot and the month queue, each in
+a window of its own (so they outlive the Claude app's terminal), and leaves
+alone whichever is already running.
+In the game chat, `!info` says how many tables it has, whether the game is in
+them yet and where its book ran out, and spectators also get what the tables
+say about the result (`bot/chat_commands.py`, which `start-bot.cmd` plugs into
+lichess-bot with `bot/lichess-bot-chat.patch`).
+Rated blitz against other bots, it settled at 1974 after 61 games; every game
+that reached the tables had its result settled before it got there. Its
+opening book is our own: what 2200+ players chose in Lichess's games, month by
+month (`scripts/make-book.py`, `scripts/month-book.cmd <month>`), September
+2026 alone giving 193,322 moves in 130,617 positions. More months make it
+deeper by about one half-move per doubling of the games: real games part
+company early. Bots leave it mostly with rare moves, so where it has nothing
+a wider book answers (moves played 3 times or more, not 10). `scripts/book-match.py`
+measures it against Stockfish, with and without. The months themselves (~30 GB
+each) are kept on a desktop's disks over the network (`MONTHS` in
+`month-book.cmd`), each with Lichess's SHA-256: the download and the count
+ride out the share dropping, and the count checks every byte against it.
 
 **Compressed tables** ("CBC1", 2026-09-30), for the 50 pawn tables, which
 would not fit plain (~115 GB against ~96 GB free). A table's values are cut

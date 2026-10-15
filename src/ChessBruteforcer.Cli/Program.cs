@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
 using ChessBruteforcer.Core;
 using ChessBruteforcer.Core.Endgame;
@@ -74,9 +75,16 @@ static class Cli
                                          with the engine on both sides (0: all)
           game takeover <file>... --versus N "<engine command>" [ms]  N of those positions, each played twice
                                          against a UCI engine (our engine on each side in turn), ms a move (100)
+          tune positions <out .tsv> <file>... [--min-elo 2000 --per-game 8 [--lambda L]]  quiet positions from strong games,
+                                         with results; --lambda: analysed games (Evals tag), target L x result + (1 - L) x Stockfish
+          tune fit <positions .tsv> <out params> [--start <params>] [--epochs 1500 --rate 1]  Texel tuning of the evaluation
+          game reach <file>... [--sample N <tsv>]  how far down games get (5, 6, 7 pieces...), the 6-piece materials
+                                         they enter by; --sample writes N first 6-piece positions to check
           game takeover <file>... --moves  and every move the players made inside the tables: the ones that threw
                                          away a win or a draw, by rating, time control, table and how far in; and how
                                          the games that ended otherwise went wrong (the moves, the clock, resigning)
+          game takeover <file>... [--moves] --batch N  the same, holding N games that enter a table at once (default
+                                         100,000; any size gives the same report)
         """;
 
     public static int Run(string[] args)
@@ -137,11 +145,27 @@ static class Cli
                 ["game", "tree", .. var files] when files.Length > 0 => GameTree(files),
                 ["game", "idle", .. var files] when files.Length > 0 => GameIdle(files),
                 ["game", "endings", .. var files] when files.Length > 0 => GameEndings(files),
+                ["tune", "positions", var output, .. var files] when files.Length > 0 && !files.Contains("--min-elo") =>
+                    TunePositions(output, files, 2000, 8),
+                ["tune", "positions", var output, .. var files, "--min-elo", var elo, "--per-game", var per] when files.Length > 0 =>
+                    TunePositions(output, files, int.Parse(elo), int.Parse(per)),
+                ["tune", "positions", var output, .. var files, "--min-elo", var elo, "--per-game", var per, "--lambda", var lam] when files.Length > 0 =>
+                    TunePositions(output, files, int.Parse(elo), int.Parse(per), double.Parse(lam, CultureInfo.InvariantCulture)),
+                ["tune", "fit", var positions, var output] => TuneFit(positions, output, null, 1500, 1.0),
+                ["tune", "fit", var positions, var output, "--epochs", var e, "--rate", var r] =>
+                    TuneFit(positions, output, null, int.Parse(e), double.Parse(r, CultureInfo.InvariantCulture)),
+                ["tune", "fit", var positions, var output, "--start", var from, "--epochs", var e, "--rate", var r] =>
+                    TuneFit(positions, output, from, int.Parse(e), double.Parse(r, CultureInfo.InvariantCulture)),
+                ["game", "reach", .. var files, "--sample", var n, var output] when files.Length > 0 => GameReach(files, output, int.Parse(n)),
+                ["game", "reach", .. var files] when files.Length > 0 => GameReach(files, null, 0),
                 ["game", "takeover", .. var files, "--play", var n] when files.Length > 0 => GameTakeover(files, int.Parse(n)),
                 ["game", "takeover", .. var files, "--versus", var n, var engine] when files.Length > 0 =>
                     GameTakeover(files, null, (int.Parse(n), engine, 100)),
                 ["game", "takeover", .. var files, "--versus", var n, var engine, var ms] when files.Length > 0 =>
                     GameTakeover(files, null, (int.Parse(n), engine, int.Parse(ms))),
+                ["game", "takeover", .. var files, "--moves", "--batch", var size] when files.Length > 0 =>
+                    GameTakeover(files, null, moves: true, batch: int.Parse(size)),
+                ["game", "takeover", .. var files, "--batch", var size] when files.Length > 0 => GameTakeover(files, null, batch: int.Parse(size)),
                 ["game", "takeover", .. var files, "--moves"] when files.Length > 0 => GameTakeover(files, null, moves: true),
                 ["game", "takeover", .. var files] when files.Length > 0 => GameTakeover(files, null),
                 _ => Print(Usage, 1),
@@ -1072,13 +1096,21 @@ static class Cli
 
     private sealed record TakeoverRow(TakeoverPoint Point, Outcome Mate, Outcome Rule, OutcomeKind Actual);
 
+    /// <summary>What the scorecards keep of a game that enters a table, once its batch is done with the game itself.</summary>
+    private sealed record TakeoverSummary(Material Material, Outcome Mate, Outcome Rule, OutcomeKind Actual, int PliesLeft,
+                                          string? Termination, string Rating, string Speed, bool EndedInMate);
+
+    /// <summary>How many games that enter a table `game takeover` holds whole at once (see <see cref="GameTakeover"/>).</summary>
+    private const int TakeoverBatch = 100_000;
+
     /// <summary>
     /// Matthew's early test (2026-10-01): where each game first enters a table
     /// we have (both kinds on disk), what the table says there at the game's own
     /// 50-move clock, against what actually happened.  With <paramref name="play"/>,
     /// that many of them (0: all) are played out by the engine on both sides.
     /// </summary>
-    private static int GameTakeover(string[] files, int? play, (int Count, string Engine, int MoveMs)? versus = null, bool moves = false)
+    private static int GameTakeover(string[] files, int? play, (int Count, string Engine, int MoveMs)? versus = null, bool moves = false,
+                                    int batch = TakeoverBatch)
     {
         var watch = Stopwatch.StartNew();
         // Both kinds on disk.  A 5-piece table counts once compressed: until then a build may be about
@@ -1098,38 +1130,70 @@ static class Cli
             }
         }
 
+        // A batch of games at a time (2026-10-14: the whole of September is ~28 times what fits in memory). A game
+        // that enters a table is kept whole only until its batch has had the tables' verdicts and, with --moves, its
+        // moves walked; after that only its summary. --play and --versus pick from all the positions at once.
+        if (play is not null || versus is not null)
+            batch = int.MaxValue;
         long games = 0;
-        var points = new List<TakeoverPoint>();
+        var points = new List<(TakeoverPoint Point, long Index)>();
+        var rows = new List<TakeoverSummary>();
+        var full = new List<TakeoverRow>();   // whole, for --play and --versus
+        var walk = moves ? new TakeoverWalk() : null;
+        var ranks = new Dictionary<Material, int>();   // each entry table in the order games first reach it
+        var copies = new Dictionary<Material, Material>();   // one copy of each, for the summaries
+        var terminations = new Dictionary<string, string>();
+        void Flush()
+        {
+            // The tables' verdicts, a material at a time (its tables closed after, to keep memory down).
+            foreach (var group in points.GroupBy(p => p.Point.Material))
+            {
+                using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
+                foreach (var (point, index) in group)
+                {
+                    if (!tables.TryProbe(point.Position, out var mate) || !tables.TryProbeWithClock(point.Position, out var rule))
+                        continue;
+                    bool whiteToMove = point.Position.SideToMove == Colour.White;
+                    var actual = point.Game.Result switch
+                    {
+                        "1-0" => whiteToMove ? OutcomeKind.Win : OutcomeKind.Loss,
+                        "0-1" => whiteToMove ? OutcomeKind.Loss : OutcomeKind.Win,
+                        "1/2-1/2" => OutcomeKind.Draw,
+                        _ => OutcomeKind.Beyond,   // unfinished
+                    };
+                    var row = new TakeoverRow(point, mate, rule, actual);
+                    var game = point.Game;
+                    var material = copies.TryGetValue(point.Material, out var copy) ? copy : copies[point.Material] = point.Material;
+                    string? termination = game.Tag("Termination") is { } tag
+                        ? terminations.TryGetValue(tag, out var known) ? known : terminations[tag] = tag
+                        : null;
+                    bool mated = rule.Kind != OutcomeKind.Draw && actual == rule.Kind
+                                 && game.PositionAt(game.Moves.Count).Status() == GameStatus.Checkmate;
+                    var summary = new TakeoverSummary(material, mate, rule, actual, point.PliesLeft, termination,
+                                                      Band(AverageRating(game)), Speed(game), mated);
+                    rows.Add(summary);
+                    if (batch == int.MaxValue)
+                        full.Add(row);
+                    walk?.Add(row, summary, tables, ranks[point.Material], index);
+                }
+            }
+            points.Clear();
+        }
         foreach (string file in files)
         {
             foreach (var game in GameFile.Read(file))
             {
                 games++;
                 if (Takeover.Find(game, covered.Contains) is { } point)
-                    points.Add(point);
-            }
-        }
-
-        // The tables' verdicts, a material at a time (its tables closed after, to keep memory down).
-        var rows = new List<TakeoverRow>();
-        foreach (var group in points.GroupBy(p => p.Material))
-        {
-            using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
-            foreach (var point in group)
-            {
-                if (!tables.TryProbe(point.Position, out var mate) || !tables.TryProbeWithClock(point.Position, out var rule))
-                    continue;
-                bool whiteToMove = point.Position.SideToMove == Colour.White;
-                var actual = point.Game.Result switch
                 {
-                    "1-0" => whiteToMove ? OutcomeKind.Win : OutcomeKind.Loss,
-                    "0-1" => whiteToMove ? OutcomeKind.Loss : OutcomeKind.Win,
-                    "1/2-1/2" => OutcomeKind.Draw,
-                    _ => OutcomeKind.Beyond,   // unfinished
-                };
-                rows.Add(new TakeoverRow(point, mate, rule, actual));
+                    ranks.TryAdd(point.Material, ranks.Count);
+                    points.Add((point, games));
+                    if (points.Count >= batch)
+                        Flush();
+                }
             }
         }
+        Flush();
 
         double Pct(long part, long whole) => whole == 0 ? 0 : 100.0 * part / whole;
         static double Median(IEnumerable<int> values)
@@ -1137,9 +1201,10 @@ static class Cli
             var sorted = values.Order().ToList();
             return sorted.Count == 0 ? 0 : sorted[sorted.Count / 2];
         }
-        Console.WriteLine($"{games:N0} games in {watch.Elapsed.TotalSeconds:0}s. Tables on disk with both kinds: {covered.Count}.");
+        var reading = watch.Elapsed - (walk?.Watch.Elapsed ?? TimeSpan.Zero);
+        Console.WriteLine($"{games:N0} games in {reading.TotalSeconds:0}s. Tables on disk with both kinds: {covered.Count}.");
         Console.WriteLine($"{rows.Count:N0} games ({Pct(rows.Count, games):0.0}%) enter a table we have, with a move still to make.");
-        var left = rows.Select(r => r.Point.PliesLeft).Order().ToList();
+        var left = rows.Select(r => r.PliesLeft).Order().ToList();
         if (left.Count > 0)
             Console.WriteLine($"Still to play when they get there: median {left[left.Count / 2] / 2.0:0} moves " +
                               $"(quartiles {left[left.Count / 4] / 2.0:0} and {left[3 * left.Count / 4] / 2.0:0}; the game had ended there " +
@@ -1165,20 +1230,19 @@ static class Cli
         var wins = rows.Where(r => r.Rule.Kind != OutcomeKind.Draw).ToList();   // someone wins
         var thrown = wins.Where(r => r.Actual != OutcomeKind.Beyond && r.Actual != r.Rule.Kind).ToList();
         Console.WriteLine($"  Won endings not won: {thrown.Count:N0} of {wins.Count:N0}; of those, " +
-                          $"{thrown.Count(r => r.Point.Game.Tag("Termination") == "Time forfeit"):N0} on time.");
+                          $"{thrown.Count(r => r.Termination == "Time forfeit"):N0} on time.");
         var cursed = rows.Where(r => r.Mate.Kind != OutcomeKind.Draw && r.Rule.Kind == OutcomeKind.Draw).ToList();
         Console.WriteLine($"  Won or lost with best play but drawn by the 50-move rule at the game's clock: {cursed.Count:N0}");
-        var mated = rows.Where(r => r.Rule.Kind != OutcomeKind.Draw && r.Actual == r.Rule.Kind
-                                    && r.Point.Game.PositionAt(r.Point.Game.Moves.Count).Status() == GameStatus.Checkmate).ToList();
+        var mated = rows.Where(r => r.EndedInMate).ToList();
         if (mated.Count > 0)
-            Console.WriteLine($"  Won endings that ended in mate ({mated.Count:N0}): the players took a median {Median(mated.Select(r => r.Point.PliesLeft)) / 2:0.0} moves, " +
+            Console.WriteLine($"  Won endings that ended in mate ({mated.Count:N0}): the players took a median {Median(mated.Select(r => r.PliesLeft)) / 2:0.0} moves, " +
                               $"best play {Median(mated.Select(r => r.Mate.Plies)) / 2:0.0}; slower than best in " +
-                              $"{Pct(mated.Count(r => r.Point.PliesLeft > r.Mate.Plies), mated.Count):0}% of them.");
+                              $"{Pct(mated.Count(r => r.PliesLeft > r.Mate.Plies), mated.Count):0}% of them.");
         Console.WriteLine();
 
         Console.WriteLine("Where they enter, the most common tables:");
         Console.WriteLine($"  {"table",-8} {"games",7}  {"won for someone",16}  {"...and won",11}  {"drawn",7}  {"...and drawn",13}");
-        foreach (var group in rows.GroupBy(r => r.Point.Material).OrderByDescending(g => g.Count()).Take(15))
+        foreach (var group in rows.GroupBy(r => r.Material).OrderByDescending(g => g.Count()).Take(15))
         {
             var won = group.Where(r => r.Rule.Kind != OutcomeKind.Draw && r.Actual != OutcomeKind.Beyond).ToList();
             var drawn = group.Where(r => r.Rule.Kind == OutcomeKind.Draw && r.Actual != OutcomeKind.Beyond).ToList();
@@ -1187,13 +1251,12 @@ static class Cli
         }
 
         // By who played and how fast: the players' average rating, and Lichess's time-control classes.
-        static string RatingBand(StoredGame game) => Band(AverageRating(game));
-        void Breakdown(string title, Func<StoredGame, string> key, string[] order)
+        void Breakdown(string title, Func<TakeoverSummary, string> key, string[] order)
         {
             Console.WriteLine();
             Console.WriteLine(title);
             Console.WriteLine($"  {"",-12} {"games",8} {"ended otherwise",16} {"wins won",9} {"draws held",11} {"of the otherwise, on time",26}");
-            foreach (var group in rows.GroupBy(r => key(r.Point.Game)).OrderBy(g => Array.IndexOf(order, g.Key)))
+            foreach (var group in rows.GroupBy(key).OrderBy(g => Array.IndexOf(order, g.Key)))
             {
                 var done = group.Where(r => r.Actual != OutcomeKind.Beyond).ToList();
                 var won = done.Where(r => r.Rule.Kind != OutcomeKind.Draw).ToList();
@@ -1202,18 +1265,242 @@ static class Cli
                 Console.WriteLine($"  {group.Key,-12} {group.Count(),8:N0} {Pct(otherwise.Count, done.Count),15:0.0}% " +
                                   $"{Pct(won.Count(r => r.Actual == r.Rule.Kind), won.Count),8:0.0}% " +
                                   $"{Pct(drawn.Count(r => r.Actual == OutcomeKind.Draw), drawn.Count),10:0.0}% " +
-                                  $"{Pct(otherwise.Count(r => r.Point.Game.Tag("Termination") == "Time forfeit"), otherwise.Count),25:0.0}%");
+                                  $"{Pct(otherwise.Count(r => r.Termination == "Time forfeit"), otherwise.Count),25:0.0}%");
             }
         }
-        Breakdown("By the players' average rating:", RatingBand, Bands);
-        Breakdown("By time control (Lichess's classes: base + 40 x increment):", Speed, Speeds);
+        Breakdown("By the players' average rating:", r => r.Rating, Bands);
+        Breakdown("By time control (Lichess's classes: base + 40 x increment):", r => r.Speed, Speeds);
 
-        if (moves)
-            TakeoverMoves(rows, Pct);
+        if (walk is not null)
+            TakeoverMoves(walk, Pct);
         if (play is int count)
-            PlayTakeovers(rows, count, Pct);
+            PlayTakeovers(full, count, Pct);
         if (versus is { } match)
-            VersusTakeovers(rows, match.Count, match.Engine, match.MoveMs);
+            VersusTakeovers(full, match.Count, match.Engine, match.MoveMs);
+        return 0;
+    }
+
+    /// <summary>
+    /// Matthew (2026-10-14): what would 6-piece tables be worth? How far down each game gets (the fewest
+    /// pieces it reaches), how long games that reach 5 pieces spent at 6 first, how the ones that stop at 6
+    /// end, and which 6-piece materials they enter by. With <paramref name="sample"/>, every game's first
+    /// position with 6 pieces is a candidate, and <paramref name="count"/> of them, spread evenly, are written
+    /// tab-separated to that file (FEN, the result for the side to move, how it ended, plies left, rating
+    /// band, speed, link), for a 7-piece tablebase to judge (scripts/six-piece-check.py).
+    /// </summary>
+    private static int GameReach(string[] files, string? sample, int count)
+    {
+        var watch = Stopwatch.StartNew();
+        long games = 0;
+        var fewest = new long[33];
+        var at6Before5 = new List<int>();   // plies with exactly 6 pieces, in games that went on to 5 or fewer
+        var at6Stopped = new List<int>();   // the same, in games that stopped at 6
+        var stoppedHow = new Dictionary<string, long>();
+        var entries = new Dictionary<Material, (long Games, long OnTo5)>();
+        var candidates = new List<string>();
+        foreach (string file in files)
+        {
+            foreach (var game in GameFile.Read(file))
+            {
+                games++;
+                var position = game.StartPosition();
+                int pieces = 0;
+                for (int square = 0; square < 64; square++)
+                    if (!position[square].IsEmpty)
+                        pieces++;
+                int least = pieces, plies6 = 0;
+                Material? entry6 = null;
+                string? row = null;
+                for (int ply = 0; ply <= game.Moves.Count; ply++)
+                {
+                    if (pieces == 6)
+                    {
+                        if (entry6 is null)
+                        {
+                            entry6 = Material.FromPosition(position).Canonical;
+                            if (position.Castling == CastlingRights.None && game.Result != "*")
+                            {
+                                bool whiteToMove = position.SideToMove == Colour.White;
+                                string result = game.Result switch
+                                {
+                                    "1-0" => whiteToMove ? "win" : "loss",
+                                    "0-1" => whiteToMove ? "loss" : "win",
+                                    _ => "draw",
+                                };
+                                row = string.Join('\t', position.ToFen(), result, game.Tag("Termination") ?? "", game.Moves.Count - ply,
+                                                  Band(AverageRating(game)), Speed(game), (game.Tag("Site") ?? "") + "#" + ply);
+                            }
+                        }
+                        if (ply < game.Moves.Count)
+                            plies6++;
+                    }
+                    if (ply == game.Moves.Count)
+                        break;
+                    var move = game.Moves[ply];
+                    if (move.IsCapture)
+                        pieces--;
+                    position.MakeMove(move);
+                    least = Math.Min(least, pieces);
+                }
+                fewest[Math.Min(least, 32)]++;
+                if (entry6 is { } material)
+                {
+                    var (g, on) = entries.GetValueOrDefault(material);
+                    entries[material] = (g + 1, on + (least <= 5 ? 1 : 0));
+                    if (least <= 5)
+                        at6Before5.Add(plies6);
+                    else
+                    {
+                        at6Stopped.Add(plies6);
+                        var end = game.PositionAt(game.Moves.Count).Status();
+                        string how = end == GameStatus.Checkmate ? "checkmate" : end == GameStatus.Stalemate ? "stalemate"
+                                   : game.Result == "1/2-1/2" ? "drawn (agreed, repetition, 50 moves, material)"
+                                   : game.Tag("Termination") == "Time forfeit" ? "on time" : game.Result == "*" ? "unfinished" : "resigned";
+                        stoppedHow[how] = stoppedHow.GetValueOrDefault(how) + 1;
+                    }
+                    if (row is not null)
+                        candidates.Add(row);
+                }
+            }
+        }
+
+        double Pct(long part, long whole) => whole == 0 ? 0 : 100.0 * part / whole;
+        string Quartiles(List<int> plies)
+        {
+            if (plies.Count == 0) return "-";
+            var s = plies.Order().ToList();
+            return $"median {s[s.Count / 2] / 2.0:0.#} moves (quartiles {s[s.Count / 4] / 2.0:0.#} and {s[3 * s.Count / 4] / 2.0:0.#})";
+        }
+        long reach5 = fewest.Take(6).Sum(), reach6 = reach5 + fewest[6], reach7 = reach6 + fewest[7];
+        Console.WriteLine($"{games:N0} games in {watch.Elapsed.TotalSeconds:0}s. The fewest pieces each game got down to:");
+        Console.WriteLine($"  5 or fewer {reach5,10:N0} {Pct(reach5, games),6:0.0}%   (the tables we have)");
+        Console.WriteLine($"  6          {fewest[6],10:N0} {Pct(fewest[6], games),6:0.0}%");
+        Console.WriteLine($"  7          {fewest[7],10:N0} {Pct(fewest[7], games),6:0.0}%");
+        Console.WriteLine($"  8 to 10    {fewest.Skip(8).Take(3).Sum(),10:N0} {Pct(fewest.Skip(8).Take(3).Sum(), games),6:0.0}%");
+        Console.WriteLine($"  11 or more {fewest.Skip(11).Sum(),10:N0} {Pct(fewest.Skip(11).Sum(), games),6:0.0}%");
+        Console.WriteLine($"  So 6-piece tables would reach {Pct(reach6, games):0.0}% of games (now {Pct(reach5, games):0.0}%), 7-piece {Pct(reach7, games):0.0}%.");
+        Console.WriteLine($"  Games reaching 6 pieces: {reach6:N0}; of those, {Pct(reach5, reach6):0.0}% go on down to 5 or fewer.");
+        Console.WriteLine($"  Time at exactly 6 pieces, in games that went on to 5: {Quartiles(at6Before5)}: how much sooner 6-piece tables take over.");
+        Console.WriteLine($"  ... in games that stopped at 6: {Quartiles(at6Stopped)}. How they ended: " +
+                          string.Join(", ", stoppedHow.OrderByDescending(kv => kv.Value).Select(kv => $"{kv.Key} {Pct(kv.Value, fewest[6]):0}%")));
+        Console.WriteLine();
+        Console.WriteLine("The 6-piece materials games enter by (their first position with 6 pieces), most common first:");
+        Console.WriteLine($"  {"material",-10} {"games",9} {"of 6-piece entries",19} {"went on to 5",13}");
+        foreach (var (material, (g, on)) in entries.OrderByDescending(kv => kv.Value.Games).Take(20))
+            Console.WriteLine($"  {material,-10} {g,9:N0} {Pct(g, reach6),18:0.0}% {Pct(on, g),12:0}%");
+        long top20 = entries.OrderByDescending(kv => kv.Value.Games).Take(20).Sum(kv => kv.Value.Games);
+        Console.WriteLine($"  the top 20 of {entries.Count} materials: {Pct(top20, reach6):0.0}% of 6-piece entries");
+        if (sample is not null)
+        {
+            var chosen = count <= 0 || count >= candidates.Count
+                ? candidates
+                : Enumerable.Range(0, count).Select(i => candidates[(int)((long)i * candidates.Count / count)]).ToList();
+            File.WriteAllLines(sample, chosen.Prepend("fen\tresult for the side to move\ttermination\tplies left\trating\tspeed\tlink"));
+            Console.WriteLine($"Wrote {chosen.Count:N0} of {candidates.Count:N0} first 6-piece positions (finished games, no castling rights) to {sample}.");
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Texel tuning's positions (2026-10-14): from rated games with both players at <paramref name="minElo"/>
+    /// or more, blitz or slower, ended normally (not on time: the result then says little about the board),
+    /// up to <paramref name="perGame"/> positions a game, chosen at random among the quiet ones: after move 8,
+    /// side to move not in check, the move before and the move played neither a capture nor a promotion, and
+    /// more than 5 pieces (the tables have the rest). Written as "FEN \t white's result \t game number".
+    /// </summary>
+    /// <param name="lambda">With an Evals tag (scripts/eval-games.py): the target is lambda x the game's result plus
+    /// (1 - lambda) x Stockfish's evaluation of the position as a score, 1 / (1 + 10^(-cp / 400)); positions
+    /// without a numeric evaluation (none, or a mate) are skipped, and so is the "ended normally" rule, the
+    /// evaluation being the engine's, not the players'. Null: the result alone, as before.</param>
+    private static int TunePositions(string output, string[] files, int minElo, int perGame, double? lambda = null)
+    {
+        var watch = Stopwatch.StartNew();
+        var random = new Random(20261014);
+        long games = 0, used = 0, written = 0;
+        using var writer = new StreamWriter(output);
+        foreach (string file in files)
+        {
+            foreach (var game in GameFile.Read(file))
+            {
+                games++;
+                string[]? evals = lambda is null ? null : game.Tag("Evals")?.Split(' ');
+                if (!(game.Tag("Event") ?? "").Contains("Rated") || game.Tag("FEN") is not null
+                    || (lambda is null && game.Tag("Termination") != "Normal") || (lambda is not null && evals is null)
+                    || Speed(game) is not ("blitz" or "rapid" or "classical")
+                    || !int.TryParse(game.Tag("WhiteElo"), out int whiteElo) || !int.TryParse(game.Tag("BlackElo"), out int blackElo)
+                    || whiteElo < minElo || blackElo < minElo)
+                    continue;
+                double? result = game.Result switch { "1-0" => 1, "0-1" => 0, "1/2-1/2" => 0.5, _ => null };
+                if (result is not { } r)
+                    continue;
+                var quiet = new List<(string Fen, double Target)>();
+                var position = game.StartPosition();
+                int pieces = 32;
+                for (int ply = 0; ply < game.Moves.Count; ply++)
+                {
+                    var move = game.Moves[ply];
+                    bool before = ply > 0 && (game.Moves[ply - 1].IsCapture || game.Moves[ply - 1].IsPromotion);
+                    if (ply >= 16 && pieces > 5 && !before && !move.IsCapture && !move.IsPromotion && !position.InCheck())
+                    {
+                        if (lambda is not { } l)
+                            quiet.Add((position.ToFen(), r));
+                        else if (evals is not null && ply - 1 < evals.Length
+                                 && int.TryParse(evals[ply - 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int cp))
+                            quiet.Add((position.ToFen(), l * r + (1 - l) / (1 + Math.Pow(10, -cp / 400.0))));   // the eval after ply - 1 is this position's
+                    }
+                    if (move.IsCapture)
+                        pieces--;
+                    position.MakeMove(move);
+                }
+                if (quiet.Count == 0)
+                    continue;
+                used++;
+                foreach (var (fen, target) in quiet.OrderBy(_ => random.Next()).Take(perGame))
+                {
+                    writer.WriteLine($"{fen}\t{target.ToString("0.#####", CultureInfo.InvariantCulture)}\t{games}");
+                    written++;
+                }
+            }
+        }
+        Console.WriteLine($"{games:N0} games read in {watch.Elapsed.TotalSeconds:0}s; {used:N0} used (rated, both {minElo}+, blitz or slower, " +
+                          (lambda is { } lam ? $"analysed; target {lam} x result + {1 - lam} x Stockfish" : "ended normally; target the result") +
+                          $"); {written:N0} quiet positions written to {output}");
+        return 0;
+    }
+
+    /// <summary>
+    /// Texel tuning: fit the evaluation's numbers to the positions' results (see <see cref="Tuner"/>), from the
+    /// built-in numbers or <paramref name="startFile"/>. A tenth of the games are held back to judge by; the
+    /// numbers kept are those that judge best there. Reports the error before and after, and the pieces'
+    /// average values.
+    /// </summary>
+    private static int TuneFit(string positions, string output, string? startFile, int epochs, double rate)
+    {
+        var watch = Stopwatch.StartNew();
+        var tuner = Tuner.Load(positions);
+        Console.WriteLine($"{tuner.Count:N0} positions ({tuner.TrainingCount:N0} to tune on, {tuner.ValidationCount:N0} held back) in {watch.Elapsed.TotalSeconds:0}s");
+        var startParams = startFile is null ? EvalParams.Original() : EvalParams.Load(startFile);
+        var start = startParams.ToVector();
+        double k = tuner.FitK(start);
+        double before = tuner.Error(start, k, true);
+        Console.WriteLine($"K = {k:0.0000}; error held back, starting numbers: {before:0.000000}");
+        var best = tuner.Fit(start, k, epochs, rate, Math.Max(1, epochs / 20), (epoch, train, held) =>
+            Console.WriteLine($"  epoch {epoch,5}: error tuned-on {train:0.000000}, held back {held:0.000000}  ({watch.Elapsed.TotalSeconds:0}s)"));
+        var tuned = EvalParams.FromVector(best);
+        double after = tuner.Error(tuned.ToVector(), k, true);
+        Console.WriteLine($"Held back, whole centipawns: {before:0.000000} -> {after:0.000000} ({100 * (before - after) / before:0.00}% less)");
+        string[] names = { "", "pawn", "knight", "bishop", "rook", "queen", "king" };
+        Console.WriteLine("Average values (centipawns; pawns over ranks 2-7):   middlegame   endgame   (were)");
+        for (int type = 1; type <= 5; type++)
+        {
+            var squares = Enumerable.Range(type == 1 ? 8 : 0, type == 1 ? 48 : 64).ToList();
+            Console.WriteLine($"  {names[type],-7} {squares.Average(i => tuned.Mg[type][i]),40:0} {squares.Average(i => tuned.Eg[type][i]),9:0}   " +
+                              $"({squares.Average(i => startParams.Mg[type][i]):0} / {squares.Average(i => startParams.Eg[type][i]):0})");
+        }
+        Console.WriteLine($"  bishop pair {tuned.BishopPairMg,36} {tuned.BishopPairEg,9}   ({startParams.BishopPairMg} / {startParams.BishopPairEg})");
+        tuned.Save(output, $"Texel-tuned {DateTime.Now:yyyy-MM-dd} on {positions}: {tuner.Count:N0} positions, K {k:0.0000}, " +
+                           $"{epochs} epochs at rate {rate}; held-back error {before:0.000000} -> {after:0.000000}");
+        Console.WriteLine($"Written to {output} ({watch.Elapsed.TotalSeconds:0}s).");
         return 0;
     }
 
@@ -1471,7 +1758,7 @@ static class Cli
 
     /// <summary>One game's moves inside the tables: how many, how many were mistakes and what the first one threw away
     /// (a win or a draw), and the last position's verdict for the side to move at entry (null: a position no table read).</summary>
-    private sealed record GameWalk(TakeoverRow Row, int Moves, int Mistakes, OutcomeKind? FirstThrown, OutcomeKind? Final, bool Repeated);
+    private readonly record struct GameWalk(TakeoverSummary Row, int Moves, int Mistakes, OutcomeKind? FirstThrown, OutcomeKind? Final, bool Repeated);
 
     /// <summary>
     /// Matthew (2026-10-12): how often people go wrong inside the tables, and where.  Every move the
@@ -1599,120 +1886,134 @@ static class Cli
         seconds < 1 ? "under 1 s" : seconds < 2 ? "1 s" : seconds < 4 ? "2-3 s" : seconds < 10 ? "4-9 s"
         : seconds < 30 ? "10-29 s" : "30 s and more";
 
-    private static void TakeoverMoves(List<TakeoverRow> rows, Func<long, long, double> Pct)
+    /// <summary>The move-by-move tallies, added to a game at a time as `game takeover` reads them in batches (see
+    /// <see cref="TakeoverMoves"/> for what they measure).</summary>
+    private sealed class TakeoverWalk
     {
-        var watch = Stopwatch.StartNew();
-        static MoveTally Get<TKey>(Dictionary<TKey, MoveTally> map, TKey key) where TKey : notnull =>
+        public readonly Stopwatch Watch = new();
+        public readonly MoveTally All = new();
+        public readonly Dictionary<string, MoveTally> ByRating = new();   // the rating of the player moving
+        public readonly Dictionary<string, MoveTally> BySpeed = new();
+        public readonly Dictionary<Material, MoveTally> ByTable = new();   // the table the move was made in
+        public static readonly string[] Stages = ["1-5", "6-10", "11-20", "21-40", "41 and on"];
+        public readonly Dictionary<string, MoveTally> ByStage = Stages.ToDictionary(s => s, _ => new MoveTally());
+        // From the clock readings `table-games.py` keeps (tags ClockPly and Clocks), where a game has them.
+        public readonly Dictionary<string, MoveTally> BySecondsLeft = new();   // on the mover's clock as it starts to think
+        public readonly Dictionary<string, MoveTally> ByTaken = new();   // over the move
+        // What the mistakes were (KindOfMistake), overall by what they threw away, and by table; the best example of each.
+        public readonly Dictionary<(string Kind, string Change), long> Kinds = new();
+        public readonly Dictionary<Material, Dictionary<string, long>> KindsByTable = new();
+        public readonly Dictionary<(Material, string), ((long Score, int Rank, long Game, int Ply) Order, MistakeExample Example)> Examples = new();
+        public long Better;
+        public readonly List<GameWalk> Walks = new();
+
+        private static MoveTally Get<TKey>(Dictionary<TKey, MoveTally> map, TKey key) where TKey : notnull =>
             map.TryGetValue(key, out var tally) ? tally : map[key] = new MoveTally();
 
-        var all = new MoveTally();
-        var byRating = new Dictionary<string, MoveTally>();   // the rating of the player moving
-        var bySpeed = new Dictionary<string, MoveTally>();
-        var byTable = new Dictionary<Material, MoveTally>();   // the table the move was made in
-        string[] stages = ["1-5", "6-10", "11-20", "21-40", "41 and on"];
-        static string Stage(int ownMove) => ownMove <= 5 ? "1-5" : ownMove <= 10 ? "6-10" : ownMove <= 20 ? "11-20"
-                                          : ownMove <= 40 ? "21-40" : "41 and on";
-        var byStage = stages.ToDictionary(s => s, _ => new MoveTally());
-        // From the clock readings `table-games.py` keeps (tags ClockPly and Clocks), where a game has them.
-        var bySecondsLeft = new Dictionary<string, MoveTally>();   // on the mover's clock as it starts to think
-        var byTaken = new Dictionary<string, MoveTally>();   // over the move
-        // What the mistakes were (KindOfMistake), overall by what they threw away, and by table; the best example of each.
-        static string Change(OutcomeKind was, OutcomeKind after) =>
+        private static string Stage(int ownMove) => ownMove <= 5 ? "1-5" : ownMove <= 10 ? "6-10" : ownMove <= 20 ? "11-20"
+                                                  : ownMove <= 40 ? "21-40" : "41 and on";
+
+        public static string Change(OutcomeKind was, OutcomeKind after) =>
             was == OutcomeKind.Draw ? "drawn -> lost" : after == OutcomeKind.Draw ? "won -> drawn" : "won -> lost";
-        var kinds = new Dictionary<(string Kind, string Change), long>();
-        var kindsByTable = new Dictionary<Material, Dictionary<string, long>>();
-        var examples = new Dictionary<(Material, string), (long Score, MistakeExample Example)>();
-        long better = 0;
-        var walks = new List<GameWalk>();
-        foreach (var group in rows.GroupBy(r => r.Point.Material))
+
+        /// <summary>Walk one game's moves inside the tables. <paramref name="rank"/> is its entry table's place in the
+        /// order games first reach them and <paramref name="index"/> the game's number in the files: an example is the
+        /// first met among equals in a single pass grouped by entry table, whatever the batches.</summary>
+        public void Add(TakeoverRow row, TakeoverSummary summary, Tablebase tables, int rank, long index)
         {
-            using var tables = new Tablebase(TableDirectory) { SolveMissing = false };
-            foreach (var row in group)
+            Watch.Start();
+            var game = row.Point.Game;
+            var position = game.PositionAt(row.Point.Ply);
+            var entrySide = position.SideToMove;
+            var seen = new Dictionary<ulong, int>();
+            foreach (ulong hash in row.Point.Hashes)
+                seen[hash] = seen.GetValueOrDefault(hash) + 1;
+            string speed = summary.Speed;
+            int clockPly = int.TryParse(game.Tag("ClockPly"), out int first) ? first : -1;
+            int[] clocks = clockPly < 0 ? [] : (game.Tag("Clocks") ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+            string[] control = (game.Tag("TimeControl") ?? "-").Split('+');
+            int increment = control.Length == 2 && int.TryParse(control[1], out int inc) ? inc : 0;
+            int Clock(int ply) => clockPly >= 0 && ply >= clockPly && ply - clockPly < clocks.Length ? clocks[ply - clockPly] : -1;
+            int moves = 0, mistakes = 0;
+            OutcomeKind? firstThrown = null;
+            var before = Verdict(position, tables);
+            for (int ply = row.Point.Ply; ply < game.Moves.Count; ply++)
             {
-                var game = row.Point.Game;
-                var position = game.PositionAt(row.Point.Ply);
-                var entrySide = position.SideToMove;
-                var seen = new Dictionary<ulong, int>();
-                foreach (ulong hash in row.Point.Hashes)
-                    seen[hash] = seen.GetValueOrDefault(hash) + 1;
-                string speed = Speed(game);
-                int clockPly = int.TryParse(game.Tag("ClockPly"), out int first) ? first : -1;
-                int[] clocks = clockPly < 0 ? [] : (game.Tag("Clocks") ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
-                string[] control = (game.Tag("TimeControl") ?? "-").Split('+');
-                int increment = control.Length == 2 && int.TryParse(control[1], out int inc) ? inc : 0;
-                int Clock(int ply) => clockPly >= 0 && ply >= clockPly && ply - clockPly < clocks.Length ? clocks[ply - clockPly] : -1;
-                int moves = 0, mistakes = 0;
-                OutcomeKind? firstThrown = null;
-                var before = Verdict(position, tables);
-                for (int ply = row.Point.Ply; ply < game.Moves.Count; ply++)
+                if (before is not { } was)
+                    break;
+                var material = Material.FromPosition(position).Canonical;
+                int elo = int.TryParse(game.Tag(position.SideToMove == Colour.White ? "WhiteElo" : "BlackElo"), out int e) ? e : 0;
+                string rating = Band(elo);
+                var move = game.Moves[ply];
+                var undo = position.MakeMove(move);
+                seen[position.Hash] = seen.GetValueOrDefault(position.Hash) + 1;
+                before = Verdict(position, tables);   // now for the other side
+                if (before is not { } next)
+                    break;
+                var after = Negate(next);   // for the side that moved
+                moves++;
+                int left = Clock(ply - 2), now = Clock(ply);   // the mover's readings after its last move and this one
+                if (Score(after) > Score(was))
+                    Better++;
+                else if (Score(after) < Score(was))
                 {
-                    if (before is not { } was)
-                        break;
-                    var material = Material.FromPosition(position).Canonical;
-                    int elo = int.TryParse(game.Tag(position.SideToMove == Colour.White ? "WhiteElo" : "BlackElo"), out int e) ? e : 0;
-                    string rating = Band(elo);
-                    var move = game.Moves[ply];
-                    var undo = position.MakeMove(move);
-                    seen[position.Hash] = seen.GetValueOrDefault(position.Hash) + 1;
-                    before = Verdict(position, tables);   // now for the other side
-                    if (before is not { } next)
-                        break;
-                    var after = Negate(next);   // for the side that moved
-                    moves++;
-                    int left = Clock(ply - 2), now = Clock(ply);   // the mover's readings after its last move and this one
-                    if (Score(after) > Score(was))
-                        better++;
-                    else if (Score(after) < Score(was))
+                    mistakes++;
+                    firstThrown ??= was;
+                    position.UnmakeMove(move, undo);
+                    string kind = KindOfMistake(position, move, was, tables);
+                    Kinds[(kind, Change(was, after))] = Kinds.GetValueOrDefault((kind, Change(was, after))) + 1;
+                    var byKind = KindsByTable.TryGetValue(material, out var map) ? map : KindsByTable[material] = new();
+                    byKind[kind] = byKind.GetValueOrDefault(kind) + 1;
+                    // The example to show for this table and kind: the strongest player who had time to think (20 s or more).
+                    var order = (elo + (left >= 20 ? 10_000L : 0), -rank, -index, -ply);
+                    if (!Examples.TryGetValue((material, kind), out var best) || order.CompareTo(best.Order) > 0)
                     {
-                        mistakes++;
-                        firstThrown ??= was;
-                        position.UnmakeMove(move, undo);
-                        string kind = KindOfMistake(position, move, was, tables);
-                        kinds[(kind, Change(was, after))] = kinds.GetValueOrDefault((kind, Change(was, after))) + 1;
-                        var byKind = kindsByTable.TryGetValue(material, out var map) ? map : kindsByTable[material] = new();
-                        byKind[kind] = byKind.GetValueOrDefault(kind) + 1;
-                        // The example to show for this table and kind: the strongest player who had time to think (20 s or more).
-                        long score = elo + (left >= 20 ? 10_000 : 0);
-                        if (!examples.TryGetValue((material, kind), out var best) || score > best.Score)
-                        {
-                            var copy = Position.FromFen(position.ToFen());
-                            var tableMove = new Search(new TranspositionTable(1), tables).Run(copy, new SearchLimits { Depth = 1 }, []).BestMove;
-                            string beforeWords = VerdictWords(position, tables);
-                            string playedSan = San.Of(position, move);
-                            string bestText = tableMove is { } m ? San.Of(position, m) : "?";
-                            string fen = position.ToFen();
-                            var made = position.MakeMove(move);
-                            string afterWords = VerdictWords(position, tables);   // for the other side
-                            position.UnmakeMove(move, made);
-                            examples[(material, kind)] = (score, new MistakeExample(material.ToString(), kind, Change(was, after), elo, speed, left,
-                                fen, playedSan, bestText, beforeWords, afterWords, game.Tag("Site") is { } site ? $"{site}#{ply}" : "",
-                                move.ToUci(), tableMove?.ToUci() ?? ""));
-                        }
-                        position.MakeMove(move);
+                        var copy = Position.FromFen(position.ToFen());
+                        var tableMove = new Search(new TranspositionTable(1), tables).Run(copy, new SearchLimits { Depth = 1 }, []).BestMove;
+                        string beforeWords = VerdictWords(position, tables);
+                        string playedSan = San.Of(position, move);
+                        string bestText = tableMove is { } m ? San.Of(position, m) : "?";
+                        string fen = position.ToFen();
+                        var made = position.MakeMove(move);
+                        string afterWords = VerdictWords(position, tables);   // for the other side
+                        position.UnmakeMove(move, made);
+                        Examples[(material, kind)] = (order, new MistakeExample(material.ToString(), kind, Change(was, after), elo, speed, left,
+                            fen, playedSan, bestText, beforeWords, afterWords, game.Tag("Site") is { } site ? $"{site}#{ply}" : "",
+                            move.ToUci(), tableMove?.ToUci() ?? ""));
                     }
-                    all.Add(was, after);
-                    Get(byRating, rating).Add(was, after);
-                    Get(bySpeed, speed).Add(was, after);
-                    Get(byTable, material).Add(was, after);
-                    byStage[Stage((ply - row.Point.Ply) / 2 + 1)].Add(was, after);
-                    if (left >= 0)
-                        Get(bySecondsLeft, SecondsLeftBand(left)).Add(was, after);
-                    if (left >= 0 && now >= 0)
-                        Get(byTaken, TakenBand(Math.Max(0, left + increment - now))).Add(was, after);
+                    position.MakeMove(move);
                 }
-                OutcomeKind? final = before is { } last ? (position.SideToMove == entrySide ? last : Negate(last)) : null;
-                walks.Add(new GameWalk(row, moves, mistakes, firstThrown, final, seen[position.Hash] >= 3));
-                if (walks.Count % 5000 == 0)
-                    Console.Error.Write($"\rwalked {walks.Count:N0} of {rows.Count:N0}");
+                All.Add(was, after);
+                Get(ByRating, rating).Add(was, after);
+                Get(BySpeed, speed).Add(was, after);
+                Get(ByTable, material).Add(was, after);
+                ByStage[Stage((ply - row.Point.Ply) / 2 + 1)].Add(was, after);
+                if (left >= 0)
+                    Get(BySecondsLeft, SecondsLeftBand(left)).Add(was, after);
+                if (left >= 0 && now >= 0)
+                    Get(ByTaken, TakenBand(Math.Max(0, left + increment - now))).Add(was, after);
             }
+            OutcomeKind? final = before is { } last ? (position.SideToMove == entrySide ? last : Negate(last)) : null;
+            Walks.Add(new GameWalk(summary, moves, mistakes, firstThrown, final, seen[position.Hash] >= 3));
+            if (Walks.Count % 5000 == 0)
+                Console.Error.Write($"\rwalked {Walks.Count:N0}");
+            Watch.Stop();
         }
+    }
+
+    private static void TakeoverMoves(TakeoverWalk tallies, Func<long, long, double> Pct)
+    {
         Console.Error.Write($"\r{"",-40}\r");
+        var (all, walks, better, stages) = (tallies.All, tallies.Walks, tallies.Better, TakeoverWalk.Stages);
+        var (byRating, bySpeed, byTable, byStage, bySecondsLeft, byTaken) =
+            (tallies.ByRating, tallies.BySpeed, tallies.ByTable, tallies.ByStage, tallies.BySecondsLeft, tallies.ByTaken);
+        var (kinds, kindsByTable, examples) = (tallies.Kinds, tallies.KindsByTable, tallies.Examples);
 
         string OneIn(long part, long whole) => part == 0 ? "-" : $"1 in {whole / (double)part:0}";
         var played = walks.Where(w => w.Moves > 0).ToList();
         var counts = played.Select(w => w.Moves).Order().ToList();
         Console.WriteLine();
-        Console.WriteLine($"Move by move inside the tables ({walks.Count:N0} games, {watch.Elapsed.TotalSeconds:0}s): the table's verdict " +
+        Console.WriteLine($"Move by move inside the tables ({walks.Count:N0} games, {tallies.Watch.Elapsed.TotalSeconds:0}s): the table's verdict " +
                           "(50-move rule, the game's clock) for the side moving, before each move and after.");
         Console.WriteLine($"  Moves played: {all.Moves:N0} in {played.Count:N0} games (median {(counts.Count == 0 ? 0 : counts[counts.Count / 2])} " +
                           $"a game); from a won position {all.FromWon:N0}, drawn {all.FromDrawn:N0}, lost {all.Moves - all.CouldGoWrong:N0} " +
@@ -1740,13 +2041,13 @@ static class Cli
         var asSaid = played.Where(w => w.Row.Actual == w.Row.Rule.Kind).ToList();
         Console.WriteLine($"  ended as the table said at entry, with mistakes on the way that came back: {asSaid.Count(w => w.Mistakes > 0):N0} " +
                           $"of {asSaid.Count:N0} ({Pct(asSaid.Count(w => w.Mistakes > 0), asSaid.Count):0.0}%)");
-        void GamesBy(string title, Func<StoredGame, string> key, string[] order)
+        void GamesBy(string title, Func<TakeoverSummary, string> key, string[] order)
         {
-            Console.WriteLine($"  {title}: " + string.Join(", ", played.GroupBy(w => key(w.Row.Point.Game)).OrderBy(g => Array.IndexOf(order, g.Key))
+            Console.WriteLine($"  {title}: " + string.Join(", ", played.GroupBy(w => key(w.Row)).OrderBy(g => Array.IndexOf(order, g.Key))
                 .Select(g => $"{g.Key} {Pct(g.Count(w => w.Mistakes > 0), g.Count()):0}%")));
         }
-        GamesBy("with at least one mistake, by average rating", g => Band(AverageRating(g)), Bands);
-        GamesBy("by time control", Speed, Speeds);
+        GamesBy("with at least one mistake, by average rating", r => r.Rating, Bands);
+        GamesBy("by time control", r => r.Speed, Speeds);
 
         // The games whose result differs from the table's verdict at entry: what made the difference.
         var otherwise = walks.Where(w => w.Row.Actual != OutcomeKind.Beyond && w.Row.Actual != w.Row.Rule.Kind).ToList();
@@ -1766,7 +2067,7 @@ static class Cli
                 return causes[6];
             if (walk.Final == walk.Row.Actual)
                 return causes[0];
-            string termination = walk.Row.Point.Game.Tag("Termination") ?? "";
+            string termination = walk.Row.Termination ?? "";
             if (termination == "Time forfeit")
                 return causes[1];
             if (termination != "Normal")
@@ -1797,10 +2098,11 @@ static class Cli
         Rates("By how far into the ending (the player's own moves since the game entered the tables):",
               stages.Select(s => (s, byStage[s])));
         Rates("The tables most moves are made in:",
-              byTable.OrderByDescending(kv => kv.Value.CouldGoWrong).Take(15).Select(kv => (kv.Key.ToString(), kv.Value)));
+              byTable.OrderByDescending(kv => kv.Value.CouldGoWrong).ThenBy(kv => kv.Key.ToString(), StringComparer.Ordinal).Take(15)
+                     .Select(kv => (kv.Key.ToString(), kv.Value)));
         Rates("The hardest tables (1,000 or more moves that could go wrong), most mistakes per 100:",
               byTable.Where(kv => kv.Value.CouldGoWrong >= 1000).OrderByDescending(kv => Pct(kv.Value.Mistakes, kv.Value.CouldGoWrong))
-                     .Take(10).Select(kv => (kv.Key.ToString(), kv.Value)));
+                     .ThenBy(kv => kv.Key.ToString(), StringComparer.Ordinal).Take(10).Select(kv => (kv.Key.ToString(), kv.Value)));
 
         // The clock, where the games have readings.
         Console.WriteLine();
@@ -1830,7 +2132,8 @@ static class Cli
             }
             Console.WriteLine($"  {name,-10} {Cell(changes),14} {Cell([changes[0]]),14} {Cell([changes[1]]),14} {Cell([changes[2]]),14}   {meaning}");
         }
-        var worst = kindsByTable.OrderByDescending(kv => kv.Value.Values.Sum()).Take(12).ToList();
+        var worst = kindsByTable.OrderByDescending(kv => kv.Value.Values.Sum()).ThenBy(kv => kv.Key.ToString(), StringComparer.Ordinal)
+                                .Take(12).ToList();
         Console.WriteLine();
         Console.WriteLine("The tables with the most mistakes, and what they were:");
         Console.WriteLine($"  {"table",-8} {"mistakes",9} " + string.Join(" ", MistakeKinds.Select(k => $"{k.Name,9}")));
@@ -1846,7 +2149,8 @@ static class Cli
         Console.WriteLine("  table, kind, change, rating, speed, seconds left, FEN, played, the tables' move, before (for the side moving), after (for the other side), link,");
         Console.WriteLine("  the two moves again as from-to squares)");
         foreach (var (material, map) in worst)
-            foreach (var kind in map.OrderByDescending(kv => kv.Value).Take(3).Select(kv => kv.Key))
+            foreach (var kind in map.OrderByDescending(kv => kv.Value).ThenBy(kv => Array.FindIndex(MistakeKinds, k => k.Name == kv.Key))
+                                    .Take(3).Select(kv => kv.Key))
                 if (examples.TryGetValue((material, kind), out var example))
                 {
                     var x = example.Example;

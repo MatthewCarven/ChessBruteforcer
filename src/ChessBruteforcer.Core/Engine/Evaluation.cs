@@ -113,57 +113,70 @@ public static class Evaluation
 
     public static int PieceValue(PieceType type) => Values[(int)type];
 
-    /// <summary>Score for the side to move, in centipawns.</summary>
-    public static int Evaluate(Position position)
-    {
-        int white = 0, black = 0;
-        int whiteKingMid = 0, whiteKingEnd = 0, blackKingMid = 0, blackKingEnd = 0;
-        int phase = 0, whiteBishops = 0, blackBishops = 0;
+    /// <summary>
+    /// The numbers the evaluation uses (Texel tuning, 2026-10-14: tapered, every piece on every square with a
+    /// middlegame and an endgame value). The built-in ones reproduce the original evaluation (to the
+    /// centipawn: only where the king's blend rounds differently can it move by one); a tuned set is loaded
+    /// with <see cref="EvalParams.Load"/>, which the UCI option EvalFile does. Process-wide.
+    /// </summary>
+    public static EvalParams Parameters { get; set; } = EvalParams.Original();
 
+    /// <summary>The original tables, as a parameter set: middlegame and endgame alike, except the king's.</summary>
+    internal static void FillOriginal(EvalParams p)
+    {
+        for (int type = 1; type <= 6; type++)
+            for (int i = 0; i < 64; i++)
+            {
+                int value = type == 6 ? 0 : Values[type] + Tables[type][i];
+                p.Mg[type][i] = type == 6 ? KingMiddlegameTable[i] : value;
+                p.Eg[type][i] = type == 6 ? KingEndgameTable[i] : value;
+            }
+        p.BishopPairMg = p.BishopPairEg = BishopPair;
+    }
+
+    /// <summary>The game phase: 24 with every minor and major piece on, 0 with none.</summary>
+    public static int Phase(Position position)
+    {
+        int phase = 0;
+        for (int square = 0; square < 64; square++)
+            if (!position[square].IsEmpty)
+                phase += PhaseWeights[(int)position[square].Type];
+        return Math.Min(phase, MaxPhase);
+    }
+
+    /// <summary>Score for the side to move, in centipawns.</summary>
+    public static int Evaluate(Position position) => Evaluate(position, Parameters);
+
+    /// <summary>Score for the side to move, in centipawns, with the given numbers.</summary>
+    public static int Evaluate(Position position, EvalParams p)
+    {
+        int mg = 0, eg = 0, phase = 0, whiteBishops = 0, blackBishops = 0;
         for (int square = 0; square < 64; square++)
         {
             var piece = position[square];
             if (piece.IsEmpty)
                 continue;
             int type = (int)piece.Type;
-            bool isWhite = piece.Colour == Colour.White;
-            int tableIndex = isWhite ? square ^ 56 : square;
             phase += PhaseWeights[type];
-
-            if (piece.Type == PieceType.King)
+            if (piece.Colour == Colour.White)
             {
-                if (isWhite)
-                {
-                    whiteKingMid = KingMiddlegameTable[tableIndex];
-                    whiteKingEnd = KingEndgameTable[tableIndex];
-                }
-                else
-                {
-                    blackKingMid = KingMiddlegameTable[tableIndex];
-                    blackKingEnd = KingEndgameTable[tableIndex];
-                }
-                continue;
-            }
-
-            int score = Values[type] + Tables[type][tableIndex];
-            if (isWhite)
-            {
-                white += score;
+                int i = square ^ 56;   // tables are written as seen from white, rank 8 first
+                mg += p.Mg[type][i];
+                eg += p.Eg[type][i];
                 if (piece.Type == PieceType.Bishop) whiteBishops++;
             }
             else
             {
-                black += score;
+                mg -= p.Mg[type][square];
+                eg -= p.Eg[type][square];
                 if (piece.Type == PieceType.Bishop) blackBishops++;
             }
         }
-
-        if (whiteBishops >= 2) white += BishopPair;
-        if (blackBishops >= 2) black += BishopPair;
-
+        int pairs = (whiteBishops >= 2 ? 1 : 0) - (blackBishops >= 2 ? 1 : 0);
+        mg += pairs * p.BishopPairMg;
+        eg += pairs * p.BishopPairEg;
         phase = Math.Min(phase, MaxPhase);
-        int kings = ((whiteKingMid - blackKingMid) * phase + (whiteKingEnd - blackKingEnd) * (MaxPhase - phase)) / MaxPhase;
-        int total = white - black + kings;
+        int total = (mg * phase + eg * (MaxPhase - phase)) / MaxPhase;
         return position.SideToMove == Colour.White ? total : -total;
     }
 
