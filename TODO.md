@@ -52,9 +52,9 @@ in both, with scripts/test-index-month.py. The long duplicates are bots
 (96.8% BOT v BOT). Format: Parquet, which `rows` now writes directly, with
 the count against counts.txt printed every run (evening). **July ran again
 with the fix, 18:39-20:58: 89,288,421 games, Lichess's count exactly**, every
-check passing (the write-up has both runs). It ran the old scripts, so its
-rows are plain columns that the new tools refuse ("run rows again"): July
-needs `rows` once more before session 2 reads it. **Matthew decides where the
+check passing (the write-up has both runs). **And again with the new `rows`,
+2026-10-16 03:33-04:56: Parquet rows, count MATCHES, every check passing**, so
+session 2 can read July. Pondering merged too (ddc54c8). **Matthew decides where the
 whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
 ~71 GB free, share ~1.4 TB).
 
@@ -72,22 +72,18 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          scripts at ee66600 (an 18:18 start died at 18:35 for memory, from
          another session's probes; WORKLOG). 89,288,421 games, SHA-256
          matching, check 4,000 of 4,000, dups 2.05% as before.
-   - [ ] **Tonight (2026-10-16 from ~00:08) the laptop is on Matthew's phone
-         hotspot**, so the desktop share is out for a few hours. July's
-         new-layout run (started 23:36) was stopped at 00:16, halfway. It
-         starts again by itself once the share answers: a launcher window
-         ("July 2026 index: waiting for the desktop share", from 01:01)
-         checks each minute, then runs index-month.cmd 2026-07.
-         May 2026 is downloading into the laptop's games\ (uncapped, his
-         unlimited data; restarted 00:39 on the fixed script, ~0.8 MB/s, so
-         ~10 h; its SHA-256 and count are saved): move it to the share
-         afterwards. June's .part waits on the share.
-   - [ ] **July's rows into the new layout**: that run used the old
-         scripts, so its games.json has no `"format": "parquet"` and the new
-         `check` / `dups` / `trial` refuse it ("run rows again").
-         `scripts\index-month.cmd 2026-07` once more (~1.5-2 h, own window,
-         the new `rows` proving itself on a real month and printing the
-         count), not beside a CPU benchmark or heavy memory work.
+   - [ ] **May 2026 is downloading into the laptop's games\** (uncapped, on
+         Matthew's word): 17.32 of 27.65 GiB at 05:53 on 2026-10-16, ~1 MB/s,
+         so done ~09:00; its SHA-256 and count are saved. Then move it to the
+         share. June's .part waits on the share. (Its window and the July
+         launcher were closed at 03:07 when the laptop came back from the
+         phone's hotspot; May was restarted at 03:33 and again at 05:53.)
+   - [x] **July's rows in the new layout** (2026-10-16, 03:33-04:56, the
+         repo's index-month.cmd): 6,177 frames, **89,288,421 games, count
+         MATCHES**, SHA-256 matching, 1,267.1 MB of Parquet; check 2,000 of
+         2,000 games byte for byte and every row right in all 11 columns
+         against the game parsed again; dups as before (2.05%). The read ran
+         at 11.4 MB/s beside the bot on 8 threads.
    - [ ] Where the whole index lives: Matthew's call.
    - [x] `rows` writes Parquet directly (10 M games a part, zstd, through
          DuckDB) and the plain .zst columns are gone; `check`, `dups`,
@@ -103,11 +99,10 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          \\id10terror-desktop\chessbruteforcer\lichess` saves it and
          downloads nothing (never while June's .part is still growing: it
          would start a second download). May onwards get theirs as they land.
-   - [ ] lines.u16 (2.9 GB) can go now (the lines trial is done), and
-         July's old plain columns (games/index/2026-07/games, 1.27 GB) and
-         `tmp/` (426 MB, left by the 18:35 failure) once July's rows are in
-         the new layout: scripts/clean-up.ps1 offers the columns then
-         (Matthew's delete).
+   - [ ] Can go now (Matthew's delete), 4.1 GB in games/index/2026-07:
+         lines.u16 (2.86 GB; the lines trial is done) and the old plain
+         columns in games/ (1.27 GB; scripts/clean-up.ps1 offers them now the
+         rows are Parquet). The new `rows` replaced parquet/ and cleared tmp/.
    - [ ] For the thesis: BOT v BOT games replay whole games (96.8% of the
          duplicates of 41+ plies; 0.46% of all games). Set them apart when
          counting how often positions happen.

@@ -2358,6 +2358,30 @@ bot\eval\eval-sf1.txt` (default arms 1,L2,L4,L8,R2,R4,R8; ~30 min) and
   Tested against a dead address (30 tries, then a clean stop) and a local
   web server (size and date read right).
 
+## 2026-10-16 (03:20-05:55): pondering merged; July in the new layout
+
+- **Pondering merged into compression** (ddc54c8, from
+  claude/vigilant-murdock-d223f5). The block cache, the threads with the
+  tables and the parallel search were already in, by PR #5. The code merged
+  clean; TODO and WORKLOG kept both sides. Tested in a worktree at
+  below-normal priority beside the bot: **341 passed, 2 skipped, 0 failed**
+  (330 before + the 13 ponder cases). The bot is unchanged: config.yml has no
+  `ponder`, so lichess-bot keeps it off. The five finished side sessions were
+  archived first, on Matthew's yes (commit headroom 1.6 GB with the bot on 8
+  threads, 7.8 GB after).
+- **July's rows in the new layout**, 03:33-04:56 with the repo's
+  index-month.cmd: 89,288,421 games, `count: ... MATCHES`, read at 11.4 MB/s
+  beside the bot, 1,267.1 MB of Parquet; `check` 2,000 of 2,000 games byte for
+  byte and every row right in all 11 columns against the game parsed again;
+  dups as before. July is ready for session 2.
+- **At 03:07 the laptop moved from the phone's hotspot back to home Wi-Fi**,
+  and the windows of May's download and the July launcher were closed at the
+  same time (no lines in either log, no reboot). May was restarted at 03:33
+  (uncapped, Matthew's word) and stopped again partway through an attempt
+  after 04:56 the same way; restarted at 05:53 from 17.32 GiB. Lichess's
+  server was slow all night: attempts 8-10 each ended curl exit 28, the new
+  stall timeout doing its job.
+
 ## 2026-10-16 (00:16-01:00): threads with the endgame tables loaded
 
 The question left open above: with the bot's tables loaded, do 8 threads
