@@ -53,20 +53,47 @@ function Wait-Dir {
     if ($since) { Log ('{0} is back after {1:N0} min' -f $Dir, ((Get-Date) - $since).TotalMinutes) }
 }
 
+function Get-List([string] $file) {
+    # One of Lichess's lists (sha256sums.txt, counts.txt), or $null when the server didn't send it.
+    $list = curl.exe -sS --max-time 120 "https://database.lichess.org/standard/$file"
+    if ($LASTEXITCODE -ne 0 -or -not $list) { Log "couldn't fetch Lichess's $file (curl exit $LASTEXITCODE); run this again later to save its line"; return $null }
+    return $list
+}
+
 function Save-Sha256 {
     if (Test-Path -LiteralPath $sums) { return }
-    $line = curl.exe -sS https://database.lichess.org/standard/sha256sums.txt |
-        Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($name))$" } | Select-Object -First 1
+    $list = Get-List 'sha256sums.txt'
+    if (-not $list) { return }
+    $line = $list | Where-Object { $_ -match "^[0-9a-f]{64}  $([regex]::Escape($name))$" } | Select-Object -First 1
     if ($line) { Set-Content -LiteralPath $sums -Value $line -Encoding ascii; Log "Lichess's SHA-256: $($line.Substring(0, 64))" }
     else { Log "no SHA-256 for $name on Lichess's list (yet?); the count will say it couldn't check" }
 }
 
 function Save-Count {
     if (Test-Path -LiteralPath $countFile) { return }
-    $line = curl.exe -sS https://database.lichess.org/standard/counts.txt |
-        Where-Object { $_ -match "^$([regex]::Escape($name)) \d+$" } | Select-Object -First 1
+    $list = Get-List 'counts.txt'
+    if (-not $list) { return }
+    $line = $list | Where-Object { $_ -match "^$([regex]::Escape($name)) \d+$" } | Select-Object -First 1
     if ($line) { Set-Content -LiteralPath $countFile -Value $line -Encoding ascii; Log ("Lichess's game count: {0:N0}" -f [long]($line -split ' ')[1]) }
     else { Log "no game count for $name on Lichess's counts.txt (yet?); the index will say it couldn't check" }
+}
+
+function Get-ServerFile {
+    # The file's size and date from a HEAD request, asked again while the server doesn't give both. On
+    # 2026-10-16 a slow server answered nothing: the size became 0 and a blank date went into the stamp,
+    # which would have stopped every later resume as "the server's file changed".
+    for ($i = 1; $i -le 30; $i++) {
+        $head = curl.exe -sSI --max-time 60 $url
+        $length = ($head | Select-String '^Content-Length: (\d+)').Matches | Select-Object -First 1
+        $date = ($head | Select-String '^Last-Modified: (.+)').Matches | Select-Object -First 1
+        if ($length -and $date -and [long]$length.Groups[1].Value -gt 0) {
+            return [long]$length.Groups[1].Value, $date.Groups[1].Value.Trim()
+        }
+        Log "the server didn't give the file's size and date (try $i of 30); again in a minute"
+        Start-Sleep -Seconds 60
+    }
+    Log "STOPPING: no size and date from the server in 30 tries (run this again to carry on)"
+    exit 1
 }
 
 if ($LimitRate -in '0', 'none') { $LimitRate = '' }
@@ -81,9 +108,11 @@ if (-not (Test-Path $part) -and (Test-Path $first)) {
     Log "carrying on from the first 1 GB ($first)"
 }
 
-$head = curl.exe -sI $url
-$expected = [long](($head | Select-String 'Content-Length: (\d+)').Matches[0].Groups[1].Value)
-$modified = ($head | Select-String 'Last-Modified: (.+)').Matches[0].Groups[1].Value.Trim()
+$expected, $modified = Get-ServerFile
+if ((Test-Path $stamp) -and -not "$(Get-Content $stamp)".Trim()) {
+    Remove-Item $stamp                                   # a blank one, from before the HEAD was asked again
+    Log "the part's date stamp was blank; taking the server's ($modified)"
+}
 if (Test-Path $stamp) {
     $was = (Get-Content $stamp).Trim()
     if ($was -ne $modified) { Log "STOPPING: the server's file changed ($was, now $modified); the part can't be continued"; exit 1 }
