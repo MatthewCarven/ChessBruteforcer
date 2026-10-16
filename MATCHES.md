@@ -41,6 +41,49 @@ the details, and the time-to-depth bench, are in WORKLOG (2026-10-15, 21:25).
 | 2026-10-15 | 8 threads, LazySMP | 1 thread | 40 | +26 -4 =10 | 77.5% | +215 [+124, +344] | no time losses; games 1-8 shared the cores with a test run |
 | 2026-10-15 | 8 threads, Ranges | 1 thread | 40 | +20 -2 =18 | 72.5% | +168 [+95, +259] | no time losses |
 
+## Evaluations against each other (2026-10-14 on)
+
+Our engine against itself with two evaluations, Matthew's laptop, 10+0.1, 5
+games at a time, one thread and Hash 64 each, no tables in the engines (ours
+adjudicate), the 300 openings of games/tune/openings-300.txt in
+colour-reversed pairs. sf1 and sf2 are Texel-tuned numbers (piece-square
+values and the bishop pair; WORKLOG 2026-10-14 and 15); nnue1 is a network,
+768 -> 256 x2 -> 1, trained on September 2026's 224 M Lichess positions
+scored by Stockfish (NNUE.md). `scripts\tune-match.cmd` played the first
+two, `scripts\nnue-match.cmd` the rest.
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-14 | sf1 | built-in numbers | 69 | +48 -11 =10 | 76.8% | +208 [+130, +311] | SPRT [0, 20] accepted H1; the bot (1 thread) playing alongside |
+| 2026-10-15 | sf2 | sf1 | 2,000 | +668 -662 =670 | 50.1% | +1 [-11, +13] | SPRT [0, 10] undecided; ~3 h beside the bot |
+| 2026-10-17 | nnue1 | sf1 | 20 | +19 -1 =0 | 95.0% | +512 [+308, +∞] | smoke test |
+| 2026-10-17 | nnue1 | sf1 | 117 | +114 -0 =3 | 98.7% | +755 [+622, +∞] | SPRT [0, 10] accepted H1 at game 113 (see below) |
+| 2026-10-17 | nnue1 | sf1 | 400 | +392 -3 =5 | 98.6% | **+742 [+645, +970]** | fixed length, for the Elo figure |
+
+The nnue1 matches ran with the bot stopped, on the charger, at below-normal
+priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
+illegal moves in 537 games. Of the 400: nnue1 as white +198 -0 =2, as black
++194 -3 =3; 392 wins by mate (355 on the board, 37 by the tables). All three
+runs pooled: +525 -4 =8, 98.5%, +728 [+646, +886].
+
+How each searched (the last info line before each move, from the match log):
+
+| run | nnue1 depth | nnue1 knps | sf1 depth | sf1 knps |
+| --- | --- | --- | --- | --- |
+| smoke, 20 games | 9.6 | 2,167 | 9.5 | 1,946 |
+| SPRT, 117 games | 9.5 | 2,179 | 9.2 | 1,936 |
+| fixed, 400 games | 9.4 | 2,137 | 9.1 | 1,887 |
+
+So the net is no slower in play: +13% nodes a second, a third of a ply
+deeper. (`bench 9` had it 3.8% slower a node, on a fixed set of positions.)
+
+**Why 117 games and not ~22.** The match tool's SPRT (fishtest's simple
+normal form) divides by the variance of the games' scores, and with every
+game a win that variance is zero, so the LLR is reported as 0. nnue1 won its
+first 112 games and the LLR sat at 0.00; the first draw (game 113) took it
+to 362 at once, past the 2.94 bound. The verdict stands; the test just
+couldn't stop on a perfect score. TODO has the fix.
+
 ## Versions
 
 - **v0.1**: first engine (alpha-beta + PVS, TT, null move, LMR, quiescence,

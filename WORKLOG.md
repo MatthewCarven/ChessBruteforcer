@@ -3035,3 +3035,166 @@ is 54 ns with the checks, against 52 before, within the laptop's drift.
   untouched), and its engine picks up the network code only when start-bot.cmd
   next rebuilds it, where nothing changes until EvalFile names a .nnue.
 - Next: session 2, the trainer.
+
+## 2026-10-16/17 (23:30-03:55): NNUE session 2, the trainer, and nnue1
+
+A side session, in its own worktree (branch `claude/nnue-trainer-f0d60e`,
+cut from `compression` at 3632956). Matthew's A(a) PyTorch, B(a) 768 -> 256
+x2 -> 1, C(a) September, D(a) beside the bot. NNUE.md's session 2 has the
+tables; this is the story.
+
+- **The wheel** (A(a) was his yes to it): HEAD said 2,001,146,779 bytes, as
+  on 2026-10-16. Another session's capped download (Terminal's build, through
+  Claude-capped-run.py) was pulling 430 KB/s when mine was due, and two are
+  twice the household's cap, so the wheel's script waited for it to go quiet
+  (23:35), then curl at `--limit-rate 500k`: 65 min, 511 KB/s, the size and
+  SHA-256 matching the server's own checksum. In `games\nnue\wheels\` for the
+  desktop (2b). `scripts\nnue\setup-venv.cmd` made the venv in 71 s; pip
+  fetched 9.4 MB of torch's dependencies, numpy comes from the system Python.
+- **sf1's mark**: on September's held-back positions (4,465,944, mates left
+  out) sf1 scores **0.030396** at its fitted K 1.2705 (0.031460 at K 1), sf2
+  0.030317 at K 1.2657. numpy computes both exactly as the engine does
+  (1,000 of 1,000 positions equal through UCI `eval`).
+- **The checks** all passed (NNUE.md has the table): the GPU's unpacking
+  equals nnue_reference on 10,000 records; 10,000 positions learnt to a
+  training error of 0.000011 (from 0.103); the engine equals nnue_reference
+  on 1,000; `bench 9` on a trial net 4,913,912 nodes, 1.03x sf1.
+- **One fix in the export**: float against int16 first came out 10.5 cp
+  apart on average, nearly all of it one sign. Splitting it by layer: the
+  output weights at QB 64 (-9.5 cp), not the feature layer (3.5 cp, either
+  way). Trained output weights are small (median 0.10, largest 0.54, far
+  inside the +-1.98 clamp), so at QB 64 a typical weight had ~7 steps and the
+  roundings summed to a near-constant offset. The export now picks QB per net,
+  the largest that keeps |w| x QB <= 128 (238 for the trial net): 5.2 cp mean.
+  The file carries QB and the loader accepts any, so no C# changed. The
+  held-back error of the export itself, computed by an exact integer pass on
+  the GPU (equal to nnue_reference on 1,000 positions): 0.019611 against the
+  float net's 0.019550 on the trial.
+- **The first surprise was good**: one pass over 8 buckets (27 M positions,
+  29 s) already scored 0.0196 against sf1's 0.0304.
+- **The second wasn't**: training at full speed (~99 W on the GPU) beside the
+  bot cost the bot about a fifth of its speed. The charger gives 180 W
+  (Matthew: 19.5 V x 9.23 A); with the bot's 8 threads as well, the CPU fell
+  from ~125% to ~100% of its base clock. Eight alternated pairs: a fixed
+  single-thread `bench 9` -24% with the bot playing (0-7% with it idle), the
+  bot's own Speed lines 8.4 against 10.8 Mnps (-22%). That's past D(a)'s 10%,
+  so the run was paused, and a duty throttle (the GPU works a set share of the
+  time, `<run>.duty`) measured in short arms: half duty -2 to -7%, a quarter 0
+  to -2%.
+- **And the laptop came off its charger** at 01:02:52 (Kernel-Power 105) for
+  eight minutes: on battery everything throttles (the bot 4.3 Mnps), which for
+  a moment looked like the trainer's doing. Matthew was notified; he moves it
+  about the house, up to ~10 min at a time, so train.py now waits for AC by
+  itself.
+- **Matthew's choice (01:45)**: (a) half duty beside the bot for the last 15
+  passes, over (b) full speed with the bot -22% for ~48 min, or (c) stop at
+  pass 5 and plan. nnue1 resumed from its pass-5 checkpoint at 01:47.
+- **Half duty, sustained** (02:00-02:36, three 6-minute blocks paused and
+  three at half duty, a bench every 30 s logged with the CPU's load): with the
+  bot searching, the bench's median 974 knps against 1,080 (-10%); with it
+  idle, 1,545 against 1,550. The bot's own Speed lines: 10.0 Mnps at half duty
+  against 9.8 paused (63 and 50 long searches). So half duty is at the 10% line
+  by the strictest instrument and invisible in the bot's own play. A worry in
+  between (9.4 Mnps at half duty against 12.7 earlier in the night) was the
+  bot's positions: within one game its speed fell from 12.2 to 5.4 with
+  training paused, as it reached the endgame.
+- My own slips, both caught before they misled: a PowerShell function named
+  `Measure` was shadowed by the alias for Measure-Object, so the first duty run
+  measured nothing; and the second measured full duty throughout, because the
+  running trainer was a copy taken before the duty file existed. The third,
+  from a restart with the current scripts, is the one in the tables.
+
+nnue1, pass by pass (held-back error of the float net at K 1; the fitted K
+stayed within 0.997-1.005 throughout; sf1 0.030396 at its best K):
+
+| pass | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| error | 0.016731 | 0.016233 | 0.015897 | 0.015690 | 0.015623 | 0.015526 | 0.015463 | 0.015421 | 0.015059 | 0.015032 |
+
+| pass | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| error | 0.014992 | 0.014985 | 0.014973 | 0.014963 | 0.014824 | 0.014812 | 0.014811 | 0.014806 | 0.014767 | 0.014763 |
+
+(the rate x0.3 after passes 8, 14 and 18.) **Exported (03:46): 0.014851 as the
+engine computes it, against sf1's 0.030396: 51% lower.** QB came out at 64:
+one output weight reached the clamp. On nnue1 itself the engine equals
+nnue_reference on 1,000 positions, `bench 9` makes 3,830,535 nodes (0.80x
+sf1), and float against int16 is 7.5 cp mean, -5.1 of it constant.
+
+- `games\nnue\nets\nnue1.nnue`, 394,820 bytes. Network SHA-256 (what the
+  engine prints): 4a18e09ae6544ece43cbac5bc45ac5adf0a8dc9bff973e3916b7de95da9cf497.
+  File SHA-256: 666edbe590a0c5218fe852b078e71a4c28cf5721a7d72cf5dff358df9d7890af.
+  Beside it: nnue1.pt (the float checkpoint), nnue1.log, and the
+  measurements (nnue1-duty.log, nnue1-toggle2.log, nnue1-benches.log).
+- Not done here: the match (session 4). The bot stays on sf1.
+
+## 2026-10-17 (03:55-04:55): NNUE session 4, the match: nnue1 +742 Elo over sf1
+
+A side session, in its own worktree (branch `claude/heuristic-poincare-2d9fec`;
+the worktree came out on main at 74402ff, and fast-forwarded onto
+`claude/nnue-trainer-f0d60e` at 470d8d4, as the brief meant). MATCHES.md has
+the tables; NNUE.md's session 4 the summary.
+
+- nnue1.nnue in games\nnue\nets\ matches session 2's file SHA-256
+  (666edbe5...d7890af), and the engine reports its network as 4a18e09ae654.
+- **`scripts\nnue-match.cmd <net> <old> [games] [concurrency] [fixed]`**,
+  modelled on tune-match.cmd: builds the engine and the match tool, copies
+  both, the net and the old evaluation to %TEMP%\cb-match, writes into the
+  log what each engine says it loaded and the net's SHA-256, then plays at
+  below-normal priority. It runs from a worktree too: the nets, openings,
+  tables and logs are the main checkout's (found through `git rev-parse
+  --git-common-dir`). `<old>` can be a net (session 5's matches) or
+  numbers. "fixed" leaves the SPRT out.
+- **The match tool now logs each engine's depth and speed**: UciPlayer keeps
+  the last `info depth ... nodes ... time` line before each bestmove
+  (`SearchTally`), and the log gets a line per game plus the totals after
+  "final:". The smoke test needed it, and the tool had nothing. 3 tests; the
+  suite 410 passed, 2 skipped.
+- Before: the bot already stopped (Matthew; since 1cc1aaa, for heat while
+  training ran), the laptop on AC at 100%, 7.0 GB of commit free. During: ten
+  engines at ~65 MB each, the match tool ~20 MB, 6.3 GB free.
+- **Smoke test, 20 games (04:00-04:02)**: +19 -1 =0. No time losses,
+  crashes or illegal moves; every game ended by mate on the board or by the
+  tables. nnue1 depth 9.6 at 2,167 knps, sf1 9.5 at 1,946: a normal search,
+  not the exploding capture search of an untrained net.
+- **Matthew's choice (04:03)**: the smoke test's LLR was 2.68 of 2.94 at
+  game 20, so the SPRT would decide in ~22 games with an interval of about
+  [+300, +2400]. Of (a) the SPRT alone, (b) the SPRT then 400 games at a
+  fixed length (~40 min), (c) the SPRT then 2,000 (~3 h), he chose (b). The
+  bot was already off, which settled the brief's other question (the match
+  beside the bot or not).
+- **The SPRT run (04:04-04:13)**: +114 -0 =3, 98.7%, Elo +755 [+622, +∞];
+  SPRT [0, 10] accepted H1 at game 113, the first draw. It took that long
+  because the LLR (fishtest's simple normal form) divides by the variance of
+  the scores, which is zero while every game is a win, and
+  `MatchStats.LogLikelihoodRatio` returns 0 then. 112 wins in a row read as
+  LLR 0.00; one draw made it 362. Nothing wrong with the verdict, but a
+  perfect score should stop the test, not stall it (TODO).
+- **400 games at a fixed length (04:14-04:44)**: **+392 -3 =5, 98.6%, Elo
+  +742 [+645, +970]**. As white +198 -0 =2, as black +194 -3 =3. 355 wins by
+  mate on the board, 37 by the tables; the 3 losses 2 mates and 1 by the
+  tables; the 5 draws 3 by the tables and 2 by repetition. Median game 103
+  plies. 4.5 s a game, ~790 an hour. nnue1 depth 9.4 at 2,137 knps, sf1 9.1
+  at 1,887.
+- All three pooled: +525 -4 =8 in 537 games, 98.5%, +728 [+646, +886].
+- Against the plan's expectations: NNUE.md guessed "anything from nothing to
+  +200", since the net learns from human games scored by Stockfish rather
+  than from its own search's positions. It is over three times the top of
+  that. And the net plays 13% faster in nodes a second than sf1, where `bench
+  9` had it 3.8% slower a node: the bench's positions aren't the games'.
+  Halving the held-back error (0.0304 -> 0.0149) was worth far more than
+  sf2's 0.3% (0.030396 -> 0.030317, +1 Elo).
+- Logs and PGNs in games\nnue\: match-nnue1-sf1-20, match-nnue1-sf1 and
+  match-nnue1-sf1-400-fixed (.log, .pgn).
+- **The bot's switch: Matthew chose E(a)** (of (a) the net into bot\eval\,
+  (b) read from games\nnue\nets\, (c) a Stockfish yardstick first).
+  `bot\eval\nnue1.nnue` (394,820 bytes, the same SHA-256) is in git, and
+  make-config.py takes the first of nnue1.nnue and eval-sf1.txt that's there.
+  Checked on a copy of bot\ in the scratchpad (the real config.yml, which
+  holds the token, untouched): EvalFile is the net; with it deleted, sf1;
+  with both deleted, none. The engine loads the net from the bot\eval\ path
+  (spaces and all) with 8 threads, Hash 256 and the tables (292 loaded): one
+  3-second search, depth 13 at 11.8 Mnps against sf1's 12 at 8.9, one run
+  each, so a check that it works, not a speed figure. It takes effect when
+  the branch is merged into the main checkout and the bot restarts
+  (start.cmd); both are Matthew's.

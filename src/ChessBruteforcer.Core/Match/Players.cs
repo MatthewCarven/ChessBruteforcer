@@ -97,8 +97,17 @@ public sealed class UciPlayer : IPlayer
 {
     private readonly Process _process;
     private readonly BlockingCollection<string> _lines = new();
+    private SearchTally _searches = SearchTally.Empty;
 
     public string Name { get; }
+
+    /// <summary>The searches since the last call (each move's last info line), and a fresh start.</summary>
+    public SearchTally TakeSearches()
+    {
+        var searches = _searches;
+        _searches = SearchTally.Empty;
+        return searches;
+    }
 
     public UciPlayer(EngineSpec spec)
     {
@@ -141,9 +150,16 @@ public sealed class UciPlayer : IPlayer
             ? $"go movetime {moveTime}"
             : $"go wtime {request.WhiteTimeMs} btime {request.BlackTimeMs} " +
               $"winc {request.WhiteIncrementMs} binc {request.BlackIncrementMs}");
-        string? line = WaitFor("bestmove", timeout);
+        string? info = null;
+        string? line = WaitFor("bestmove", timeout, skipped =>
+        {
+            if (skipped.StartsWith("info depth"))
+                info = skipped;
+        });
         if (line is null)
             return null;
+        if (info is not null)
+            _searches = _searches.Add(info);
         string[] words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         return words.Length > 1 ? words[1] : null;
     }
@@ -179,8 +195,8 @@ public sealed class UciPlayer : IPlayer
         _process.StandardInput.Flush();
     }
 
-    /// <summary>The first line starting with <paramref name="prefix"/>, or null on timeout or exit.</summary>
-    private string? WaitFor(string prefix, TimeSpan timeout)
+    /// <summary>The first line starting with <paramref name="prefix"/>, or null on timeout or exit.  Lines before it go to <paramref name="skipped"/>.</summary>
+    private string? WaitFor(string prefix, TimeSpan timeout, Action<string>? skipped = null)
     {
         var deadline = Stopwatch.StartNew();
         while (deadline.Elapsed < timeout)
@@ -190,6 +206,7 @@ public sealed class UciPlayer : IPlayer
                 return null;
             if (line.StartsWith(prefix))
                 return line;
+            skipped?.Invoke(line);
         }
         return null;
     }

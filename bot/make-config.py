@@ -35,11 +35,15 @@ engine["uci_options"] = {
     "Threads": 8,                                             # LazySMP on the 8 cores (WORKLOG 2026-10-15 21:25, 2026-10-16)
     "Move Overhead": 100,
 }
-# The evaluation's numbers, Texel-tuned towards Stockfish's verdicts on Lichess's analysed games (2026-10-14:
-# +208 Elo [+130, +311] over the built-in ones, 69 games at 10+0.1, SPRT decided). Delete the file to go back.
-evaluation = os.path.join(here, "eval", "eval-sf1.txt")
-if os.path.exists(evaluation):
-    engine["uci_options"]["EvalFile"] = evaluation
+# The evaluation: the network nnue1 (NNUE.md; 2026-10-17: +742 Elo [+645, +970] over sf1, 400 games at 10+0.1,
+# after SPRT [0, 10] accepted H1), else sf1's numbers, Texel-tuned towards Stockfish's verdicts on Lichess's
+# analysed games (2026-10-14: +208 Elo [+130, +311] over the built-in ones, 69 games at 10+0.1, SPRT decided).
+# Delete nnue1.nnue to go back to sf1, and eval-sf1.txt as well for the built-in numbers.
+for name in ("nnue1.nnue", "eval-sf1.txt"):
+    evaluation = os.path.join(here, "eval", name)
+    if os.path.exists(evaluation):
+        engine["uci_options"]["EvalFile"] = evaluation
+        break
 engine["online_moves"]["online_egtb"]["enabled"] = False      # our own tables, not Lichess's
 # The opening book from our own games (scripts/make-book.py, scripts/month-book.cmd): what 2200+ players
 # chose, from every month counted, weighted by how often and how well; played instantly for the first 12

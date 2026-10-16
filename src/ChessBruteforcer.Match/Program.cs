@@ -89,4 +89,5 @@ Console.WriteLine($"{engines[0].Name} vs {engines[1].Name}: {games} games at {cl
 var stats = runner.Run(Console.WriteLine);
 Console.WriteLine();
 Console.WriteLine($"final: {engines[0].Name} vs {engines[1].Name}: {stats}");
+Console.WriteLine($"searches: {engines[0].Name} {runner.SearchesA}; {engines[1].Name} {runner.SearchesB}");
 return 0;
