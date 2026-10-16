@@ -1,4 +1,5 @@
 using ChessBruteforcer.Core;
+using ChessBruteforcer.Core.Engine;
 using ChessBruteforcer.Core.Game;
 using ChessBruteforcer.Core.Match;
 
@@ -198,5 +199,48 @@ public class GamePlayerTests
                 position.MakeMove(move!.Value);
             }
         }
+    }
+}
+
+public class SearchTallyTests
+{
+    [Fact]
+    public void ReadsTheEnginesOwnInfoLine()
+    {
+        var output = new StringWriter();
+        var engine = new UciEngine(output);
+        engine.Handle("position startpos moves e2e4 e7e5");
+        engine.Handle("go depth 5");
+        engine.WaitForSearch();
+        string info = output.ToString().Split('\n').Last(l => l.StartsWith("info depth")).Trim();
+        string[] words = info.Split(' ');
+        long nodes = long.Parse(words[Array.IndexOf(words, "nodes") + 1]);
+        long ms = long.Parse(words[Array.IndexOf(words, "time") + 1]);
+
+        var tally = SearchTally.Empty.Add(info);
+        Assert.Equal(new SearchTally(1, 5, nodes, ms), tally);
+        Assert.Equal(5.0, tally.MeanDepth);
+    }
+
+    [Fact]
+    public void LinesWithoutDepthNodesOrTimeCountForNothing()
+    {
+        var tally = SearchTally.Empty
+            .Add("info string evaluation: built in")
+            .Add("info depth 7 score cp 20 nodes 1000 pv e2e4")
+            .Add("info nodes 1000 time 5");
+        Assert.Equal(SearchTally.Empty, tally);
+    }
+
+    [Fact]
+    public void DepthIsPerMoveAndSpeedIsNodesOverTime()
+    {
+        var tally = SearchTally.Empty
+            .Add("info depth 8 seldepth 20 score cp 31 nodes 300000 nps 1500000 time 200 hashfull 3 pv e2e4 e7e5")
+            .Add("info depth 11 score mate 4 nodes 900000 nps 900000 time 1000 hashfull 9 pv d2d4");
+        Assert.Equal(new SearchTally(2, 19, 1_200_000, 1_200), tally);
+        Assert.Equal(9.5, tally.MeanDepth);
+        Assert.Equal(1000.0, tally.Knps);
+        Assert.Equal(new SearchTally(4, 38, 2_400_000, 2_400), tally.Add(tally));
     }
 }
