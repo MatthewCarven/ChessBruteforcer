@@ -170,6 +170,21 @@ public class NnueDataTests
                      (NnueRecord.TryParseScore(text, out short s, out bool m, out bool c), (int)s, m, c));
     }
 
+    [Theory]
+    [InlineData("Rated Blitz game", true)]
+    [InlineData("Rated Rapid tournament https://lichess.org/tournament/abcd1234", true)]
+    [InlineData("Rapid swiss https://lichess.org/swiss/OPqa5L57", true)]     // rated, though it doesn't say so
+    [InlineData("Classical swiss https://lichess.org/swiss/xxjIloSu", true)]
+    [InlineData("Casual Blitz game", false)]
+    [InlineData("A swiss friendly", false)]
+    [InlineData("?", false)]
+    [InlineData(null, false)]
+    public void RatedMeansTheEventSaysSoOrItIsALichessSwissGame(string? name, bool rated)
+    {
+        var tags = name is null ? new List<(string, string)>() : new List<(string, string)> { ("Event", name) };
+        Assert.Equal(rated, new StoredGame(tags, new List<Move>(), "1-0").IsRated);
+    }
+
     [Fact]
     public void AScoreAndItsMateFlagMustAgree()
     {
@@ -261,7 +276,7 @@ public class NnueDataTests
             };
             var tags = new List<(string, string)>
             {
-                ("Event", g % 23 == 0 ? "Casual Blitz game" : "Rated Blitz game"),
+                ("Event", g % 23 == 0 ? "Casual Blitz game" : g % 19 == 0 ? $"Blitz swiss https://lichess.org/swiss/test{g}" : "Rated Blitz game"),
                 ("Site", $"https://lichess.org/test{g}"),
                 ("Result", g % 29 == 0 ? "*" : results[rng.Next(3)]),
                 ("WhiteElo", g % 31 == 0 ? "?" : rng.Next(800, 2900).ToString(CultureInfo.InvariantCulture)),
@@ -378,6 +393,10 @@ public class NnueDataTests
         var left = meta.GetProperty("counts").GetProperty("games_left_out");
         foreach (string why in new[] { "not rated", "not from the standard start", "not analysed", "no rating", "no result" })
             Assert.True(left.GetProperty(why).GetInt64() > 0, why);
+        // Only the casual games are "not rated": Lichess's Swiss games, whose Event lacks "Rated", are in.
+        Assert.Equal(games.Count(g => g.Tag("Event")!.StartsWith("Casual")), left.GetProperty("not rated").GetInt64());
+        var swiss = games.Select((g, i) => (g, number: (uint)(i + 1))).Where(x => x.g.Tag("Event")!.Contains("swiss")).Select(x => x.number).ToHashSet();
+        Assert.Contains(training.Concat(held), r => swiss.Contains(NnueRecord.Read(r).Game));
         Assert.Equal(games.Count, meta.GetProperty("counts").GetProperty("games_read").GetInt64());
     }
 

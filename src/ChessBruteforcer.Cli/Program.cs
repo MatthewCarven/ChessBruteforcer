@@ -1433,7 +1433,7 @@ static class Cli
             {
                 games++;
                 string[]? evals = lambda is null ? null : game.Tag("Evals")?.Split(' ');
-                if (!(game.Tag("Event") ?? "").Contains("Rated") || game.Tag("FEN") is not null
+                if (!game.IsRated || game.Tag("FEN") is not null
                     || (lambda is null && game.Tag("Termination") != "Normal") || (lambda is not null && evals is null)
                     || Speed(game) is not ("blitz" or "rapid" or "classical")
                     || !int.TryParse(game.Tag("WhiteElo"), out int whiteElo) || !int.TryParse(game.Tag("BlackElo"), out int blackElo)
@@ -1547,7 +1547,7 @@ static class Cli
                     string[]? evals = game.Tag("Evals")?.Split(' ');
                     string speed = Speed(game);
                     byte? result = NnueRecord.ResultCode(game.Result);
-                    string? why = !(game.Tag("Event") ?? "").Contains("Rated") ? "not rated"
+                    string? why = !game.IsRated ? "not rated"
                         : game.Tag("FEN") is not null ? "not from the standard start"
                         : evals is null ? "not analysed"
                         : speeds is not null && !speeds.Contains(speed) ? "speed left out"
@@ -1641,7 +1641,7 @@ static class Cli
                 w.WriteEndObject();
             }
             w.WriteEndArray();
-            w.WriteString("games", "rated, from the standard start, analysed (an Evals tag), both ratings given, a result; numbered from 1 over all the sources in order");
+            w.WriteString("games", "rated (Event says Rated, or a Lichess Swiss game), from the standard start, analysed (an Evals tag), both ratings given, a result; numbered from 1 over all the sources in order");
             w.WriteString("rule", QuietPositions.Rule);
             w.WriteString("score", "Lichess's Stockfish analysis after the move before, for white; quiet positions without one are left out");
             if (speeds is null)

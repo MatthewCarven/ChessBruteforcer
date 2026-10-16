@@ -21,6 +21,23 @@ public sealed record StoredGame(IReadOnlyList<(string Name, string Value)> Tags,
         return null;
     }
 
+    /// <summary>
+    /// A rated game, by its Event tag. Lichess writes "Rated" there ("Rated Blitz game", "Rated Rapid tournament
+    /// https://lichess.org/tournament/..."), except in Swiss tournament games ("Blitz swiss
+    /// https://lichess.org/swiss/..."), which are rated too: its rated database holds them (2026-10-16, 1.07% of
+    /// September's analysed games, left out until then). `tune positions` and `nnue data` both ask here.
+    /// </summary>
+    public bool IsRated
+    {
+        get
+        {
+            string name = Tag("Event") ?? "";
+            return name.Contains("Rated", StringComparison.Ordinal) || name.Contains(LichessSwiss, StringComparison.Ordinal);
+        }
+    }
+
+    private const string LichessSwiss = " swiss https://lichess.org/swiss/";
+
     public string StartFen => Tag("FEN") ?? Fen.StartPosition;
 
     public Position StartPosition() => Position.FromFen(StartFen);
