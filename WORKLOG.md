@@ -2860,3 +2860,178 @@ position, all speeds. Report: [scripts/nnue-data-2026-09.txt](scripts/nnue-data-
   Python cross-check again (report).
 - Future `tune positions` runs take Swiss games too (~1% more games); sf1,
   sf2 and the bot are untouched.
+
+## 2026-10-16 (07:15-08:45): NNUE session 3, the network in C#
+
+A side session, in its own worktree (branch `claude/nnue-csharp-8117d8`, cut
+from `compression`), beside session 1's data run. NNUE.md's session 3: the
+engine can now play on a network, with random weights until session 2's
+trained net exists. The bot is untouched (make-config.py still says sf1).
+
+**What was built** (src/ChessBruteforcer.Core/Engine/Nnue/):
+- `Network`: the .nnue loader. `CBNNUE01`, version 1, 768 inputs, H hidden
+  (a multiple of 16 from 16 to 1024: the file says, not the code), QA, QB,
+  scale, the int16 arrays, the output bias, then the SHA-256. Refused: a bad
+  magic, a bad checksum, another version, a wrong length, an output weight
+  whose product with QA overflows 16 bits, or a hidden unit that could
+  overflow on a full board. A net trained with the +-1.98 clamp always
+  passes. Also the forward pass: `Vector256<short>` clamp, (v x w) x v
+  through `Avx2.MultiplyAddAdjacent` into int32 lanes, widened to 64 bits
+  per perspective; and a scalar reference one number at a time. The score is
+  clamped short of a mate (+-28,999). The feature index is NNUE.md's.
+- `AccumulatorStack`, inside `Position`: `MakeMove` writes the child slot as
+  parent + its 2-4 piece changes in one pass per perspective (quiet,
+  capture with the en passant pawn's own square, castling with the rook);
+  `UnmakeMove` pops; the null move shares the slot (no piece moves);
+  `Position.FromFen(fen, network)`, `UseNetwork` and `SetPiece` refresh. A
+  take-back past where the stack starts refreshes from the board.
+- `Evaluation.Evaluate(position)` uses the network when the position carries
+  one. **The network rides on positions, not process-wide** like the
+  numbers: UCI `EvalFile` with a .nnue (told apart by its magic) is that
+  engine's own, its positions carry it, and Lazy SMP helpers and Ranges
+  workers copy the root's. So tests running side by side, or two engines in
+  one process, can't meet each other's net. A text EvalFile works as
+  before; `<empty>` turns both off. EvalFile on a missing file now answers
+  `info string error` instead of stopping the engine.
+- Engine `bench [depth] --eval <numbers or network>`.
+- `Network.FromPieceSquares(numbers)`: a net that computes a numbers file's
+  material and piece-square values (each hidden unit holds 127 + d for the
+  side to move and 127 - d for the other, so the output is linear in d).
+  The bench's yardstick, and a check that the inputs mean what they should.
+
+**Tests**: NnueTests, 36 of them.
+
+| what | how |
+|---|---|
+| incremental = refresh | every node of perft walks: start 4, Kiwipete 3, the en passant pins 4, promotions 3, castling discovery 3, plus an en passant and a promotion-capture position; counts equal the published perft; castles, en passant and promotions all made. Also at 256 hidden, and over 72 random games of up to 150 steps with null moves and take-backs |
+| SIMD = scalar | refresh and forward, H = 16, 32, 256, 1024, real positions and any int16 accumulators; the largest sums (H = 1024, every weight at the limit) |
+| colour mirror | 1,000 positions and their mirrors score exactly the same, two nets |
+| C# = numpy | 1,000 positions, exactly: scripts/nnue-reference/nnue_reference.py (numpy only, written from NNUE.md alone) wrote the random-weights net and the scores, tests/ChessBruteforcer.Tests/Data/ |
+| meaning | the piece-square net scores 400+ random positions within 3 cp of the numbers it was built from |
+| the file | round trip; refuses a bad magic, a bad checksum (header, weight, bias, the hash itself), another version, a cut file, overflowing weights |
+| the engine | every thread searches with the root's net (a net that says +1000 for the side to move: the search must answer exactly +-1000, and each helper's position carries the net); UCI EvalFile by magic, a damaged file refused with the loaded net kept |
+
+**Mutation battery**: 30 mutations, **30 red**: forget the castling rook,
+the en passant pawn (two ways), the promotion; unmake without a pop;
+SetPiece without a refresh; swap the perspectives in the forward pass and in
+the feature index; own and other side's pieces swapped; no flip for black;
+the SIMD clamp at 0 or at QA; the int32 lanes summed in 32 bits; the output
+bias, the mate clamp, truncating division; the checksum, magic and range
+checks; each kernel forgetting a column; the refresh forgetting black; the
+stack's bottom and growth; helpers, workers and UCI without the net;
+Evaluate ignoring it. Two things it taught. Swapping the perspectives keeps
+the net colour-symmetric, so the mirror test can't see it: only the numpy
+reference and the piece-square net catch it. And the helpers' network was
+caught at first only by the UCI test's timing (Lazy SMP's answer is the
+main thread's, which a helper reaches only through the table), so each
+search now remembers the position it was prepared on and the test looks at
+every helper's: red every time since. "The stack never grows" was red by
+timeout: past the array, unchecked writes corrupted memory. It was a crash
+behind a Windows dialog, not a hang; see "an access violation, answered"
+below.
+
+**Random weights make the capture search explode**: on Kiwipete, depth 1
+took 1,365,855 nodes with a random 256 net against 3,422 without (depth 3:
+11.5 M nodes in 20 s, stopped). A random evaluation swings by thousands of
+centipawns from one capture to the next, so quiescence explores nearly every
+capture sequence. The first version of the multi-thread test looked like a
+hang for that reason. Hence the piece-square net for the bench: speed per
+operation doesn't depend on the weights, but the tree does.
+
+**The bench** (scripts/nnue-bench/, results-2026-10-16.txt): `bench 9`, one
+thread, 8 rounds, arms in turn.
+
+| | tree (nodes) | median knps | vs sf1 |
+|---|---:|---:|---:|
+| sf1 (today) | 4,767,261 | 1,218 | |
+| net 128 | 4,527,020 | 1,282 | +5.3% |
+| **net 256** | 4,625,058 | 1,192 | **-2.1%** |
+| net 512 | 4,625,058 | 1,075 | -11.7% |
+
+| tree-free (costs.cs) | update a move | an evaluation |
+|---|---:|---:|
+| sf1 | | 104 ns |
+| net 128 | 26 ns | 45 ns |
+| net 256 | 52 ns | 55 ns |
+| net 512 | 97 ns | 87 ns |
+
+From the second table, net 256 should cost ~46 ns a node more than sf1, out
+of ~820: about -5%. The bench says -2.1%. Either way it's well inside the
+probe's upper bound (-9% to -18%), which updated on unmake too, one pass per
+square changed, beside today's evaluation. 512 hidden costs -9.8% against
+256 on the identical tree. So session 5's 512 lever costs about 10%, not the
+probe's 30-36%. Not done: AVX-512, aligned arrays, a lazy update (only nodes
+that evaluate).
+
+Full suite: 377 passed, 2 skipped (36 new). Not merged into compression,
+not pushed: Matthew's.
+
+**Later (10:00-10:50): an access violation, answered.** Matthew found a
+"testhost.exe - System Error, 0xc0000005" dialog on his screen, and the
+parent session traced it in the Application log to this worktree, with two
+engine crashes on an empty path. Its questions and the answers:
+
+1. **What wrote out of bounds?** The mutation battery's "the stack never
+   grows" mutant, which deletes the stack's `Array.Resize` on purpose.
+   - The Application log: .NET Runtime 1026 at 08:02:52, an
+     AccessViolationException in `Stack<(Move?, Undo)>.Push` inside the
+     random-games test. That is the only test deeper than the stack's
+     first 32 slots, so the only one where that mutant writes past the
+     array.
+   - The System log: Application Popup 26 at the same second, "testhost.exe
+     - System Error ... 0xc0000005". That is the dialog Matthew found (safe
+     to close).
+   - The battery's test host for that mutant started at 08:02:42. It was
+     the only run of 30 that "timed out", and still alive at 08:11, when I
+     killed it. The popup had kept the crashed process alive. My unmutated
+     runs were before 07:52 and after 08:12.
+   I logged that mutant as "red by timeout" without asking why it hung. I
+   should have read the event log then.
+2. **Why can't it come back?** It could have, in a different form. The
+   kernels wrote through unchecked refs, so a real capacity or index bug
+   would have corrupted the heap the same way. Commit e4ffd61 changes that.
+   Each push takes the parent's and child's slots as one bounds-checked
+   span, and each weight column as another. Each kernel checks its
+   operands' lengths before touching a lane, so a wrong slot or column now
+   throws. The re-run battery shows it: the stack mutant fails two tests
+   with an exception, with no crash and no popup. One new mutation, a
+   column read unchecked, goes red too: a move from an empty square now
+   throws, where it used to read 64 columns before the weights.
+3. **Stress**, as asked. The random-games walk over 300 seeds, each 72
+   games of up to 150 steps with null moves and take-backs, the
+   accumulators checked against a refresh at every step. Plus 300 deep
+   games of up to 400 plies, where the stack doubles to 512 slots. All in
+   one test host: 600 of 600 in Debug (3 min 50 s) and 638 of 638 in
+   Release (with the 38 NNUE tests). The Application log shows no crash
+   event after either run. With the checks in, any out-of-range access in
+   those 600 runs would have thrown and failed a case.
+4. **The empty path** (08:16 and 08:18): that was the engine's `bench --eval
+   ""`. My own bench script passed an empty path, because PowerShell's
+   variable names ignore case (WORKLOG above), and `IsNetworkFile("")`
+   threw from `File.OpenRead`. Now `IsNetworkFile("")` is false, and
+   bench checks the path first: an empty, missing or absent path prints
+   `bench: no evaluation file "..."` and exits 1. UCI was never exposed:
+   an empty EvalFile value, or none, is the built-in evaluation, and a
+   missing file answers `info string error`. Tests cover both forms.
+
+Battery re-run on the new code: 31 mutations, 31 red, no crash events. NnueTests: 38. Full suite: 379
+passed, 2 skipped.
+
+Speed with the checks: `bench 9`, 8 rounds, three arms in turn. sf1 ran
+at 1,320 knps. Net 256 with the checks ran at 1,270, which is **-3.8%**;
+the same net in the build before them ran at 1,290, -2.3%. Both net arms
+made the identical tree (4,625,058 nodes), so the checks cost 1.6%. Still
+well inside the probe's bound. Per operation (costs.cs), a move's update
+is 54 ns with the checks, against 52 before, within the laptop's drift.
+
+## 2026-10-16 (23:25): both NNUE branches merged into compression
+
+- On Matthew's word: `claude/nnue-data-7d1bea` (f977646), then
+  `claude/nnue-csharp-8117d8`. WORKLOG and TODO conflicts were entries side
+  by side (both kept). The tests' .csproj was merged by hand: session 1's
+  reference to the Cli project and session 3's `Data\**` fixtures, both kept.
+- The merged tree: full suite **407 passed, 2 skipped, 0 failed** (90 s); the
+  engine and the match tool build clean. The bot stays on sf1 (make-config.py
+  untouched), and its engine picks up the network code only when start-bot.cmd
+  next rebuilds it, where nothing changes until EvalFile names a .nnue.
+- Next: session 2, the trainer.

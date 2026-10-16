@@ -1,0 +1,30 @@
+# The network's speed (NNUE session 3, 2026-10-16)
+
+How fast the engine searches with a network against today's evaluation. Unlike
+the cost probe (`scripts/nnue-probe/`), this is the engine's own code, as it
+plays.
+
+- `pst-net.cs` writes a piece-square net: a 768 -> H x2 -> 1 network that
+  computes an evaluation file's material and piece-square values
+  (`Network.FromPieceSquares`). A net of a given size costs the same per
+  operation whatever its weights, and this one gives a search tree like a
+  real evaluation's. Random weights don't: the capture search explodes.
+- `bench.ps1` runs the engine's `bench <depth> --eval <file>` for each arm in
+  turn, round by round, one process per run, and prints the median speed
+  against the first arm.
+- `costs.cs` times the accumulator update a move and one evaluation, apart
+  from any search tree.
+
+Run from this folder, after building the engine into a folder of its own
+(so a rebuild of the repo can't change it mid-run):
+
+```
+dotnet build ../../src/ChessBruteforcer.Engine -c Release -o <dir>
+dotnet run -c Release pst-net.cs ../../bot/eval/eval-sf1.txt <dir>/pst-sf1-256.nnue 256
+pwsh -File bench.ps1 -Engine <dir>/ChessBruteforcer.Engine.dll -Depth 9 -Rounds 8 -Arms sf1=../../bot/eval/eval-sf1.txt,net256=<dir>/pst-sf1-256.nnue
+dotnet run -c Release costs.cs ../../bot/eval/eval-sf1.txt 7
+```
+
+Results: `results-2026-10-16.txt`. With session 2's trained net, the same
+`bench.ps1` line with its file in place of the piece-square net gives the
+speed on its own tree.

@@ -1,4 +1,5 @@
 using System.Text;
+using ChessBruteforcer.Core.Engine.Nnue;
 
 namespace ChessBruteforcer.Core.Game;
 
@@ -38,6 +39,7 @@ public sealed class Position
 
     private readonly Piece[] _squares = new Piece[64];
     private readonly int[] _kingSquare = { NoSquare, NoSquare };
+    private AccumulatorStack? _nnue;
 
     public Colour SideToMove { get; private set; }
     public CastlingRights Castling { get; private set; }
@@ -55,6 +57,27 @@ public sealed class Position
 
     public int KingSquare(Colour colour) => _kingSquare[(int)colour];
 
+    /// <summary>The network this position keeps accumulators for (and the evaluation then uses), or null.</summary>
+    public Network? Network => _nnue?.Network;
+
+    internal AccumulatorStack? Accumulators => _nnue;
+
+    /// <summary>
+    /// Keep accumulators for <paramref name="network"/> from here on (null: none, and the evaluation is
+    /// the hand-made one). The stack starts at this position, refreshed from the board.
+    /// </summary>
+    public void UseNetwork(Network? network)
+    {
+        if (network is null)
+        {
+            _nnue = null;
+            return;
+        }
+        if (_nnue?.Network != network)
+            _nnue = new AccumulatorStack(network);
+        _nnue.Reset(this);
+    }
+
     /// <summary>An empty board with no castling rights or en passant square.</summary>
     public static Position Empty(Colour sideToMove = Colour.White)
     {
@@ -67,7 +90,11 @@ public sealed class Position
     /// Place (or with <see cref="Piece.Empty"/>, remove) a piece directly, for
     /// building positions square by square.  Does not touch castling rights.
     /// </summary>
-    public void SetPiece(int square, Piece piece) => Put(square, piece);
+    public void SetPiece(int square, Piece piece)
+    {
+        Put(square, piece);
+        _nnue?.Refresh(this);
+    }
 
     public void SetSideToMove(Colour colour)
     {
@@ -88,6 +115,14 @@ public sealed class Position
     }
 
     public static Position Start() => FromFen(Fen.StartPosition);
+
+    /// <summary>A position from FEN, keeping accumulators for <paramref name="network"/> (if not null), refreshed from the board.</summary>
+    public static Position FromFen(string fen, Network? network)
+    {
+        var position = FromFen(fen);
+        position.UseNetwork(network);
+        return position;
+    }
 
     public static Position FromFen(string fen)
     {
@@ -220,27 +255,32 @@ public sealed class Position
     public Undo MakeMove(Move move)
     {
         var mover = _squares[move.From];
-        var undo = new Undo(Piece.Empty, Castling, EnPassantSquare, HalfmoveClock, Hash);
+        int capturedSquare = (move.Flags & MoveFlags.EnPassant) != 0
+            ? move.To + (SideToMove == Colour.White ? -8 : 8)
+            : move.To;
+        var captured = _squares[capturedSquare];
+        var undo = new Undo(captured, Castling, EnPassantSquare, HalfmoveClock, Hash);
 
-        if ((move.Flags & MoveFlags.EnPassant) != 0)
-        {
-            int capturedSquare = move.To + (SideToMove == Colour.White ? -8 : 8);
-            undo = undo with { Captured = _squares[capturedSquare] };
+        if (capturedSquare != move.To)
             Put(capturedSquare, Piece.Empty);
-        }
-        else
-        {
-            undo = undo with { Captured = _squares[move.To] };
-        }
-
+        var placed = move.IsPromotion ? new Piece(move.Promotion, SideToMove) : mover;
         Put(move.From, Piece.Empty);
-        Put(move.To, move.IsPromotion ? new Piece(move.Promotion, SideToMove) : mover);
+        Put(move.To, placed);
 
         if ((move.Flags & MoveFlags.Castle) != 0)
         {
             var (rookFrom, rookTo) = CastlingRook(move.To);
-            Put(rookTo, _squares[rookFrom]);
+            var rook = _squares[rookFrom];
+            Put(rookTo, rook);
             Put(rookFrom, Piece.Empty);
+            _nnue?.PushCastle(mover, move.From, move.To, rook, rookFrom, rookTo);
+        }
+        else if (_nnue is not null)
+        {
+            if (captured.IsEmpty)
+                _nnue.PushQuiet(mover, move.From, placed, move.To);
+            else
+                _nnue.PushCapture(mover, move.From, placed, move.To, captured, capturedSquare);
         }
 
         Hash ^= Zobrist.Castling(Castling) ^ Zobrist.EnPassant(EnPassantSquare);
@@ -286,12 +326,13 @@ public sealed class Position
         EnPassantSquare = undo.EnPassantSquare;
         HalfmoveClock = undo.HalfmoveClock;
         Hash = undo.Hash;
+        _nnue?.Pop(this);
     }
 
     /// <summary>
     /// Pass the turn without moving (not a legal chess move; the search uses
     /// it to ask "is my position so good that even a free move for them
-    /// doesn't help?").
+    /// doesn't help?").  No piece moves, so the accumulators stay as they are.
     /// </summary>
     public Undo MakeNullMove()
     {

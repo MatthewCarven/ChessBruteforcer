@@ -230,11 +230,20 @@ Sessions, in order:
             their Event lacks "Rated": Matthew's (a), they count now in both
             `tune positions` and `nnue data` (`StoredGame.IsRated`), and
             September was run again with them (+2.7 M records).
-      - [ ] Matthew: merge `claude/nnue-data-7d1bea` into compression (it
-            touches Program.cs's `tune positions`, StoredGame, the Cli and
-            test .csproj, NNUE.md, WORKLOG, TODO; not Core/Engine or Position).
+      - [x] Merged into compression on Matthew's word (2026-10-16, 23:25,
+            f977646), with session 3's branch after it.
       - [ ] Session 2 reads the records with scripts/nnue/records.py; the
             hand-over note is in NNUE.md ("As built").
+      - [x] Session 3, the network in C# (2026-10-16, branch
+        `claude/nnue-csharp-8117d8`, merged into compression the same night): EvalFile
+        takes a .nnue; 38 tests, 31 of 31 mutations red; `bench 9` -3.8% at
+        256 hidden against sf1 with bounds-checked slots and columns (-2.3%
+        without; the probe's bound was -9 to -18%). The 08:02 access
+        violation was a battery mutant (WORKLOG). The bot stays on sf1
+        until session 4's match.
+      - [ ] Later speed steps, each measured with scripts/nnue-bench: AVX-512
+        (this CPU has it), 64-byte-aligned weights and stack, a lazy update
+        (only nodes that evaluate pay for their accumulators).
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by
