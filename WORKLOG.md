@@ -3242,3 +3242,68 @@ the tables; NNUE.md's session 4 the summary.
   Python 3.14 is already installed there (C:\Program Files\Python314).
 - The stray key pair `key2` / `key2.pub` (made at ssh-keygen's file prompt,
   unused) was deleted from the repo root on Matthew's word.
+
+## 2026-10-17 (06:15-07:50): NNUE session 2b, the desktop's GTX 1660 as a second trainer
+
+A side session, branch `claude/nnue-desktop-8d5f2a` (cut from compression at
+aa6987b), driving the desktop from the laptop over SSH. NNUE.md's session 2b
+has the tables; this is the story.
+
+- **What the desktop had**: Python 3.14.4 with numpy 2.4.6, typing-extensions
+  and setuptools; the GTX 1660 idle at ~800 MiB (the display); D: is a 2 TB
+  HDD with 1.37 TB free; i7-3770, 16 GB, 11.4 GB free. torch's other seven
+  dependencies were missing, so they were zipped out of the laptop's venv
+  (same Python, same platform; 9.5 MB) and copied, with the wheel: **nothing
+  was downloaded**, and Matthew's yes for PyPI wasn't needed.
+- **Copies, capped** (`scripts\capped-copy.py`, new: each 1 MiB flushed to
+  the share, the running average held to 7,500,000 B/s, a SHA-256 of each
+  file as read). The Wi-Fi carried 7.32 MB/s during the wheel. The wheel
+  took 280 s (7.14 MB/s), the records 1,173 s (6.46 MB/s: 4.4 while pip was
+  unpacking torch onto the same desktop disk, since each chunk waits for its
+  flush). The desktop hashed its copies on its own disk over SSH: the wheel
+  is the server's bfdad379...e7520a4, and all 66 record files match. One
+  share job at a time, nothing else on the share meanwhile (the month queue
+  and the learner weren't running).
+- **The venv**: `setup-desktop.cmd` (new, in the share's nnue folder):
+  `--system-site-packages`, the zip unpacked into site-packages, the wheel
+  with `pip --no-index --no-deps`, `pip check` clean. torch 2.14.1+cu132
+  sees the GTX 1660, `get_arch_list()` = sm_75, sm_80, sm_86, sm_90, sm_100,
+  sm_120.
+- **Running it**: `scripts\nnue-desktop.ps1` (new) registers a scheduled
+  task per run on the desktop (Admin, S4U: no password stored, no window on
+  his screen) that runs `train-desktop.cmd` (new) with the desktop's own
+  data and output folders. A test task imported torch and summed on the GPU
+  from session 0 first. Two snags: `%USERDOMAIN%` in an SSH session is
+  WORKGROUP ("No mapping between account names and security IDs"; the task
+  now takes the Windows identity), and train-desktop.cmd first passed only
+  `%2`-`%9`, which dropped a ninth token (`--progress 2`): it passes
+  everything now, checked with ten. nnue-train.cmd has the same limit (TODO).
+- **The check**: the laptop had **1.03 GB of commit free** (the Claude app's
+  processes 6.3 GB, the bot's engine 2.6 GB), too little for torch's ~2.8 GB
+  beside the bot. So the laptop's half of "the same short run" is nnue1's
+  own first two passes, from its log: passes 1-5 ran from a clean start, and
+  train.py's training code hasn't changed since but for the battery wait.
+  The desktop replayed them (`2b-replay --passes 2`): the same positions at
+  all 16 progress lines, running losses within +-0.000033, held-back error
+  **0.016734 / 0.016159 against 0.016731 / 0.016233**. A repeat on the
+  desktop made the **same net to the byte** (sha256 e6840ae8...), and a
+  second seed moved held-back error 0.000100 after pass 1 and 0.000013 after
+  pass 2: the machines differ by the size of gap a new seed makes, under
+  0.0001, against a 0.0005 gain from pass 1 to 2.
+- **Speed**: **634-641 k positions a second** at 256 hidden, 0.65x the
+  laptop's card (the specs suggested 0.4x), so nnue1's 20 passes take ~1.9 h
+  there; **362 k at 512 hidden** (a 1-minute probe). The card at 75-84 W of
+  130, 1,920 MHz steady, 62-70 °C, fan ~66%; torch 615 MB allocated, 996
+  reserved; the trainer's host commit 2.6-3.2 GB.
+- **Matthew asked whether the desktop's card has brownouts**: no sign. Its
+  driver counts 0 µs of power capping, power braking and thermal slowdown
+  since the 14th's boot; 20 one-second samples under load held 1,920 MHz
+  with no slowdown flag; no driver resets, WHEA errors or unexpected power
+  losses in 30 days of the System log (1,776 events, readable). The laptop's
+  card: 0 µs of braking, 0.06 s of power capping since the 15th; one driver
+  reset on the 12th at 03:26 (Display 4101, nvlddmkm 153). Seen in passing
+  on the desktop: volume H: has asked for a full chkdsk 18 times, and TCP/UDP
+  ephemeral ports ran out 10 times (8th and 15th).
+- **Decision F**: Matthew chose **(b) 512 hidden** (07:45) over (a) nnue1's
+  recipe again or (c) both. `nnue1-h512` started 07:46 on the desktop:
+  nnue1's recipe with `--hidden 512`, ~3.4 h.

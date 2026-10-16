@@ -54,12 +54,15 @@ not measured here:
 | memory bandwidth | 448 GB/s | 192 GB/s |
 | CUDA cores | 5,120 | 1,408 |
 | compute capability | 8.6 (Ampere) | 7.5 (Turing; CUDA 13 still supports it) |
-| likely speed on this net | 1x | **about 0.4x** (the work is mostly memory traffic) |
+| likely speed on this net | 1x | about 0.4x (the work is mostly memory traffic) |
+| **measured on this net** (session 2b) | 0.96-1.17 M positions a second | **634-641 k (0.65x)**; 362 k at 512 hidden |
 
-6 GB is plenty for a 768 x 256 net. A run that takes 40 min to 2.5 h on the
-laptop would take roughly 1.5-6 h on the desktop: an overnight job. How the
+6 GB is plenty for a 768 x 256 net (the trainer holds ~1 GB of it). nnue1's
+20 passes take **~1.9 h** on the desktop at full speed, against ~70 min on
+the laptop at full speed or ~2 h at the half duty the bot needs. How the
 two are used together is decision D, below. SSH from the laptop to the
-desktop works from 2026-10-17 (key login as Admin; WORKLOG).
+desktop works from 2026-10-17 (key login as Admin; WORKLOG). The desktop:
+i7-3770, 16 GB, the share on a 2 TB HDD (D:).
 
 ### What today's evaluation costs, and what a network would
 
@@ -317,7 +320,8 @@ nothing to +200 is plausible here. The match decides.
 Session 0 is this one: the plan and the measurements above. **Sessions 1
 and 3 need nothing from each other** (the formats are fixed here) and can
 run side by side. Session 2 needs 1's data (the download is agreed: A(a));
-2b needs 2's trainer and Matthew at the desktop; 4 needs 2 and 3.
+2b needs 2's trainer (and, as it turned out, only SSH to the desktop); 4
+needs 2 and 3.
 
 ### Session 1: the data (no downloads)
 
@@ -465,9 +469,11 @@ the run). What sessions 2b, 4 and 5 should know:
 **Over SSH** (from 2026-10-17): OpenSSH Server on the desktop, and the
 laptop logs in by key as `Admin@id10terror-desktop`, with no password. So a
 session here runs commands there, as `ssh -o BatchMode=yes
-Admin@id10terror-desktop "<command>"`. Matthew's hands are needed only for
-his yes to the Python download. The desktop's driver is already fine (CUDA
-13.4). One thing to settle first: on Windows, programs started over SSH
+Admin@id10terror-desktop "<command>"`. Matthew's hands turned out not to be
+needed at all: Python 3.14.4 with numpy was already on the desktop, and
+torch's small dependencies were copied from the laptop's venv, so nothing
+was downloaded. The desktop's driver is already fine (CUDA 13.4). One thing
+to settle first: on Windows, programs started over SSH
 die when the connection closes, so long runs go through a scheduled task
 (`schtasks`) that logs to the share, not straight from the SSH command.
 
@@ -492,9 +498,8 @@ die when the connection closes, so long runs go through a scheduled task
   it. So copies are capped (September's 7.58 GB records: ~16 min), and only
   one big share job runs at a time.
 - **Set up over SSH**: the driver is checked (617.42, CUDA 13.4; the wheel
-  needs 13.2). Python 3.14 goes on the desktop (a download: Matthew's yes
-  first), then a venv with the wheel from the share, and the records copied
-  to the desktop's own disk.
+  needs 13.2). Python 3.14 was already on the desktop; a venv with the
+  wheel from the share, and the records copied to the desktop's own disk.
 - Checks: `torch.cuda.get_arch_list()` includes sm_75; the same short run
   on both machines gives the same held-back error to within noise (same
   data, same seed); the 1660's positions a second, written down.
@@ -505,9 +510,104 @@ die when the connection closes, so long runs go through a scheduled task
   while the bot has the laptop.
 
 Done when:
-- [ ] a short run on the desktop matches the laptop's;
-- [ ] the desktop's speed is written down, and a full run's `.nnue` comes
-      back over the share and loads in the engine.
+- [x] a short run on the desktop matches the laptop's: nnue1's first two
+      passes replayed, held-back error 0.016734 / 0.016159 against nnue1's
+      0.016731 / 0.016233: gaps of the size a change of seed makes (below);
+- [x] the desktop's speed is written down: **634-641 k positions a second**
+      at 256 hidden (0.65x the laptop's card), 362 k at 512;
+- [ ] a full run's `.nnue` comes back over the share and loads in the
+      engine: **nnue1-h512** (Matthew's (b), below) started 07:46.
+
+**Built 2026-10-17, 06:15-07:50** (branch `claude/nnue-desktop-8d5f2a`;
+WORKLOG has the story). What later sessions need:
+
+- **On the share**, `\\id10terror-desktop\chessbruteforcer\nnue\`, which is
+  `D:\-=Chess Bruteforcer=-\nnue` on the desktop (a 2 TB HDD, 1.37 TB free):
+
+  | there | what |
+  |---|---|
+  | `2026-09\` | September's records, all 66 files, each one's SHA-256 the laptop's |
+  | `wheels\` | the torch wheel, and `torch-deps-cp314-win_amd64.zip`: torch's seven small dependencies (filelock, fsspec, jinja2, markupsafe, mpmath, networkx, sympy) zipped from the laptop's venv, 9.5 MB |
+  | `.venv\` | torch 2.14.1+cu132 on the desktop's own Python 3.14.4 (numpy 2.4.6, typing-extensions, setuptools from it), made by `setup-desktop.cmd` with `pip --no-index`; `pip check` clean; `get_arch_list()` has sm_75 |
+  | `scripts\nnue\`, `scripts\nnue-reference\` | the trainer, as `sync` last copied it |
+  | `train-desktop.cmd`, `setup-desktop.cmd` | from `scripts\nnue\` |
+  | `nets\` | each run's `.log`, `.err`, `.pt` and `.nnue`; `<run>.pause` and `<run>.duty` steer it as on the laptop |
+  | `runs\<run>\` | the scripts each run started with |
+
+- **Driving it from the laptop**: `scripts\nnue-desktop.ps1`, over SSH.
+  `sync` puts the scripts on the share; `train <run> [options]` registers
+  and starts the task `\ChessBruteforcer\nnue <run>` on the desktop (as
+  Admin, S4U: no stored password and no window on Matthew's screen;
+  below-normal priority; a 24 h limit), which runs `train-desktop.cmd`;
+  `status [<run>]`, `stop <run>`, and `fetch <run>` (the `.nnue` and `.log`
+  into the main checkout's games\nnue\nets\). `--data` and `--out` are the
+  desktop's own folders, so training never reads across the link. CUDA
+  works from the task's non-interactive session (checked first with a
+  test task).
+- **Big copies**: `scripts\capped-copy.py` flushes each 1 MiB to the share
+  and holds the running average to the rate it is given, then writes the
+  SHA-256 of every file it read; the desktop hashes its copies on its own
+  disk (`Get-FileHash` over SSH), so checking costs no second pass over the
+  link. At 7,500,000 B/s the laptop's Wi-Fi carried 7.32 MB/s.
+
+  | copy | bytes | time | average |
+  |---|---|---|---|
+  | torch's dependencies (the zip) | 9,509,801 | 1 s | |
+  | the wheel | 2,001,146,779 | 280 s | 7.14 MB/s |
+  | September's records | 7,582,099,358 | 1,173 s | 6.46 MB/s (4.4 while pip unpacked torch onto the same disk: each chunk waits for its flush) |
+
+- **The check**: September, seed 20261016, nnue1's settings, two passes.
+  The laptop's half is nnue1's own first two passes from its log (the
+  training code is the same apart from the battery wait, and passes 1-5
+  ran from a clean start), since the laptop had ~1 GB of commit free beside
+  the bot and the Claude app, too little for torch (~2.8 GB):
+
+  | | laptop (nnue1) | desktop replay (vs the laptop) | desktop again | desktop, seed 20261017 (vs the replay) |
+  |---|---|---|---|---|
+  | held back after pass 1 | 0.016731 | 0.016734 (+0.000003) | 0.016734 | 0.016834 (+0.000100) |
+  | held back after pass 2 | 0.016233 | 0.016159 (-0.000074) | 0.016159 | 0.016146 (-0.000013) |
+  | training error, pass 1 / 2 | 0.018348 / 0.016386 | 0.018342 / 0.016353 | the same | 0.018433 / 0.016361 |
+
+  Every one of the 16 progress lines saw the same number of positions on
+  both machines (the same buckets in the same order, the same mates left
+  out), and the running losses stayed within +-0.000033 of each other. The
+  desktop repeats itself to the byte (the replay and the repeat made one
+  net, sha256 e6840ae8...). The two cards don't compute identically, and
+  the difference grows through training the way a change of seed does: the
+  machines are 0.000003 and 0.000074 apart, a new seed 0.000100 and
+  0.000013. Both kinds of gap are under 0.0001, against a gain of 0.0005
+  from pass 1 to pass 2 and nnue1's 0.0155 below sf1. One seed pair is a
+  thin yardstick; a full run of one recipe on both machines (option (a)
+  below) would measure the end-of-run spread properly.
+- **Speed and memory**:
+
+  | | laptop: RTX 3070 Laptop | desktop: GTX 1660 |
+  |---|---|---|
+  | positions a second, 256 hidden | 0.96-1.17 M at full speed | **634-641 k** (0.65x) |
+  | a pass, 256 hidden | 190-228 s | 342-345 s |
+  | positions a second, 512 hidden | | **362 k** (0.57x its own 256) |
+  | torch's GPU memory, peak allocated / reserved | 615 / 994 MB | 615 / 996 MB at 256; ~700 MB allocated at 512 |
+  | the card under training | ~99 W | 75-84 W of 130 W, 1,920 MHz steady, 62-70 °C, fan ~66%, PCIe 3.0 x16 |
+  | the trainer's host commit | 2.8-3.2 GB | 2.6-3.2 GB (the desktop has 16 GB, ~11 GB free) |
+
+  The driver's slowdown counters showed no power capping, power braking or
+  thermal slowdown at all during these runs (Matthew asked about
+  brownouts), and the desktop's System log has no driver resets, hardware
+  errors or unexpected power losses in 30 days.
+- Gotchas: in an SSH session `%USERDOMAIN%` is WORKGROUP, so the task's user
+  is the current Windows identity (ID10TERROR-DESK\Admin); an encoded
+  PowerShell command sends its progress records back as CLIXML unless
+  `$ProgressPreference` is off. The desktop's clock runs ~3 min ahead of the
+  laptop's, so its log times do too. `train-desktop.cmd` passes every option
+  on; `nnue-train.cmd` still passes only `%2`-`%9` and drops a ninth token
+  (TODO).
+
+**The first full run, nnue1-h512** (Matthew's (b), 2026-10-17 07:45, over
+(a) nnue1's recipe again as a full-length reproducibility check, ~1.9 h, or
+(c) both, ~5.3 h): nnue1's recipe (September, 20 passes, the same seed and
+learning-rate steps) with `--hidden 512`, ~3.4 h at 362 k positions a
+second. The engine reads any hidden size from 16 to 1,024. Its match
+against nnue1 is session 5's.
 
 ### Session 3: the network in C# (no downloads; can run beside session 1)
 
@@ -699,3 +799,11 @@ should take most of +742 away, but it is unmeasured until the bot plays.
 - (c) Not yet: first an outside yardstick, nnue1 and sf1 each against
   Stockfish at a fixed UCI_Elo (WSL), ~100 games each, ~1 h with the bot
   stopped, so the gain is also on a scale other than sf1's.
+
+**F. The desktop's first full run** (chosen: b, 2026-10-17 07:45, after
+session 2b's check)
+- **(b) 512 hidden** (recommended): nnue1's recipe with twice the hidden
+  numbers, ~3.4 h on the 1660; the first session-5 lever. Run as nnue1-h512.
+- (a) nnue1's recipe again, ~1.9 h: a full-length reproducibility check, the
+  end-of-run spread between two runs of one recipe.
+- (c) Both, 512 first, ~5.3 h.

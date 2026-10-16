@@ -219,7 +219,7 @@ Sessions, in order:
       holds ~224 M labelled quiet positions (sf2 used 13.6 M). Sessions: 1
       data, 2 trainer (PyTorch, the 2.0 GB wheel, capped), 2b the desktop's
       GTX 1660 (6 GB) as a second trainer, driven over SSH from 2026-10-17
-      (Python there needs Matthew's yes), 3 the network in C# (1 and 3 can run side by side), 4
+      (nothing downloaded in the end), 3 the network in C# (1 and 3 can run side by side), 4
       the match against sf1. **Matthew chose (2026-10-16): A(a) PyTorch,
       B(a) 768 -> 256 x2 -> 1, C(a) September, all speeds, D a + c** (the
       laptop alongside the bot, then the desktop).
@@ -278,8 +278,31 @@ Sessions, in order:
             measurable. `nnue-train.cmd` runs at full speed unless told:
             beside the bot, pass `--duty 0.5` (or write 0.5 into
             games\nnue\nets\<run>.duty). Runs wait for AC by themselves.
-      - [ ] Session 2b: the wheel is in games\nnue\wheels\ for the desktop,
-            and train.py takes `--data` and `--out` for its paths.
+      - [x] **Session 2b, the desktop's GTX 1660 as a second trainer**
+            (2026-10-17, branch `claude/nnue-desktop-8d5f2a`): the wheel,
+            torch's dependencies (from the laptop's venv) and September's
+            records copied to the share at <= 7.5 MB/s
+            (`scripts\capped-copy.py`), SHA-256 checked on the desktop's
+            disk; a venv there with nothing downloaded; runs as scheduled
+            tasks (`scripts\nnue-desktop.ps1 sync | train | status | stop |
+            fetch`). nnue1's first two passes replayed there: held-back
+            0.016734 / 0.016159 against 0.016731 / 0.016233, gaps the size a
+            new seed makes; the desktop repeats itself to the byte. **634-641
+            k positions a second** (0.65x the laptop's card; nnue1's recipe
+            ~1.9 h), 362 k at 512 hidden. NNUE.md and WORKLOG have it.
+      - [ ] **nnue1-h512** (Matthew's F(b), 2026-10-17): nnue1's recipe at
+            512 hidden, training on the desktop from 07:46 (~3.4 h). Then
+            `scripts\nnue-desktop.ps1 fetch nnue1-h512`, its held-back error
+            against nnue1's 0.014851, and (session 5) its match against
+            nnue1. The engine runs it ~10% slower a node.
+      - [ ] `scripts\nnue-train.cmd` passes only `%2`-`%9` to train.py, so a
+            ninth option token is dropped silently (train-desktop.cmd lost
+            `--progress 2` that way before it was fixed with `for /f
+            "tokens=1,*"` over `%*`). The same fix there.
+      - [ ] A full-length reproducibility check (decision F's (a)): nnue1's
+            recipe on the desktop, ~1.9 h, for the end-of-run spread between
+            two runs of one recipe, the noise floor for judging levers by
+            held-back error. When the desktop is free.
       - [ ] A small lever (session 5): the export's rounding leaves nnue1 a
             constant -5 cp for the side to move (QB 64, forced by one output
             weight at the clamp). Refit the output bias after rounding, or
@@ -442,6 +465,10 @@ Sessions, in order:
 
 ### Done lately (details in WORKLOG)
 
+- 2026-10-17: NNUE session 2b: the desktop's GTX 1660 trains over SSH
+  (scheduled tasks, records on its own disk, nothing downloaded), matching
+  the laptop within the size of a seed change at 0.65x its speed; its first
+  full run, 512 hidden (Matthew's F(b)), started 07:46.
 - 2026-10-17: NNUE session 4, the match: **nnue1 +742 Elo [+645, +970]
   over sf1** (+392 -3 =5 in 400 games; SPRT accepted H1). Matthew chose to
   switch the bot (E(a)); it plays on nnue1 once the branch is merged and
