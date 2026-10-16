@@ -3198,3 +3198,21 @@ the tables; NNUE.md's session 4 the summary.
   each, so a check that it works, not a speed figure. It takes effect when
   the branch is merged into the main checkout and the bot restarts
   (start.cmd); both are Matthew's.
+
+## 2026-10-17 (04:50-05:05): the bot plays on nnue1
+
+- On Matthew's word (E(a), "merge ... and restart the bot between games"):
+  `claude/heuristic-poincare-2d9fec` (sessions 2 and 4: the trainer, the match,
+  the bot's switch) merged into compression, clean (7b2af26). Full suite **410
+  passed, 2 skipped**. bot\eval\nnue1.nnue is byte for byte the net the match
+  played (games\nnue\nets\ and %TEMP%\cb-match agree).
+- Checked before believing +742: the bot's pre-NNUE engine build and the
+  match's new build, each with EvalFile eval-sf1.txt, searched 6 positions to
+  depth 9 identically (score, nodes, move), so the match's sf1 really was sf1.
+- The bot had been stopped since 03:31 (for the training and the match), so no
+  game was cut. `bot\start-bot.cmd` started 04:57:57 in its own window: engine
+  rebuilt and copied, config.yml's EvalFile = bot\eval\nnue1.nnue; its engine
+  said "evaluation: network ...nnue1.nnue (768 -> 256 x2 -> 1, sha256
+  4a18e09ae654)" and loaded 292 tables; online at 04:58:05. The learner and the
+  month queue weren't running, and weren't started.
+- Next: its first ~30 rated games against sf1's record.

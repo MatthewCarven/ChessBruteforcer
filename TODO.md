@@ -257,10 +257,16 @@ Sessions, in order:
             on a copy of bot\ picks the net, then sf1 without it, then nothing;
             the engine loads it from that path (network 4a18e09ae654) with 8
             threads and the tables.
-      - [ ] **Merge this branch, then restart the bot** (Matthew's): it plays
-            on nnue1 from the restart (start.cmd rebuilds the engine copy and
-            rewrites config.yml). Then its first ~30 rated games against
-            sf1's record (NNUE.md step 4).
+      - [x] **Merged and restarted** on Matthew's word (2026-10-17): the
+            branch into compression (7b2af26, suite 410 passed), the bot
+            started 04:57:57 by bot\start-bot.cmd in its own window (it had
+            been stopped since 03:31, so no game was cut). Its engine said
+            "evaluation: network ...\bot\eval\nnue1.nnue (... sha256
+            4a18e09ae654)", the match's net; 292 tables; online 04:58:05.
+            The learner and the month queue weren't running and weren't
+            started.
+      - [ ] **nnue1's first ~30 rated games** against sf1's record (NNUE.md
+            step 4): the bot's own games in bot\games from 04:58 on 2026-10-17.
       - [ ] **The SPRT can't stop on a perfect score**: `MatchStats.
             LogLikelihoodRatio` returns 0 when the variance is 0, which it
             is while every game is a win (nnue1's first 112 games: LLR 0.00,
