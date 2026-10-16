@@ -218,8 +218,8 @@ Sessions, in order:
       its place costs 9-18% of the speed (upper bound); September alone
       holds ~224 M labelled quiet positions (sf2 used 13.6 M). Sessions: 1
       data, 2 trainer (PyTorch, the 2.0 GB wheel, capped), 2b the desktop's
-      GTX 1650 as a second trainer (Matthew installs Python and the wheel
-      there by hand), 3 the network in C# (1 and 3 can run side by side), 4
+      GTX 1660 (6 GB) as a second trainer, driven over SSH from 2026-10-17
+      (Python there needs Matthew's yes), 3 the network in C# (1 and 3 can run side by side), 4
       the match against sf1. **Matthew chose (2026-10-16): A(a) PyTorch,
       B(a) 768 -> 256 x2 -> 1, C(a) September, all speeds, D a + c** (the
       laptop alongside the bot, then the desktop).

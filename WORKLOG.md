@@ -3216,3 +3216,24 @@ the tables; NNUE.md's session 4 the summary.
   4a18e09ae654)" and loaded 292 tables; online at 04:58:05. The learner and the
   month queue weren't running, and weren't started.
 - Next: its first ~30 rated games against sf1's record.
+
+## 2026-10-17 (05:15-06:15): SSH from the laptop to the desktop
+
+- Matthew wanted one way to run things on the desktop from here. Instead of a
+  home-made command server, Windows' own OpenSSH Server, which brings its own
+  login and encryption: he installed it on the desktop (elevated
+  PowerShell), made a key on the laptop (`ssh-keygen -t ed25519`, no
+  passphrase, so sessions can log in unattended), and put its public line in
+  the desktop's `C:\ProgramData\ssh\administrators_authorized_keys`.
+- The first try timed out: sshd wasn't installed yet (the first window
+  wasn't elevated), and the desktop's Ethernet counts as Public, which his
+  Windows build won't let him change, so a Private-only rule could never
+  apply. **He turned the desktop's Windows Firewall off.** It works: `ssh -o
+  BatchMode=yes Admin@id10terror-desktop` logs in by key, no password.
+- What SSH found: the desktop's card is a **GTX 1660, 6 GB** (not the 1650
+  remembered), driver 617.42 (updated during this; CUDA 13.4, so the cu132
+  wheel runs there), Windows 11 build 22631. NNUE.md's table and session 2b
+  are corrected: about 0.4x the laptop card on this net, and 2b is now
+  driven over SSH.
+- Open: the firewall. A rule for SSH on the Public profile limited to the
+  home network (LocalSubnet and fe80::/10) would let it go back on.

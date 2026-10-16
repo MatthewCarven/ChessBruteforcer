@@ -42,21 +42,24 @@ repo, and nothing crosses the share but the month files.
 | installed | Python 3.14.4 with numpy and DuckDB; **no PyTorch, no CUDA toolkit, no Rust**; .NET SDK 10.0.401 (the engine targets net8.0); WSL Ubuntu 24.04 sees the GPU (`/usr/lib/wsl/lib/libcuda.so`), Python 3.12.3, 7 GB |
 | PyTorch for it | `torch-2.14.1+cu132-cp314-cp314-win_amd64.whl`: one wheel for the Python already here, **2,001,146,779 bytes** (HEAD request; published 2026-09-30). It carries its own CUDA runtime, so no toolkit is needed. Plus ~15 MB of small dependencies from PyPI. At the household cap (500 KB/s) it takes **~67 minutes** |
 
-**The desktop** (id10terror-desktop, which holds the share) has a **GTX
-1650** (Matthew, 2026-10-16). From the card's published specifications, not
-measured here:
+**The desktop** (id10terror-desktop, which holds the share). Matthew
+remembered a GTX 1650 (2026-10-16); nvidia-smi over SSH (2026-10-17) says
+a **GTX 1660, 6 GB**, driver 617.42 (CUDA 13.4, so the cu132 wheel runs
+there), up to 130 W. The rest is from the card's published specifications,
+not measured here:
 
-| | laptop: RTX 3070 Laptop | desktop: GTX 1650 |
+| | laptop: RTX 3070 Laptop | desktop: GTX 1660 |
 |---|---|---|
-| memory | 8 GB | 4 GB |
-| memory bandwidth | 448 GB/s | 128 GB/s (GDDR5) or 192 GB/s (GDDR6) |
-| CUDA cores | 5,120 | 896 |
+| memory | 8 GB | 6 GB |
+| memory bandwidth | 448 GB/s | 192 GB/s |
+| CUDA cores | 5,120 | 1,408 |
 | compute capability | 8.6 (Ampere) | 7.5 (Turing; CUDA 13 still supports it) |
-| likely speed on this net | 1x | **about a third** (the work is mostly memory traffic) |
+| likely speed on this net | 1x | **about 0.4x** (the work is mostly memory traffic) |
 
-4 GB is plenty for a 768 x 256 net. A run that takes 40 min to 2.5 h on the
-laptop would take roughly 2-7 h on the desktop: an overnight job. How the
-two are used together is decision D, below.
+6 GB is plenty for a 768 x 256 net. A run that takes 40 min to 2.5 h on the
+laptop would take roughly 1.5-6 h on the desktop: an overnight job. How the
+two are used together is decision D, below. SSH from the laptop to the
+desktop works from 2026-10-17 (key login as Admin; WORKLOG).
 
 ### What today's evaluation costs, and what a network would
 
@@ -457,10 +460,16 @@ the run). What sessions 2b, 4 and 5 should know:
 - **On battery** (the laptop off its charger, 01:02-01:10) everything
   throttles, training or not: the bot 4.3 Mnps, a bench ~560 knps.
 
-### Session 2b: the desktop's GTX 1650 as a second trainer (D(c))
+### Session 2b: the desktop's GTX 1660 as a second trainer (D(c))
 
-Nothing here can run commands on the desktop, so this session prepares
-everything and Matthew does three things there by hand.
+**Over SSH** (from 2026-10-17): OpenSSH Server on the desktop, and the
+laptop logs in by key as `Admin@id10terror-desktop`, with no password. So a
+session here runs commands there, as `ssh -o BatchMode=yes
+Admin@id10terror-desktop "<command>"`. Matthew's hands are needed only for
+his yes to the Python download. The desktop's driver is already fine (CUDA
+13.4). One thing to settle first: on Windows, programs started over SSH
+die when the connection closes, so long runs go through a scheduled task
+(`schtasks`) that logs to the share, not straight from the SSH command.
 
 - **On the share** (`\\id10terror-desktop\chessbruteforcer\nnue\`, which is
   the desktop's own disk when seen from the desktop): the trainer scripts,
@@ -478,17 +487,20 @@ everything and Matthew does three things there by hand.
   | a trained net coming back | 395 KB | under a second |
   | the trainer reading its records over the link instead | 7.2 GB a pass x 20 | 4.4 h a run, more than the training: **each machine keeps its own copy** |
   | one run split over both GPUs | 0.8 MB of gradients each way, every step | ~0.18 s a step for the swap against 8-33 ms of work: 5-20x slower than the laptop alone |
-- **Matthew, at the desktop**: (1) `nvidia-smi`: its "CUDA Version" must be
-  13.2 or more for this wheel. If it isn't, update the driver, or use the
-  cu126 wheel (sized first). (2) Python 3.14 from python.org, then
-  `setup-desktop.cmd`, which makes the venv and installs the wheel from the
-  share. (3) Double-click a run.
+  Matthew's later rule (2026-10-16): **all share traffic at or under ~8 MB/s
+  in total**, since more knocks the laptop off the internet and the bot with
+  it. So copies are capped (September's 7.58 GB records: ~16 min), and only
+  one big share job runs at a time.
+- **Set up over SSH**: the driver is checked (617.42, CUDA 13.4; the wheel
+  needs 13.2). Python 3.14 goes on the desktop (a download: Matthew's yes
+  first), then a venv with the wheel from the share, and the records copied
+  to the desktop's own disk.
 - Checks: `torch.cuda.get_arch_list()` includes sm_75; the same short run
   on both machines gives the same held-back error to within noise (same
-  data, same seed); the 1650's positions a second, written down.
+  data, same seed); the 1660's positions a second, written down.
 - **Not one run split over both machines**: the swap of gradients every
-  step (the table's last line) costs far more than the third of the
-  laptop's speed that the 1650 adds. Instead, each trains its own net: the
+  step (the table's last line) costs far more than the ~0.4 of the
+  laptop's speed that the 1660 adds. Instead, each trains its own net: the
   levers of session 5 two at a time, or the desktop takes the long runs
   while the bot has the laptop.
 
@@ -628,8 +640,8 @@ With the desktop training too (2b), two levers train at once.
 
 **Taken 2026-10-16: A(a), B(a), C(a), and D "a + c"**: PyTorch; 768 -> 256
 x2 -> 1; September, every quiet position, all speeds; the laptop first,
-alongside the bot, then the desktop's GTX 1650 as a second trainer
-(session 2b). **2026-10-17, 01:45**: beside the bot at half duty (the GPU's
+alongside the bot, then the desktop's GPU as a second trainer
+(session 2b; a GTX 1660, it turned out). **2026-10-17, 01:45**: beside the bot at half duty (the GPU's
 full ~99 W plus the bot's 8 threads hit the 180 W charger: the bot -22%),
 over full speed or stopping at pass 5. The options as they were put:
 
@@ -663,7 +675,7 @@ over full speed or stopping at pass 5. The options as they were put:
 - (c) September, blitz or slower only, as the tuner chose: ~176 M.
 
 **D. Where and when it trains** (chosen: a + c, the desktop having a GTX
-1650: two trainers, each on its own net, as session 2b says; not one run
+1660 (remembered as a 1650): two trainers, each on its own net, as session 2b says; not one run
 split over both)
 - **(a) This laptop, alongside the bot**, below-normal priority (recommended),
   watching the bot's speed in its log and stopping if it drops more than
