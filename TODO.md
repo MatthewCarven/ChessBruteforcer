@@ -243,9 +243,22 @@ Sessions, in order:
             `scripts\nnue\setup-venv.cmd` once in the main checkout (the venv
             was made in the session's worktree; pip fetches ~9 MB, the wheel
             is local).
-      - [ ] **Session 4, the match**: nnue1 against sf1 at 10+0.1, SPRT [0,
-            10] (`scripts\nnue-match.cmd`, still to write, NNUE.md "How it is
-            judged"). The bot stays on sf1 until then.
+      - [x] **Session 4, the match** (2026-10-17, branch
+            `claude/heuristic-poincare-2d9fec`): **nnue1 +742 Elo [+645, +970]
+            over sf1**, +392 -3 =5 in 400 games at 10+0.1, after SPRT [0, 10]
+            accepted H1 at game 113 (+114 -0 =3). Clean games, a normal
+            search (depth 9.4 v 9.1, 13% more nodes a second).
+            `scripts\nnue-match.cmd`; MATCHES.md, WORKLOG and NNUE.md have it.
+      - [ ] **The bot onto nnue1: Matthew's word** (NNUE.md decision E: (a)
+            the net into bot\eval\ with make-config.py preferring it, (b) read
+            from games\nnue\nets\, (c) an outside yardstick against Stockfish
+            first). The bot stays on sf1 until then; after the switch, its
+            first ~30 rated games against sf1's record.
+      - [ ] **The SPRT can't stop on a perfect score**: `MatchStats.
+            LogLikelihoodRatio` returns 0 when the variance is 0, which it
+            is while every game is a win (nnue1's first 112 games: LLR 0.00,
+            then 362 at the first draw). A small floor on the variance, or
+            the trinomial form, with a test of 30 straight wins.
       - [ ] **Training beside the bot**: at full speed the GPU (~99 W) and the
             bot's 8 threads hit the 180 W charger and the bot loses ~22%; at
             half duty a bench loses ~10% and the bot's own speed nothing
@@ -416,9 +429,12 @@ Sessions, in order:
 
 ### Done lately (details in WORKLOG)
 
+- 2026-10-17: NNUE session 4, the match: **nnue1 +742 Elo [+645, +970]
+  over sf1** (+392 -3 =5 in 400 games; SPRT accepted H1). The bot's switch
+  is Matthew's word.
 - 2026-10-16/17: NNUE sessions 1-3: September's 237 M labelled positions,
   the network in C#, the trainer on the GPU, and nnue1 (held-back error
-  half sf1's). The match is next.
+  half sf1's).
 - 2026-10-14/15: `game takeover` reads in batches; the whole of September
   move by move: 1 in 31 held, classical 2.69 mistakes per 100, 2400 and up
   2.38, two minor pieces v a queen ~1 move in 5.

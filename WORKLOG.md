@@ -3127,3 +3127,64 @@ sf1), and float against int16 is 7.5 cp mean, -5.1 of it constant.
   Beside it: nnue1.pt (the float checkpoint), nnue1.log, and the
   measurements (nnue1-duty.log, nnue1-toggle2.log, nnue1-benches.log).
 - Not done here: the match (session 4). The bot stays on sf1.
+
+## 2026-10-17 (03:55-04:55): NNUE session 4, the match: nnue1 +742 Elo over sf1
+
+A side session, in its own worktree (branch `claude/heuristic-poincare-2d9fec`;
+the worktree came out on main at 74402ff, and fast-forwarded onto
+`claude/nnue-trainer-f0d60e` at 470d8d4, as the brief meant). MATCHES.md has
+the tables; NNUE.md's session 4 the summary.
+
+- nnue1.nnue in games\nnue\nets\ matches session 2's file SHA-256
+  (666edbe5...d7890af), and the engine reports its network as 4a18e09ae654.
+- **`scripts\nnue-match.cmd <net> <old> [games] [concurrency] [fixed]`**,
+  modelled on tune-match.cmd: builds the engine and the match tool, copies
+  both, the net and the old evaluation to %TEMP%\cb-match, writes into the
+  log what each engine says it loaded and the net's SHA-256, then plays at
+  below-normal priority. It runs from a worktree too: the nets, openings,
+  tables and logs are the main checkout's (found through `git rev-parse
+  --git-common-dir`). `<old>` can be a net (session 5's matches) or
+  numbers. "fixed" leaves the SPRT out.
+- **The match tool now logs each engine's depth and speed**: UciPlayer keeps
+  the last `info depth ... nodes ... time` line before each bestmove
+  (`SearchTally`), and the log gets a line per game plus the totals after
+  "final:". The smoke test needed it, and the tool had nothing. 3 tests; the
+  suite 410 passed, 2 skipped.
+- Before: the bot already stopped (Matthew; since 1cc1aaa, for heat while
+  training ran), the laptop on AC at 100%, 7.0 GB of commit free. During: ten
+  engines at ~65 MB each, the match tool ~20 MB, 6.3 GB free.
+- **Smoke test, 20 games (04:00-04:02)**: +19 -1 =0. No time losses,
+  crashes or illegal moves; every game ended by mate on the board or by the
+  tables. nnue1 depth 9.6 at 2,167 knps, sf1 9.5 at 1,946: a normal search,
+  not the exploding capture search of an untrained net.
+- **Matthew's choice (04:03)**: the smoke test's LLR was 2.68 of 2.94 at
+  game 20, so the SPRT would decide in ~22 games with an interval of about
+  [+300, +2400]. Of (a) the SPRT alone, (b) the SPRT then 400 games at a
+  fixed length (~40 min), (c) the SPRT then 2,000 (~3 h), he chose (b). The
+  bot was already off, which settled the brief's other question (the match
+  beside the bot or not).
+- **The SPRT run (04:04-04:13)**: +114 -0 =3, 98.7%, Elo +755 [+622, +∞];
+  SPRT [0, 10] accepted H1 at game 113, the first draw. It took that long
+  because the LLR (fishtest's simple normal form) divides by the variance of
+  the scores, which is zero while every game is a win, and
+  `MatchStats.LogLikelihoodRatio` returns 0 then. 112 wins in a row read as
+  LLR 0.00; one draw made it 362. Nothing wrong with the verdict, but a
+  perfect score should stop the test, not stall it (TODO).
+- **400 games at a fixed length (04:14-04:44)**: **+392 -3 =5, 98.6%, Elo
+  +742 [+645, +970]**. As white +198 -0 =2, as black +194 -3 =3. 355 wins by
+  mate on the board, 37 by the tables; the 3 losses 2 mates and 1 by the
+  tables; the 5 draws 3 by the tables and 2 by repetition. Median game 103
+  plies. 4.5 s a game, ~790 an hour. nnue1 depth 9.4 at 2,137 knps, sf1 9.1
+  at 1,887.
+- All three pooled: +525 -4 =8 in 537 games, 98.5%, +728 [+646, +886].
+- Against the plan's expectations: NNUE.md guessed "anything from nothing to
+  +200", since the net learns from human games scored by Stockfish rather
+  than from its own search's positions. It is over three times the top of
+  that. And the net plays 13% faster in nodes a second than sf1, where `bench
+  9` had it 3.8% slower a node: the bench's positions aren't the games'.
+  Halving the held-back error (0.0304 -> 0.0149) was worth far more than
+  sf2's 0.3% (0.030396 -> 0.030317, +1 Elo).
+- Logs and PGNs in games\nnue\: match-nnue1-sf1-20, match-nnue1-sf1 and
+  match-nnue1-sf1-400-fixed (.log, .pgn).
+- **Not done here: the bot's switch** to nnue1, which is Matthew's word
+  (NNUE.md, decision E). The bot stays on sf1 meanwhile.

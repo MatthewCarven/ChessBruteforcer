@@ -306,6 +306,9 @@ commonly gain hundreds of Elo, but those were trained on their own search's
 positions. Ours learns from human games scored by Stockfish, so anything from
 nothing to +200 is plausible here. The match decides.
 
+**It decided (2026-10-17): nnue1 +742 Elo [+645, +970] over sf1**, +392 -3
+=5 in 400 games, after the SPRT had accepted H1 (session 4).
+
 ## The sessions
 
 Session 0 is this one: the plan and the measurements above. **Sessions 1
@@ -557,9 +560,40 @@ session 2 and 4 should know:
   bot keeps playing alongside, as it did during sf2's match.
 
 Done when:
-- [ ] SPRT decides, or 2,000 games are played;
-- [ ] MATCHES.md and WORKLOG have it;
-- [ ] if the net is better, Matthew decides whether the bot switches.
+- [x] SPRT decides, or 2,000 games are played: **SPRT [0, 10] accepted H1**
+      at game 113;
+- [x] MATCHES.md and WORKLOG have it;
+- [ ] if the net is better, Matthew decides whether the bot switches
+      (decision E below).
+
+**Played 2026-10-17, 04:00-04:44** (branch `claude/heuristic-poincare-2d9fec`;
+MATCHES.md has the tables, WORKLOG the story). The bot was already stopped,
+so the match had the laptop to itself, on the charger, at below-normal
+priority. 10+0.1, 5 at a time, one thread each, the 300 book openings.
+
+| run | games | nnue1 +W -L =D | score | Elo [95%] | time |
+|---|---|---|---|---|---|
+| smoke test | 20 | +19 -1 =0 | 95.0% | +512 [+308, +∞] | 1.8 min |
+| SPRT [0, 10] | 117 | +114 -0 =3 | 98.7% | +755 [+622, +∞] | 9.4 min, H1 at game 113 |
+| fixed length (Matthew's (b)) | 400 | +392 -3 =5 | 98.6% | **+742 [+645, +970]** | 30.3 min |
+| all three pooled | 537 | +525 -4 =8 | 98.5% | +728 [+646, +886] | |
+
+- **Clean games**: no time losses, crashes or illegal moves in 537. Of the
+  400, 392 wins by mate (355 on the board, 37 by the tables).
+- **The search looks normal**: nnue1 depth 9.4 at 2,137 knps against sf1's
+  9.1 at 1,887 (the 400 games, every move's last info line). The net is
+  13% faster in play, where `bench 9` had it 3.8% slower a node.
+- **Far past the plan's guess** (nothing to +200): over three times its top.
+  Halving the held-back error bought this; sf2's 0.3% bought +1.
+- **The SPRT took 117 games, not ~22**: its normal approximation divides by
+  the variance of the scores, which is zero while every game is a win, and
+  `MatchStats.LogLikelihoodRatio` returns 0 then. The first draw (game 113)
+  took the LLR from 0 to 362. A fix is in TODO.
+- **For session 5**: `scripts\nnue-match.cmd <net> <old> [games]
+  [concurrency] [fixed]` takes a net as `<old>` too, and runs from a
+  worktree (the nets, openings, tables and logs are the main checkout's).
+  Against sf1 the score is near 99%, where Elo resolves poorly: measure each
+  lever against the net before it, as planned, not against sf1.
 
 ### Session 5 (outline): the levers, one match each
 
@@ -635,3 +669,18 @@ split over both)
 - (c) The desktop, if it has an NVIDIA card. Tell me which card and it gets
   measured. It would free the laptop entirely, with the data copied over
   the share (13 min for 7.2 GB at 9 MB/s).
+
+**E. The bot and nnue1** (open, 2026-10-17: nnue1 +742 [+645, +970] over sf1
+in 400 games). The match was one thread each with no tables in the engines;
+the bot plays on 8 threads with the tables and pondering. Nothing there
+should take most of +742 away, but it is unmeasured until the bot plays.
+- **(a) Switch** (recommended): nnue1.nnue copied into bot\eval\ (in git
+  beside eval-sf1.txt, 395 KB; `*.nnue` is already binary in
+  .gitattributes), make-config.py preferring it over eval-sf1.txt when
+  it's there (delete it to go back), the bot restarted between games. Then
+  its first ~30 rated games against sf1's record (step 4 above).
+- (b) Switch, reading the net from games\nnue\nets\ where it is: nothing
+  new in git, but the bot then rests on a gitignored file.
+- (c) Not yet: first an outside yardstick, nnue1 and sf1 each against
+  Stockfish at a fixed UCI_Elo (WSL), ~100 games each, ~1 h with the bot
+  stopped, so the gain is also on a scale other than sf1's.
