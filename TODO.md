@@ -72,14 +72,14 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          scripts at ee66600 (an 18:18 start died at 18:35 for memory, from
          another session's probes; WORKLOG). 89,288,421 games, SHA-256
          matching, check 4,000 of 4,000, dups 2.05% as before.
-   - [ ] **May 2026 landed on the laptop** (2026-10-16 09:05, 29,689,176,290
-         bytes, SHA-256 matching Lichess's) and is being copied to the share
-         from 09:07 by a window "May 2026: check, copy to the share, check
-         again" (log games\move-2026-05.log): ~50 min to copy, ~75 to check
-         the share's copy. Once that says finished, the laptop's copy
-         (games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7 GB; C: had
-         30 GB free) can go: Matthew's delete. June's .part waits on the
-         share; the month queue isn't running.
+   - [x] **May 2026 is on the share**, its SHA-256 matching Lichess's there
+         too (2026-10-16 13:14; copied 09:07 on, then checked at the 8 MB/s
+         cap). The laptop's copy (games\lichess_db_standard_rated_2026-05.pgn.zst,
+         29.7 GB) can go now: Matthew's delete. June's .part waits on the
+         share; the month queue isn't running. Not counted into the books yet.
+   - [ ] **The bot is off** (Matthew, 2026-10-17): the laptop ran warm with the
+         NNUE training and the bot's games together. Back on once training is
+         done, or with a notebook cooler; not beside a training run.
    - [x] **Share traffic at or under ~8 MB/s** (Matthew, 2026-10-16: faster
          knocks the laptop off the internet). make-book.py's Steady now
          paces reads of a network path at 8,000,000 bytes/s (CB_SHARE_RATE
