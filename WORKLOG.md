@@ -2821,3 +2821,26 @@ position, all speeds. Report: [scripts/nnue-data-2026-09.txt](scripts/nnue-data-
   --per-game), the suite 361 passed, 2 skipped; Python's test-records.py on
   C#'s fixture. **Mutation battery: 35 of 35 red.** The rule's own 8 are seen
   only by the restated rule, as they must be: both commands share it.
+
+## 2026-10-16 (evening): Swiss games counted; September again
+
+- Matthew asked what counting Swiss games would mean (a filter that was
+  quietly wrong, 1% more data, too little for the network to notice; 46
+  min to run September again), then chose (a): fix both and re-run.
+- A scan of every Event tag in September's analysed games: 8,801,711 say
+  "Rated", 95,237 are Lichess Swiss games without it (rapid 46,169, blitz
+  37,457, bullet 6,937, classical 4,651, ultrabullet 23), **0 anything
+  else**. So `StoredGame.IsRated` is "Rated" in Event or a Lichess Swiss
+  game, and `tune positions` and `nnue data` both ask it (8df33f1). Tests:
+  rated cases, Swiss games among the synthetic ones, only casual games "not
+  rated"; four more mutations, all red (39 of 39).
+- The first 100,000 games now agree three ways: 2,523,305 scored positions
+  (nnue data and the plan's count.cs) and 2,010,577 blitz or slower (nnue
+  data, tune positions and count.cs).
+- **September again, 20:18-20:59 (41.2 min): 236,940,450 records, 7.58
+  GB**: 223,352,776 scored in centipawns (the plan's ~224 M: -0.3%) and
+  13,587,674 mates; 232.2 M in the buckets, 4,738,712 held back (176,155
+  games). Blitz or slower 190.7 M (80.5%). records.py check and the C# v
+  Python cross-check again (report).
+- Future `tune positions` runs take Swiss games too (~1% more games); sf1,
+  sf2 and the bot are untouched.

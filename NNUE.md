@@ -319,16 +319,16 @@ its test, `scripts\nnue-data.cmd <month>` for a month in its own window.
 September is in `games\nnue\2026-09\` on this laptop.
 
 Done when:
-- [x] the round trip, the count and the split tests pass (20 tests, 35
-      mutations all red; the suite 361 passed);
+- [x] the round trip, the count and the split tests pass (28 tests, 39
+      mutations all red);
 - [x] September's buckets are written: ~224 M positions (25.2 a game
       predicts it; a big miss means the rule differs from the tuner's).
-      **220,933,142 scored in centipawns (24.8 a game, -1.4%) plus
-      13,331,824 mates: 234,264,966 records, 7.50 GB, in 45.6 min.** The
-      1.4% is Swiss tournament games (1.07% of games), whose Event tag
-      lacks "Rated", which the tuner's rule needs and count.cs didn't look
-      at; on the same 100,000 games the two differ by exactly their
-      positions;
+      **223,352,776 scored in centipawns (25.1 a game, -0.3%) plus
+      13,587,674 mates: 236,940,450 records, 7.58 GB, in 41.2 min.** The
+      first run came in 1.4% under: Lichess's Swiss games (1.07%) are
+      rated but their Event lacks "Rated". On Matthew's word they count
+      now, in `tune positions` too (`StoredGame.IsRated`), and on the first
+      100,000 games nnue data, tune positions and count.cs agree exactly;
 - [x] the report is in git: [scripts/nnue-data-2026-09.txt](scripts/nnue-data-2026-09.txt).
 
 ### Session 2: the trainer, on the laptop (Matthew chose A(a): PyTorch)

@@ -203,16 +203,16 @@ Sessions, in order:
       laptop alongside the bot, then the desktop).
       - [x] **Session 1, the data** (2026-10-16, branch
             `claude/nnue-data-7d1bea`): `nnue data`, September in
-            games\nnue\2026-09\ on this laptop: 234,264,966 records (220.9 M
-            scored in centipawns + 13.3 M mates), 7.50 GB, 45.6 min; 35 of 35
+            games\nnue\2026-09\ on this laptop: 236,940,450 records (223.4 M
+            scored in centipawns + 13.6 M mates), 7.58 GB, 41.2 min; 39 of 39
             mutations red. [scripts/nnue-data-2026-09.txt](scripts/nnue-data-2026-09.txt).
+      - [x] Swiss tournament games (1.07% of analysed games) are rated but
+            their Event lacks "Rated": Matthew's (a), they count now in both
+            `tune positions` and `nnue data` (`StoredGame.IsRated`), and
+            September was run again with them (+2.7 M records).
       - [ ] Matthew: merge `claude/nnue-data-7d1bea` into compression (it
-            touches Program.cs's `tune positions`, the Cli and test .csproj,
-            NNUE.md, WORKLOG, TODO; not Core/Engine or Position).
-      - [ ] Swiss tournament games (1.07% of analysed games, ~2.5 M
-            positions) are rated but their Event lacks "Rated", so both the
-            tuner and `nnue data` leave them out. Matthew's call whether to
-            count them (one line in each command, the parity test kept).
+            touches Program.cs's `tune positions`, StoredGame, the Cli and
+            test .csproj, NNUE.md, WORKLOG, TODO; not Core/Engine or Position).
       - [ ] Session 2 reads the records with scripts/nnue/records.py; the
             hand-over note is in NNUE.md ("As built").
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
