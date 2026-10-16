@@ -563,8 +563,11 @@ Done when:
 - [x] SPRT decides, or 2,000 games are played: **SPRT [0, 10] accepted H1**
       at game 113;
 - [x] MATCHES.md and WORKLOG have it;
-- [ ] if the net is better, Matthew decides whether the bot switches
-      (decision E below).
+- [x] if the net is better, Matthew decides whether the bot switches:
+      **yes, E(a)**: `bot\eval\nnue1.nnue`, which make-config.py prefers
+      over eval-sf1.txt. It takes effect when this branch is in the main
+      checkout and the bot restarts (start.cmd rebuilds the engine copy and
+      rewrites config.yml). Then its first ~30 rated games against sf1's.
 
 **Played 2026-10-17, 04:00-04:44** (branch `claude/heuristic-poincare-2d9fec`;
 MATCHES.md has the tables, WORKLOG the story). The bot was already stopped,
@@ -670,8 +673,8 @@ split over both)
   measured. It would free the laptop entirely, with the data copied over
   the share (13 min for 7.2 GB at 9 MB/s).
 
-**E. The bot and nnue1** (open, 2026-10-17: nnue1 +742 [+645, +970] over sf1
-in 400 games). The match was one thread each with no tables in the engines;
+**E. The bot and nnue1** (chosen: a, 2026-10-17, after nnue1 +742 [+645, +970]
+over sf1 in 400 games). The match was one thread each with no tables in the engines;
 the bot plays on 8 threads with the tables and pondering. Nothing there
 should take most of +742 away, but it is unmeasured until the bot plays.
 - **(a) Switch** (recommended): nnue1.nnue copied into bot\eval\ (in git

@@ -10,7 +10,9 @@ items are gathered into the plan.
 Where we are: every table of 5 pieces or fewer is solved, both kinds
 (FIVE-PIECE.md, FIVE-PIECE-PAWNS.md), and the engine plays them by the
 50-move rule. It plays on Lichess as matthewcarven (blitz ~2026) on a
-Texel-tuned evaluation (+208 Elo) with opening books of its own. Real games
+Texel-tuned evaluation (+208 Elo), and on the network nnue1 (+742 over that)
+from its first restart after this branch is merged, with opening books of
+its own. Real games
 set against the tables (all of September 2026, 5.23 M games reaching them):
 26.6% end otherwise than perfect play from there would, and 1 move in 31
 that could go wrong does.
@@ -249,11 +251,16 @@ Sessions, in order:
             accepted H1 at game 113 (+114 -0 =3). Clean games, a normal
             search (depth 9.4 v 9.1, 13% more nodes a second).
             `scripts\nnue-match.cmd`; MATCHES.md, WORKLOG and NNUE.md have it.
-      - [ ] **The bot onto nnue1: Matthew's word** (NNUE.md decision E: (a)
-            the net into bot\eval\ with make-config.py preferring it, (b) read
-            from games\nnue\nets\, (c) an outside yardstick against Stockfish
-            first). The bot stays on sf1 until then; after the switch, its
-            first ~30 rated games against sf1's record.
+      - [x] **The bot onto nnue1**: Matthew chose E(a) (2026-10-17).
+            `bot\eval\nnue1.nnue` (in git, 395 KB), and make-config.py prefers
+            it over eval-sf1.txt (delete it to go back). Checked: make-config.py
+            on a copy of bot\ picks the net, then sf1 without it, then nothing;
+            the engine loads it from that path (network 4a18e09ae654) with 8
+            threads and the tables.
+      - [ ] **Merge this branch, then restart the bot** (Matthew's): it plays
+            on nnue1 from the restart (start.cmd rebuilds the engine copy and
+            rewrites config.yml). Then its first ~30 rated games against
+            sf1's record (NNUE.md step 4).
       - [ ] **The SPRT can't stop on a perfect score**: `MatchStats.
             LogLikelihoodRatio` returns 0 when the variance is 0, which it
             is while every game is a win (nnue1's first 112 games: LLR 0.00,
@@ -430,8 +437,9 @@ Sessions, in order:
 ### Done lately (details in WORKLOG)
 
 - 2026-10-17: NNUE session 4, the match: **nnue1 +742 Elo [+645, +970]
-  over sf1** (+392 -3 =5 in 400 games; SPRT accepted H1). The bot's switch
-  is Matthew's word.
+  over sf1** (+392 -3 =5 in 400 games; SPRT accepted H1). Matthew chose to
+  switch the bot (E(a)); it plays on nnue1 once the branch is merged and
+  the bot restarted.
 - 2026-10-16/17: NNUE sessions 1-3: September's 237 M labelled positions,
   the network in C#, the trainer on the GPU, and nnue1 (held-back error
   half sf1's).

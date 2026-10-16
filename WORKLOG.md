@@ -3186,5 +3186,15 @@ the tables; NNUE.md's session 4 the summary.
   sf2's 0.3% (0.030396 -> 0.030317, +1 Elo).
 - Logs and PGNs in games\nnue\: match-nnue1-sf1-20, match-nnue1-sf1 and
   match-nnue1-sf1-400-fixed (.log, .pgn).
-- **Not done here: the bot's switch** to nnue1, which is Matthew's word
-  (NNUE.md, decision E). The bot stays on sf1 meanwhile.
+- **The bot's switch: Matthew chose E(a)** (of (a) the net into bot\eval\,
+  (b) read from games\nnue\nets\, (c) a Stockfish yardstick first).
+  `bot\eval\nnue1.nnue` (394,820 bytes, the same SHA-256) is in git, and
+  make-config.py takes the first of nnue1.nnue and eval-sf1.txt that's there.
+  Checked on a copy of bot\ in the scratchpad (the real config.yml, which
+  holds the token, untouched): EvalFile is the net; with it deleted, sf1;
+  with both deleted, none. The engine loads the net from the bot\eval\ path
+  (spaces and all) with 8 threads, Hash 256 and the tables (292 loaded): one
+  3-second search, depth 13 at 11.8 Mnps against sf1's 12 at 8.9, one run
+  each, so a check that it works, not a speed figure. It takes effect when
+  the branch is merged into the main checkout and the bot restarts
+  (start.cmd); both are Matthew's.
