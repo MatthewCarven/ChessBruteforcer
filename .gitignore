@@ -504,3 +504,6 @@ bot/books/
 
 # The NNUE cost probe's copy of the source (scripts/nnue-probe/README.md)
 scripts/nnue-probe/tree/
+
+# The NNUE trainer's Python environment, PyTorch included (scripts/nnue/setup-venv.cmd)
+scripts/nnue/.venv/
