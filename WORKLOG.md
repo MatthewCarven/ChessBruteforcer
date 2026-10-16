@@ -3235,5 +3235,10 @@ the tables; NNUE.md's session 4 the summary.
   wheel runs there), Windows 11 build 22631. NNUE.md's table and session 2b
   are corrected: about 0.4x the laptop card on this net, and 2b is now
   driven over SSH.
-- Open: the firewall. A rule for SSH on the Public profile limited to the
-  home network (LocalSubnet and fe80::/10) would let it go back on.
+- The firewall is back on (Matthew, ~06:40): the SSH rule now applies to any
+  profile but only from LocalSubnet and fe80::/10, and all three profiles
+  are enabled. Checked from the laptop: SSH by key and the share both
+  answer. The share is `D:\-=Chess Bruteforcer=-` on the desktop, and
+  Python 3.14 is already installed there (C:\Program Files\Python314).
+- The stray key pair `key2` / `key2.pub` (made at ssh-keygen's file prompt,
+  unused) was deleted from the repo root on Matthew's word.
