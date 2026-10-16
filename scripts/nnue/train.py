@@ -25,11 +25,12 @@ Run it with the venv's python (scripts/nnue/.venv, PyTorch with CUDA). Options o
 
     --duty 1.0              the share of the time the GPU works: after every 4 steps it rests in proportion
 
-While <out>/<run>.pause exists, training waits between buckets (a few seconds' notice): the bot's turn, with
-nothing lost. Delete the file to carry on. <out>/<run>.duty, if it holds a number (0.3, say), sets the duty from
+While <out>/<run>.pause exists, or the laptop is on battery (unless --on-battery), training waits between buckets
+(a few seconds' notice): the bot's turn, with nothing lost. Delete the file, or plug in, to carry on. <out>/<run>.duty, if it holds a number (0.3, say), sets the duty from
 the next bucket on, so a run can be slowed or sped up without stopping it. On this laptop the GPU and the CPU
-share one power budget: at full duty the GPU draws ~70 W and the CPU drops to about its base clock, which costs
-the bot over a third of its speed (NNUE.md, session 2).
+share one 180 W charger: at full duty the GPU draws ~99 W, and with the bot's 8 threads the CPU drops to about
+its base clock, which costs the bot ~22% of its speed; at half duty a bench loses ~10% and the bot's own speed
+nothing measurable (NNUE.md, session 2).
 
 What it does. Buckets are read in a random order, each whole (~116 MB), and its raw 32-byte records go to the GPU,
 which drops the mates (left out at first, as the tuner did), shuffles them and unpacks each batch into feature
@@ -359,6 +360,20 @@ def below_normal():
         raise OSError(ctypes.get_last_error(), "SetPriorityClass failed")
 
 
+def on_battery():
+    """True while Windows says the AC line is off (GetSystemPowerStatus). On battery this laptop throttles the CPU
+    and the GPU alike, so the bot is already slow and training would drain the battery for little."""
+    class Status(ctypes.Structure):
+        _fields_ = [("ACLineStatus", ctypes.c_uint8), ("BatteryFlag", ctypes.c_uint8),
+                    ("BatteryLifePercent", ctypes.c_uint8), ("SystemStatusFlag", ctypes.c_uint8),
+                    ("BatteryLifeTime", ctypes.c_uint32), ("BatteryFullLifeTime", ctypes.c_uint32)]
+    s = Status()
+    k = ctypes.WinDLL("kernel32")
+    k.GetSystemPowerStatus.argtypes = (ctypes.c_void_p,)
+    k.GetSystemPowerStatus.restype = ctypes.c_int
+    return bool(k.GetSystemPowerStatus(ctypes.byref(s))) and s.ACLineStatus == 0
+
+
 def host_memory():
     """(working set, private commit) of this process in MB."""
     class Counters(ctypes.Structure):
@@ -459,10 +474,11 @@ def train(args):
         nxt = pool.submit(loaders[order[0]])
         loss_total = torch.zeros((), device=dev)
         for i in range(len(order)):
-            if pause.exists():   # the bot's turn: wait between buckets, out of the pass's clock
+            battery = not args.on_battery and on_battery()
+            if pause.exists() or battery:   # the bot's turn: wait between buckets, out of the pass's clock
                 stopped = time.time()
-                log(f"  paused ({pause} exists)")
-                while pause.exists():
+                log(f"  paused ({'on battery' if battery else f'{pause} exists'})")
+                while pause.exists() or (not args.on_battery and on_battery()):
                     time.sleep(2)
                 t0 += time.time() - stopped
                 log(f"  carrying on after {time.time() - stopped:,.0f} s")
@@ -552,6 +568,7 @@ def main(argv):
     t.add_argument("--resume", action="store_true")
     t.add_argument("--below-normal", action="store_true")
     t.add_argument("--duty", type=float, default=1.0, help="share of the time the GPU works (<run>.duty overrides)")
+    t.add_argument("--on-battery", action="store_true", help="keep training on battery (default: wait for AC)")
     e = sub.add_parser("export")
     e.add_argument("checkpoint")
     e.add_argument("nnue")

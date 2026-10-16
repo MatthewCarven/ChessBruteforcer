@@ -232,8 +232,32 @@ Sessions, in order:
             September was run again with them (+2.7 M records).
       - [x] Merged into compression on Matthew's word (2026-10-16, 23:25,
             f977646), with session 3's branch after it.
-      - [ ] Session 2 reads the records with scripts/nnue/records.py; the
-            hand-over note is in NNUE.md ("As built").
+      - [x] **Session 2, the trainer, and nnue1** (2026-10-16/17, branch
+            `claude/nnue-trainer-f0d60e`): PyTorch on the laptop's GPU
+            (`scripts/nnue/train.py`, `checks.py`, `bot_speed.py`,
+            `setup-venv.cmd`, `scripts\nnue-train.cmd`). Every check passed.
+            **nnue1's held-back error is 0.0149 against sf1's 0.0304** (-51%,
+            as the engine computes it). `games\nnue\nets\nnue1.nnue`, network
+            SHA-256 4a18e09a...9cf497. WORKLOG and NNUE.md have the run.
+      - [ ] Merging the branch is Matthew's. After it, run
+            `scripts\nnue\setup-venv.cmd` once in the main checkout (the venv
+            was made in the session's worktree; pip fetches ~9 MB, the wheel
+            is local).
+      - [ ] **Session 4, the match**: nnue1 against sf1 at 10+0.1, SPRT [0,
+            10] (`scripts\nnue-match.cmd`, still to write, NNUE.md "How it is
+            judged"). The bot stays on sf1 until then.
+      - [ ] **Training beside the bot**: at full speed the GPU (~99 W) and the
+            bot's 8 threads hit the 180 W charger and the bot loses ~22%; at
+            half duty a bench loses ~10% and the bot's own speed nothing
+            measurable. `nnue-train.cmd` runs at full speed unless told:
+            beside the bot, pass `--duty 0.5` (or write 0.5 into
+            games\nnue\nets\<run>.duty). Runs wait for AC by themselves.
+      - [ ] Session 2b: the wheel is in games\nnue\wheels\ for the desktop,
+            and train.py takes `--data` and `--out` for its paths.
+      - [ ] A small lever (session 5): the export's rounding leaves nnue1 a
+            constant -5 cp for the side to move (QB 64, forced by one output
+            weight at the clamp). Refit the output bias after rounding, or
+            train the output weights with their rounding.
       - [x] Session 3, the network in C# (2026-10-16, branch
         `claude/nnue-csharp-8117d8`, merged into compression the same night): EvalFile
         takes a .nnue; 38 tests, 31 of 31 mutations red; `bench 9` -3.8% at
@@ -392,6 +416,9 @@ Sessions, in order:
 
 ### Done lately (details in WORKLOG)
 
+- 2026-10-16/17: NNUE sessions 1-3: September's 237 M labelled positions,
+  the network in C#, the trainer on the GPU, and nnue1 (held-back error
+  half sf1's). The match is next.
 - 2026-10-14/15: `game takeover` reads in batches; the whole of September
   move by move: 1 in 31 held, classical 2.69 mistakes per 100, 2400 and up
   2.38, two minor pieces v a queen ~1 move in 5.

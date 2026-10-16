@@ -210,6 +210,12 @@ and a result blend. Each is a lever for session 5, measured one at a time.
    worst case per hidden unit (bias + the 32 largest weights) against
    32,767 and refuses a file that could overflow. Score = (the sum of
    clamp(a)^2 x w, divided by QA, plus the output bias) x scale / (QA x QB).
+   (As built, session 2: the export picks QB per net, the largest with every
+   |output weight| x QB <= 128, so x QA it still fits 16 bits; never below
+   64. Trained output weights sit far inside the clamp (largest ~0.5), and
+   at QB 64 their roundings added up to a near-constant -9.5 cp for the side
+   to move; at the fitted QB the int16 net is within ~5 cp of the float one.
+   The file carries QB and the loader takes any, so no C# changed.)
 6. **Plugging in**: `Evaluation.Evaluate(position)` uses the network when
    one is loaded, today's numbers otherwise. The UCI option `EvalFile`
    takes either kind of file, told apart by the magic, so make-config.py,
@@ -263,13 +269,15 @@ and a result blend. Each is a lever for session 5, measured one at a time.
   sigmoid(cp / 400))^2, the tuner's target. AdamW, the learning rate stepped
   down over ~20 passes, the clamp of +-1.98 after every step, held-back
   error every pass. It exports the `.nnue` file and a float checkpoint.
-- **How long** (an estimate; session 2 measures it in its first ten
-  minutes): a 768 x 256 net is small for this GPU (well under 1 GB of its
-  8). The likely limit is memory traffic, so probably 0.5-2 M positions a
-  second: 20 passes over 224 M is **~40 min to ~2.5 h** a run.
-- **Host memory**: Python, torch and the CUDA libraries, probably 1.5-2.5 GB.
-  The buckets are read a piece at a time, not loaded whole. Measured before
-  any long run, beside the bot's ~1 GB, against the ~4 GB headroom.
+  (As built: the sigmoid is the tuner's, s(x) = 1 / (1 + 10^(-x / 400)), so
+  the errors here and Tuner's are the same measure.)
+- **How long** (measured, session 2): **0.96-1.17 M positions a second** at
+  full speed, 190-228 s a pass over September's 218.9 M (mates out), so 20
+  passes is ~70 min. But see "the GPU and the bot" below: beside the bot it
+  runs at half duty, ~2 h a run.
+- **Host memory** (measured): ~2.8 GB of commit for the trainer, of which
+  ~2.1 GB is torch and its CUDA kernels; ~740 MiB on the GPU. Each bucket is
+  read whole (116 MB) and the next one prefetched.
 
 ## How it is judged
 
@@ -358,10 +366,93 @@ Done when:
 - The full run on September in its own window, logging to a file.
 
 Done when:
-- [ ] the checks pass, the speed and memory are written down;
-- [ ] `nnue1.nnue` is exported, and its held-back error is below sf1's on
-      the same positions;
-- [ ] WORKLOG has the run.
+- [x] the checks pass, the speed and memory are written down;
+- [x] `nnue1.nnue` is exported, and its held-back error is below sf1's on
+      the same positions: **0.014851 against 0.030396** (-51%), as the
+      engine computes it, on September's 4,465,944 held-back positions;
+- [x] WORKLOG has the run.
+
+**nnue1** (2026-10-17, 00:53-03:46): `games\nnue\nets\nnue1.nnue`, 394,820
+bytes, QA 255, QB 64; the network's SHA-256 (what the engine prints)
+4a18e09ae6544ece43cbac5bc45ac5adf0a8dc9bff973e3916b7de95da9cf497, the
+file's 666edbe590a0c5218fe852b078e71a4c28cf5721a7d72cf5dff358df9d7890af.
+20 passes over 218.9 M positions, AdamW at 0.001 then x0.3 after passes 8,
+14 and 18; passes 1-5 at full speed (with pauses for measuring and the
+battery), 6-20 at half duty. Held-back error (float, K 1) by pass:
+
+| pass | 1 | 2 | 5 | 8 | 9 | 14 | 15 | 18 | 19 | 20 | exported |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| error | 0.01673 | 0.01623 | 0.01562 | 0.01542 | 0.01506 | 0.01496 | 0.01482 | 0.01481 | 0.01477 | 0.01476 | **0.01485** |
+
+The three steps of the learning rate bought 0.00036, 0.00014 and 0.00004,
+and the passes between them less each time: more passes would add almost
+nothing; more data or a bigger net might (session 5). On nnue1 itself: the engine equals
+nnue_reference on 1,000 positions; `bench 9` 3,830,535 nodes (0.80x
+sf1's), sensible moves; float against int16 7.5 cp mean (6.4 median, 29
+max), of which -5.1 cp is a constant offset. One output weight reached the
++-1.98 clamp (five more are over 1.5), so the fitted QB came out at 64,
+the plan's own; the rounding costs 0.6% of the held-back error. A later
+lever: refit the output bias over a sample after rounding (removes the
+constant part), or let the output weights train with their rounding.
+
+**Built 2026-10-16/17** (branch `claude/nnue-trainer-f0d60e`; WORKLOG has
+the run). What sessions 2b, 4 and 5 should know:
+- **The wheel** is in `games\nnue\wheels\` (2,001,146,779 bytes, SHA-256
+  bfdad379...e7520a4, the server's own checksum; 65 min at 511 KB/s).
+  `scripts\nnue\setup-venv.cmd [wheel]` makes `scripts\nnue\.venv` from it,
+  with the system Python's numpy (`--system-site-packages`); pip fetched only
+  torch's small dependencies (9.4 MB). The venv was made in the session's
+  worktree, so after the merge run setup-venv.cmd once in the main checkout.
+- **The scripts**: `scripts/nnue/train.py` (`train <run>`, `export`,
+  `evaluate <.nnue>...`, `numbers <numbers .txt>...`), `scripts/nnue/checks.py`
+  (the checks below), `scripts/nnue/bot_speed.py` (the bot's Speed lines by
+  window), and `scripts\nnue-train.cmd <run> [options]`: its own window,
+  below-normal priority, a copy of the scripts, `games\nnue\nets\<run>.log`
+  and `.err`, a checkpoint `<run>.pt` after every pass (`--resume`).
+- **Steering a run**: `<run>.pause` in games\nnue\nets makes it wait between
+  buckets; a number in `<run>.duty` sets the share of the time the GPU works
+  (`--duty`); it waits for AC by itself while the laptop is on battery.
+- **The checks**:
+
+  | check | result |
+  |---|---|
+  | the GPU's unpacking against nnue_reference.feature, 10,000 records (591 mates, 217,672 pieces) | all equal, both perspectives, side to move, score, mate flag |
+  | sf1's and sf2's numbers in numpy against the engine's eval, 1,000 positions each | all equal |
+  | 10,000 positions learnt (600 passes of 10) | training error 0.103 -> 0.000011 |
+  | float against the int16 export, 1,000 positions (trial net, QB 238) | 5.2 cp mean, 4.5 median, 25 max (10.5 mean at QB 64) |
+  | the GPU's integer pass against nnue_reference, 1,000 | all equal (so held-back error is the engine's own) |
+  | the engine (EvalFile) against nnue_reference, 1,000 | all equal |
+  | `bench 9` on the trial net | 4,913,912 nodes, 1.03x sf1's 4,767,261: a normal tree |
+
+- **Speed and memory** (this laptop, the bot playing alongside):
+
+  | | without training | training at full speed | at half duty |
+  |---|---|---|---|
+  | positions a second | | 0.96-1.17 M | ~0.58 M |
+  | GPU (nvidia-smi) | 0-340 MiB, ~17 W | ~740 MiB, ~99 W, 99% busy | ~740 MiB, 57-68 W |
+  | trainer's host memory | | 1.5 GB working set, 2.8 GB commit | the same |
+  | free commit (whole laptop) | 6.66 GB | 3.82 GB | |
+  | single-thread `bench 9` (sf1), arms alternated, the bot searching | 983-1,080 knps | 761-832 (**-24%**) | median 974 against 1,080 (**-10%**) |
+  | the same, the bot idle | 1,519-1,556 | 1,431-1,553 (0 to -7%) | 1,545 against 1,550 (0%) |
+  | the bot's own Speed lines (long searches) | 10.8 / 9.8 Mnps | 8.4 (**-22%**) | 10.0 (+2%, within its noise) |
+
+  Full speed: eight alternated pairs of about a minute each. Half duty:
+  three alternated blocks of 6 minutes each way, a bench every 30 s logged
+  with the CPU's load (16 and 17 benches with the bot searching, 50 and 63
+  of its moves). Short arms flattered half duty (-2 to -7%); the 6-minute
+  blocks are the figure to use. The bot's speed halves within a game as it
+  reaches the endgame, so only alternated blocks compare.
+
+- **The GPU and the bot** (D(a)'s 10% line): the charger gives 180 W
+  (Matthew: 19.5 V x 9.23 A). The GPU at full speed takes ~99 W, and with
+  the bot's 8 threads the CPU falls from ~125% to ~100% of its base clock.
+  With the bot idle the same training costs a bench 0-7%, so it is the sum
+  that hits the limit. Half duty sits at the 10% line by the bench and shows
+  no loss in the bot's own speed; Matthew chose it for nnue1's last 15
+  passes (2026-10-17, 01:45). Duty 0.25 and 0.1 cost 0-2% in short arms, but
+  take 4x and 10x as long. For a margin, 0.4.
+- **On battery** (the laptop off its charger, 01:02-01:10) everything
+  throttles, training or not: the bot 4.3 Mnps, a bench ~560 knps.
 
 ### Session 2b: the desktop's GTX 1650 as a second trainer (D(c))
 
@@ -490,7 +581,8 @@ With the desktop training too (2b), two levers train at once.
 | Silent update bugs | A missed rook or en passant pawn: scores slightly wrong, no crash | Incremental-equals-refresh at every node of the test walks; the mutation battery |
 | int16 overflow | Garbage scores in crowded positions | Clamping in training; the export's worst-case check |
 | Memory on the laptop | Torch and CUDA beside the bot and the Claude app (~4 GB headroom): a Windows low-memory event, as in October | Measured first; buckets read in pieces; one job at a time beside the bot |
-| Heat and the bot | GPU (65 W) and CPU share one laptop's cooling: the bot's nodes a second drop while training runs | Measured in session 2 from the bot's log (Speed line); decision D |
+| Heat and the bot | GPU (65 W) and CPU share one laptop's cooling: the bot's nodes a second drop while training runs | Measured in session 2 from the bot's log (Speed line); decision D. **It happened, through power rather than heat**: the GPU draws ~99 W, the charger gives 180, and with the bot's 8 threads the CPU loses ~20% of its clock (bot -22%, bench -24%). Half duty costs the bench ~10%, the bot's own speed nothing measurable |
+| The laptop off its charger | Matthew moves it about the house (up to ~10 min): on battery the CPU and GPU both throttle (bot 12.7 -> 4.3 Mnps) | train.py waits for AC by itself; check the power line before reading any timing |
 | The household's internet | A 2.0 GB download | curl capped at 500 KB/s (~67 min), as the month queue is |
 | The score's scale moves | Null-move pruning compares the evaluation with beta; resigning is off, so nothing else reads it | Trained on Lichess's centipawn scale, which today's numbers already sit near |
 | Bitboards later | The rest of the search speeds up, so the net's share grows | Re-run the probe after any big speed change |
@@ -500,7 +592,9 @@ With the desktop training too (2b), two levers train at once.
 **Taken 2026-10-16: A(a), B(a), C(a), and D "a + c"**: PyTorch; 768 -> 256
 x2 -> 1; September, every quiet position, all speeds; the laptop first,
 alongside the bot, then the desktop's GTX 1650 as a second trainer
-(session 2b). The options as they were put:
+(session 2b). **2026-10-17, 01:45**: beside the bot at half duty (the GPU's
+full ~99 W plus the bot's 8 threads hit the 180 W charger: the bot -22%),
+over full speed or stopping at pass 5. The options as they were put:
 
 **A. The trainer** (chosen: a)
 - **(a) PyTorch on Windows** (recommended): one 2.0 GB wheel for the Python

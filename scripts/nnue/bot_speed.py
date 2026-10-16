@@ -1,7 +1,7 @@
 """The bot's search speed from its log's "Speed: 12.4Mnps" lines, by time window (NNUE.md, decision D: train beside
 the bot, and stop if its speed drops more than ~10%).
 
-    python scripts/nnue/bot_speed.py <bot log> [--date 2026-10-17] [--min-nodes 20] [label=]HH:MM-HH:MM ...
+    python scripts/nnue/bot_speed.py <bot log> [--date 2026-10-17] [--min-nodes 20] [label=]HH:MM[:SS]-HH:MM[:SS] ...
 
 For each window: how many moves logged a speed, and their median, mean and quartiles in millions of nodes a second;
 then the windows with the same label pooled (on=00:55-01:05 off=01:06-01:15 on=...). --date picks the day (the log
@@ -39,9 +39,10 @@ def speeds(path):
     return out
 
 
-def seconds(hhmm):
-    h, m = hhmm.split(":")
-    return int(h) * 3600 + int(m) * 60
+def seconds(clock):
+    """HH:MM or HH:MM:SS as seconds since midnight."""
+    parts = [int(x) for x in clock.split(":")] + [0]
+    return parts[0] * 3600 + parts[1] * 60 + parts[2]
 
 
 def describe(v):
