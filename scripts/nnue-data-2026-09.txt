@@ -1,0 +1,135 @@
+# September 2026's training records for the network (NNUE.md, session 1), written up 2026-10-16
+
+Run: scripts\nnue-data.cmd 2026-09, from the session's worktree with CB_GAMES pointing at the main checkout's
+games\, 20:18:37-20:59:51 on 2026-10-16 (2,474 s), below-normal priority, beside the bot (8 threads), at 8df33f1
+(Swiss games counted as rated; the first run, 07:40-08:26, left them out: below). In:
+games\tune\eval-games-2026-09.cbg, 4,181,801,430 bytes, 8,896,948 analysed games. Out: games\nnue\2026-09\ (64
+buckets, held-back.bin, data.json), 7.58 GB. Log: games\nnue\2026-09.log (both runs). Peak memory ~45 MB (heap
+capped at 1 GB).
+
+**236,940,450 positions: 223,352,776 scored in centipawns (NNUE.md predicted ~224 M) and 13,587,674 mates
+(kept, flagged).** Every record checked against data.json; no held-back game in any training bucket.
+
+## The count against the prediction
+
+                                      predicted        measured
+  analysed games                      8,896,948       8,896,948
+  games used                                  -       8,807,634   99.0%
+  scored in centipawns                   ~224 M     223,352,776   25.1 a game read (-0.3%)
+  mates (+-32000, flagged)                    -      13,587,674   5.7% of records, 1.5 a game
+  all records                                 -     236,940,450   26.6 a game
+  size                                  ~7.2 GB         7.58 GB
+  held back (game number 0 mod 50)           2%       4,738,712   2.0000% (176,155 games)
+  in the 64 training buckets                  -     232,201,738   3,624,171 to 3,632,144 a bucket (~116 MB)
+  scores held to +-31999                      -               0   (Lichess never gives more)
+  quiet but no score ("?")                    -           4,620
+  time                                  ~45 min        41.2 min
+
+On the first 100,000 games all three counters agree exactly (the 0.3% over the month is the month's other
+games against its first 100,000, from which the 25.2 came):
+
+                                          count.cs   tune positions   nnue data
+  quiet, scored in centipawns            2,523,305                -   2,523,305
+  the same, blitz or slower              2,010,577        2,010,577   2,010,577
+
+(count.cs is the plan's probe, scripts/nnue-probe/; tune positions run as `--min-elo 0 --per-game 1000
+--lambda 0`; nnue data with and without `--speeds blitz,rapid,classical`.)
+
+## Swiss games: rated, and now counted (Matthew's (a))
+
+Lichess's Swiss tournament games are rated (its rated database holds them), but their Event tag reads "Rapid
+swiss https://lichess.org/swiss/..." with no "Rated", and the tuner's rule looked for "Rated". The first run
+left them out, and came in 1.4% under the plan. A scan of every Event tag in September's analysed games:
+
+  Event says "Rated"                   8,801,711
+  Lichess Swiss, no "Rated"               95,237   rapid 46,169, blitz 37,457, bullet 6,937, classical 4,651,
+                                                   ultrabullet 23
+  anything else                                0
+
+So `StoredGame.IsRated` (Core/Records) is "Rated" in Event, or a Lichess Swiss game, and both `tune positions`
+and `nnue data` ask it. What it changed:
+
+                                   run 1 (07:40)     run 2 (20:18)    change
+  games used                           8,712,894         8,807,634    +94,740
+  scored in centipawns               220,933,142       223,352,776    +2,419,634  (-1.4% -> -0.3% of the plan)
+  mates                               13,331,824        13,587,674    +255,850
+  all records                        234,264,966       236,940,450    +2,675,484  (+1.1%)
+  size                                   7.50 GB           7.58 GB
+
+Future `tune positions` runs count Swiss games too (~1% more games); sf1, sf2 and the bot are untouched. A
+cross-check from run 1, against an outside number: sf2's fit (WORKLOG 2026-10-15) used 6,811,130 blitz-or-slower
+games; run 1 used 6,823,523, the 12,393 more being games whose only scored quiet positions are mates (the first
+100,000 had 126 such in 76,416, which predicts ~11,300).
+
+## The rule, shared
+
+`tune positions` and `nnue data` walk games through one function (Core/Records/QuietPositions.cs): after move 8
+(ply 16 on), more than 5 pieces, side to move not in check, neither the move before nor the move played a capture
+or a promotion. The score is Lichess's after the move before, i.e. the position's own; a quiet position with none
+is left out. Games: rated (above), from the standard start, analysed (Evals tag), both ratings given, a result.
+
+## By speed (all speeds are in: Matthew's C(a))
+
+  speed          games used     positions   a game    share
+  blitz           3,965,401   111,828,845     28.2    47.2%
+  rapid           2,772,062    74,003,408     26.7    31.2%
+  bullet          1,820,468    44,712,401     24.6    18.9%
+  classical         173,851     4,820,417     27.7     2.0%
+  ultrabullet        64,897     1,300,540     20.0     0.5%
+  other (no clock)   10,955       274,839     25.1     0.1%
+  all             8,807,634   236,940,450     26.9   100.0%
+  blitz or slower 6,911,314   190,652,670     27.6    80.5%   (C(c) would have been this)
+
+## Left out
+
+  no quiet position with a score                  89,306 games
+  no result                                            8
+
+## The record (32 bytes; NNUE.md "Training" has the table)
+
+  occupancy u64 at 0 (a1 = bit 0); 32 pieces as 4-bit codes at 8, in square order, low half first; flags u8 at
+  24 (1 black to move, 2 mate); result for white u8 at 25 (0, 1, 2); white's score i16 at 26; game number u32
+  at 28. Piece codes: colour x 8 + type (white 1-6, black 9-14). Every field is on its own alignment, so the
+  trainer can view a batch as int64 / int16 / int32 without copying; that is why the result sits before the
+  score, not after it as NNUE.md first listed them. Castling rights, en passant and the clocks aren't stored.
+
+## Checks
+
+- `python scripts\nnue\records.py check games\nnue\2026-09`: every file's size against data.json, every
+  record's codes, kings, pawn ranks, flags, result and mate flag, no held-back game in a bucket, no game in both.
+  Result (492 s): "all well: 236,940,450 records, 13,587,674 mates, 8,631,479 training games, 176,155 held
+  back"; 8,631,479 + 176,155 = 8,807,634, the games used, so no game is on both sides. (Run 1 passed too.)
+- C# against Python on real records: `nnue show` and `records.py show` print the first 5,000 records of
+  bucket-00, bucket-63 and held-back.bin identically (15,000 lines, 0 differ), after each run.
+- Tests (tests/ChessBruteforcer.Tests/NnueDataTests.cs, 28 with the rated cases; the suite 369 passed, 2 skipped):
+  the rule restated from its words over 600 random games of up to 400 plies, each condition the only one
+  failing somewhere and both edges met; 10,000 positions FEN -> record -> FEN (castling and en passant aren't
+  stored, and the test says so); the start position's bytes by hand; Evals entries; rated or not by Event;
+  `nnue data --speeds blitz,rapid,classical` against `tune positions` on 400 synthetic analysed games (Swiss ones
+  among them), one for one (game, board, side to move, the tuner's target from the score); held-back games never
+  in a bucket; every speed by default, only casual games "not rated"; --per-game; bad arguments. Python:
+  scripts/nnue/test-records.py reads C#'s fixture (test-records.bin, held to test-records.txt by the C# test)
+  back to the same pieces, and tests check().
+- Mutation battery, 39 mutations, **39 red**:
+
+  the quiet rule (8): ply 16 -> 17, more than 5 -> 5 or more, the move before, a capture, a promotion,
+    check, the piece count, a promotion before                          -> the rule restated (only it can
+                                                                           see them: both commands share it)
+  the record (10): nibble order, piece codes, side to move, occupancy
+    by rank, mate sign, no clamp, score byte order, result codes,
+    game number cut to 24 bits, mate flag dropped                       -> 1-6 tests each
+  nnue data (10): held-back rule, held-back games after 100 in buckets,
+    the score one ply late, --speeds ignored, --per-game ignored, mates
+    counted as scores, bucket counts, casual games in, result reversed,
+    tune positions' score one ply late                                  -> 1-3 tests each
+  rated (4): Swiss not counted, "Rated" not counted, tune positions or
+    nnue data back on the old test                                      -> 1-3 tests each
+  records.py (7): nibble order, bit order, side to move, piece letters,
+    the occupied-square rank, check() blind to leaks, check() blind to
+    a wrong count                                                       -> test-records.py
+
+## For session 2
+
+Read with scripts/nnue/records.py (numpy only): `load_meta`, `training_files`, `held_back_file`, `read`,
+`boards`, `is_mate`, `black_to_move`, `to_fen`. The score is white's: negate it when black is to move for the
+side-to-move view. Mates are 5.7% of records; the plan leaves them out at first (flag bit 1).

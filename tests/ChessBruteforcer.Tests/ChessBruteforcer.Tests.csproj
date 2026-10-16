@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ChessBruteforcer.Core\ChessBruteforcer.Core.csproj" />
+    <ProjectReference Include="..\..\src\ChessBruteforcer.Cli\ChessBruteforcer.Cli.csproj" />
   </ItemGroup>
 
 </Project>

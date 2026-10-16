@@ -2796,3 +2796,67 @@ downloaded or installed, and the engine is unchanged.
   designed). Checked on the laptop against Lichess's SHA-256: matches (42 s).
   Copying to the share from 09:07 with robocopy /Z, then the share's copy
   checked again (a window of its own, games\move-2026-05.log).
+
+## 2026-10-16 (07:00-08:50): NNUE session 1, the data
+
+A side session, in its own worktree (branch `claude/nnue-data-7d1bea`), beside
+session 3 (the network in C#) in another. Matthew's C(a): September, every quiet
+position, all speeds. Report: [scripts/nnue-data-2026-09.txt](scripts/nnue-data-2026-09.txt).
+
+- **One quiet rule**: `QuietPositions.Walk` (Core/Records) is the tuner's rule
+  word for word; `tune positions` now walks games through it, and so does the
+  new `nnue data`, so the two can't drift.
+- **The record** (`NnueRecord`, 32 bytes): occupancy u64 at 0, 32 pieces as
+  4-bit codes at 8, flags at 24 (black to move, mate), result at 25, white's
+  score i16 at 26 (mates +-32000), game number u32 at 28. The result moved
+  before the score so every field is aligned (NNUE.md has the table).
+  `nnue data <out> <file>... [--per-game all|N] [--speeds ...] [--buckets 64]`
+  writes 64 buckets chosen at random, held-back.bin (games 0 mod 50), and
+  data.json last; `nnue show` prints records as FEN. `scripts/nnue/records.py`
+  reads them with numpy only; `scripts\nnue-data.cmd <month>` runs a month in
+  its own window.
+- **A trial first** (the first 100,000 games, 29 s): `--speeds
+  blitz,rapid,classical` wrote exactly the 1,999,783 positions `tune positions
+  --min-elo 0 --per-game 1000 --lambda 0` did, plus 104,589 mates.
+- **September, 07:40-08:26** (45.6 min, below-normal, beside the bot):
+  **234,264,966 records, 7.50 GB**: 220,933,142 scored in centipawns (NNUE.md
+  predicted ~224 M: -1.4%) and 13,331,824 mates (5.7%). 229.6 M in the
+  buckets (3.58-3.59 M each, ~115 MB), 4,685,639 held back (2.0001%, 174,322
+  games). Blitz or slower 188.2 M (80.3%), bullet 44.5 M, ultrabullet 1.3 M.
+- **The 1.4% is Swiss games.** Lichess's Swiss tournament games have an Event
+  like "Rapid swiss https://lichess.org/swiss/..." with no "Rated", so the
+  tuner's rule (and this one) leaves them out: 95,237 games, 1.07% of
+  September's analysed games, ~2.5 M positions. NNUE.md's 25.2 a game came
+  from count.cs, which didn't look at Event; on the same 100,000 games the
+  two differ by 12,699 positions, exactly the 534 Swiss games'.
+- **Checks**: records.py check over every record (sizes against data.json,
+  codes, kings, pawn ranks, flags, no held-back game in a bucket); C#'s `nnue
+  show` and Python's `show` agree on 15,000 real records; 20 new tests (the
+  rule restated from its words over random games, 10,000 FEN -> record -> FEN,
+  the bytes by hand, `nnue data` v `tune positions` one for one, held-back,
+  --per-game), the suite 361 passed, 2 skipped; Python's test-records.py on
+  C#'s fixture. **Mutation battery: 35 of 35 red.** The rule's own 8 are seen
+  only by the restated rule, as they must be: both commands share it.
+
+## 2026-10-16 (evening): Swiss games counted; September again
+
+- Matthew asked what counting Swiss games would mean (a filter that was
+  quietly wrong, 1% more data, too little for the network to notice; 46
+  min to run September again), then chose (a): fix both and re-run.
+- A scan of every Event tag in September's analysed games: 8,801,711 say
+  "Rated", 95,237 are Lichess Swiss games without it (rapid 46,169, blitz
+  37,457, bullet 6,937, classical 4,651, ultrabullet 23), **0 anything
+  else**. So `StoredGame.IsRated` is "Rated" in Event or a Lichess Swiss
+  game, and `tune positions` and `nnue data` both ask it (8df33f1). Tests:
+  rated cases, Swiss games among the synthetic ones, only casual games "not
+  rated"; four more mutations, all red (39 of 39).
+- The first 100,000 games now agree three ways: 2,523,305 scored positions
+  (nnue data and the plan's count.cs) and 2,010,577 blitz or slower (nnue
+  data, tune positions and count.cs).
+- **September again, 20:18-20:59 (41.2 min): 236,940,450 records, 7.58
+  GB**: 223,352,776 scored in centipawns (the plan's ~224 M: -0.3%) and
+  13,587,674 mates; 232.2 M in the buckets, 4,738,712 held back (176,155
+  games). Blitz or slower 190.7 M (80.5%). records.py check and the C# v
+  Python cross-check again (report).
+- Future `tune positions` runs take Swiss games too (~1% more games); sf1,
+  sf2 and the bot are untouched.

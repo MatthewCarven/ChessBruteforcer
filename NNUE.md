@@ -221,6 +221,28 @@ and a result blend. Each is a lever for session 5, measured one at a time.
   buckets in a random order and shuffle each one (~110 MB) in memory: one
   copy on disk, well mixed. September: **~224 M x 32 bytes = ~7.2 GB** on
   C:. Held back: every game whose number is 0 mod 50 (2%).
+
+  **As built (session 1)**, every field on its own alignment, so a batch can
+  be viewed as int64 / int16 / int32 with no copy (the side to move and the
+  result swap places with the score to get there):
+
+  | offset | size | field |
+  |---|---|---|
+  | 0 | 8 | occupancy, little-endian: bit s set when square s holds a piece (a1 = 0, h8 = 63) |
+  | 8 | 16 | the pieces, 4 bits each in square order: the i-th occupied square's code is in byte 8 + i/2, low half for even i; unused halves 0 |
+  | 24 | 1 | flags: bit 0 black to move, bit 1 the score is a mate |
+  | 25 | 1 | result for white: 0 lost, 1 drawn, 2 won |
+  | 26 | 2 | white's score, int16 centipawns; mates +-32000 (flagged), every other score held to +-31999 |
+  | 28 | 4 | the game's number, uint32, counting every game in the sources |
+
+  A piece's code is colour x 8 + type: white pawn 1, knight 2, bishop 3,
+  rook 4, queen 5, king 6; black 9-14. The score is Lichess's after the move
+  before, i.e. this position's; a quiet position without one is left out.
+  Files: `bucket-00.bin` ... `bucket-63.bin`, `held-back.bin`, and
+  `data.json` (written last, so no data.json means no finished run).
+  `scripts/nnue/records.py` reads them with numpy (`read`, `boards`,
+  `is_mate`, `black_to_move`, `to_fen`, `check`); the C# side is
+  `Core/Records/NnueRecord.cs`.
 - **The trainer** (`scripts/nnue/train.py`, PyTorch on Windows, in a venv at
   `scripts/nnue/.venv`, ignored by git): numpy reads a bucket and the raw
   records go to the GPU as they are, ~512 KB a batch of 16,384, where torch
@@ -290,11 +312,24 @@ run side by side. Session 2 needs 1's data (the download is agreed: A(a));
   `tune positions` was).
 - Report `scripts/nnue-data-2026-09.txt`.
 
+**Done 2026-10-16** (branch `claude/nnue-data-7d1bea`): `nnue data` and
+`nnue show` in the Cli, the shared rule in `Core/Records/QuietPositions.cs`,
+the record in `Core/Records/NnueRecord.cs`, `scripts/nnue/records.py` and
+its test, `scripts\nnue-data.cmd <month>` for a month in its own window.
+September is in `games\nnue\2026-09\` on this laptop.
+
 Done when:
-- [ ] the round trip, the count and the split tests pass;
-- [ ] September's buckets are written: ~224 M positions (25.2 a game
-      predicts it; a big miss means the rule differs from the tuner's);
-- [ ] the report is in git.
+- [x] the round trip, the count and the split tests pass (28 tests, 39
+      mutations all red);
+- [x] September's buckets are written: ~224 M positions (25.2 a game
+      predicts it; a big miss means the rule differs from the tuner's).
+      **223,352,776 scored in centipawns (25.1 a game, -0.3%) plus
+      13,587,674 mates: 236,940,450 records, 7.58 GB, in 41.2 min.** The
+      first run came in 1.4% under: Lichess's Swiss games (1.07%) are
+      rated but their Event lacks "Rated". On Matthew's word they count
+      now, in `tune positions` too (`StoredGame.IsRated`), and on the first
+      100,000 games nnue data, tune positions and count.cs agree exactly;
+- [x] the report is in git: [scripts/nnue-data-2026-09.txt](scripts/nnue-data-2026-09.txt).
 
 ### Session 2: the trainer, on the laptop (Matthew chose A(a): PyTorch)
 
