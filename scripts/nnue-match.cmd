@@ -1,25 +1,29 @@
 @echo off
 rem A network against another evaluation (NNUE.md, "How it is judged"), in its own window:
-rem   scripts\nnue-match.cmd nnue1 sf1 [games] [concurrency]
+rem   scripts\nnue-match.cmd nnue1 sf1 [games] [concurrency] [fixed]
 rem <net> is games\nnue\nets\<net>.nnue; <old> is another net there, or evaluation numbers (bot\eval\eval-<old>.txt,
 rem else games\tune\eval-<old>.txt). Played as sf1's and sf2's matches were: 10+0.1, 5 at a time, the 300 book
 rem openings in colour-reversed pairs, our tables adjudicating, SPRT [0, 10], at most 2000 games ([games] for a
-rem smoke test, [concurrency] beside the bot). The nets, openings, tables and logs are the main checkout's, so this
+rem smoke test, [concurrency] beside the bot; "fixed" plays every game, with no SPRT to stop it, for an Elo figure
+rem once the SPRT has decided early). The nets, openings, tables and logs are the main checkout's, so this
 rem runs from a worktree too. The match tool splits its engine command at the first space, so the engine, the match
 rem tool and both evaluations are copied to %TEMP%\cb-match first (and the repo stays buildable). Below-normal
 rem priority, which the engines inherit, so the bot's games come first.
-rem Logs: games\nnue\match-<net>-<old>.log and .pgn (match-<net>-<old>-<games>.* when [games] isn't 2000).
+rem Logs: games\nnue\match-<net>-<old>.log and .pgn (match-<net>-<old>-<games>.* when [games] isn't 2000, and
+rem -fixed after that when fixed).
 setlocal
 set NET=%1
 set OLD=%2
 set GAMES=%3
 set CONC=%4
 if "%OLD%"=="" (
-    echo usage: scripts\nnue-match.cmd nnue1 sf1 [games] [concurrency]
+    echo usage: scripts\nnue-match.cmd nnue1 sf1 [games] [concurrency] [fixed]
     exit /b 1
 )
 if "%GAMES%"=="" set GAMES=2000
 if "%CONC%"=="" set CONC=5
+set SPRT=--sprt 0 10
+if /i "%5"=="fixed" set SPRT=
 cd /d "%~dp0.."
 rem The main checkout: the folder above git's common directory (this checkout itself when it isn't a worktree).
 for /f "delims=" %%g in ('git rev-parse --git-common-dir') do set GITDIR=%%g
@@ -27,6 +31,7 @@ for %%m in ("%GITDIR%\..") do set MAIN=%%~fm
 set NETS=%MAIN%\games\nnue\nets
 set TAG=%NET%-%OLD%
 if not "%GAMES%"=="2000" set TAG=%NET%-%OLD%-%GAMES%
+if "%SPRT%"=="" set TAG=%TAG%-fixed
 set MLOG=%MAIN%\games\nnue\match-%TAG%.log
 set PGN=%MAIN%\games\nnue\match-%TAG%.pgn
 set COPY=%TEMP%\cb-match
@@ -78,11 +83,11 @@ for %%e in (%NET%.nnue %OLDCOPY%) do (
 )
 certutil -hashfile "%COPY%\%NET%.nnue" SHA256 | findstr /v /c:"hash" >> "%MLOG%"
 
-echo %date% %time%: match %NET% v %OLD%, %GAMES% games, %CONC% at a time (progress in %MLOG%)
+echo %date% %time%: match %NET% v %OLD%, %GAMES% games, %CONC% at a time, %SPRT% (progress in %MLOG%)
 start "" /b /wait /belownormal dotnet "%COPY%\match\ChessBruteforcer.Match.dll" ^
     --engine name=%NET% cmd="dotnet %COPY%\engine\ChessBruteforcer.Engine.dll" option.EvalFile=%COPY%\%NET%.nnue ^
     --engine name=%OLD% cmd="dotnet %COPY%\engine\ChessBruteforcer.Engine.dll" option.EvalFile=%COPY%\%OLDCOPY% ^
-    --games %GAMES% --tc 10+0.1 --concurrency %CONC% --tables "%MAIN%\tables" --sprt 0 10 ^
+    --games %GAMES% --tc 10+0.1 --concurrency %CONC% --tables "%MAIN%\tables" %SPRT% ^
     --openings "%MAIN%\games\tune\openings-300.txt" --pgn "%PGN%" >> "%MLOG%" 2>&1
 echo %date% %time%: finished, exit %errorlevel% >> "%MLOG%"
 echo %date% %time%: finished; the last lines of %MLOG%:
