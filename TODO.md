@@ -10,9 +10,9 @@ items are gathered into the plan.
 Where we are: every table of 5 pieces or fewer is solved, both kinds
 (FIVE-PIECE.md, FIVE-PIECE-PAWNS.md), and the engine plays them by the
 50-move rule. It plays on Lichess as matthewcarven (blitz ~2026) on a
-Texel-tuned evaluation (+208 Elo), and on the network nnue1 (+742 over that)
-from its first restart after this branch is merged, with opening books of
-its own. Real games
+Texel-tuned evaluation (+208 Elo), then the network nnue1 (+742 over that),
+and from its next start nnue1-h512 (+76 over nnue1, 2026-10-17), with
+opening books of its own. Real games
 set against the tables (all of September 2026, 5.23 M games reaching them):
 26.6% end otherwise than perfect play from there would, and 1 move in 31
 that could go wrong does.
@@ -37,77 +37,68 @@ that could go wrong does.
   a list, filled in turn); recount the book deeper (16 moves) once ~12
   months are in. The whole archive is 165 months, 2.6 TB, 8.22 B games.
 
-### Handoff: start here (2026-10-17, 19:05)
+### Handoff: start here (2026-10-17, 23:25)
 
 **Running right now, each in its own window (check them, don't start them):**
-- **The month queue** (`scripts\month-queue.cmd`, restarted 18:38:53): counting
-  June 2026 from the share (~20:05), then May (~21:35), then downloading
-  April at 500 KB/s. Log games\month-queue.log; counts logs
+- **The month queue** (`scripts\month-queue.cmd`, restarted 18:38:53): June
+  and May 2026 are counted into the books (21:33: 1,695,521 moves in
+  1,179,279 positions from 7,959,778 games, five months); it is downloading
+  April (29.3 GB) at 500 KB/s. Log games\month-queue.log; counts logs
   bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
-- **The match launcher** ("Match v Stockfish-2500", pwsh running
-  C:\Users\Admin\AppData\Local\Temp\claude\C--Users-Admin-Desktop---Programming---Chess-Bruteforcer\12a94bf5-e6ad-403f-bd29-f65f606ce178\scratchpad\match\after-counts.ps1):
-  once the queue logs "games read" for both June
-  and May, and with 3 GB of commit free, it plays **10 games at 3+2 against
-  Stockfish-2500** with the bot as it is (book-match.py --threads 8 --arms
-  book, nnue1, the tables), one at a time (~1.5 h, done ~23:00). Results in
-  games\match-sf2500-3+2.jsonl (`book-match.py <that file> --summary`
-  prints them) and games\match-after-counts.log.
 - The book learner (bot\learn.py, since 09:30).
-- **The nnue1-h512 match launcher** ("Match nnue1-h512 v nnue1", pwsh
-  running C:\Users\Admin\AppData\Local\Temp\claude\C--Users-Admin-Desktop---Programming---Chess-Bruteforcer--claude-worktrees-nnue-desktop-8d5f2a\fa54ac3c-0580-477f-9cef-c7a39d8abe03\scratchpad\after-sf-h512.ps1,
-  minimized, from 20:01): once the Stockfish launcher logs "finished", and
-  only if the bot is still off, 3 GB of commit are free and it's before
-  03:00, it plays **nnue1-h512 v nnue1** from the session 2b worktree
-  (`scripts\nnue-match.cmd`: SPRT [0, 10], 10+0.1, 5 at a time, at most
-  2,000 games, ~1-3 h, so until ~00:00-02:00). Logs
-  games\nnue\match-h512-launcher.log and games\nnue\match-nnue1-h512-nnue1.log.
-  **The bot stays off until it ends** (Matthew, 20:00).
+- Done, its window can be closed: "Match nnue1-h512 v nnue1" (session 2b's
+  launcher, at its last `pause`). The Stockfish launcher's window is closed.
 
-**NNUE, where it stands** (added 19:55; session 2b, branch
-`claude/nnue-desktop-8d5f2a`, which has this handoff merged in):
+**Tonight's two matches, both with the bot off:**
+
+| match | games | +W -L =D | score | Elo [95%] |
+|---|---|---|---|---|
+| the bot as it plays (nnue1, 8 threads, book, tables) v Stockfish-2500, 3+2 | 10 | +10 -0 =0, all mates | 100% | at least ~+183 (one-sided, binomial) |
+| nnue1-h512 v nnue1, 10+0.1, one thread each | 285 | +114 -53 =118 | 60.7% | **+76 [+45, +107]**, SPRT [0, 10] accepted H1 |
+
+**The bot is OFF** (stopped 11:19 after a win against FlounderBot) and
+**switches to nnue1-h512 at its next start** (Matthew's G(a), ~23:20). The
+switch is on branch `claude/nnue-desktop-8d5f2a` (NNUE session 2b), which
+has compression up to 071be3c merged in, so in the main checkout:
+1. `git merge --ff-only claude/nnue-desktop-8d5f2a` (Matthew's: he merges
+   and pushes; he's holding pushes back for a few days on purpose);
+2. `bot\start-bot.cmd` (not start.cmd: the queue and learner are up). It
+   builds the engine, writes config.yml from make-config.py, which now
+   tries bot\eval\nnue1-h512.nnue first (pondering on, the short greetings),
+   and applies both lichess-bot patches, including the **rejoin fix**
+   (bot/lichess-bot-rejoin.patch, tested by bot/test-rejoin.py).
+3. Check its log says "evaluation: network ...nnue1-h512.nnue (768 -> 512 x2
+   -> 1, sha256 8a6cd3aff627)". Then its first ~30 rated games against
+   nnue1's (it searches ~9% slower; the match says it's worth it).
+
+**NNUE, where it stands** (session 2b):
 - **The desktop's GTX 1660 is the second trainer**, driven from here over
   SSH: `scripts\nnue-desktop.ps1 sync | train <run> [options] | status |
   stop | fetch` (a scheduled task per run on the desktop, September's records
-  on its own D:, nothing downloaded). 0.65x the laptop's card: nnue1's recipe
-  takes ~1.9 h there. With the heat rule below, new nets train there, not
-  here. Its card showed no brownouts (Matthew asked): 0 µs of power braking.
-- **nnue1-h512** (512 hidden, Matthew's F(b)) trained there 07:46-11:10:
-  held-back error **0.013664 against nnue1's 0.014851 (-8.0%)**, -4.0% a node
-  in the engine. In games\nnue\nets\ of the main checkout (gitignored) and on
-  the share. Not matched yet.
-- **Next: its match against nnue1**, CPU only, five one-thread engines; not
-  beside the counts or the Stockfish match (memory, as June's 11:16 failure
-  showed, and it would skew that match). **Matthew chose (20:00): tonight,
-  after the Stockfish match, while the bot is still off**: the launcher
-  above. Then MATCHES.md, WORKLOG and NNUE.md, and his word on whether the
-  bot switches to nnue1-h512.
-
-**The bot is OFF** (stopped 11:19 after a win against FlounderBot), on
-Matthew's word: **show him the Stockfish match before it goes online**, and
-let the nnue1-h512 match (above) finish first. Then
-`bot\start-bot.cmd` (not start.cmd: the queue and learner are already up). It
-builds the engine, writes config.yml from make-config.py (pondering on,
-nnue1, the short greetings), and applies both lichess-bot patches, including
-the new **rejoin fix** (bot/lichess-bot-rejoin.patch, tested by
-bot/test-rejoin.py) for games whose stream drops.
+  on its own D:, nothing downloaded). 0.65x the laptop's card: a 256 net
+  takes ~1.9 h there, a 512 net ~3.4 h. With the heat rule below, new nets
+  train there, not here. Its card showed no brownouts (Matthew asked).
+- **nnue1-h512** (512 hidden, Matthew's F(b)): held-back error 0.013664
+  against nnue1's 0.014851 (-8.0%), +76 Elo over it. NNUE.md's session 2b
+  and MATCHES.md have it all. Next levers (NNUE.md session 5), each a match
+  against nnue1-h512 now: more data (July and August), mates in, a result
+  blend, the export's rounding.
 
 **Watch out:**
-- **Memory**: ~7 GB of commit free with the Claude app's processes taking
-  most of it. Check `FreeVirtualMemory` before anything heavy. A test run
-  beside June's first count killed it (MemoryError, 11:16).
+- **Memory**: commit was down to 2.8 GB free at 23:20, with the Claude app's
+  processes taking most of it. Check `FreeVirtualMemory` before anything
+  heavy. A test run beside June's first count killed it (MemoryError, 11:16).
 - **Heat**: no NNUE training beside the bot's games (Matthew, until he has a
-  notebook cooler).
+  notebook cooler): the desktop trains.
 - **The share**: all traffic to it at or under ~8 MB/s in total, or the
-  laptop falls off the internet.
+  laptop falls off the internet (scripts\capped-copy.py for big copies).
 - **Pushing**: Matthew is holding back pushes for a few days on purpose, so
   rivals can't copy the bot. Don't nag.
 
-**Waiting on Matthew:** delete the laptop's copy of May
-(games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7 GB; it's on the share
-and checked); July's lines.u16 and old plain columns (4.1 GB); where the whole
-index lives (a proposal card exists); merging `claude/nnue-desktop-8d5f2a`
-(NNUE session 2b) into compression; after nnue1-h512's match, whether the
-bot switches to it.
+**Waiting on Matthew:** the merge and the bot's start above; delete the
+laptop's copy of May (games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7
+GB; it's on the share and checked); July's lines.u16 and old plain columns
+(4.1 GB); where the whole index lives (a proposal card exists).
 
 ### Now (2026-10-15)
 
@@ -370,10 +361,13 @@ Sessions, in order:
             0.013664 against nnue1's 0.014851 (-8.0%)**; in
             games\nnue\nets\, loads through EvalFile; `bench 9` -4.0% a node
             against nnue1, a 2.8% bigger tree.
-      - [ ] **nnue1-h512's match against nnue1** (session 5):
-            `scripts\nnue-match.cmd nnue1-h512 nnue1`. Whether -8% error is
-            worth -4% speed (~7% to the same depth) is the match's to say;
-            then, if it wins, Matthew's word on the bot.
+      - [x] **nnue1-h512's match against nnue1** (2026-10-17, 22:48-23:17,
+            the bot off): **+76 Elo [+45, +107]**, +114 -53 =118 in 285
+            games, SPRT [0, 10] accepted H1; 8.9% slower in play. MATCHES.md.
+            Matthew's G(a): the bot switches to it at its next start
+            (bot\eval\nnue1-h512.nnue, make-config.py tries it first).
+      - [ ] **nnue1-h512's first ~30 rated games** against nnue1's (the
+            bot's own games in bot\games, from its next start).
       - [ ] `scripts\nnue-train.cmd` passes only `%2`-`%9` to train.py, so a
             ninth option token is dropped silently (train-desktop.cmd lost
             `--progress 2` that way before it was fixed with `for /f
@@ -544,6 +538,9 @@ Sessions, in order:
 
 ### Done lately (details in WORKLOG)
 
+- 2026-10-17 (night): **nnue1-h512 +76 Elo [+45, +107] over nnue1** (285
+  games, SPRT accepted H1), after the bot beat Stockfish-2500 10-0 at 3+2;
+  Matthew chose to switch the bot to it at its next start.
 - 2026-10-17: NNUE session 2b: the desktop's GTX 1660 trains over SSH
   (scheduled tasks, records on its own disk, nothing downloaded), matching
   the laptop within the size of a seed change at 0.65x its speed. Its first

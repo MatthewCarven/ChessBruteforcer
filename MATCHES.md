@@ -59,6 +59,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-17 | nnue1 | sf1 | 20 | +19 -1 =0 | 95.0% | +512 [+308, +∞] | smoke test |
 | 2026-10-17 | nnue1 | sf1 | 117 | +114 -0 =3 | 98.7% | +755 [+622, +∞] | SPRT [0, 10] accepted H1 at game 113 (see below) |
 | 2026-10-17 | nnue1 | sf1 | 400 | +392 -3 =5 | 98.6% | **+742 [+645, +970]** | fixed length, for the Elo figure |
+| 2026-10-17 | nnue1-h512 | nnue1 | 285 | +114 -53 =118 | 60.7% | **+76 [+45, +107]** | SPRT [0, 10] accepted H1 at game 284 (LLR 2.98); bot stopped (see below) |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -83,6 +84,18 @@ game a win that variance is zero, so the LLR is reported as 0. nnue1 won its
 first 112 games and the LLR sat at 0.00; the first draw (game 113) took it
 to 362 at once, past the 2.94 bound. The verdict stands; the test just
 couldn't stop on a perfect score. TODO has the fix.
+
+**nnue1-h512 against nnue1** (22:48-23:17, session 2b's launcher, right after
+the 10-game match against Stockfish-2500, with the bot stopped, on the
+charger, at below-normal priority): nnue1's recipe at 512 hidden, trained on
+the desktop's GTX 1660 (NNUE.md, session 2b). 10+0.1, 5 at a time, the 300
+book openings in colour-reversed pairs, our tables adjudicating: 285 games
+in 29 minutes. Ends: 91 by the tables, 76 checkmates, 55 table draws, 51
+repetitions, 12 by the 50-move rule; no time losses, crashes or illegal
+moves. The lead held at +64 to +79 from game 150 on. In play, nnue1-h512
+searched 2,131 knps against nnue1's 2,339 (**-8.9%**), depth 10.3 against
+10.5: slower, and better anyway. On Matthew's word (2026-10-17, ~23:20) the
+bot plays on it from its next start (`bot\eval\nnue1-h512.nnue`).
 
 ## Versions
 

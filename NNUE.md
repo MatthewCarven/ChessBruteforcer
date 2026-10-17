@@ -639,8 +639,14 @@ Held-back error (float, K 1) by pass, against nnue1's at the same pass:
   ~-10%. Through UCI's EvalFile, the way the bot loads it, it searched
   1. e4 e5 2. Nf3 Nc6 3. Bb5 to depth 10 and chose a6, the main line.
 - More passes would add little here too: passes 15-20 bought 0.00007.
-  Whether -8% in error is worth -4% in speed is the match's to say
-  (session 5: `scripts\nnue-match.cmd nnue1-h512 nnue1`).
+  Whether -8% in error is worth -4% in speed was the match's to say.
+- **The match (2026-10-17, 22:48-23:17, the bot stopped): nnue1-h512 +76 Elo
+  [+45, +107] over nnue1**, +114 -53 =118 in 285 games at 10+0.1 after SPRT
+  [0, 10] accepted H1 at game 284 (MATCHES.md). In play it searched 8.9%
+  slower (2,131 against 2,339 knps), depth 10.3 against 10.5: the better
+  evaluation more than paid for it. **The bot plays on it** from its next
+  start (Matthew's G(a), below): `bot\eval\nnue1-h512.nnue`, which
+  make-config.py tries before nnue1.nnue.
 
 ### Session 3: the network in C# (no downloads; can run beside session 1)
 
@@ -747,8 +753,8 @@ priority. 10+0.1, 5 at a time, one thread each, the 300 book openings.
 
 More data (July and August: ~670 M); 512 hidden (-30 to -36% speed by the
 probe; ~-10% against 256 as built, session 3; **trained in session 2b as
-nnue1-h512: -8.0% held-back error, -4.0% a node, its match against nnue1
-is next**); a
+nnue1-h512: -8.0% held-back error, -8.9% speed in play, **+76 Elo [+45,
++107] over nnue1**, and the bot's net from 2026-10-17**); a
 result blend (lambda); king buckets or output buckets by material; mate
 scores in; the AVX-512 path; labels from our own search on these positions,
 which only the CPU can make. Each lever is a match against the net before.
@@ -842,3 +848,15 @@ session 2b's check)
 - (a) nnue1's recipe again, ~1.9 h: a full-length reproducibility check, the
   end-of-run spread between two runs of one recipe.
 - (c) Both, 512 first, ~5.3 h.
+
+**G. The bot and nnue1-h512** (chosen: a, 2026-10-17 ~23:20, at game 275 of
+its match, which the SPRT then decided at game 284: +76 [+45, +107] over
+nnue1). As with E, the match was one thread each at 10+0.1; the bot plays 8
+threads at 3+2 with pondering, the tables and its book.
+- **(a) Switch** (recommended): nnue1-h512.nnue into bot\eval\ (in git, 790
+  KB), make-config.py trying it before nnue1.nnue (delete it to go back);
+  then its first ~30 rated games against nnue1's.
+- (b) Stay on nnue1 for now; the switch after a check nearer the bot's own
+  conditions, where the 9% speed cost may weigh differently.
+- (c) As (a), stopping the match at game 275 rather than letting the SPRT
+  finish its last few games.

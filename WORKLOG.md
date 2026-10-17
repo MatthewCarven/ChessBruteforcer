@@ -3330,6 +3330,35 @@ has the tables; this is the story.
   test's file removed, the five check and probe tasks unregistered; the
   logs, the check's nets and nnue1-h512's task stay.
 
+## 2026-10-17 (20:00-23:25): nnue1-h512 beats nnue1 by +76; the bot switches
+
+- **When**: Matthew's word (20:00): tonight, after the Stockfish-2500 match,
+  while the bot is still off. A launcher (scratchpad after-sf-h512.ps1, its
+  own minimized window, from 20:01) waited for "finished" in
+  games\match-after-counts.log, then checked the bot was off, commit free
+  (6.0 GB) and the clock (before 03:00), and ran `scripts\nnue-match.cmd
+  nnue1-h512 nnue1` from this worktree at 22:48:04 (engine and match tool
+  pre-built at 20:00 so no build could fail unattended). The top session
+  had a heads-up so the bot wouldn't start over it.
+- **The Stockfish match first** (the top session's): 10 of 10 at 3+2, all
+  by checkmate, no time losses: at least ~+183 over Stockfish-2500 (95%,
+  one-sided, binomial).
+- **The match**: **SPRT [0, 10] accepted H1 at game 284** (LLR 2.98); final
+  285 games, +114 -53 =118, **60.7%, +76 Elo [+45, +107]**, LOS 100%, in 29
+  minutes. Matthew asked at game 275 for an early answer (LLR 2.81, +73
+  [+42, +105]); the SPRT, made to be watched game by game, decided four
+  minutes later by itself. No time losses, crashes or illegal moves. In
+  play nnue1-h512 searched 8.9% slower (2,131 against 2,339 knps).
+- **The switch, Matthew's (a)** (~23:20): `bot\eval\nnue1-h512.nnue` (in git,
+  789,572 bytes, the same bytes the match played: 38eeba1f... in
+  games\nnue\nets, %TEMP%\cb-match and bot\eval alike), and make-config.py
+  tries nnue1-h512.nnue, nnue1.nnue, eval-sf1.txt in that order (its own
+  loop, run on this worktree's bot\eval, picks nnue1-h512). Takes effect
+  when this branch is in the main checkout and `bot\start-bot.cmd` runs.
+  Not tried at 8 threads beforehand (commit was down to 2.8 GB); the bot's
+  first games are that check, then its first ~30 rated games against
+  nnue1's.
+
 ## 2026-10-17 (11:00-11:30): a game lost to a dropped stream; lichess-bot rejoins now
 
 - **PeachFruit, lost on time without being played out.** The game started
