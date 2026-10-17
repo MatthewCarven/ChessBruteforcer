@@ -6,9 +6,12 @@ records, the scripts and the nets; train-desktop.cmd (scripts\nnue\) runs there.
   scripts\nnue-desktop.ps1 sync                    copy the trainer's scripts, train-desktop.cmd and setup-desktop.cmd
                                                    onto the share (~100 KB)
   scripts\nnue-desktop.ps1 train <run> [options]   start train-desktop.cmd <run> [train.py train options] there as a
-                                                   scheduled task (a program started over SSH dies with the connection)
+                                                   scheduled task (a program started over SSH dies with the connection);
+                                                   runs separated by a lone + go one after another in one task:
+                                                   train a --hidden 512 --mates + b --hidden 512 --result-blend 0.25
   scripts\nnue-desktop.ps1 status [<run>]          the task, the GPU, and the run's last log lines
-  scripts\nnue-desktop.ps1 stop <run>              end the run (its last checkpoint stays: train ... --resume carries on)
+  scripts\nnue-desktop.ps1 stop <run>              end the run, and the task it is in (with any runs queued after it); its
+                                                   last checkpoint stays: train ... --resume carries on
   scripts\nnue-desktop.ps1 fetch <run>             <run>.nnue and <run>.log into games\nnue\nets\ of the main checkout
 
 The task runs as Admin without a stored password (S4U: local files only, no window on Matthew's screen), at the task
@@ -49,12 +52,21 @@ switch ($Command) {
     }
     'train' {
         Need-Run
-        $line = (@($Run) + $Options) -join ' '
-        if ($line -match "['""]") { throw "no quotes in the options, please" }
+        # Runs separated by a lone + go one after another in one task: train a --hidden 512 + b --mates
+        $runs = [System.Collections.Generic.List[string[]]]::new()
+        $current = [System.Collections.Generic.List[string]]::new()
+        foreach ($word in @($Run) + $Options) {
+            if ($word -eq '+') { $runs.Add($current.ToArray()); $current.Clear() } else { $current.Add($word) }
+        }
+        $runs.Add($current.ToArray())
+        if ($runs | Where-Object { $_.Count -eq 0 }) { throw "a + with no run after it" }
+        $line = ($runs | ForEach-Object { "call `"$Local\train-desktop.cmd`" $($_ -join ' ')" }) -join ' & '
+        if (($runs | ForEach-Object { $_ }) -join ' ' -match "['""]") { throw "no quotes in the options, please" }
+        $name = 'nnue ' + (($runs | ForEach-Object { $_[0] }) -join ' then ')
         Invoke-Desktop @"
-`$name = 'nnue $Run'
+`$name = '$name'
 if ((Get-ScheduledTask -TaskPath '$TaskPath' -TaskName `$name -ErrorAction SilentlyContinue).State -eq 'Running') { throw "`$name is running" }
-`$a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '/c ""$Local\train-desktop.cmd" $line"' -WorkingDirectory '$Local'
+`$a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '/c $($line -replace "'", "''")' -WorkingDirectory '$Local'
 `$p = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType S4U -RunLevel Limited
 `$s = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 24) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskPath '$TaskPath' -TaskName `$name -Action `$a -Principal `$p -Settings `$s -Force | Out-Null
@@ -62,7 +74,7 @@ Start-ScheduledTask -TaskPath '$TaskPath' -TaskName `$name
 Start-Sleep 3
 Get-ScheduledTask -TaskPath '$TaskPath' -TaskName `$name | Select-Object TaskName, State | Format-Table -AutoSize
 "@
-        "Follow it: $Share\nets\$Run.log (and .err), or scripts\nnue-desktop.ps1 status $Run"
+        foreach ($r in $runs) { "Follow it: $Share\nets\$($r[0]).log (and .err), or scripts\nnue-desktop.ps1 status $($r[0])" }
     }
     'status' {
         # The .err is held open by cmd's redirection, so it is read with ReadWrite sharing (Claude-Notebook, 2026-10-14).
@@ -81,7 +93,7 @@ $tail
     'stop' {
         Need-Run
         Invoke-Desktop @"
-Stop-ScheduledTask -TaskPath '$TaskPath' -TaskName 'nnue $Run' -ErrorAction SilentlyContinue
+Get-ScheduledTask -TaskPath '$TaskPath' -ErrorAction SilentlyContinue | Where-Object { `$_.TaskName -eq 'nnue $Run' -or `$_.TaskName -like 'nnue $Run then *' -or `$_.TaskName -like '* then $Run' -or `$_.TaskName -like '* then $Run then *' } | Stop-ScheduledTask
 Get-CimInstance Win32_Process -Filter "Name = 'python.exe'" | Where-Object { `$_.CommandLine -like '*\runs\$Run\nnue\train.py*' } | ForEach-Object { Stop-Process -Id `$_.ProcessId -Force; "stopped python `$(`$_.ProcessId)" }
 Add-Content '$Local\nets\$Run.err' "`$(Get-Date -Format 'ddd dd/MM/yyyy HH:mm:ss'): stopped from the laptop"
 "@

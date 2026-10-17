@@ -24,6 +24,12 @@ Run it with the venv's python (scripts/nnue/.venv, PyTorch with CUDA). Options o
     --below-normal          lower this process's priority (beside the bot)
 
     --duty 1.0              the share of the time the GPU works: after every 4 steps it rests in proportion
+    --result-blend 0        the game result's share of the target: (1 - x) s(cp) + x result (session 5's lambda)
+    --mates                 train on mate-scored positions too (their target is exactly 0 or 1)
+
+Held-back error is always measured as NNUE.md's "How it is judged" says: against s(cp), mates left out. So it
+compares nets trained either way, but a net trained with --result-blend is pulled towards results on purpose and
+looks a little worse by that measure without being worse: for those, the match is the judge.
 
 While <out>/<run>.pause exists, or the laptop is on battery (unless --on-battery), training waits between buckets
 (a few seconds' notice): the bot's turn, with nothing lost. Delete the file, or plug in, to carry on. <out>/<run>.duty, if it holds a number (0.3, say), sets the duty from
@@ -114,6 +120,21 @@ def unpack(raw):
     score = (raw[:, 26].to(torch.int32) | (raw[:, 27].to(torch.int32) << 8))
     score = torch.where(score >= 32768, score - 65536, score).to(torch.float32)
     return white, black, (flags & records.BLACK_TO_MOVE) != 0, score, (flags & records.MATE_FLAG) != 0
+
+
+RESULT = 25   # the record's result byte, for white: 0 lost, 1 drawn, 2 won
+
+
+def targets(batch, btm, score, blend=0.0):
+    """What the net is trained towards, for the side to move, in [0, 1]: s(cp) of Lichess's score (a mate's +-32000
+    gives exactly 0 or 1), and with blend > 0, (1 - blend) s(cp) + blend x the game's result (1 won, 1/2 drawn, 0
+    lost, for the side to move). batch is the raw (n, 32) records that btm and score were unpacked from."""
+    import torch
+    t = s10(torch.where(btm, -score, score))
+    if blend:
+        white = batch[:, RESULT].to(torch.float32) / 2
+        t = (1 - blend) * t + blend * torch.where(btm, 1 - white, white)
+    return t
 
 
 def make_net(hidden):
@@ -490,13 +511,15 @@ def train(args):
                 log(f"  duty {d:.2f}: the GPU works {d:.0%} of the time")
                 current_duty = d
             raw = torch.from_numpy(arr).to(dev)
-            raw = raw[(raw[:, 24] & records.MATE_FLAG) == 0]
+            if not args.mates:
+                raw = raw[(raw[:, 24] & records.MATE_FLAG) == 0]
             perm = torch.randperm(raw.shape[0], device=dev, generator=gen)
             mark = time.perf_counter()
             for k, at in enumerate(range(0, raw.shape[0], args.batch)):
-                w, b, btm, score, _ = unpack(raw[perm[at:at + args.batch]])
+                batch = raw[perm[at:at + args.batch]]
+                w, b, btm, score, _ = unpack(batch)
                 y = net(w, b, btm)
-                loss = ((torch.sigmoid(y * LN10) - s10(torch.where(btm, -score, score))) ** 2).mean()
+                loss = ((torch.sigmoid(y * LN10) - targets(batch, btm, score, args.result_blend)) ** 2).mean()
                 opt.zero_grad(set_to_none=True)
                 loss.backward()
                 opt.step()
@@ -569,6 +592,10 @@ def main(argv):
     t.add_argument("--below-normal", action="store_true")
     t.add_argument("--duty", type=float, default=1.0, help="share of the time the GPU works (<run>.duty overrides)")
     t.add_argument("--on-battery", action="store_true", help="keep training on battery (default: wait for AC)")
+    t.add_argument("--result-blend", type=float, default=0.0,
+                   help="the game result's share of the target (0: Lichess's score alone)")
+    t.add_argument("--mates", action="store_true",
+                   help="train on mate-scored positions too (target 0 or 1); held-back error still leaves them out")
     e = sub.add_parser("export")
     e.add_argument("checkpoint")
     e.add_argument("nnue")

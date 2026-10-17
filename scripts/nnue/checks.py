@@ -1,6 +1,7 @@
 """The trainer's checks before a long run (NNUE.md, "Session 2"). Run with the venv's python.
 
     python scripts/nnue/checks.py features [n]                    the GPU's unpacking equals nnue_reference.feature
+    python scripts/nnue/checks.py targets [n]                     the training targets (--result-blend, --mates), on the CPU
     python scripts/nnue/checks.py quantised <run .pt> [n]         the float net and its int16 export agree (centipawns)
     python scripts/nnue/checks.py engine <net .nnue> <engine exe> [n]       the engine's eval equals nnue_reference's
     python scripts/nnue/checks.py numbers <numbers .txt> <engine exe> [n]   the engine's eval equals train.numbers_eval
@@ -63,6 +64,34 @@ def features(n=10_000):
         print(f"  {what}: {k:,} records differ")
     ok = not any(bad.values())
     print("features: " + ("all equal" if ok else "DIFFER"))
+    return 0 if ok else 1
+
+
+def targets(n=10_000):
+    """train.targets against its rule restated in numpy, mates included: s(cp) for the side to move (a mate exactly
+    0 or 1), blended as (1 - x) s(cp) + x result for x = 0, 0.25 and 1. Runs on the CPU."""
+    import torch
+    r = sample(n, mates=True)
+    raw = torch.from_numpy(np.ascontiguousarray(r).view(np.uint8).reshape(-1, records.SIZE))
+    _, _, btm, score, _ = train.unpack(raw)
+    black = records.black_to_move(r)
+    cp = np.where(black, -1.0, 1.0) * r["score"].astype(np.float64)
+    s = 1 / (1 + np.power(10.0, -cp / 400))
+    white = r["result"].astype(np.float64) / 2
+    result = np.where(black, 1 - white, white)
+    mate = records.is_mate(r)
+    print(f"{len(r):,} records ({int(mate.sum()):,} mates; results for the side to move: "
+          f"{int((result == 1).sum()):,} won, {int((result == 0.5).sum()):,} drawn, {int((result == 0).sum()):,} lost)")
+    ok = True
+    for blend in (0.0, 0.25, 1.0):
+        mine = train.targets(raw, btm, score, blend).numpy().astype(np.float64)
+        worst = float(np.abs(mine - ((1 - blend) * s + blend * result)).max())
+        ok &= worst < 1e-6
+        print(f"  blend {blend}: largest difference {worst:.2e}")
+    mates = train.targets(raw, btm, score)[torch.from_numpy(mate)].numpy()
+    ok &= bool(np.isin(mates, (0.0, 1.0)).all())
+    print(f"  mates' targets without a blend: {sorted(set(mates.tolist()))}")
+    print("targets: " + ("all equal" if ok else "DIFFER"))
     return 0 if ok else 1
 
 
@@ -139,6 +168,8 @@ def numbers(numbers_path, exe, n=1_000):
 def main(args):
     if args and args[0] == "features":
         return features(*(int(a) for a in args[1:]))
+    if args and args[0] == "targets":
+        return targets(*(int(a) for a in args[1:]))
     if len(args) >= 2 and args[0] == "quantised":
         return quantised(args[1], *(int(a) for a in args[2:]))
     if len(args) >= 3 and args[0] == "engine":

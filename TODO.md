@@ -37,17 +37,25 @@ that could go wrong does.
   a list, filled in turn); recount the book deeper (16 moves) once ~12
   months are in. The whole archive is 165 months, 2.6 TB, 8.22 B games.
 
-### Handoff: start here (2026-10-17, 23:25)
+### Handoff: start here (2026-10-17, 23:25; NNUE updated 2026-10-18 03:00)
+
+**Since 23:25**: Matthew rebooted and fast-forwarded compression; the bot,
+the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
+"768 -> 512 x2 -> 1, sha256 8a6cd3aff627"). The desktop trains two levers
+overnight (NNUE, below).
 
 **Running right now, each in its own window (check them, don't start them):**
-- **The month queue** (`scripts\month-queue.cmd`, restarted 18:38:53): June
-  and May 2026 are counted into the books (21:33: 1,695,521 moves in
-  1,179,279 positions from 7,959,778 games, five months); it is downloading
-  April (29.3 GB) at 500 KB/s. Log games\month-queue.log; counts logs
+- **The bot** on nnue1-h512 (restarted 23:26 on 2026-10-17 by `start.cmd`
+  after a reboot), with the **rejoin fix**. Its first ~30 rated games against
+  nnue1's are the next check (it searches ~9% slower; the match says it's
+  worth it).
+- **The month queue** (restarted 23:26): June and May 2026 are counted into
+  the books (1,695,521 moves in 1,179,279 positions from 7,959,778 games, five
+  months); it is downloading April (29.3 GB, resumed from 3.1 GB) at 500
+  KB/s. Log games\month-queue.log; counts logs
   bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
-- The book learner (bot\learn.py, since 09:30).
-- Done, its window can be closed: "Match nnue1-h512 v nnue1" (session 2b's
-  launcher, at its last `pause`). The Stockfish launcher's window is closed.
+- The book learner (bot\learn.py, restarted 23:26).
+- On the desktop: task "nnue h512-blend25 then h512-mates" (NNUE, below).
 
 **Tonight's two matches, both with the bot off:**
 
@@ -56,20 +64,10 @@ that could go wrong does.
 | the bot as it plays (nnue1, 8 threads, book, tables) v Stockfish-2500, 3+2 | 10 | +10 -0 =0, all mates | 100% | at least ~+183 (one-sided, binomial) |
 | nnue1-h512 v nnue1, 10+0.1, one thread each | 285 | +114 -53 =118 | 60.7% | **+76 [+45, +107]**, SPRT [0, 10] accepted H1 |
 
-**The bot is OFF** (stopped 11:19 after a win against FlounderBot) and
-**switches to nnue1-h512 at its next start** (Matthew's G(a), ~23:20). The
-switch is on branch `claude/nnue-desktop-8d5f2a` (NNUE session 2b), which
-has compression up to 071be3c merged in, so in the main checkout:
-1. `git merge --ff-only claude/nnue-desktop-8d5f2a` (Matthew's: he merges
-   and pushes; he's holding pushes back for a few days on purpose);
-2. `bot\start-bot.cmd` (not start.cmd: the queue and learner are up). It
-   builds the engine, writes config.yml from make-config.py, which now
-   tries bot\eval\nnue1-h512.nnue first (pondering on, the short greetings),
-   and applies both lichess-bot patches, including the **rejoin fix**
-   (bot/lichess-bot-rejoin.patch, tested by bot/test-rejoin.py).
-3. Check its log says "evaluation: network ...nnue1-h512.nnue (768 -> 512 x2
-   -> 1, sha256 8a6cd3aff627)". Then its first ~30 rated games against
-   nnue1's (it searches ~9% slower; the match says it's worth it).
+**The bot switched to nnue1-h512** (Matthew's G(a), ~23:20): branch
+`claude/nnue-desktop-8d5f2a` fast-forwarded into compression, then `start.cmd`
+after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
+(delete it to go back to nnue1).
 
 **NNUE, where it stands** (session 2b):
 - **The desktop's GTX 1660 is the second trainer**, driven from here over
@@ -80,9 +78,18 @@ has compression up to 071be3c merged in, so in the main checkout:
   train there, not here. Its card showed no brownouts (Matthew asked).
 - **nnue1-h512** (512 hidden, Matthew's F(b)): held-back error 0.013664
   against nnue1's 0.014851 (-8.0%), +76 Elo over it. NNUE.md's session 2b
-  and MATCHES.md have it all. Next levers (NNUE.md session 5), each a match
-  against nnue1-h512 now: more data (July and August), mates in, a result
-  blend, the export's rounding.
+  and MATCHES.md have it all.
+- **Training on the desktop now** (from 02:43 on 2026-10-18, Matthew's (a)):
+  task "nnue h512-blend25 then h512-mates", two session-5 levers at 512
+  hidden, one after the other: the result blend (0.25), done ~07:10, then
+  mates included, done ~11:40 (the card ran at 1,200 MHz, not 1,920, while
+  his PySynthRack was open: NNUE.md session 5). `scripts\nnue-desktop.ps1
+  status h512-blend25` (or h512-mates); `stop <run>` ends the task if he
+  needs the GPU (`train <run> ... --resume` carries on from the last pass).
+  Then: `fetch` each, and a match against nnue1-h512 each
+  (`scripts\nnue-match.cmd h512-blend25 nnue1-h512`, ~30 min with the bot
+  stopped, or longer beside it: his call). Other levers waiting: more data
+  (July and August), the export's rounding.
 
 **Watch out:**
 - **Memory**: commit was down to 2.8 GB free at 23:20, with the Claude app's

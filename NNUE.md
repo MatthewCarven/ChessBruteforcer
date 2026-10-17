@@ -761,6 +761,28 @@ which only the CPU can make. Each lever is a match against the net before.
 With the desktop training too (2b), two levers train at once.
 "Where our losses turn" (TODO section 2) says which matters most.
 
+**Begun 2026-10-18 (02:43), on the desktop, Matthew's (a)**: two levers at
+512 hidden, nnue1-h512's recipe otherwise, one task, one after the other:
+**h512-blend25** (`--result-blend 0.25`: the target is 0.75 s(cp) + 0.25 x
+the game's result for the side to move) and **h512-mates** (`--mates`: the
+13.6 M mate-scored positions too, target exactly 0 or 1; ~6% more positions a
+pass). Both new train.py options, checked by `checks.py targets` (10,000
+held-back records, mates included: equal to the rule restated in numpy to
+1e-7 at blends 0, 0.25 and 1; mates 0 or 1) and a one-bucket smoke run each
+on the desktop. Held-back error stays the old measure (s(cp), no mates), so
+the blend net looks a little worse on it by design: its match decides. Each
+then plays nnue1-h512 as nnue1-h512 played nnue1.
+- The options weighed (02:30): (b) 1024 hidden, no code: 158 k positions a
+  second on the 1660 (7.7 h), and `bench 9` **23% slower a node** than
+  nnue1-h512 (a probe net; 1,063 against 1,386 knps): too much speed for its
+  evaluation to win back, probably. (c) the blend alone.
+- **The 1660 ran at 1,200 MHz and 40 W** at the start of this run, where
+  nnue1-h512's run had 1,920 MHz and 75-84 W: 284 k positions a second
+  instead of 362 k. No slowdown reason in the driver, no clock lock, the
+  full 130 W limit. The difference in the room: Matthew's PySynthRack had a
+  graphics context on the card (since 19:19). At that pace the blend run
+  ends ~07:10 and the mates run ~11:40.
+
 ## Risks
 
 | risk | what it would look like | what limits it |

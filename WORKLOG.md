@@ -3409,3 +3409,36 @@ has the tables; this is the story.
   sitting at its `pause`, still has month-queue in its command line, so a
   check for "a queue already running" matched it. Another queue was started
   and stopped again within a minute before this one; nothing was written.
+
+## 2026-10-17/18 (23:26-03:00): the bot on nnue1-h512; two levers train overnight on the desktop
+
+- Matthew rebooted the laptop (23:23) and fast-forwarded compression to
+  `claude/nnue-desktop-8d5f2a`; `start.cmd` brought up the bot, the learner
+  and the queue at 23:26. The bot's log: "evaluation: network
+  ...bot\eval\nnue1-h512.nnue (768 -> 512 x2 -> 1, sha256 8a6cd3aff627)".
+  The queue resumed April's download from 3.1 GB.
+- **"Desktop is free"** (Matthew): measured first, then asked. A 1024-hidden
+  probe (6 buckets, 1 pass) trains at **158 k positions a second** on the
+  1660 (a full run 7.7 h), and its net runs **23% slower a node** than
+  nnue1-h512 in `bench 9` (1,063 against 1,386 knps, 5 alternated rounds,
+  the laptop on AC, the bot playing). Options: (a) two 512 levers back to
+  back, (b) 1024 hidden, (c) the blend alone. **He chose (a).**
+- **train.py**: `--result-blend x` (the target (1 - x) s(cp) + x result,
+  for the side to move; `targets()`) and `--mates` (mate-scored positions in
+  training, target 0 or 1; held-back error still the old measure).
+  `checks.py targets`: 10,000 held-back records (604 mates), equal to the
+  rule restated in numpy to 9e-8 at blends 0, 0.25 and 1, and mates' targets
+  exactly {0, 1}. **nnue-desktop.ps1** queues runs in one task with a lone
+  `+` (`call ... & call ...`); `stop <run>` ends the task holding it. A smoke
+  pair on the desktop (one bucket each, queued) ran clean: the mates run saw
+  3,628,080 positions where the blend run saw 3,419,568 (+6.1%, the mates).
+- **Started 02:43**: task "nnue h512-blend25 then h512-mates", both at 512
+  hidden, nnue1-h512's recipe otherwise.
+- **The 1660 is running at 1,200 MHz and 40 W**, not the 1,920 MHz and
+  75-84 W of nnue1-h512's run: 284 k positions a second instead of 362 k
+  (blend done ~07:10, mates ~11:40, instead of ~06:15 and ~10:00). The
+  driver lists no slowdown reason and no clock lock, the power limit is the
+  full 130 W, the plan Balanced. What's different: Matthew's PySynthRack
+  (open since 19:19) has a graphics context on the card. Not proven; his to
+  test by closing it.
+- The desktop tidied again (the probe's and smoke runs' nets and tasks).
