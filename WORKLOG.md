@@ -3307,3 +3307,25 @@ has the tables; this is the story.
 - **Decision F**: Matthew chose **(b) 512 hidden** (07:45) over (a) nnue1's
   recipe again or (c) both. `nnue1-h512` started 07:46 on the desktop:
   nnue1's recipe with `--hidden 512`, ~3.4 h.
+
+## 2026-10-17 (07:46-11:15): nnue1-h512, the desktop's first full run
+
+- 20 passes in 3 h 21 min on the GTX 1660 as a scheduled task, 594-599 s a
+  pass, no pauses, exit 0; Matthew started a chkdsk on the desktop's H:
+  (another disk) during it, and the pass times didn't move. torch's GPU memory peaked at
+  1,003 MB allocated, 2,052 reserved; the trainer's host commit 4.1 GB.
+- **Held-back error 0.013664 as the engine computes it, against nnue1's
+  0.014851: -8.0%** (float 0.013626, so int16 costs it 0.28%; QB 64). By
+  pass 4 it was already below nnue1's last pass; passes 15-20 bought
+  0.00007. NNUE.md has it pass by pass.
+- Brought back with `scripts\nnue-desktop.ps1 fetch nnue1-h512` into
+  games\nnue\nets\ (789,572 bytes, network sha256 8a6cd3aff627...). The
+  engine loads it through EvalFile as the bot would ("768 -> 512 x2 -> 1,
+  sha256 8a6cd3aff627") and picked a6 against the Ruy Lopez at depth 10.
+- `bench 9` against nnue1, 6 rounds alternated, one thread, beside the bot,
+  on AC: **-4.0% a node** (median 1,090 against 1,135 knps), its tree 2.8%
+  bigger, so ~7% longer to the same depth. No match started: that is
+  session 5's (`scripts\nnue-match.cmd nnue1-h512 nnue1`).
+- The desktop tidied: the probe nets (2b-argtest, 2b-speed512) and the GPU
+  test's file removed, the five check and probe tasks unregistered; the
+  logs, the check's nets and nnue1-h512's task stay.

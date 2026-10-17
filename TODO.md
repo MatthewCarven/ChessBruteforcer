@@ -290,11 +290,15 @@ Sessions, in order:
             new seed makes; the desktop repeats itself to the byte. **634-641
             k positions a second** (0.65x the laptop's card; nnue1's recipe
             ~1.9 h), 362 k at 512 hidden. NNUE.md and WORKLOG have it.
-      - [ ] **nnue1-h512** (Matthew's F(b), 2026-10-17): nnue1's recipe at
-            512 hidden, training on the desktop from 07:46 (~3.4 h). Then
-            `scripts\nnue-desktop.ps1 fetch nnue1-h512`, its held-back error
-            against nnue1's 0.014851, and (session 5) its match against
-            nnue1. The engine runs it ~10% slower a node.
+      - [x] **nnue1-h512** (Matthew's F(b), 2026-10-17, 07:46-11:10 on the
+            desktop): nnue1's recipe at 512 hidden. **Held-back error
+            0.013664 against nnue1's 0.014851 (-8.0%)**; in
+            games\nnue\nets\, loads through EvalFile; `bench 9` -4.0% a node
+            against nnue1, a 2.8% bigger tree.
+      - [ ] **nnue1-h512's match against nnue1** (session 5):
+            `scripts\nnue-match.cmd nnue1-h512 nnue1`. Whether -8% error is
+            worth -4% speed (~7% to the same depth) is the match's to say;
+            then, if it wins, Matthew's word on the bot.
       - [ ] `scripts\nnue-train.cmd` passes only `%2`-`%9` to train.py, so a
             ninth option token is dropped silently (train-desktop.cmd lost
             `--progress 2` that way before it was fixed with `for /f
@@ -467,8 +471,9 @@ Sessions, in order:
 
 - 2026-10-17: NNUE session 2b: the desktop's GTX 1660 trains over SSH
   (scheduled tasks, records on its own disk, nothing downloaded), matching
-  the laptop within the size of a seed change at 0.65x its speed; its first
-  full run, 512 hidden (Matthew's F(b)), started 07:46.
+  the laptop within the size of a seed change at 0.65x its speed. Its first
+  full run, nnue1-h512 (Matthew's F(b)): held-back error -8.0% against
+  nnue1, -4.0% a node in the engine; its match is session 5's.
 - 2026-10-17: NNUE session 4, the match: **nnue1 +742 Elo [+645, +970]
   over sf1** (+392 -3 =5 in 400 games; SPRT accepted H1). Matthew chose to
   switch the bot (E(a)); it plays on nnue1 once the branch is merged and

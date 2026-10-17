@@ -515,8 +515,11 @@ Done when:
       0.016731 / 0.016233: gaps of the size a change of seed makes (below);
 - [x] the desktop's speed is written down: **634-641 k positions a second**
       at 256 hidden (0.65x the laptop's card), 362 k at 512;
-- [ ] a full run's `.nnue` comes back over the share and loads in the
-      engine: **nnue1-h512** (Matthew's (b), below) started 07:46.
+- [x] a full run's `.nnue` comes back over the share and loads in the
+      engine: **nnue1-h512** (Matthew's (b), below), 3 h 21 min on the
+      desktop, in games\nnue\nets\; EvalFile loads it (768 -> 512 x2 -> 1,
+      sha256 8a6cd3aff627, the trainer's own), held-back error **0.013664**
+      against nnue1's 0.014851.
 
 **Built 2026-10-17, 06:15-07:50** (branch `claude/nnue-desktop-8d5f2a`;
 WORKLOG has the story). What later sessions need:
@@ -608,6 +611,36 @@ WORKLOG has the story). What later sessions need:
 learning-rate steps) with `--hidden 512`, ~3.4 h at 362 k positions a
 second. The engine reads any hidden size from 16 to 1,024. Its match
 against nnue1 is session 5's.
+
+**nnue1-h512** (2026-10-17, 07:49-11:10 by the desktop's clock, ~3 min
+ahead of the laptop's): `games\nnue\nets\nnue1-h512.nnue`, 789,572 bytes,
+QA 255, QB 64; the network's SHA-256 (what the engine prints)
+8a6cd3aff627c93347a8b8caddaa29c3c10e0a08b7166240298eb2fcd55b796a, the
+file's 38eeba1feabc74589acec8fde8405bed2f3de3ad917b4b9b2f6b738f62fbc4c4.
+On the share beside it: `nnue1-h512.pt` (the float checkpoint) and the log.
+593.7-598.8 s a pass (366-369 k positions a second), no pauses; torch's GPU
+memory 1,003 MB allocated / 2,052 reserved at peak, host commit 4.1 GB.
+Held-back error (float, K 1) by pass, against nnue1's at the same pass:
+
+| pass | 1 | 2 | 5 | 8 | 9 | 14 | 15 | 18 | 19 | 20 | exported |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| nnue1-h512 | 0.01591 | 0.01521 | 0.01458 | 0.01436 | 0.01394 | 0.01383 | 0.01370 | 0.01368 | 0.01363 | 0.01363 | **0.01366** |
+| nnue1 (256) | 0.01673 | 0.01623 | 0.01562 | 0.01542 | 0.01506 | 0.01496 | 0.01482 | 0.01481 | 0.01477 | 0.01476 | 0.01485 |
+
+- **-8.0% held-back error against nnue1** as the engine computes both
+  (0.013664 against 0.014851), the same measure as nnue1's -51% against sf1.
+  By pass 4 (0.01472) it was already below nnue1's final pass (0.01476). The
+  rounding to int16 costs it 0.28% (nnue1: 0.6%), though QB is 64 again,
+  so an output weight sits at the clamp here too.
+- **In the engine** (the laptop, beside the bot, on AC; `bench 9`, one
+  thread, 6 rounds alternated with nnue1): **-4.0% a node** (median 1,090
+  against 1,135 knps), and a 2.8% bigger tree (3,936,636 nodes against
+  3,830,535), so ~7% longer to the same depth. Session 3's estimate was
+  ~-10%. Through UCI's EvalFile, the way the bot loads it, it searched
+  1. e4 e5 2. Nf3 Nc6 3. Bb5 to depth 10 and chose a6, the main line.
+- More passes would add little here too: passes 15-20 bought 0.00007.
+  Whether -8% in error is worth -4% in speed is the match's to say
+  (session 5: `scripts\nnue-match.cmd nnue1-h512 nnue1`).
 
 ### Session 3: the network in C# (no downloads; can run beside session 1)
 
@@ -713,7 +746,9 @@ priority. 10+0.1, 5 at a time, one thread each, the 300 book openings.
 ### Session 5 (outline): the levers, one match each
 
 More data (July and August: ~670 M); 512 hidden (-30 to -36% speed by the
-probe; ~-10% against 256 as built, session 3); a
+probe; ~-10% against 256 as built, session 3; **trained in session 2b as
+nnue1-h512: -8.0% held-back error, -4.0% a node, its match against nnue1
+is next**); a
 result blend (lambda); king buckets or output buckets by material; mate
 scores in; the AVX-512 path; labels from our own search on these positions,
 which only the CPU can make. Each lever is a match against the net before.
