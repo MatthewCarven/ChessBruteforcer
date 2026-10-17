@@ -37,6 +37,48 @@ that could go wrong does.
   a list, filled in turn); recount the book deeper (16 moves) once ~12
   months are in. The whole archive is 165 months, 2.6 TB, 8.22 B games.
 
+### Handoff: start here (2026-10-17, 19:05)
+
+**Running right now, each in its own window (check them, don't start them):**
+- **The month queue** (`scripts\month-queue.cmd`, restarted 18:38:53): counting
+  June 2026 from the share (~20:05), then May (~21:35), then downloading
+  April at 500 KB/s. Log games\month-queue.log; counts logs
+  bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
+- **The match launcher** ("Match v Stockfish-2500", pwsh running
+  C:\Users\Admin\AppData\Local\Temp\claude\C--Users-Admin-Desktop---Programming---Chess-Bruteforcer\12a94bf5-e6ad-403f-bd29-f65f606ce178\scratchpad\match\after-counts.ps1):
+  once the queue logs "games read" for both June
+  and May, and with 3 GB of commit free, it plays **10 games at 3+2 against
+  Stockfish-2500** with the bot as it is (book-match.py --threads 8 --arms
+  book, nnue1, the tables), one at a time (~1.5 h, done ~23:00). Results in
+  games\match-sf2500-3+2.jsonl (`book-match.py <that file> --summary`
+  prints them) and games\match-after-counts.log.
+- The book learner (bot\learn.py, since 09:30).
+
+**The bot is OFF** (stopped 11:19 after a win against FlounderBot), on
+Matthew's word: **show him the Stockfish match before it goes online.** Then
+`bot\start-bot.cmd` (not start.cmd: the queue and learner are already up). It
+builds the engine, writes config.yml from make-config.py (pondering on,
+nnue1, the short greetings), and applies both lichess-bot patches, including
+the new **rejoin fix** (bot/lichess-bot-rejoin.patch, tested by
+bot/test-rejoin.py) for games whose stream drops.
+
+**Watch out:**
+- **Memory**: ~7 GB of commit free with the Claude app's processes taking
+  most of it. Check `FreeVirtualMemory` before anything heavy. A test run
+  beside June's first count killed it (MemoryError, 11:16).
+- **Heat**: no NNUE training beside the bot's games (Matthew, until he has a
+  notebook cooler).
+- **The share**: all traffic to it at or under ~8 MB/s in total, or the
+  laptop falls off the internet.
+- **Pushing**: Matthew is holding back pushes for a few days on purpose, so
+  rivals can't copy the bot. Don't nag.
+
+**Waiting on Matthew:** delete the laptop's copy of May
+(games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7 GB; it's on the share
+and checked); July's lines.u16 and old plain columns (4.1 GB); where the whole
+index lives (a proposal card exists); the NNUE desktop session 2b (GTX 1660)
+waits on his OK for PyPI downloads.
+
 ### Now (2026-10-15)
 
 **State at 13:30 on 2026-10-15** (after a reboot at 05:16): August's
