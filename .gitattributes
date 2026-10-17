@@ -1,2 +1,4 @@
 # Networks are binary: no line-ending conversion, no text diffs.
 *.nnue binary
+# Patches for lichess-bot stay LF in the working copy, as `git apply` (start-bot.cmd) wants them.
+bot/*.patch text eol=lf

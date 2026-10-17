@@ -3329,3 +3329,54 @@ has the tables; this is the story.
 - The desktop tidied: the probe nets (2b-argtest, 2b-speed512) and the GPU
   test's file removed, the five check and probe tasks unregistered; the
   logs, the check's nets and nnue1-h512's task stay.
+
+## 2026-10-17 (11:00-11:30): a game lost to a dropped stream; lichess-bot rejoins now
+
+- **PeachFruit, lost on time without being played out.** The game started
+  11:00:49 (we were black); its stream ended at 11:01:21 and lichess-bot
+  logged "Game over" while the game ran on; it came back at 11:02:28 with 91 s
+  left against 161, played five moves, and at 11:04:08 the stream ended again.
+  Lichess: `outoftime`, white won. The same thing as TroutBot on 2026-10-16.
+  Today's dropped streams: 05:43 (no share traffic), 11:01 and 11:04 (June's
+  month count reading the share, ~5-8 MB/s over the Wi-Fi). The share
+  traffic makes them likelier, but they happen without it too.
+- **The cause, in lichess-bot's `play_game`**: a game stream that simply ends
+  raises StopIteration, and `stay_in_game = not stopped and ...` leaves the
+  game at once, without asking Lichess; after other stream errors it never
+  opens a new stream either. **Fix, bot/lichess-bot-rejoin.patch** (applied
+  by start-bot.cmd beside the chat patch; lichess-bot itself is outside our
+  git): when the stream ends or fails and our copy of the game isn't over
+  (and it isn't correspondence), `rejoin_game_stream` asks whether the game
+  is still on (`game_is_active`) and opens the stream again, up to 10 tries
+  2 s apart. The new stream's first line is the whole game: its state goes
+  first, and `prior_game` is reset so a move of ours that's due gets played.
+- **bot/test-rejoin.py** runs lichess-bot's own pretend lichess.org (no
+  network, no token, no pytest: it isn't in the bot's venv) with the homemade
+  Scholar's-mate engine as black, and ends the game's first stream after the
+  opponent's first move. Original lichess-bot: "+++" then "Game over" at once,
+  no result, FAILED at 60 s. Patched: "rejoined (try 1)", "b won!", passed (a
+  few seconds). The Manager it uses must be shut down before exiting, or its
+  server process keeps the console open.
+- On Matthew's (b): the bot stopped after the FlounderBot game (won, by mate,
+  11:19) and stays off until June's count is done, then starts with the fix.
+- **June's count died at 11:16** (34 M of 86.5 M games): zstd "Allocation
+  error: not enough memory", then MemoryError sorting; Windows low-memory
+  events at 10:47:36 and 11:11:36. The second came as the rejoin test started
+  (a whole pretend lichess-bot with its Manager and pool), run beside the
+  count, the bot, the learner and a dozen Claude processes without checking
+  commit headroom first. The month queue stopped with it.
+- **18:3x, on Matthew's word**: four finished NNUE sessions archived (data,
+  C#, trainer, the match; all merged into compression), commit free 3.5 -> 7
+  GB. The trainer's PyTorch venv (2.9 GB, torch 2.14.1+cu132, CUDA working)
+  was moved first from its worktree to the main checkout's
+  scripts\nnue\.venv (ignored there too), as archiving deletes a worktree.
+  The month queue restarted at 18:38:53 and is counting June again. A
+  launcher window ("Bot: waiting for June 2026 to be counted", log
+  games\bot-after-june.log) starts bot\start-bot.cmd once the queue logs
+  June's "games read" and commit headroom is 3 GB or more. After June the
+  queue goes on to count May (on the share, not yet counted) with the bot
+  playing.
+- A slip on the way: the old queue window from 09:30, stopped at 11:16 and
+  sitting at its `pause`, still has month-queue in its command line, so a
+  check for "a queue already running" matched it. Another queue was started
+  and stopped again within a minute before this one; nothing was written.
