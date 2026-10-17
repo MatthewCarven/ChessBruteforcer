@@ -45,10 +45,11 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 overnight (NNUE, below).
 
 **Running right now, each in its own window (check them, don't start them):**
-- **The bot** on nnue1-h512 (restarted 23:26 on 2026-10-17 by `start.cmd`
-  after a reboot), with the **rejoin fix**. Its first ~30 rated games against
-  nnue1's are the next check (it searches ~9% slower; the match says it's
-  worth it).
+- **The bot is OFF since ~08:20 on 2026-10-18** (Matthew stopped it for the
+  blend's match). It plays on nnue1-h512 (from 23:26 on 2026-10-17), with the
+  **rejoin fix**; `bot\start-bot.cmd` brings it back (the learner and queue
+  are up). Its first ~30 rated games against nnue1's are the next check (it
+  searches ~9% slower; the match says it's worth it).
 - **The month queue** (restarted 23:26): June and May 2026 are counted into
   the books (1,695,521 moves in 1,179,279 positions from 7,959,778 games, five
   months); it is downloading April (29.3 GB, resumed from 3.1 GB) at 500
@@ -81,11 +82,15 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   and MATCHES.md have it all.
 - **Training on the desktop now** (from 02:43 on 2026-10-18, Matthew's (a)):
   task "nnue h512-blend25 then h512-mates", two session-5 levers at 512
-  hidden, one after the other: the result blend (0.25), **done 06:25**
-  (games\nnue\nets\h512-blend25.nnue, loads in the engine; held-back
-  0.015230, worse than nnue1-h512's 0.013664 on that measure by design),
-  then mates included, done ~10:00 (the card ran at 1,200 MHz, not 1,920,
-  until he closed his PySynthRack at ~04:20: close it before training). `scripts\nnue-desktop.ps1
+  hidden, one after the other (the card ran at 1,200 MHz, not 1,920, until
+  he closed his PySynthRack at ~04:20: close it before training):
+  - **h512-blend25** (the result blend 0.25): done 06:25; **its match:
+    -11 Elo [-25, +3] against nnue1-h512, SPRT accepted H0** (1,252 games,
+    08:22-10:25, the bot stopped). Doesn't help.
+  - **h512-mates** (mates included): done 09:59, in games\nnue\nets\, loads
+    in the engine; held-back 0.013813 against 0.013664 on positions without
+    mates (+1.1%, as expected). **Its match against nnue1-h512 is next**
+    (`scripts\nnue-match.cmd h512-mates nnue1-h512`), Matthew's call when. `scripts\nnue-desktop.ps1
   status h512-blend25` (or h512-mates); `stop <run>` ends the task if he
   needs the GPU (`train <run> ... --resume` carries on from the last pass).
   Then: `fetch` each, and a match against nnue1-h512 each

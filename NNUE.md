@@ -794,6 +794,20 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   smaller than Stockfish's scale (the results pull towards the middle).
   The search's margins (null move, futility) were tuned on the other
   scale, which is one more reason only the match can judge it.
+- **Its match: h512-blend25 -11 Elo [-25, +3] against nnue1-h512**, +311
+  -349 =592 in 1,252 games, SPRT [0, 10] accepted H0 (2026-10-18, 08:22-10:25,
+  the bot stopped; MATCHES.md). **The result blend doesn't help** at 0.25,
+  on these human games: their results come from blunders far later in the
+  game as often as from the position. A smaller blend (0.1) is the only
+  version left worth a try, and not soon.
+- **h512-mates done** (06:25-09:59 by the desktop's clock, exit 0; 232.2 M
+  positions a pass, 6.1% more; 362-372 k a second): `games\nnue\nets\
+  h512-mates.nnue`, 789,572 bytes, QB 64, network sha256 0cf690d690a3...;
+  EvalFile loads it, a6 against the Ruy Lopez. Held-back error as the
+  engine computes it **0.013813** against nnue1-h512's 0.013664 (+1.1%) on
+  positions without mates: the cost of the capacity it spent on mates. What
+  it gains is where the measure doesn't look, so the match decides. Not
+  played yet.
 
 ## Risks
 

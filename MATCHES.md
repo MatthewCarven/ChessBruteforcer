@@ -60,6 +60,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-17 | nnue1 | sf1 | 117 | +114 -0 =3 | 98.7% | +755 [+622, +∞] | SPRT [0, 10] accepted H1 at game 113 (see below) |
 | 2026-10-17 | nnue1 | sf1 | 400 | +392 -3 =5 | 98.6% | **+742 [+645, +970]** | fixed length, for the Elo figure |
 | 2026-10-17 | nnue1-h512 | nnue1 | 285 | +114 -53 =118 | 60.7% | **+76 [+45, +107]** | SPRT [0, 10] accepted H1 at game 284 (LLR 2.98); bot stopped (see below) |
+| 2026-10-18 | h512-blend25 | nnue1-h512 | 1,252 | +311 -349 =592 | 48.5% | -11 [-25, +3] | SPRT [0, 10] **accepted H0** (LLR -3.06): the result blend doesn't help; bot stopped |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -96,6 +97,16 @@ moves. The lead held at +64 to +79 from game 150 on. In play, nnue1-h512
 searched 2,131 knps against nnue1's 2,339 (**-8.9%**), depth 10.3 against
 10.5: slower, and better anyway. On Matthew's word (2026-10-17, ~23:20) the
 bot plays on it from its next start (`bot\eval\nnue1-h512.nnue`).
+
+**h512-blend25 against nnue1-h512** (2026-10-18, 08:22-10:25, the bot stopped
+by Matthew for it, the book learner's engine analysing on one core beside
+it): nnue1-h512's recipe with a quarter of each target taken from the game's
+result (`--result-blend 0.25`). 1,252 games in 2 h 3 min; the score sat at
+47-49% from game 300 on, and the SPRT accepted H0 at game 1,252: **-11 Elo
+[-25, +3]**. Ends: 336 checkmates, 324 by the tables, 309 repetitions, 250
+table draws, 32 by the 50-move rule, 1 stalemate; no time losses, crashes
+or illegal moves. Equal speed (2,051 against 2,058 knps, depth 10.1 each).
+The bot stays on nnue1-h512.
 
 ## Versions
 

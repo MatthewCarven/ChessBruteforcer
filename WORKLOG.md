@@ -3449,4 +3449,24 @@ has the tables; this is the story.
   a blend must be, and its scores ~18% smaller in scale. Fetched into
   games\nnue\nets\ (network sha256 8b73e98ad091...); EvalFile loads it.
   h512-mates started 06:25:39. No match yet: Matthew's call when.
+
+## 2026-10-18 (08:20-10:30): the result blend loses; h512-mates trained
+
+- Matthew stopped the bot for the blend's match and asked for it on the
+  laptop (a desktop match was begun and dropped on his word: the i7-3770
+  has no AVX2, so the engine would run its scalar network code there).
+  Checked first: no lichess-bot.py, 6.7 GB of commit free, on AC; the one
+  engine still running was the book learner's (engines\learner), analysing
+  the bot's overnight games on one core. Both arms bear that equally.
+- **h512-blend25 v nnue1-h512** (`scripts\nnue-match.cmd`, its own window,
+  08:22:46-10:25:17): **SPRT [0, 10] accepted H0 at game 1,252**: +311 -349
+  =592, 48.5%, **-11 Elo [-25, +3]**, LOS 7%. The score never left 47-52%;
+  no time losses, crashes or illegal moves; equal speed. So the blend at
+  0.25 costs a little, if anything: Lichess's results follow blunders made
+  long after the position as much as the position itself.
+- **h512-mates finished 09:59** (desktop clock), exit 0: 20 passes of
+  232,201,738 positions, held-back error 0.013813 as the engine computes it
+  (nnue1-h512 0.013664; +1.1% on positions without mates, the capacity the
+  mates took). Fetched; EvalFile loads it (sha256 0cf690d690a3...). Its
+  match against nnue1-h512 waits on Matthew. The bot is still off.
 - The desktop tidied again (the probe's and smoke runs' nets and tasks).
