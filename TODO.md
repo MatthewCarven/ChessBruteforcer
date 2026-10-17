@@ -53,6 +53,15 @@ that could go wrong does.
   games\match-sf2500-3+2.jsonl (`book-match.py <that file> --summary`
   prints them) and games\match-after-counts.log.
 - The book learner (bot\learn.py, since 09:30).
+- **The nnue1-h512 match launcher** ("Match nnue1-h512 v nnue1", pwsh
+  running C:\Users\Admin\AppData\Local\Temp\claude\C--Users-Admin-Desktop---Programming---Chess-Bruteforcer--claude-worktrees-nnue-desktop-8d5f2a\fa54ac3c-0580-477f-9cef-c7a39d8abe03\scratchpad\after-sf-h512.ps1,
+  minimized, from 20:01): once the Stockfish launcher logs "finished", and
+  only if the bot is still off, 3 GB of commit are free and it's before
+  03:00, it plays **nnue1-h512 v nnue1** from the session 2b worktree
+  (`scripts\nnue-match.cmd`: SPRT [0, 10], 10+0.1, 5 at a time, at most
+  2,000 games, ~1-3 h, so until ~00:00-02:00). Logs
+  games\nnue\match-h512-launcher.log and games\nnue\match-nnue1-h512-nnue1.log.
+  **The bot stays off until it ends** (Matthew, 20:00).
 
 **NNUE, where it stands** (added 19:55; session 2b, branch
 `claude/nnue-desktop-8d5f2a`, which has this handoff merged in):
@@ -66,16 +75,16 @@ that could go wrong does.
   held-back error **0.013664 against nnue1's 0.014851 (-8.0%)**, -4.0% a node
   in the engine. In games\nnue\nets\ of the main checkout (gitignored) and on
   the share. Not matched yet.
-- **Next: its match against nnue1** (`scripts\nnue-match.cmd nnue1-h512
-  nnue1`; a proposal card exists): CPU only, ~1-3 h, five one-thread
-  engines. **Not beside the counts or the Stockfish match**: memory (June's
-  11:16 failure) and it would skew that match. After the Stockfish match,
-  either while the bot is still off (the laptop to itself, as session 4's
-  match had it) or later beside the bot at below-normal priority: Matthew's
-  call.
+- **Next: its match against nnue1**, CPU only, five one-thread engines; not
+  beside the counts or the Stockfish match (memory, as June's 11:16 failure
+  showed, and it would skew that match). **Matthew chose (20:00): tonight,
+  after the Stockfish match, while the bot is still off**: the launcher
+  above. Then MATCHES.md, WORKLOG and NNUE.md, and his word on whether the
+  bot switches to nnue1-h512.
 
 **The bot is OFF** (stopped 11:19 after a win against FlounderBot), on
-Matthew's word: **show him the Stockfish match before it goes online.** Then
+Matthew's word: **show him the Stockfish match before it goes online**, and
+let the nnue1-h512 match (above) finish first. Then
 `bot\start-bot.cmd` (not start.cmd: the queue and learner are already up). It
 builds the engine, writes config.yml from make-config.py (pondering on,
 nnue1, the short greetings), and applies both lichess-bot patches, including
@@ -97,7 +106,8 @@ bot/test-rejoin.py) for games whose stream drops.
 (games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7 GB; it's on the share
 and checked); July's lines.u16 and old plain columns (4.1 GB); where the whole
 index lives (a proposal card exists); merging `claude/nnue-desktop-8d5f2a`
-(NNUE session 2b) into compression; when nnue1-h512's match runs.
+(NNUE session 2b) into compression; after nnue1-h512's match, whether the
+bot switches to it.
 
 ### Now (2026-10-15)
 
