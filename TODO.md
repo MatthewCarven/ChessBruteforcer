@@ -94,12 +94,15 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
             MB/s on average over July's check, but in 4.7 MB bursts.
       - [ ] The cap is per reader, so one big share job at a time (the
             month queue's download writes only ~0.5 MB/s).
-   - [ ] **lichess-bot gives up on a game whose stream drops** (2026-10-16
-         07:52: "Game over" logged three book moves into a live game against
-         TroutBot). A restart rejoined it a minute later; it lost on the board.
-         Fix: before calling a game over, ask Lichess for its status (or
-         rejoin games in progress every few minutes), as a patch beside
-         lichess-bot-chat.patch.
+   - [x] **lichess-bot gave up on a game whose stream dropped** (2026-10-16
+         07:52, TroutBot; 2026-10-17 11:04, PeachFruit, lost on time). Fixed by
+         bot/lichess-bot-rejoin.patch (start-bot.cmd applies it beside the
+         chat patch): a stream that ends or fails while the game isn't over
+         asks Lichess whether the game is on, and if so opens the stream
+         again (up to 10 tries) and plays on from the state Lichess sends.
+         bot/test-rejoin.py drops a pretend game's stream mid-game: the
+         original lichess-bot leaves and the test fails at 60 s; patched, it
+         rejoins and wins. After a lichess-bot update, run the test again.
    - [x] **July's rows in the new layout** (2026-10-16, 03:33-04:56, the
          repo's index-month.cmd): 6,177 frames, **89,288,421 games, count
          MATCHES**, SHA-256 matching, 1,267.1 MB of Parquet; check 2,000 of

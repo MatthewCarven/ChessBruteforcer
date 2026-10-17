@@ -1,0 +1,75 @@
+diff --git a/lib/lichess_bot.py b/lib/lichess_bot.py
+index 63ab211..bd87afb 100644
+--- a/lib/lichess_bot.py
++++ b/lib/lichess_bot.py
+@@ -24,6 +24,7 @@ import glob
+ import platform
+ import importlib.metadata
+ import contextlib
++import requests
+ from lib.blocklist import OnlineBlocklist
+ from lib.config import load_config, Configuration, log_config
+ from lib.conversation import Conversation, ChatLine
+@@ -562,6 +563,36 @@ def game_is_active(li: lichess.Lichess, game_id: str) -> bool:
+     return game_id in (ongoing_game["gameId"] for ongoing_game in active_games)
+ 
+ 
++REJOIN_TRIES = 10  # BruteForceBot: how many times a game's stream is opened again before giving the game up
++
++
++def rejoin_game_stream(li: lichess.Lichess, game_id: str, responses: list[requests.models.Response],
++                       logger: logging.Logger) -> Iterator[bytes] | None:
++    """
++    Open a game's stream again after it ended or failed while the game was still on, or None if it's over.
++
++    BruteForceBot (2026-10-17): lichess.org sometimes closes a game's stream mid-game, and lichess-bot left the game,
++    which then ran out of time unplayed. The new stream's first line is the whole game; its state goes first, so play
++    carries on from wherever the game has got to. Each response opened goes into `responses`, to be closed at the end.
++    """
++    for attempt in range(1, REJOIN_TRIES + 1):
++        if not game_is_active(li, game_id):
++            return None
++        try:
++            response = li.get_game_stream(game_id)
++            responses.append(response)
++            lines = response.iter_lines()
++            full = json.loads(next(lines).decode("utf-8"))
++        except (HTTPError, ReadTimeout, RemoteDisconnected, ChunkedEncodingError, RequestsConnectionError,
++                StopIteration, ValueError) as e:
++            logger.info(f"Game {game_id}: couldn't open its stream again ({attempt} of {REJOIN_TRIES}: {e!r})")
++            time.sleep(2)
++            continue
++        logger.info(f"Game {game_id}: its stream ended mid-game; rejoined (try {attempt})")
++        return itertools.chain([json.dumps(full.get("state", full)).encode("utf-8")], lines)
++    return None
++
++
+ def start_game_thread(active_games: dict[str, str], game_id: str, opponent_name: str,
+                       play_game_args: PlayGameArgsType, pool: POOL_TYPE) -> None:
+     """Start a game thread."""
+@@ -722,6 +753,7 @@ def play_game(li: lichess.Lichess,
+             prior_game = None
+             board = chess.Board()
+             game_stream = itertools.chain([json.dumps(game.state).encode("utf-8")], lines)
++            rejoined_responses: list[requests.models.Response] = []
+             quit_after_all_games_finish = config.quit_after_all_games_finish
+             stay_in_game = True
+             while stay_in_game and (not stop.terminated or quit_after_all_games_finish) and not stop.force_quit:
+@@ -775,8 +807,17 @@ def play_game(li: lichess.Lichess,
+                 except (HTTPError, ReadTimeout, RemoteDisconnected, ChunkedEncodingError, RequestsConnectionError,
+                         StopIteration) as e:
+                     stopped = isinstance(e, StopIteration)
++                    if not is_game_over(game) and not is_correspondence:
++                        rejoined = rejoin_game_stream(li, game.id, rejoined_responses, logger)
++                        if rejoined is not None:
++                            game_stream = rejoined
++                            prior_game = None  # so a move of ours that's due gets played
++                            continue
+                     stay_in_game = not stopped and (move_attempted or game_is_active(li, game.id))
+ 
++            for rejoined_response in rejoined_responses:
++                with contextlib.suppress(Exception):
++                    rejoined_response.close()
+             pgn_record = try_get_pgn_game_record(li, config, game, board, engine)
+         final_queue_entries(control_queue, correspondence_queue, game, is_correspondence, pgn_record, pgn_queue)
+         delete_takeback_record(game)

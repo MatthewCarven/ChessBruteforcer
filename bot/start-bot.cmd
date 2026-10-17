@@ -37,6 +37,13 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-chat.patch"
     if errorlevel 1 echo The chat commands didn't go in ^(lichess-bot changed?^): starting without !info.
 )
+rem A game whose stream lichess.org closes mid-game is opened again rather than left to run out of time
+rem (bot\lichess-bot-rejoin.patch, 2026-10-17; bot\test-rejoin.py tests it), unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-rejoin.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-rejoin.patch"
+    if errorlevel 1 echo The rejoin fix didn't go in ^(lichess-bot changed?^): a dropped game stream will lose games again.
+)
 set BRUTEFORCER_TABLES=%CD%\tables
 rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers.
 pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0run-bot.ps1"
