@@ -3270,5 +3270,26 @@ the tables; NNUE.md's session 4 the summary.
   no result, FAILED at 60 s. Patched: "rejoined (try 1)", "b won!", passed (a
   few seconds). The Manager it uses must be shut down before exiting, or its
   server process keeps the console open.
-- On Matthew's (b): the bot stops after the FlounderBot game (11:06 on) and
-  stays off until June's count is done (~12:10), then starts with the fix.
+- On Matthew's (b): the bot stopped after the FlounderBot game (won, by mate,
+  11:19) and stays off until June's count is done, then starts with the fix.
+- **June's count died at 11:16** (34 M of 86.5 M games): zstd "Allocation
+  error: not enough memory", then MemoryError sorting; Windows low-memory
+  events at 10:47:36 and 11:11:36. The second came as the rejoin test started
+  (a whole pretend lichess-bot with its Manager and pool), run beside the
+  count, the bot, the learner and a dozen Claude processes without checking
+  commit headroom first. The month queue stopped with it.
+- **18:3x, on Matthew's word**: four finished NNUE sessions archived (data,
+  C#, trainer, the match; all merged into compression), commit free 3.5 -> 7
+  GB. The trainer's PyTorch venv (2.9 GB, torch 2.14.1+cu132, CUDA working)
+  was moved first from its worktree to the main checkout's
+  scripts\nnue\.venv (ignored there too), as archiving deletes a worktree.
+  The month queue restarted at 18:38:53 and is counting June again. A
+  launcher window ("Bot: waiting for June 2026 to be counted", log
+  games\bot-after-june.log) starts bot\start-bot.cmd once the queue logs
+  June's "games read" and commit headroom is 3 GB or more. After June the
+  queue goes on to count May (on the share, not yet counted) with the bot
+  playing.
+- A slip on the way: the old queue window from 09:30, stopped at 11:16 and
+  sitting at its `pause`, still has month-queue in its command line, so a
+  check for "a queue already running" matched it. Another queue was started
+  and stopped again within a minute before this one; nothing was written.
