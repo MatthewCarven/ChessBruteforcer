@@ -3439,6 +3439,8 @@ has the tables; this is the story.
   (blend done ~07:10, mates ~11:40, instead of ~06:15 and ~10:00). The
   driver lists no slowdown reason and no clock lock, the power limit is the
   full 130 W, the plan Balanced. What's different: Matthew's PySynthRack
-  (open since 19:19) has a graphics context on the card. Not proven; his to
-  test by closing it.
+  (open since 19:19) has a graphics context on the card. **He closed it at
+  ~04:20: 1,935-1,950 MHz and 73-77 W at once** (10 samples, 2 s apart),
+  with nothing else changed on the GPU's process list but Discord. Close it
+  before training. Blend done ~06:30, mates ~10:00.
 - The desktop tidied again (the probe's and smoke runs' nets and tasks).

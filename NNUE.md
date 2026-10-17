@@ -780,8 +780,10 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   nnue1-h512's run had 1,920 MHz and 75-84 W: 284 k positions a second
   instead of 362 k. No slowdown reason in the driver, no clock lock, the
   full 130 W limit. The difference in the room: Matthew's PySynthRack had a
-  graphics context on the card (since 19:19). At that pace the blend run
-  ends ~07:10 and the mates run ~11:40.
+  graphics context on the card (since 19:19). **He closed it at ~04:20 and
+  the card went straight back to 1,935-1,950 MHz and 73-77 W** (the only
+  change to the GPU's process list, Discord aside). So close PySynthRack
+  before a training run. The blend run ends ~06:30, the mates run ~10:00.
 
 ## Risks
 
