@@ -81,9 +81,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   and MATCHES.md have it all.
 - **Training on the desktop now** (from 02:43 on 2026-10-18, Matthew's (a)):
   task "nnue h512-blend25 then h512-mates", two session-5 levers at 512
-  hidden, one after the other: the result blend (0.25), done ~06:30, then
-  mates included, done ~10:00 (the card ran at 1,200 MHz, not 1,920, until
-  he closed his PySynthRack at ~04:20: close it before training). `scripts\nnue-desktop.ps1
+  hidden, one after the other: the result blend (0.25), **done 06:25**
+  (games\nnue\nets\h512-blend25.nnue, loads in the engine; held-back
+  0.015230, worse than nnue1-h512's 0.013664 on that measure by design),
+  then mates included, done ~10:00 (the card ran at 1,200 MHz, not 1,920,
+  until he closed his PySynthRack at ~04:20: close it before training). `scripts\nnue-desktop.ps1
   status h512-blend25` (or h512-mates); `stop <run>` ends the task if he
   needs the GPU (`train <run> ... --resume` carries on from the last pass).
   Then: `fetch` each, and a match against nnue1-h512 each

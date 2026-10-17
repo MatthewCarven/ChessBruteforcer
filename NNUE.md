@@ -784,6 +784,16 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   the card went straight back to 1,935-1,950 MHz and 73-77 W** (the only
   change to the GPU's process list, Discord aside). So close PySynthRack
   before a training run. The blend run ends ~06:30, the mates run ~10:00.
+- **h512-blend25 done** (02:46-06:25 by the desktop's clock, exit 0; passes
+  1-8 at ~305 k positions a second, 9-20 at ~363 k): `games\nnue\nets\
+  h512-blend25.nnue`, 789,572 bytes, QB 65, network sha256 8b73e98ad091...;
+  EvalFile loads it, and it chose a6 against the Ruy Lopez at depth 10.
+  Held-back error as the engine computes it **0.015230 at K 1, 0.014320 at
+  its fitted K 1.22**, against nnue1-h512's 0.013664 at K 1.00. Worse on
+  this measure by design; and the fitted K says its scores run ~18%
+  smaller than Stockfish's scale (the results pull towards the middle).
+  The search's margins (null move, futility) were tuned on the other
+  scale, which is one more reason only the match can judge it.
 
 ## Risks
 

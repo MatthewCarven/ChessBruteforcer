@@ -3443,4 +3443,10 @@ has the tables; this is the story.
   ~04:20: 1,935-1,950 MHz and 73-77 W at once** (10 samples, 2 s apart),
   with nothing else changed on the GPU's process list but Discord. Close it
   before training. Blend done ~06:30, mates ~10:00.
+- **h512-blend25 finished 06:25** (desktop clock), exit 0. Held-back error
+  as the engine computes it 0.015230 at K 1, 0.014320 at K 1.2225 (fitted),
+  against nnue1-h512's 0.013664 at K 1.00: worse on the cp-only measure, as
+  a blend must be, and its scores ~18% smaller in scale. Fetched into
+  games\nnue\nets\ (network sha256 8b73e98ad091...); EvalFile loads it.
+  h512-mates started 06:25:39. No match yet: Matthew's call when.
 - The desktop tidied again (the probe's and smoke runs' nets and tasks).
