@@ -54,6 +54,26 @@ that could go wrong does.
   prints them) and games\match-after-counts.log.
 - The book learner (bot\learn.py, since 09:30).
 
+**NNUE, where it stands** (added 19:55; session 2b, branch
+`claude/nnue-desktop-8d5f2a`, which has this handoff merged in):
+- **The desktop's GTX 1660 is the second trainer**, driven from here over
+  SSH: `scripts\nnue-desktop.ps1 sync | train <run> [options] | status |
+  stop | fetch` (a scheduled task per run on the desktop, September's records
+  on its own D:, nothing downloaded). 0.65x the laptop's card: nnue1's recipe
+  takes ~1.9 h there. With the heat rule below, new nets train there, not
+  here. Its card showed no brownouts (Matthew asked): 0 µs of power braking.
+- **nnue1-h512** (512 hidden, Matthew's F(b)) trained there 07:46-11:10:
+  held-back error **0.013664 against nnue1's 0.014851 (-8.0%)**, -4.0% a node
+  in the engine. In games\nnue\nets\ of the main checkout (gitignored) and on
+  the share. Not matched yet.
+- **Next: its match against nnue1** (`scripts\nnue-match.cmd nnue1-h512
+  nnue1`; a proposal card exists): CPU only, ~1-3 h, five one-thread
+  engines. **Not beside the counts or the Stockfish match**: memory (June's
+  11:16 failure) and it would skew that match. After the Stockfish match,
+  either while the bot is still off (the laptop to itself, as session 4's
+  match had it) or later beside the bot at below-normal priority: Matthew's
+  call.
+
 **The bot is OFF** (stopped 11:19 after a win against FlounderBot), on
 Matthew's word: **show him the Stockfish match before it goes online.** Then
 `bot\start-bot.cmd` (not start.cmd: the queue and learner are already up). It
@@ -76,8 +96,8 @@ bot/test-rejoin.py) for games whose stream drops.
 **Waiting on Matthew:** delete the laptop's copy of May
 (games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7 GB; it's on the share
 and checked); July's lines.u16 and old plain columns (4.1 GB); where the whole
-index lives (a proposal card exists); the NNUE desktop session 2b (GTX 1660)
-waits on his OK for PyPI downloads.
+index lives (a proposal card exists); merging `claude/nnue-desktop-8d5f2a`
+(NNUE session 2b) into compression; when nnue1-h512's match runs.
 
 ### Now (2026-10-15)
 
