@@ -530,6 +530,11 @@ Sessions, in order:
       the evaluation scaled down as the 50-move count rises; a server near
       Lichess (Europe) if it should run all day (from Australia each move
       costs ~1.2 s of connection).
+- [ ] Knight endings with a far passed pawn: is the net overrating them? In
+      UBIA6Hdc (2026-10-18, WORKLOG) it said +2.4 for an ending Stockfish
+      called +0.25 and drew a game it had been winning. Check our losses and
+      draws for the same shape (the bot's eval v Stockfish's, by material),
+      before any training change.
 
 ### 3. Findings for the thesis
 

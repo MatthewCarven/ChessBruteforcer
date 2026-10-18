@@ -3550,3 +3550,26 @@ has the tables; this is the story.
 - Takes effect after the merge and the bot's next start, between games.
   Matthew: if it loses more at two games (each engine gets about half the
   CPU), back to concurrency 1.
+
+## 2026-10-18 (19:56-20:10): a won knight ending drawn (thunfisch-bot, UBIA6Hdc)
+
+- **How it ended**: a draw by insufficient material at move 122 (19:56). From
+  move 77 the bot had a king and b-pawn against a king and knight, a table
+  draw; it shuffled its king in the corner instantly (depth 1, 0.00) and
+  offered draws, which thunfisch-bot (2225) kept declining. Then it pushed
+  b7, Nf5+ and Ne7+ won the pawn, and king and knight against a king ended
+  the game. Every move there drew; this one ended it rather than waiting for
+  the 50-move count.
+- **Where the win went** (scratchpad where-the-win-went.py: Lichess's 7-piece
+  tablebase from 7 pieces, Stockfish 16 for 4 s on one thread before that):
+  - From move 70 (7 pieces) every position was a table draw. At move 77
+    Matthew asked whether keeping the knight and queening the b-pawn wins:
+    no. Black's knight on a4 watched b6, and of Nxh5's alternatives eight
+    drew and six lost (Kd2, Kd3, Ke2, ...).
+  - The advantage went at **moves 53-54**, at 13 pieces: 53. e7 (Stockfish
+    +0.81 after it; Rc4 kept +2.47), then 54. Kd7 (+0.09; Ke6 +0.75). The
+    bot itself said +3.03 for e7 at depth 16, and +2.4 for the knight
+    ending with three pawns each that followed (Stockfish: about +0.25),
+    sliding to 0.00 only by move 74. So the evaluation, not the search,
+    overrated the far passed b-pawn in a knight ending. One game is an
+    anecdote; a TODO line asks for more.
