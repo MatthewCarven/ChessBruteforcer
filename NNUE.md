@@ -832,6 +832,24 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   idle), records due ~00:30-01:30. Then one net on all three months:
   `train <run> --hidden 512 --add-data 2026-07 2026-08` (new: buckets of the
   months beside --data, held-back error still September's alone).
+- **The records, done 2026-10-19 04:51 and 05:22** (desktop clock), every
+  file checked ("all well"):
+
+  | month | records | mates | training games | held-back games | filter | import | nnue data | check |
+  |---|---|---|---|---|---|---|---|---|
+  | July | 240,433,752 | 13,178,690 | 8,735,386 | 178,260 | 4.1 h | 4.4 h | 2.3 h | 21 min |
+  | August | 253,407,598 | 13,198,270 | 9,194,056 | 187,670 | 4.3 h | 4.6 h | 2.5 h | 22 min |
+  | September (laptop, for scale) | 236,940,450 | 13,587,674 | | | ~50 min | ~1 h | 41 min | |
+
+  The desktop was ~4x slower than the laptop at the import and records (the
+  i7-3770 and a hard disk, two months at once): ~11.5 h a month there, side
+  by side. The work folder keeps each month's .pgn (7.7-8.1 GB) and .cbg
+  (4.2-4.5 GB) on its D:.
+- **h512-3m started 05:26** (laptop clock): 512 hidden on all three months,
+  10 passes of ~676 M positions (1.5x nnue1-h512's training steps), the rate
+  stepped down after passes 4, 7 and 9 (`--lr-drops 4/7/9`: PowerShell reads
+  an unquoted 4,7,9 as three arguments, which cost two false starts). 1,935
+  MHz, 77 W; ~31 min a pass, done ~10:45.
 
 ## Risks
 

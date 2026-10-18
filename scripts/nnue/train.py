@@ -454,7 +454,7 @@ def train(args):
 
     net = make_net(args.hidden).to(dev)
     opt = torch.optim.AdamW(net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    drops = [int(x) for x in args.lr_drops.split(",") if x]
+    drops = [int(x) for x in args.lr_drops.replace("/", ",").split(",") if x]   # 4/7/9 too (see --lr-drops)
     checkpoint = out / f"{args.run}.pt"
     first = 1
     if args.resume:
@@ -587,7 +587,9 @@ def main(argv):
     t.add_argument("--passes", type=int, default=20)
     t.add_argument("--batch", type=int, default=16384)
     t.add_argument("--lr", type=float, default=0.001)
-    t.add_argument("--lr-drops", default="8,14,18")
+    t.add_argument("--lr-drops", default="8,14,18",
+                   help="passes after which the rate drops: 8,14,18, or 8/14/18 where a shell splits commas "
+                        "(PowerShell reads an unquoted 4,7,9 as three arguments)")
     t.add_argument("--lr-gamma", type=float, default=0.3)
     t.add_argument("--weight-decay", type=float, default=0.01)
     t.add_argument("--max-positions", type=int, default=0)

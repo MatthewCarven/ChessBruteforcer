@@ -72,6 +72,10 @@ switch ($Command) {
         }
         $runs.Add($current.ToArray())
         if ($runs | Where-Object { $_.Count -eq 0 }) { throw "a + with no run after it" }
+        # Commas become slashes, which train.py takes too (--lr-drops 4/7/9): cmd's call may split an argument at a
+        # comma. Note that PowerShell itself reads an unquoted 4,7,9 on this script's command line as three
+        # arguments (2026-10-19: "unrecognized arguments: 7 9"), before any of this: write 4/7/9 or '4,7,9'.
+        $runs = [System.Collections.Generic.List[string[]]]@($runs | ForEach-Object { , [string[]]@($_ | ForEach-Object { $_ -replace ',', '/' }) })
         $line = ($runs | ForEach-Object { "call `"$Local\$cmd`" $($_ -join ' ')" }) -join ' & '
         if (($runs | ForEach-Object { $_ }) -join ' ' -match "['""]") { throw "no quotes in the options, please" }
         $name = $(if ($Command -eq 'train') { 'nnue ' } else { 'nnue data ' }) + (($runs | ForEach-Object { $_[0] }) -join ' then ')

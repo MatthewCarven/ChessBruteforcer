@@ -3550,3 +3550,21 @@ has the tables; this is the story.
 - Takes effect after the merge and the bot's next start, between games.
   Matthew: if it loses more at two games (each engine gets about half the
   CPU), back to concurrency 1.
+
+## 2026-10-19 (05:20-05:40): July's and August's records done; h512-3m training
+
+- **Both months' records finished on the desktop** (desktop clock): July
+  04:51, August 05:22, each "all well" from records.py check. July 240,433,752
+  records (13,178,690 mates; 8,735,386 training games, 178,260 held back);
+  August 253,407,598 (13,198,270; 9,194,056; 187,670). Steps: filter 4.1-4.3
+  h, import 4.4-4.6 h, nnue data 2.3-2.5 h, check 21-22 min: the import and
+  records ran ~4x slower than on the laptop (i7-3770, hard disk, two months
+  at once), so my ~01:00 was ~4 h early.
+- **h512-3m** (Matthew: "just go ahead"): `train h512-3m --hidden 512
+  --add-data 2026-07 2026-08 --passes 10 --lr-drops 4/7/9`, started 05:26
+  (laptop clock). Two false starts first, each "unrecognized arguments: 7 9"
+  and exit 2 within a second: PowerShell reads an unquoted `4,7,9` on a
+  command line as a three-item array. train.py now takes 4/7/9 as well,
+  and nnue-desktop.ps1 turns commas into slashes for the desktop's cmd.
+- Running at 1,935 MHz, 77 W, 99% (PySynthRack closed): 338 k positions a
+  second over the first 8 of 192 buckets, ~31 min a pass, done ~10:45.

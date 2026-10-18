@@ -92,15 +92,14 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     [-26, +3] against nnue1-h512, SPRT accepted H0** (1,212 games,
     14:03-16:03, the bot stopped). Doesn't help.
   - **More data, under way** (Matthew's yes, 2026-10-18 17:34): July's and
-    August's records are being made **on the desktop** from the month files
-    on its disk (two tasks, "nnue data 2026-07" and "nnue data 2026-08":
-    filter ~4.3 h each side by side, then import and records; due
-    ~00:30-01:30; `scripts\nnue-desktop.ps1 status 2026-07`). Then
-    `scripts\nnue-desktop.ps1 sync` (the new train.py; not while those
-    tasks run: cmd reads a batch file as it goes) and one 512 net on all
-    three months (`--add-data 2026-07 2026-08`), then its match against
-    nnue1-h512. Expect a modest gain (nnue1-h512 isn't memorising September:
-    2.1% between its training and held-back error). `scripts\nnue-desktop.ps1
+    August's records were made **on the desktop** from the month files on
+    its disk (done 04:51 and 05:22 on 2026-10-19, 240.4 M and 253.4 M
+    records, all checked; ~11.5 h a month there). **h512-3m is training**
+    since 05:26: 512 hidden on July + August + September, 10 passes, done
+    ~10:45 (`scripts\nnue-desktop.ps1 status h512-3m`). Then fetch, and its
+    match against nnue1-h512 (the bot off: Matthew's call). Expect a modest
+    gain (nnue1-h512 isn't memorising September: 2.1% between its training
+    and held-back error). `scripts\nnue-desktop.ps1
   status h512-blend25` (or h512-mates); `stop <run>` ends the task if he
   needs the GPU (`train <run> ... --resume` carries on from the last pass).
   Then: `fetch` each, and a match against nnue1-h512 each
