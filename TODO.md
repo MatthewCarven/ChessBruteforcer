@@ -136,7 +136,7 @@ make-config.py (the patch still helps at 1).
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that
-(bot	est-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
+(bot\test-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
 between games (not `start.cmd`: that starts the month queue, which is off).
 Still open: lichess-bot quit once on a TypeError in accept_challenges
 (00:32, the manager's list length None); watch for it again.
