@@ -52,7 +52,9 @@ overnight (NNUE, below).
   are up). Its first ~30 rated games against nnue1's are the next check (it
   searches ~9% slower; the match says it's worth it).
 - **The month queue: OFF on Matthew's word** (2026-10-18: he closed it at
-  ~20:06 on purpose; leave it off until he says). March's .part is 5.22 of
+  ~20:06 on purpose: his mum's YouTube was struggling, even at the 500 KB/s
+  cap; leave it off until he says). When it comes back: `-LimitRate 300k`, or
+  overnight only, when nobody's watching. March's .part is 5.22 of
   29.35 GB on the share; `scripts\month-queue.cmd` carries on from there. Before that (restarted 23:26): June and May 2026 are counted into
   the books (1,695,521 moves in 1,179,279 positions from 7,959,778 games, five
   months); it is downloading April (29.3 GB, resumed from 3.1 GB) at 500
