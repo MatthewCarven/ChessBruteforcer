@@ -818,6 +818,20 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   says capacity was short, and more positions is what a bigger net wants),
   the export's rounding (small), and labels from our own search (a long
   job for the CPU). The desktop trains any of them.
+- **More data, begun 2026-10-18 17:34 (Matthew's yes)**, with a tempered
+  expectation: nnue1-h512's error on its training positions is only 2.1%
+  below its held-back error (nnue1's 0.9%), so it isn't memorising
+  September yet; more data should help a little at 512, and matters most for
+  a bigger net later. **Records made on the desktop**, from the month files on
+  its own disk (`data-desktop.cmd` via `nnue-desktop.ps1 data`: eval-games.py,
+  game import, nnue data, records.py check), so nothing crosses the link and
+  the laptop keeps the bot: eval-games.py on the laptop reads the share
+  uncapped (~9 MB/s, over Matthew's rule). On the i7-3770 the filter reads
+  ~1.8 MB/s of a month (one core; a probe of 20 MB took 10.3 s), ~4.3 h for
+  27 GB; July and August run side by side at that pace each (the D: disk 94%
+  idle), records due ~00:30-01:30. Then one net on all three months:
+  `train <run> --hidden 512 --add-data 2026-07 2026-08` (new: buckets of the
+  months beside --data, held-back error still September's alone).
 
 ## Risks
 

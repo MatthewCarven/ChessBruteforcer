@@ -8,6 +8,8 @@
 Run it with the venv's python (scripts/nnue/.venv, PyTorch with CUDA). Options of train:
 
     --data <dir>            `nnue data`'s output (default: September, games\\nnue\\2026-09 in the main checkout)
+    --add-data MONTH...     more months to train on, folders beside --data (2026-07 2026-08); held-back error
+                            stays --data's alone, so it compares with nets trained before
     --out <dir>             where the net, checkpoint and log go (default games\\nnue\\nets)
     --hidden 256            hidden numbers per perspective
     --passes 20             passes over the training buckets
@@ -414,8 +416,11 @@ def host_memory():
 
 
 def training_sets(args):
-    """The training data as a list of loaders: each returns a raw (n, 32) uint8 numpy array of one bucket."""
+    """The training data as a list of loaders: each returns a raw (n, 32) uint8 numpy array of one bucket. The
+    buckets of --data and of every --add-data month beside it, read in one random order."""
     files = records.training_files(str(args.data))
+    for name in args.add_data:
+        files += records.training_files(str(args.data.parent / name))
     if args.buckets:
         files = files[:args.buckets]
     if not args.max_positions:
@@ -574,6 +579,9 @@ def main(argv):
     t = sub.add_parser("train")
     t.add_argument("run")
     t.add_argument("--data", type=pathlib.Path, default=DATA)
+    t.add_argument("--add-data", nargs="+", default=[], metavar="MONTH",
+                   help="more months to train on, as folders beside --data (2026-07 2026-08); held-back error stays "
+                        "--data's, so it compares with earlier nets")
     t.add_argument("--out", type=pathlib.Path, default=NETS)
     t.add_argument("--hidden", type=int, default=256)
     t.add_argument("--passes", type=int, default=20)

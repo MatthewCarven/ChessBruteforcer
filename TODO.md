@@ -91,10 +91,16 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   - **h512-mates** (mates included): done 09:59; **its match: -11 Elo
     [-26, +3] against nnue1-h512, SPRT accepted H0** (1,212 games,
     14:03-16:03, the bot stopped). Doesn't help.
-  - Next lever, by the evidence: **more data** (July and August through
-    `nnue data`, ~3x the positions, then copied to the desktop with
-    scripts\capped-copy.py), since size helped and the target changes
-    didn't. `scripts\nnue-desktop.ps1
+  - **More data, under way** (Matthew's yes, 2026-10-18 17:34): July's and
+    August's records are being made **on the desktop** from the month files
+    on its disk (two tasks, "nnue data 2026-07" and "nnue data 2026-08":
+    filter ~4.3 h each side by side, then import and records; due
+    ~00:30-01:30; `scripts\nnue-desktop.ps1 status 2026-07`). Then
+    `scripts\nnue-desktop.ps1 sync` (the new train.py; not while those
+    tasks run: cmd reads a batch file as it goes) and one 512 net on all
+    three months (`--add-data 2026-07 2026-08`), then its match against
+    nnue1-h512. Expect a modest gain (nnue1-h512 isn't memorising September:
+    2.1% between its training and held-back error). `scripts\nnue-desktop.ps1
   status h512-blend25` (or h512-mates); `stop <run>` ends the task if he
   needs the GPU (`train <run> ... --resume` carries on from the last pass).
   Then: `fetch` each, and a match against nnue1-h512 each

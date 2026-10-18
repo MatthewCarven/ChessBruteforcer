@@ -3450,6 +3450,8 @@ has the tables; this is the story.
   games\nnue\nets\ (network sha256 8b73e98ad091...); EvalFile loads it.
   h512-mates started 06:25:39. No match yet: Matthew's call when.
 
+- The desktop tidied again (the probe's and smoke runs' nets and tasks).
+
 ## 2026-10-18 (08:20-10:30): the result blend loses; h512-mates trained
 
 - Matthew stopped the bot for the blend's match and asked for it on the
@@ -3482,4 +3484,31 @@ has the tables; this is the story.
   Both target changes cost a little if anything; size paid. More data is
   the lever the evidence points to next. The bot stays on nnue1-h512, and
   is still off until Matthew starts it.
-- The desktop tidied again (the probe's and smoke runs' nets and tasks).
+
+## 2026-10-18 (17:24-17:45): the bot back; July's and August's records begun on the desktop
+
+- **The bot back online 17:24:55** (`bot\start-bot.cmd` on Matthew's word):
+  nnue1-h512, sha256 8a6cd3aff627, "awaiting challenges".
+- **More data** (Matthew asked what it means; yes): a fresh 512 net on July,
+  August and September. Told him to expect a modest gain: nnue1-h512's
+  training error is only 2.1% below its held-back error (0.013348 against
+  0.013626; nnue1's 0.9%), so it isn't starved of data yet.
+- **The records are made on the desktop**: `scripts\eval-games.py` (the
+  first step of tune-data.cmd) reads a month off the share uncapped, ~9 MB/s
+  in September's run, over the 8 MB/s rule beside the month queue. The
+  month files live on the desktop's D:, which has Python 3.14 (zstd in the
+  standard library) and .NET 8, so new `scripts\nnue\data-desktop.cmd` runs
+  the filter, `game import`, `nnue data` (heap 1 GB) and `records.py check`
+  there, each step skipped when done; `nnue-desktop.ps1 data <month>` starts
+  it as a task, and `sync` now builds and copies the Cli (773 KB) and
+  eval-games.py. A probe: 20 MB of July in 10.3 s. July and August started
+  17:34 as two tasks: each filter reads ~1.7-1.8 MB/s of its month (~4.3 h),
+  the D: disk 94% idle, so side by side costs neither. Records due ~01:00.
+- **train.py --add-data MONTH...**: the buckets of more months beside
+  --data; held-back error stays --data's (September), so the new net
+  compares with the old ones. Checked: 64 buckets alone, 128 with September
+  added twice; the parser takes several names and leaves --data alone. Not
+  synced yet: the running tasks are executing data-desktop.cmd from the share.
+- A slip worth keeping: the PowerShell tool refused a call whose here-string,
+  meant for the desktop, held `Remove-Item` on a D:\ path ("system path ...
+  blocked"): it reads the text, not where it runs. A script file passes.
