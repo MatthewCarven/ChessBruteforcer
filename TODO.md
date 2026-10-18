@@ -51,9 +51,9 @@ overnight (NNUE, below).
   **rejoin fix**; `bot\start-bot.cmd` brings it back (the learner and queue
   are up). Its first ~30 rated games against nnue1's are the next check (it
   searches ~9% slower; the match says it's worth it).
-- **The month queue: stopped** after its 20:05:38 start on 2026-10-18 (its
-  window gone before it downloaded; March's .part 5.22 of 29.35 GB on the
-  share; `scripts\month-queue.cmd` carries on). Before that (restarted 23:26): June and May 2026 are counted into
+- **The month queue: OFF on Matthew's word** (2026-10-18: he closed it at
+  ~20:06 on purpose; leave it off until he says). March's .part is 5.22 of
+  29.35 GB on the share; `scripts\month-queue.cmd` carries on from there. Before that (restarted 23:26): June and May 2026 are counted into
   the books (1,695,521 moves in 1,179,279 positions from 7,959,778 games, five
   months); it is downloading April (29.3 GB, resumed from 3.1 GB) at 500
   KB/s. Log games\month-queue.log; counts logs
