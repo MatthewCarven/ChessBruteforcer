@@ -1,0 +1,57 @@
+diff --git a/lib/lichess_bot.py b/lib/lichess_bot.py
+index 504327b..7324a4a 100644
+--- a/lib/lichess_bot.py
++++ b/lib/lichess_bot.py
+@@ -376,6 +376,7 @@ def lichess_bot_main(li: lichess.Lichess,
+         logger.info("Press Ctrl-C twice to quit immediately.")
+ 
+     with multiprocessing.pool.Pool(max_games + 1) as pool:
++        games_playing.clear()  # a restart's new pool: none of the old games' play_game survive it
+         while not (stop.terminated or (one_game and one_game_completed) or stop.restart):
+             event = next_event(control_queue)
+             if not event:
+@@ -388,6 +389,7 @@ def lichess_bot_main(li: lichess.Lichess,
+ 
+             if event["type"] == "local_game_done":
+                 active_games.pop(event["game"]["id"], None)
++                games_playing.discard(event["game"]["id"])
+                 matchmaker.game_done()
+                 log_proc_count("Freed", active_games)
+                 one_game_completed = True
+@@ -584,7 +586,7 @@ def rejoin_game_stream(li: lichess.Lichess, game_id: str, responses: list[reques
+             lines = response.iter_lines()
+             full = json.loads(next(lines).decode("utf-8"))
+         except (HTTPError, ReadTimeout, RemoteDisconnected, ChunkedEncodingError, RequestsConnectionError,
+-                StopIteration, ValueError) as e:
++                StopIteration, ValueError, lichess.RateLimitedError) as e:
+             logger.info(f"Game {game_id}: couldn't open its stream again ({attempt} of {REJOIN_TRIES}: {e!r})")
+             time.sleep(2)
+             continue
+@@ -593,9 +595,17 @@ def rejoin_game_stream(li: lichess.Lichess, game_id: str, responses: list[reques
+     return None
+ 
+ 
++# BruteForceBot (2026-10-19): the games with a play_game running here. lichess.org sends gameStart again for each
++# ongoing game whenever the event stream reconnects; the game's own play_game rejoins its stream by itself
++# (rejoin_game_stream), and a second one only fought it for the stream (lichess.org keeps one open a game), each
++# rejoining in turn until lichess.org rate-limited them (Ravager_BOT, 08:11).
++games_playing: set[str] = set()
++
++
+ def start_game_thread(active_games: dict[str, str], game_id: str, opponent_name: str,
+                       play_game_args: PlayGameArgsType, pool: POOL_TYPE) -> None:
+     """Start a game thread."""
++    games_playing.add(game_id)
+     active_games[game_id] = opponent_name
+     log_proc_count("Used", active_games)
+     play_game_args["game_id"] = game_id
+@@ -646,6 +656,9 @@ def start_game(event: EventType,
+         startup_correspondence_games.remove(game_id)
+     else:
+         opponent_name = event["game"].get("opponent", {}).get("username", "")
++        if game_id in games_playing:
++            logger.info(f"--- {config.url + game_id} is being played here already (gameStart again): not starting it twice")
++            return
+         start_game_thread(active_games, game_id, opponent_name, play_game_args, pool)
+ 
+ 

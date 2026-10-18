@@ -3593,3 +3593,40 @@ has the tables; this is the story.
   why (the PyTorch wheel, September's NNUE records, tables-baseline). Git
   ignores the folder. His to delete.
 - The bot won one more game, then Matthew stopped it (~20:45).
+
+## 2026-10-19 (08:10-08:30): a reconnect put two players on one game; lichess-bot plays a game once now
+
+- **What happened** (U4Gg0qAp, black v Ravager_BOT 2802, blitz): a connection
+  drop at ~08:11 closed both the game's stream and the event stream. The
+  game's player rejoined its stream (the rejoin patch, working), and when the
+  event stream reconnected, lichess.org sent gameStart for the ongoing game, as
+  it does for every ongoing game on each connect. lichess-bot started a second
+  player for it ("Process Used" again at 08:11:26). lichess.org keeps one
+  stream open a game, so the two closed each other's, rejoining in turn (46
+  "rejoined" lines in ~90 s), both searching every move (two "move: 44", two
+  "move: 48"), until lichess.org rate-limited the stream (08:13:05: "Giving
+  up play_game(...) after 7 tries (RateLimitedError)"), which killed one. The
+  other played on alone. Its local_game_done also took the game off
+  lichess-bot's list of active games while it went on.
+- **bot\lichess-bot-one-player.patch** (lib\lichess_bot.py, on top of the
+  chat, rejoin and busy patches; start-bot.cmd applies it after them): a set
+  of the games with a player running here (added in start_game_thread,
+  removed on local_game_done, emptied when a restart makes a new pool);
+  start_game skips a gameStart for a game in it and logs "being played here
+  already". The rejoin also takes RateLimitedError as one failed try instead
+  of dying.
+- **bot\test-one-player.py**: lichess-bot's pretend lichess.org sends gameStart
+  on the first two event streams; the game's first stream drops only after the
+  second is out (so the test can't pass by the game ending first, which it did
+  once before that); every game stream opened is counted across processes.
+  Passes on exactly 2 (the player's own and its rejoin) and a win: with the
+  patch, passed twice; without it, FAILED twice (3 streams, two players). It
+  runs on a copy (`LICHESS_BOT_DIR`), so the running bot was left alone.
+- Takes effect at the bot's next `bot\start-bot.cmd`, between games (not
+  `start.cmd`, which would start the month queue Matthew turned off).
+- **Also seen, not fixed**: lichess-bot quit at 00:32:52 on a TypeError in
+  accept_challenges (`while len(active_games) < max_games and
+  challenge_queue:`: the manager's list said its length was None) and came
+  back at 01:16 when lichess.org answered (run-bot.ps1), 44 minutes down. Once
+  so far; a TODO line.
+- Matthew stopped the downloads (~08:15).
