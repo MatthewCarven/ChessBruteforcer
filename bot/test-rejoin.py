@@ -14,7 +14,7 @@ import threading
 import types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BOT = os.path.join(HERE, "lichess-bot")
+BOT = os.environ.get("LICHESS_BOT") or os.path.join(HERE, "lichess-bot")   # a copy, to leave a running bot alone
 os.chdir(BOT)
 sys.path.insert(0, BOT)
 sys.modules.setdefault("pytest", types.ModuleType("pytest"))   # test_bot.test_bot refuses to load without it

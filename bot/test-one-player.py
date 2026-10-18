@@ -11,7 +11,7 @@ Uses lichess-bot's own pretend lichess.org (test_bot/lichess.py: no network, no 
 white; the bot under test plays black with lichess-bot's homemade test engine (Scholar's mate). The game's first stream
 drops after the opponent's first move, and the event stream sends gameStart twice. Passes when the bot wins with
 exactly two game streams opened (the first, and its one rejoin): a second player opens more. The lichess-bot tested
-is bot\\lichess-bot, or the folder in the environment variable LICHESS_BOT_DIR (a copy, so a running bot is left alone).
+is bot\\lichess-bot, or the folder in the environment variable LICHESS_BOT (a copy, so a running bot is left alone).
 """
 import os
 import sys
@@ -19,7 +19,7 @@ import threading
 import types
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BOT = os.environ.get("LICHESS_BOT_DIR") or os.path.join(HERE, "lichess-bot")
+BOT = os.environ.get("LICHESS_BOT") or os.path.join(HERE, "lichess-bot")
 os.chdir(BOT)
 sys.path.insert(0, BOT)
 sys.modules.setdefault("pytest", types.ModuleType("pytest"))   # test_bot.test_bot refuses to load without it

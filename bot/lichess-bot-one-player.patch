@@ -1,5 +1,5 @@
 diff --git a/lib/lichess_bot.py b/lib/lichess_bot.py
-index 504327b..7324a4a 100644
+index b4f100e..0795e30 100644
 --- a/lib/lichess_bot.py
 +++ b/lib/lichess_bot.py
 @@ -376,6 +376,7 @@ def lichess_bot_main(li: lichess.Lichess,
@@ -18,17 +18,16 @@ index 504327b..7324a4a 100644
                  matchmaker.game_done()
                  log_proc_count("Freed", active_games)
                  one_game_completed = True
-@@ -584,7 +586,7 @@ def rejoin_game_stream(li: lichess.Lichess, game_id: str, responses: list[reques
-             lines = response.iter_lines()
-             full = json.loads(next(lines).decode("utf-8"))
-         except (HTTPError, ReadTimeout, RemoteDisconnected, ChunkedEncodingError, RequestsConnectionError,
--                StopIteration, ValueError) as e:
-+                StopIteration, ValueError, lichess.RateLimitedError) as e:
-             logger.info(f"Game {game_id}: couldn't open its stream again ({attempt} of {REJOIN_TRIES}: {e!r})")
-             time.sleep(2)
-             continue
-@@ -593,9 +595,17 @@ def rejoin_game_stream(li: lichess.Lichess, game_id: str, responses: list[reques
-     return None
+@@ -597,6 +599,7 @@ def start_game_thread(active_games: dict[str, str], game_id: str, opponent_name:
+                       play_game_args: PlayGameArgsType, pool: POOL_TYPE) -> None:
+     """Start a game thread."""
+     active_games[game_id] = opponent_name
++    games_playing.add(game_id)
+     log_proc_count("Used", active_games)
+     play_game_args["game_id"] = game_id
+ 
+@@ -615,6 +618,13 @@ def start_game_thread(active_games: dict[str, str], game_id: str, opponent_name:
+                      error_callback=game_error_handler)
  
  
 +# BruteForceBot (2026-10-19): the games with a play_game running here. lichess.org sends gameStart again for each
@@ -38,13 +37,9 @@ index 504327b..7324a4a 100644
 +games_playing: set[str] = set()
 +
 +
- def start_game_thread(active_games: dict[str, str], game_id: str, opponent_name: str,
-                       play_game_args: PlayGameArgsType, pool: POOL_TYPE) -> None:
-     """Start a game thread."""
-+    games_playing.add(game_id)
-     active_games[game_id] = opponent_name
-     log_proc_count("Used", active_games)
-     play_game_args["game_id"] = game_id
+ def start_game(event: EventType,
+                pool: POOL_TYPE,
+                play_game_args: PlayGameArgsType,
 @@ -646,6 +656,9 @@ def start_game(event: EventType,
          startup_correspondence_games.remove(game_id)
      else:

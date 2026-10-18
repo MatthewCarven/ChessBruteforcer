@@ -3630,3 +3630,30 @@ has the tables; this is the story.
   back at 01:16 when lichess.org answered (run-bot.ps1), 44 minutes down. Once
   so far; a TODO line.
 - Matthew stopped the downloads (~08:15).
+
+## 2026-10-19 (08:30-08:55): the bot restarted with the one-player fix; the patches made to stack cleanly
+
+- Matthew restarted the bot between games (08:32:31, `bot\start-bot.cmd`): the
+  one-player patch went in. But it changed a line of the rejoin patch's (the
+  rate limit in rejoin_game_stream) and put its set next to that patch's
+  lines, so `git apply --reverse --check` no longer found the rejoin patch
+  in: from the next start, start-bot.cmd would have tried to apply it again,
+  failed, and printed "The rejoin fix didn't go in" with the fix in place.
+- Rebuilt in a copy from lichess-bot as downloaded: chat, then the rejoin
+  patch with `lichess.RateLimitedError` among its caught errors (its only
+  change), busy, then the one-player patch with `games_playing` defined above
+  start_game and added after `active_games[game_id] = ...`, clear of the rejoin
+  patch's lines and their three lines of context. All four read as in on the
+  result. The live lichess-bot went the same way (old one-player, busy, old
+  rejoin out; new rejoin, busy, new one-player in, each by `git apply`): its
+  lichess_bot.py equals the rebuilt one, line endings aside. The same code as
+  the running bot's, moved, so it carries on.
+- test-rejoin.py, test-one-player.py and test-busy.py all pass on the rebuilt
+  copy (each takes `LICHESS_BOT`, a folder to test instead of
+  bot\lichess-bot, so a running bot is left alone).
+- **Ravager_BOT's game wasn't saved** to bot\games: lichess-bot's record writer
+  failed ("san() ... expect move to be legal ... c7g3"), a comment from the two
+  players' interleaved searches put on the wrong move. The learner won't see
+  it unless its PGN is fetched from lichess.org.
+- The bot's quit message at 08:32:23 (`Cannot have cache with result_handler
+  not alive`) came from the restart, lichess-bot's pool closing mid-shutdown.
