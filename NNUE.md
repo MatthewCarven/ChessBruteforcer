@@ -806,8 +806,18 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   EvalFile loads it, a6 against the Ruy Lopez. Held-back error as the
   engine computes it **0.013813** against nnue1-h512's 0.013664 (+1.1%) on
   positions without mates: the cost of the capacity it spent on mates. What
-  it gains is where the measure doesn't look, so the match decides. Not
-  played yet.
+  it gains is where the measure doesn't look, so the match decides.
+- **Its match: h512-mates -11 Elo [-26, +3] against nnue1-h512**, +310 -349
+  =553 in 1,212 games, SPRT [0, 10] accepted H0 (2026-10-18, 14:03-16:03, the
+  bot stopped). **Mates in training don't help** either: the search finds
+  mates by itself, and the tables cover the endings, so the net's capacity
+  is better spent on ordinary positions.
+- **So far in session 5**: size helped (+76), the two target changes didn't
+  (-11 each, both within 3 Elo of zero at the top of their range). Left:
+  **more data** (July and August, ~3x the positions; the 512 net's gain
+  says capacity was short, and more positions is what a bigger net wants),
+  the export's rounding (small), and labels from our own search (a long
+  job for the CPU). The desktop trains any of them.
 
 ## Risks
 

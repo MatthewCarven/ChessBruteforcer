@@ -3469,4 +3469,17 @@ has the tables; this is the story.
   (nnue1-h512 0.013664; +1.1% on positions without mates, the capacity the
   mates took). Fetched; EvalFile loads it (sha256 0cf690d690a3...). Its
   match against nnue1-h512 waits on Matthew. The bot is still off.
+
+## 2026-10-18 (14:03-16:05): mates in training don't help either
+
+- On Matthew's word, with the bot still off: checked again (no bot, 6.1 GB
+  free, on AC, only the learner's engine), then `scripts\nnue-match.cmd
+  h512-mates nnue1-h512` in its own window, 14:03:48-16:03:08.
+- **SPRT [0, 10] accepted H0 at game 1,212**: +310 -349 =553, 48.4%, **-11
+  Elo [-26, +3]**, LOS 6%. Never above 50%; no time losses, crashes or
+  illegal moves; equal speed.
+- Session 5 so far: 512 hidden +76, the result blend -11, mates in -11.
+  Both target changes cost a little if anything; size paid. More data is
+  the lever the evidence points to next. The bot stays on nnue1-h512, and
+  is still off until Matthew starts it.
 - The desktop tidied again (the probe's and smoke runs' nets and tasks).

@@ -46,7 +46,7 @@ overnight (NNUE, below).
 
 **Running right now, each in its own window (check them, don't start them):**
 - **The bot is OFF since ~08:20 on 2026-10-18** (Matthew stopped it for the
-  blend's match). It plays on nnue1-h512 (from 23:26 on 2026-10-17), with the
+  blend's and the mates' matches, both done by 16:03). It plays on nnue1-h512 (from 23:26 on 2026-10-17), with the
   **rejoin fix**; `bot\start-bot.cmd` brings it back (the learner and queue
   are up). Its first ~30 rated games against nnue1's are the next check (it
   searches ~9% slower; the match says it's worth it).
@@ -87,10 +87,13 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   - **h512-blend25** (the result blend 0.25): done 06:25; **its match:
     -11 Elo [-25, +3] against nnue1-h512, SPRT accepted H0** (1,252 games,
     08:22-10:25, the bot stopped). Doesn't help.
-  - **h512-mates** (mates included): done 09:59, in games\nnue\nets\, loads
-    in the engine; held-back 0.013813 against 0.013664 on positions without
-    mates (+1.1%, as expected). **Its match against nnue1-h512 is next**
-    (`scripts\nnue-match.cmd h512-mates nnue1-h512`), Matthew's call when. `scripts\nnue-desktop.ps1
+  - **h512-mates** (mates included): done 09:59; **its match: -11 Elo
+    [-26, +3] against nnue1-h512, SPRT accepted H0** (1,212 games,
+    14:03-16:03, the bot stopped). Doesn't help.
+  - Next lever, by the evidence: **more data** (July and August through
+    `nnue data`, ~3x the positions, then copied to the desktop with
+    scripts\capped-copy.py), since size helped and the target changes
+    didn't. `scripts\nnue-desktop.ps1
   status h512-blend25` (or h512-mates); `stop <run>` ends the task if he
   needs the GPU (`train <run> ... --resume` carries on from the last pass).
   Then: `fetch` each, and a match against nnue1-h512 each
