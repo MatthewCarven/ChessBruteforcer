@@ -119,6 +119,17 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
 - **Pushing**: Matthew is holding back pushes for a few days on purpose, so
   rivals can't copy the bot. Don't nag.
 
+**Two games at once, and "later" when both run** (Matthew's (a), 2026-10-18
+~19:50; on this branch, takes effect at the bot's next `bot\start-bot.cmd`
+after the merge): 136 of 191 accepts since 14 October had failed without a
+word (the challenge withdrawn while it waited in lichess-bot's queue through
+a whole game: 133 of the 168 accepts made straight after a game). Now
+`concurrency` 2 (two different people: `max_simultaneous_games_per_user` 1),
+and bot\lichess-bot-busy.patch declines a challenge at once with "later"
+when both slots are taken (bot\test-busy.py: 6 cases, 2 of them red without
+the patch). He'll go back to one game if it loses more: `concurrency` 1 in
+make-config.py (the patch still helps at 1).
+
 **Waiting on Matthew:** the merge and the bot's start above; delete the
 laptop's copy of May (games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7
 GB; it's on the share and checked); July's lines.u16 and old plain columns

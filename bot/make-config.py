@@ -77,7 +77,10 @@ for kind in ("syzygy", "gaviota"):
 engine["draw_or_resign"]["resign_enabled"] = False            # play every game out (for now)
 
 challenge = config["challenge"]
-challenge["concurrency"] = 1                                  # one game at a time on the laptop
+challenge["concurrency"] = 2                                  # two games at once (Matthew, 2026-10-18); a challenge
+                                                              # that comes while both run is declined "later" at once
+                                                              # (bot\lichess-bot-busy.patch), not queued to go stale
+challenge["max_simultaneous_games_per_user"] = 1              # the two games are against two different people
 challenge["modes"] = ["casual", "rated"]                      # rated from 2026-10-13 (six clean casual games first)
 challenge["time_controls"] = ["bullet", "blitz", "rapid", "classical"]
 

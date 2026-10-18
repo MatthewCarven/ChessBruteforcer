@@ -44,6 +44,13 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-rejoin.patch"
     if errorlevel 1 echo The rejoin fix didn't go in ^(lichess-bot changed?^): a dropped game stream will lose games again.
 )
+rem A challenge that comes while every game slot is taken is declined at once ("later") rather than queued, where it
+rem used to go stale (bot\lichess-bot-busy.patch, 2026-10-18; bot\test-busy.py tests it), unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-busy.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-busy.patch"
+    if errorlevel 1 echo The busy decline didn't go in ^(lichess-bot changed?^): challenges will queue and go stale again.
+)
 set BRUTEFORCER_TABLES=%CD%\tables
 rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers.
 pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0run-bot.ps1"

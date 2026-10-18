@@ -3512,3 +3512,41 @@ has the tables; this is the story.
 - A slip worth keeping: the PowerShell tool refused a call whose here-string,
   meant for the desktop, held `Remove-Item` on a D:\ path ("system path ...
   blocked"): it reads the text, not where it runs. A script file passes.
+
+## 2026-10-18 (19:00-20:10): the bot back after a move; accepted challenges that never started
+
+- Matthew stopped the bot to move the laptop upstairs, then `start.cmd`
+  (19:12): bot, learner and queue all up; the queue had finished April
+  (counted 15:10; the book now 9.5 M games, six months) and resumed March at
+  3.84 GB, ~570 KB/s.
+- **"Accept ... challenge from BOT simple-bot", then nothing** (Matthew): no
+  game. lichess-bot's accept_challenges logs "Accept", then "Process Queued"
+  once lichess.org takes it; it logs a 404 as "Skip missing" and swallows
+  any other HTTP error or a reply slower than 2 s without a word. Over the
+  logs since 14 October (scratchpad accepts.py): **191 accepts, 46 clean, 9
+  missing, 136 swallowed** with no game. Of the accepts made straight after a
+  game ended ("Process Freed" just before): **133 of 168 swallowed**; made
+  while idle: 3 of 23. The bot played one game at a time (concurrency 1), so
+  challenges arriving mid-game waited in its queue; by the game's end the
+  challenger had usually withdrawn it.
+- **Matthew's (a)**: two games at once ("not really more"; he'd like to tell
+  the third "I'm already playing 2 people"). lichess.org lets a bot decline
+  only with its fixed reasons; "later" shows the challenger "This is not the
+  right time for me, please ask again later." So:
+  - **bot\lichess-bot-busy.patch** (handle_challenge): a supported challenge
+    that arrives with every slot taken (ongoing games plus queued challenges
+    at `concurrency`) is declined "later" at once. Made against the live
+    lib\lichess_bot.py (chat and rejoin patches in), LF; `git apply --check`
+    clean on the real lichess-bot. start-bot.cmd applies it like the others.
+  - **bot\test-busy.py**: lichess-bot's own handle_challenge, its defaults at
+    concurrency 2, a pretend lichess.org that lists games and records
+    declines. Six cases (no game, one, two, one plus one queued, a variant it
+    doesn't play with slots free and full): all pass with the patch; without
+    it the two full-slot cases fail.
+  - **make-config.py**: concurrency 2, max_simultaneous_games_per_user 1 (two
+    different people). Matchmaking still challenges only when idle
+    (allow_during_games is false by default), so the second slot is for
+    whoever challenges it.
+- Takes effect after the merge and the bot's next start, between games.
+  Matthew: if it loses more at two games (each engine gets about half the
+  CPU), back to concurrency 1.

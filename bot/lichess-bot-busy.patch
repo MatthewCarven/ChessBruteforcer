@@ -1,0 +1,18 @@
+diff --git a/lib/lichess_bot.py b/lib/lichess_bot.py
+index bd87afb..504327b 100644
+--- a/lib/lichess_bot.py
++++ b/lib/lichess_bot.py
+@@ -676,6 +676,13 @@ def handle_challenge(event: EventType, li: lichess.Lichess, challenge_queue: MUL
+                                                       opponent_engagements,
+                                                       online_block_list,
+                                                       user_profile)
++    if is_supported and len(active_games) + len(challenge_queue) >= challenge_config.concurrency:
++        # BruteForceBot (2026-10-18): every game slot is taken (playing, or about to play a challenge already queued),
++        # so decline now with "later" (lichess.org tells the challenger: "This is not the right time for me, please
++        # ask again later.") rather than queue it. A challenge queued through a whole game had usually been withdrawn
++        # by the end of it, and the accept then failed without a word: 133 of the 168 accepts made straight after a
++        # game, 14-18 October.
++        is_supported, decline_reason = False, "later"
+     if is_supported:
+         challenge_queue.append(chlng)
+         sort_challenges(challenge_queue, challenge_config)
