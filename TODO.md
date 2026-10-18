@@ -134,10 +134,10 @@ when both slots are taken (bot\test-busy.py: 6 cases, 2 of them red without
 the patch). He'll go back to one game if it loses more: `concurrency` 1 in
 make-config.py (the patch still helps at 1).
 
-**Waiting on Matthew:** delete the `delete me` folder (42.3 GB, moved there
-2026-10-18 at his asking: May's laptop copy, July's lines and old plain
-columns, the tuning .pgns; `delete me\WHAT-THIS-IS.txt` says what and why).
-The index lives in `indexes\` now (his call, 2026-10-18).
+**Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
+on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now
+on, listed in `delete me\WHAT-THIS-IS.txt`. The index lives in `indexes\`
+(his call, 2026-10-18).
 
 ### Now (2026-10-15)
 
@@ -214,8 +214,8 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
    - [x] Where the whole index lives: `indexes\<month>\` in the project
          folder on the laptop (Matthew, 2026-10-18; git ignores it;
          index-month.cmd and clean-up.ps1 point there). Space: ~1.27 GB of rows
-         a month, ~58 GB for 46 months; C: has 45 GB free, ~87 GB once
-         `delete me` is emptied.
+         a month, ~58 GB for 46 months; C: has 84 GB free (2026-10-18,
+         `delete me` emptied).
    - [x] `rows` writes Parquet directly (10 M games a part, zstd, through
          DuckDB) and the plain .zst columns are gone; `check`, `dups`,
          `trial` read the Parquet, and `check` also compares every sampled
