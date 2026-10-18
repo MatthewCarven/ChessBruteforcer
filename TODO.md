@@ -45,8 +45,9 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 overnight (NNUE, below).
 
 **Running right now, each in its own window (check them, don't start them):**
-- **The bot is OFF since ~08:20 on 2026-10-18** (Matthew stopped it for the
-  blend's and the mates' matches, both done by 16:03). It plays on nnue1-h512 (from 23:26 on 2026-10-17), with the
+- **The bot is back online since 17:24:55 on 2026-10-18** (`bot\start-bot.cmd`
+  on Matthew's word; off from ~08:20 for the blend's and the mates'
+  matches). It plays on nnue1-h512 (from 23:26 on 2026-10-17), with the
   **rejoin fix**; `bot\start-bot.cmd` brings it back (the learner and queue
   are up). Its first ~30 rated games against nnue1's are the next check (it
   searches ~9% slower; the match says it's worth it).
