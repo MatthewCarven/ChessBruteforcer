@@ -94,12 +94,13 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   - **More data, under way** (Matthew's yes, 2026-10-18 17:34): July's and
     August's records were made **on the desktop** from the month files on
     its disk (done 04:51 and 05:22 on 2026-10-19, 240.4 M and 253.4 M
-    records, all checked; ~11.5 h a month there). **h512-3m is training**
-    since 05:26: 512 hidden on July + August + September, 10 passes, done
-    ~10:45 (`scripts\nnue-desktop.ps1 status h512-3m`). Then fetch, and its
-    match against nnue1-h512 (the bot off: Matthew's call). Expect a modest
-    gain (nnue1-h512 isn't memorising September: 2.1% between its training
-    and held-back error). `scripts\nnue-desktop.ps1
+    records, all checked; ~11.5 h a month there). **h512-3m trained**
+    05:32-10:42 (512 hidden, July + August + September, 10 passes): in
+    games\nnue\nets\, loads in the engine; held-back error 0.013640 at K 1
+    (-0.2% against nnue1-h512), 0.013437 at its fitted K 1.10 (-1.7%): the
+    modest gain expected. **Its match against nnue1-h512 is next**
+    (`scripts\nnue-match.cmd h512-3m nnue1-h512`, the bot off: Matthew's
+    call when). `scripts\nnue-desktop.ps1
   status h512-blend25` (or h512-mates); `stop <run>` ends the task if he
   needs the GPU (`train <run> ... --resume` carries on from the last pass).
   Then: `fetch` each, and a match against nnue1-h512 each

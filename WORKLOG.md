@@ -3568,3 +3568,22 @@ has the tables; this is the story.
   and nnue-desktop.ps1 turns commas into slashes for the desktop's cmd.
 - Running at 1,935 MHz, 77 W, 99% (PySynthRack closed): 338 k positions a
   second over the first 8 of 192 buckets, ~31 min a pass, done ~10:45.
+- A false alarm at 05:31: the watcher waited for "finished" in h512-3m.err,
+  which already held the two false starts' "finished, exit 2" lines. The
+  notebook's 2026-10-17 note again (count the matches); the second watcher
+  waited for a third.
+
+## 2026-10-19 (10:42-10:50): h512-3m done, a small gain on held-back error
+
+- **h512-3m finished 10:42** (desktop clock), exit 0: 10 passes of
+  677,005,066 positions at 362-370 k a second, no pauses; the rate stepped
+  down after passes 4, 7 and 9 as asked.
+- Held-back error (September's positions, as the engine computes it):
+  **0.013640 at K 1 against nnue1-h512's 0.013664 (-0.2%); 0.013437 at its
+  fitted K 1.10 (-1.7%)**. The fitted K sat at 1.06-1.13 every pass: its
+  scores run ~10% small against September's Stockfish scale, perhaps because
+  July's and August's labels sit on a slightly different one. A modest gain,
+  as said beforehand; the match decides.
+- Fetched into games\nnue\nets\ (network sha256 9da33208a6f5...); EvalFile
+  loads it; a6 against the Ruy Lopez at depth 10. Its match against
+  nnue1-h512 waits on Matthew (the bot off).

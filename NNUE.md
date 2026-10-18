@@ -850,6 +850,24 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   stepped down after passes 4, 7 and 9 (`--lr-drops 4/7/9`: PowerShell reads
   an unquoted 4,7,9 as three arguments, which cost two false starts). 1,935
   MHz, 77 W; ~31 min a pass, done ~10:45.
+- **h512-3m done** (05:32-10:42 by the desktop's clock, exit 0, no pauses;
+  362-370 k positions a second, 677,005,066 a pass): `games\nnue\nets\
+  h512-3m.nnue`, 789,572 bytes, QB 64, network sha256 9da33208a6f5...;
+  EvalFile loads it, a6 against the Ruy Lopez. Held-back error on
+  September's positions, as the engine computes it:
+
+  | net | at K 1 (Stockfish's scale) | at its own fitted K |
+  |---|---|---|
+  | nnue1-h512 (September, 20 passes) | 0.013664 | 0.013664 (K 1.00) |
+  | **h512-3m** (three months, 10 passes) | 0.013640 (-0.2%) | **0.013437 (-1.7%, K 1.10)** |
+
+  A small gain, as expected. The fitted K of 1.10 says its scores come out
+  ~10% smaller than September's Stockfish scale (every pass fitted 1.06 to
+  1.13): July's and August's labels may sit on a slightly different scale,
+  which would also explain why its K 1 figure wobbled at the end (0.013503,
+  0.013460, 0.013585 over passes 8-10) while the fitted one fell steadily
+  (0.013393, 0.013383, 0.013356). Its training error, 0.012119 over all
+  three months, isn't comparable with September's alone. The match decides.
 
 ## Risks
 
