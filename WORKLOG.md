@@ -3573,3 +3573,23 @@ has the tables; this is the story.
     sliding to 0.00 only by move 74. So the evaluation, not the search,
     overrated the far passed b-pawn in a knight ending. One game is an
     anecdote; a TODO line asks for more.
+
+## 2026-10-18 (20:10-20:45): the month queue off; indexes\ and delete me
+- **The month queue is off on Matthew's word**: he closed it at ~20:06, his
+  mum's YouTube struggling even at the 500 KB/s cap. March's .part stays at
+  5.22 of 29.35 GB on the share. When it returns: 300k, or overnight only.
+- **Where the index lives: `indexes\`** in the project folder (Matthew). July's
+  and 2013-01's index and their logs moved there from games\index (a rename
+  on C:, instant); index-month.cmd and clean-up.ps1 point there, INDEX.md
+  says so; git ignores it. Checked after the move: 2013-01's `check` passes
+  (1,000 of 1,000 rows, 3 of 3 boundary games); July's Parquet holds
+  89,288,421 rows, Lichess's count.
+- **`delete me\`** (Matthew: "shove anything you want gone inside it"), 42.3 GB,
+  nothing in the project reads any of it: May's laptop copy (29.69 GB; on the
+  share, checked, counted), the analysed games as .pgn for September and July
+  (7.63 + 0.81 GB; their .cbg is what's read), July's lines.u16 + lines.json
+  (2.86 GB; the trial is done), the index's old plain columns (1.27 GB July, 2
+  MB 2013-01). `delete me\WHAT-THIS-IS.txt` lists them, and what was kept and
+  why (the PyTorch wheel, September's NNUE records, tables-baseline). Git
+  ignores the folder. His to delete.
+- The bot won one more game, then Matthew stopped it (~20:45).

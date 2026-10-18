@@ -7,7 +7,7 @@
 #     (2026-09-tables.pgn, 2026-09-part-tables.pgn), and the unpacked 2013 PGNs whose .zst is kept;
 #   - a month's download, games\lichess_db_standard_rated_<month>.pgn.zst, but only once
 #     bot\books\counts\<month>.counts exists (the count writes it last, so it is finished);
-#   - an index's plain .zst columns, games\index\<month>\games\, once the month has been indexed again with
+#   - an index's plain .zst columns, indexes\<month>\games\, once the month has been indexed again with
 #     the rows in Parquet (its games.json says "format": "parquet"): nothing reads them since 2026-10-15.
 # Kept: every .cbg, the 2013 .zst downloads (small), the tables, 2026-09-part.cbg (the only copy of all
 # of a 2026 day's games once September's download is gone).
@@ -25,7 +25,7 @@ foreach ($zst in Get-ChildItem games -Filter 'lichess_db_standard_rated_*.pgn.zs
         $offer += [pscustomobject]@{ File = $zst.FullName; GB = $zst.Length / 1GB; Why = "counted into bot\books\counts\$month.counts" }
     }
 }
-foreach ($dir in Get-ChildItem games\index -Directory -ErrorAction SilentlyContinue) {
+foreach ($dir in Get-ChildItem indexes -Directory -ErrorAction SilentlyContinue) {
     $plain = Join-Path $dir.FullName 'games'
     $note = Join-Path $dir.FullName 'games.json'
     if ((Test-Path -LiteralPath $plain) -and (Test-Path -LiteralPath $note) -and

@@ -22,7 +22,7 @@ mkdir tree && git archive HEAD src | tar -x -C tree
 python patch.py
 dotnet run -c Release bench.cs 9 5 ../../bot/eval/eval-sf1.txt
 dotnet run -c Release count.cs ../../games/tune/eval-games-2026-09.cbg 100000
-python -I july.py "../../games/index/2026-07/parquet/part-*.parquet" <temp dir>
+python -I july.py "../../indexes/2026-07/parquet/part-*.parquet" <temp dir>
 ```
 
 Results: `results-2026-10-16.txt`.

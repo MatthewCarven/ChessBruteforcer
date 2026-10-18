@@ -134,10 +134,10 @@ when both slots are taken (bot\test-busy.py: 6 cases, 2 of them red without
 the patch). He'll go back to one game if it loses more: `concurrency` 1 in
 make-config.py (the patch still helps at 1).
 
-**Waiting on Matthew:** the merge and the bot's start above; delete the
-laptop's copy of May (games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7
-GB; it's on the share and checked); July's lines.u16 and old plain columns
-(4.1 GB); where the whole index lives (a proposal card exists).
+**Waiting on Matthew:** delete the `delete me` folder (42.3 GB, moved there
+2026-10-18 at his asking: May's laptop copy, July's lines and old plain
+columns, the tuning .pgns; `delete me\WHAT-THIS-IS.txt` says what and why).
+The index lives in `indexes\` now (his call, 2026-10-18).
 
 ### Now (2026-10-15)
 
@@ -178,8 +178,8 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          matching, check 4,000 of 4,000, dups 2.05% as before.
    - [x] **May 2026 is on the share**, its SHA-256 matching Lichess's there
          too (2026-10-16 13:14; copied 09:07 on, then checked at the 8 MB/s
-         cap). The laptop's copy (games\lichess_db_standard_rated_2026-05.pgn.zst,
-         29.7 GB) can go now: Matthew's delete. June's .part waits on the
+         cap). The laptop's copy (29.7 GB) is in `delete me` since 2026-10-18,
+         for Matthew to delete. June's .part waits on the
          share; the month queue isn't running. Not counted into the books yet.
    - [x] **The bot is off** (Matthew, 2026-10-17): the laptop ran warm with the
          NNUE training and the bot's games together. Back on since 2026-10-18
@@ -211,7 +211,11 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          2,000 games byte for byte and every row right in all 11 columns
          against the game parsed again; dups as before (2.05%). The read ran
          at 11.4 MB/s beside the bot on 8 threads.
-   - [ ] Where the whole index lives: Matthew's call.
+   - [x] Where the whole index lives: `indexes\<month>\` in the project
+         folder on the laptop (Matthew, 2026-10-18; git ignores it;
+         index-month.cmd and clean-up.ps1 point there). Space: ~1.27 GB of rows
+         a month, ~58 GB for 46 months; C: has 45 GB free, ~87 GB once
+         `delete me` is emptied.
    - [x] `rows` writes Parquet directly (10 M games a part, zstd, through
          DuckDB) and the plain .zst columns are gone; `check`, `dups`,
          `trial` read the Parquet, and `check` also compares every sampled
@@ -226,7 +230,7 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          \\id10terror-desktop\chessbruteforcer\lichess` saves it and
          downloads nothing (never while June's .part is still growing: it
          would start a second download). May onwards get theirs as they land.
-   - [ ] Can go now (Matthew's delete), 4.1 GB in games/index/2026-07:
+   - [x] Moved into `delete me` (2026-10-18), 4.1 GB from games/index/2026-07:
          lines.u16 (2.86 GB; the lines trial is done) and the old plain
          columns in games/ (1.27 GB; scripts/clean-up.ps1 offers them now the
          rows are Parquet). The new `rows` replaced parquet/ and cleared tmp/.

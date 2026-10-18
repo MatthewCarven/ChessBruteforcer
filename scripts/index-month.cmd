@@ -1,6 +1,6 @@
 @echo off
 rem Index session 1 on one Lichess month (INDEX.md): the read, the checks, duplicates, the queries on the rows
-rem and the Lookuptables trial, one after another, all output into games\index\index-<month>.log.
+rem and the Lookuptables trial, one after another, all output into indexes\index-<month>.log.
 rem   scripts\index-month.cmd 2026-07 [a log to wait for]
 rem With a second argument, it first waits (checking each minute) until that log has its "final:" line, as a
 rem match's log does when the match is over: the read and the trials need the memory the match is using.
@@ -18,9 +18,9 @@ if "%MONTH%"=="" (
 cd /d "%~dp0.."
 if not defined MONTHS set MONTHS=\\id10terror-desktop\chessbruteforcer\lichess
 set ZST=%MONTHS%\lichess_db_standard_rated_%MONTH%.pgn.zst
-set DIR=games\index\%MONTH%
-set LOG=games\index\index-%MONTH%.log
-if not exist games\index mkdir games\index
+set DIR=indexes\%MONTH%
+set LOG=indexes\index-%MONTH%.log
+if not exist indexes mkdir indexes
 if not exist "%ZST%" (
     echo %ZST% isn't there.
     pause

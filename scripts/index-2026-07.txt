@@ -1,7 +1,7 @@
 # July 2026's index: sessions 1 and 1b (INDEX.md), written up 2026-10-15
 
 Run: scripts\index-month.cmd 2026-07, 13:33-14:54 on 2026-10-15; then again with the fix below,
-18:39-20:58 (log games/index/index-2026-07.log, both runs). The month: lichess_db_standard_rated_2026-07.pgn.zst
+18:39-20:58 (log games/index/index-2026-07.log, both runs; from 2026-10-18 indexes/index-2026-07.log). The month: lichess_db_standard_rated_2026-07.pgn.zst
 on the desktop share, 29.05 GB, 6,177 frames. Its SHA-256 matches Lichess's.
 
 **With the fix: 89,288,421 games, exactly Lichess's count, and every check passing.** The numbers
