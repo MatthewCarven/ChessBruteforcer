@@ -51,7 +51,9 @@ overnight (NNUE, below).
   **rejoin fix**; `bot\start-bot.cmd` brings it back (the learner and queue
   are up). Its first ~30 rated games against nnue1's are the next check (it
   searches ~9% slower; the match says it's worth it).
-- **The month queue** (restarted 23:26): June and May 2026 are counted into
+- **The month queue: stopped** after its 20:05:38 start on 2026-10-18 (its
+  window gone before it downloaded; March's .part 5.22 of 29.35 GB on the
+  share; `scripts\month-queue.cmd` carries on). Before that (restarted 23:26): June and May 2026 are counted into
   the books (1,695,521 moves in 1,179,279 positions from 7,959,778 games, five
   months); it is downloading April (29.3 GB, resumed from 3.1 GB) at 500
   KB/s. Log games\month-queue.log; counts logs
@@ -120,8 +122,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   rivals can't copy the bot. Don't nag.
 
 **Two games at once, and "later" when both run** (Matthew's (a), 2026-10-18
-~19:50; on this branch, takes effect at the bot's next `bot\start-bot.cmd`
-after the merge): 136 of 191 accepts since 14 October had failed without a
+~19:50; in effect since Matthew's `start.cmd` at 20:05:24, 2026-10-18; config.yml
+says concurrency 2): 136 of 191 accepts since 14 October had failed without a
 word (the challenge withdrawn while it waited in lichess-bot's queue through
 a whole game: 133 of the 168 accepts made straight after a game). Now
 `concurrency` 2 (two different people: `max_simultaneous_games_per_user` 1),
@@ -177,9 +179,9 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          cap). The laptop's copy (games\lichess_db_standard_rated_2026-05.pgn.zst,
          29.7 GB) can go now: Matthew's delete. June's .part waits on the
          share; the month queue isn't running. Not counted into the books yet.
-   - [ ] **The bot is off** (Matthew, 2026-10-17): the laptop ran warm with the
-         NNUE training and the bot's games together. Back on once training is
-         done, or with a notebook cooler; not beside a training run.
+   - [x] **The bot is off** (Matthew, 2026-10-17): the laptop ran warm with the
+         NNUE training and the bot's games together. Back on since 2026-10-18
+         17:24; nets train on the desktop, not beside it.
    - [x] **Share traffic at or under ~8 MB/s** (Matthew, 2026-10-16: faster
          knocks the laptop off the internet). make-book.py's Steady now
          paces reads of a network path at 8,000,000 bytes/s (CB_SHARE_RATE
@@ -216,8 +218,8 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          `<name>.count` beside the `.sha256`, `rows` prints MATCHES or SHORT
          BY n. Done 2026-10-15 evening (WORKLOG); July-September's `.count`
          are on the share.
-   - [ ] **June's `.count`**: its download started before the change, so it
-         has none. Once June has landed: `pwsh -File
+   - [x] **June's `.count`** (on the share since 2026-10-17 09:36): its download started before the change, so it
+         had none. Once June has landed: `pwsh -File
          scripts\download-lichess-month.ps1 2026-06 -Dir
          \\id10terror-desktop\chessbruteforcer\lichess` saves it and
          downloads nothing (never while June's .part is still growing: it
