@@ -51,6 +51,14 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-busy.patch"
     if errorlevel 1 echo The busy decline didn't go in ^(lichess-bot changed?^): challenges will queue and go stale again.
 )
+rem A game already being played isn't started a second time when lichess.org sends its gameStart again (it does on
+rem every event-stream reconnect; the game's own player rejoins by itself): bot\lichess-bot-one-player.patch,
+rem 2026-10-19; bot\test-one-player.py tests it. Unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-one-player.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-one-player.patch"
+    if errorlevel 1 echo The one-player fix didn't go in ^(lichess-bot changed?^): a reconnect can put two players on a game.
+)
 set BRUTEFORCER_TABLES=%CD%\tables
 rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers.
 pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0run-bot.ps1"

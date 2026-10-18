@@ -507,3 +507,9 @@ scripts/nnue-probe/tree/
 
 # The NNUE trainer's Python environment, PyTorch included (scripts/nnue/setup-venv.cmd)
 scripts/nnue/.venv/
+
+# The index over the games (INDEX.md): scripts\index-month.cmd writes indexes\<month>\ (Matthew, 2026-10-18)
+indexes/
+
+# Files waiting for Matthew to delete: nothing reads them (delete me\WHAT-THIS-IS.txt says what and why)
+delete me/

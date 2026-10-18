@@ -1,5 +1,5 @@
 diff --git a/lib/lichess_bot.py b/lib/lichess_bot.py
-index 63ab211..bd87afb 100644
+index 63ab211..13ef7db 100644
 --- a/lib/lichess_bot.py
 +++ b/lib/lichess_bot.py
 @@ -24,6 +24,7 @@ import glob
@@ -35,7 +35,7 @@ index 63ab211..bd87afb 100644
 +            lines = response.iter_lines()
 +            full = json.loads(next(lines).decode("utf-8"))
 +        except (HTTPError, ReadTimeout, RemoteDisconnected, ChunkedEncodingError, RequestsConnectionError,
-+                StopIteration, ValueError) as e:
++                StopIteration, ValueError, lichess.RateLimitedError) as e:
 +            logger.info(f"Game {game_id}: couldn't open its stream again ({attempt} of {REJOIN_TRIES}: {e!r})")
 +            time.sleep(2)
 +            continue

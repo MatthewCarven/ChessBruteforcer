@@ -3551,6 +3551,49 @@ has the tables; this is the story.
   Matthew: if it loses more at two games (each engine gets about half the
   CPU), back to concurrency 1.
 
+## 2026-10-18 (19:56-20:10): a won knight ending drawn (thunfisch-bot, UBIA6Hdc)
+
+- **How it ended**: a draw by insufficient material at move 122 (19:56). From
+  move 77 the bot had a king and b-pawn against a king and knight, a table
+  draw; it shuffled its king in the corner instantly (depth 1, 0.00) and
+  offered draws, which thunfisch-bot (2225) kept declining. Then it pushed
+  b7, Nf5+ and Ne7+ won the pawn, and king and knight against a king ended
+  the game. Every move there drew; this one ended it rather than waiting for
+  the 50-move count.
+- **Where the win went** (scratchpad where-the-win-went.py: Lichess's 7-piece
+  tablebase from 7 pieces, Stockfish 16 for 4 s on one thread before that):
+  - From move 70 (7 pieces) every position was a table draw. At move 77
+    Matthew asked whether keeping the knight and queening the b-pawn wins:
+    no. Black's knight on a4 watched b6, and of Nxh5's alternatives eight
+    drew and six lost (Kd2, Kd3, Ke2, ...).
+  - The advantage went at **moves 53-54**, at 13 pieces: 53. e7 (Stockfish
+    +0.81 after it; Rc4 kept +2.47), then 54. Kd7 (+0.09; Ke6 +0.75). The
+    bot itself said +3.03 for e7 at depth 16, and +2.4 for the knight
+    ending with three pawns each that followed (Stockfish: about +0.25),
+    sliding to 0.00 only by move 74. So the evaluation, not the search,
+    overrated the far passed b-pawn in a knight ending. One game is an
+    anecdote; a TODO line asks for more.
+
+## 2026-10-18 (20:10-20:45): the month queue off; indexes\ and delete me
+- **The month queue is off on Matthew's word**: he closed it at ~20:06, his
+  mum's YouTube struggling even at the 500 KB/s cap. March's .part stays at
+  5.22 of 29.35 GB on the share. When it returns: 300k, or overnight only.
+- **Where the index lives: `indexes\`** in the project folder (Matthew). July's
+  and 2013-01's index and their logs moved there from games\index (a rename
+  on C:, instant); index-month.cmd and clean-up.ps1 point there, INDEX.md
+  says so; git ignores it. Checked after the move: 2013-01's `check` passes
+  (1,000 of 1,000 rows, 3 of 3 boundary games); July's Parquet holds
+  89,288,421 rows, Lichess's count.
+- **`delete me\`** (Matthew: "shove anything you want gone inside it"), 42.3 GB,
+  nothing in the project reads any of it: May's laptop copy (29.69 GB; on the
+  share, checked, counted), the analysed games as .pgn for September and July
+  (7.63 + 0.81 GB; their .cbg is what's read), July's lines.u16 + lines.json
+  (2.86 GB; the trial is done), the index's old plain columns (1.27 GB July, 2
+  MB 2013-01). `delete me\WHAT-THIS-IS.txt` lists them, and what was kept and
+  why (the PyTorch wheel, September's NNUE records, tables-baseline). Git
+  ignores the folder. His to delete.
+- The bot won one more game, then Matthew stopped it (~20:45).
+
 ## 2026-10-19 (05:20-05:40): July's and August's records done; h512-3m training
 
 - **Both months' records finished on the desktop** (desktop clock): July
@@ -3572,6 +3615,70 @@ has the tables; this is the story.
   which already held the two false starts' "finished, exit 2" lines. The
   notebook's 2026-10-17 note again (count the matches); the second watcher
   waited for a third.
+
+## 2026-10-19 (08:10-08:30): a reconnect put two players on one game; lichess-bot plays a game once now
+
+- **What happened** (U4Gg0qAp, black v Ravager_BOT 2802, blitz): a connection
+  drop at ~08:11 closed both the game's stream and the event stream. The
+  game's player rejoined its stream (the rejoin patch, working), and when the
+  event stream reconnected, lichess.org sent gameStart for the ongoing game, as
+  it does for every ongoing game on each connect. lichess-bot started a second
+  player for it ("Process Used" again at 08:11:26). lichess.org keeps one
+  stream open a game, so the two closed each other's, rejoining in turn (46
+  "rejoined" lines in ~90 s), both searching every move (two "move: 44", two
+  "move: 48"), until lichess.org rate-limited the stream (08:13:05: "Giving
+  up play_game(...) after 7 tries (RateLimitedError)"), which killed one. The
+  other played on alone. Its local_game_done also took the game off
+  lichess-bot's list of active games while it went on.
+- **bot\lichess-bot-one-player.patch** (lib\lichess_bot.py, on top of the
+  chat, rejoin and busy patches; start-bot.cmd applies it after them): a set
+  of the games with a player running here (added in start_game_thread,
+  removed on local_game_done, emptied when a restart makes a new pool);
+  start_game skips a gameStart for a game in it and logs "being played here
+  already". The rejoin also takes RateLimitedError as one failed try instead
+  of dying.
+- **bot\test-one-player.py**: lichess-bot's pretend lichess.org sends gameStart
+  on the first two event streams; the game's first stream drops only after the
+  second is out (so the test can't pass by the game ending first, which it did
+  once before that); every game stream opened is counted across processes.
+  Passes on exactly 2 (the player's own and its rejoin) and a win: with the
+  patch, passed twice; without it, FAILED twice (3 streams, two players). It
+  runs on a copy (`LICHESS_BOT_DIR`), so the running bot was left alone.
+- Takes effect at the bot's next `bot\start-bot.cmd`, between games (not
+  `start.cmd`, which would start the month queue Matthew turned off).
+- **Also seen, not fixed**: lichess-bot quit at 00:32:52 on a TypeError in
+  accept_challenges (`while len(active_games) < max_games and
+  challenge_queue:`: the manager's list said its length was None) and came
+  back at 01:16 when lichess.org answered (run-bot.ps1), 44 minutes down. Once
+  so far; a TODO line.
+- Matthew stopped the downloads (~08:15).
+
+## 2026-10-19 (08:30-08:55): the bot restarted with the one-player fix; the patches made to stack cleanly
+
+- Matthew restarted the bot between games (08:32:31, `bot\start-bot.cmd`): the
+  one-player patch went in. But it changed a line of the rejoin patch's (the
+  rate limit in rejoin_game_stream) and put its set next to that patch's
+  lines, so `git apply --reverse --check` no longer found the rejoin patch
+  in: from the next start, start-bot.cmd would have tried to apply it again,
+  failed, and printed "The rejoin fix didn't go in" with the fix in place.
+- Rebuilt in a copy from lichess-bot as downloaded: chat, then the rejoin
+  patch with `lichess.RateLimitedError` among its caught errors (its only
+  change), busy, then the one-player patch with `games_playing` defined above
+  start_game and added after `active_games[game_id] = ...`, clear of the rejoin
+  patch's lines and their three lines of context. All four read as in on the
+  result. The live lichess-bot went the same way (old one-player, busy, old
+  rejoin out; new rejoin, busy, new one-player in, each by `git apply`): its
+  lichess_bot.py equals the rebuilt one, line endings aside. The same code as
+  the running bot's, moved, so it carries on.
+- test-rejoin.py, test-one-player.py and test-busy.py all pass on the rebuilt
+  copy (each takes `LICHESS_BOT`, a folder to test instead of
+  bot\lichess-bot, so a running bot is left alone).
+- **Ravager_BOT's game wasn't saved** to bot\games: lichess-bot's record writer
+  failed ("san() ... expect move to be legal ... c7g3"), a comment from the two
+  players' interleaved searches put on the wrong move. The learner won't see
+  it unless its PGN is fetched from lichess.org.
+- The bot's quit message at 08:32:23 (`Cannot have cache with result_handler
+  not alive`) came from the restart, lichess-bot's pool closing mid-shutdown.
 
 ## 2026-10-19 (10:42-10:50): h512-3m done, a small gain on held-back error
 

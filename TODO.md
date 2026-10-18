@@ -51,7 +51,11 @@ overnight (NNUE, below).
   **rejoin fix**; `bot\start-bot.cmd` brings it back (the learner and queue
   are up). Its first ~30 rated games against nnue1's are the next check (it
   searches ~9% slower; the match says it's worth it).
-- **The month queue** (restarted 23:26): June and May 2026 are counted into
+- **The month queue: OFF on Matthew's word** (2026-10-18: he closed it at
+  ~20:06 on purpose: his mum's YouTube was struggling, even at the 500 KB/s
+  cap; leave it off until he says). When it comes back: `-LimitRate 300k`, or
+  overnight only, when nobody's watching. March's .part is 5.22 of
+  29.35 GB on the share; `scripts\month-queue.cmd` carries on from there. Before that (restarted 23:26): June and May 2026 are counted into
   the books (1,695,521 moves in 1,179,279 positions from 7,959,778 games, five
   months); it is downloading April (29.3 GB, resumed from 3.1 GB) at 500
   KB/s. Log games\month-queue.log; counts logs
@@ -81,17 +85,17 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
 - **nnue1-h512** (512 hidden, Matthew's F(b)): held-back error 0.013664
   against nnue1's 0.014851 (-8.0%), +76 Elo over it. NNUE.md's session 2b
   and MATCHES.md have it all.
-- **Training on the desktop now** (from 02:43 on 2026-10-18, Matthew's (a)):
-  task "nnue h512-blend25 then h512-mates", two session-5 levers at 512
-  hidden, one after the other (the card ran at 1,200 MHz, not 1,920, until
-  he closed his PySynthRack at ~04:20: close it before training):
+- **Session 5's levers so far, all trained on the desktop** (it is idle now;
+  close Matthew's PySynthRack before training there: it held the card at
+  1,200 MHz instead of 1,920; `scripts\nnue-desktop.ps1 status | stop |
+  fetch`):
   - **h512-blend25** (the result blend 0.25): done 06:25; **its match:
     -11 Elo [-25, +3] against nnue1-h512, SPRT accepted H0** (1,252 games,
     08:22-10:25, the bot stopped). Doesn't help.
   - **h512-mates** (mates included): done 09:59; **its match: -11 Elo
     [-26, +3] against nnue1-h512, SPRT accepted H0** (1,212 games,
     14:03-16:03, the bot stopped). Doesn't help.
-  - **More data, under way** (Matthew's yes, 2026-10-18 17:34): July's and
+  - **More data** (Matthew's yes, 2026-10-18 17:34): July's and
     August's records were made **on the desktop** from the month files on
     its disk (done 04:51 and 05:22 on 2026-10-19, 240.4 M and 253.4 M
     records, all checked; ~11.5 h a month there). **h512-3m trained**
@@ -99,14 +103,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     games\nnue\nets\, loads in the engine; held-back error 0.013640 at K 1
     (-0.2% against nnue1-h512), 0.013437 at its fitted K 1.10 (-1.7%): the
     modest gain expected. **Its match against nnue1-h512 is next**
-    (`scripts\nnue-match.cmd h512-3m nnue1-h512`, the bot off: Matthew's
-    call when). `scripts\nnue-desktop.ps1
-  status h512-blend25` (or h512-mates); `stop <run>` ends the task if he
-  needs the GPU (`train <run> ... --resume` carries on from the last pass).
-  Then: `fetch` each, and a match against nnue1-h512 each
-  (`scripts\nnue-match.cmd h512-blend25 nnue1-h512`, ~30 min with the bot
-  stopped, or longer beside it: his call). Other levers waiting: more data
-  (July and August), the export's rounding.
+    (`scripts\nnue-match.cmd h512-3m nnue1-h512`, 30 min to 2 h, the bot
+    off: Matthew's call when).
+  - Other levers waiting: the export's rounding (small); a bigger net
+    (1024: 7.7 h on the 1660 for September alone, 23% slower a node) once
+    there's data enough for it; labels from our own search.
 
 **Watch out:**
 - **Memory**: commit was down to 2.8 GB free at 23:20, with the Claude app's
@@ -120,8 +121,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   rivals can't copy the bot. Don't nag.
 
 **Two games at once, and "later" when both run** (Matthew's (a), 2026-10-18
-~19:50; on this branch, takes effect at the bot's next `bot\start-bot.cmd`
-after the merge): 136 of 191 accepts since 14 October had failed without a
+~19:50; in effect since Matthew's `start.cmd` at 20:05:24, 2026-10-18; config.yml
+says concurrency 2): 136 of 191 accepts since 14 October had failed without a
 word (the challenge withdrawn while it waited in lichess-bot's queue through
 a whole game: 133 of the 168 accepts made straight after a game). Now
 `concurrency` 2 (two different people: `max_simultaneous_games_per_user` 1),
@@ -130,10 +131,17 @@ when both slots are taken (bot\test-busy.py: 6 cases, 2 of them red without
 the patch). He'll go back to one game if it loses more: `concurrency` 1 in
 make-config.py (the patch still helps at 1).
 
-**Waiting on Matthew:** the merge and the bot's start above; delete the
-laptop's copy of May (games\lichess_db_standard_rated_2026-05.pgn.zst, 29.7
-GB; it's on the share and checked); July's lines.u16 and old plain columns
-(4.1 GB); where the whole index lives (a proposal card exists).
+**The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
+had two players on one game; bot\lichess-bot-one-player.patch stops that
+(bot\test-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
+between games (not `start.cmd`: that starts the month queue, which is off).
+Still open: lichess-bot quit once on a TypeError in accept_challenges
+(00:32, the manager's list length None); watch for it again.
+
+**Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
+on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now
+on, listed in `delete me\WHAT-THIS-IS.txt`. The index lives in `indexes\`
+(his call, 2026-10-18).
 
 ### Now (2026-10-15)
 
@@ -174,12 +182,12 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          matching, check 4,000 of 4,000, dups 2.05% as before.
    - [x] **May 2026 is on the share**, its SHA-256 matching Lichess's there
          too (2026-10-16 13:14; copied 09:07 on, then checked at the 8 MB/s
-         cap). The laptop's copy (games\lichess_db_standard_rated_2026-05.pgn.zst,
-         29.7 GB) can go now: Matthew's delete. June's .part waits on the
+         cap). The laptop's copy (29.7 GB) is in `delete me` since 2026-10-18,
+         for Matthew to delete. June's .part waits on the
          share; the month queue isn't running. Not counted into the books yet.
-   - [ ] **The bot is off** (Matthew, 2026-10-17): the laptop ran warm with the
-         NNUE training and the bot's games together. Back on once training is
-         done, or with a notebook cooler; not beside a training run.
+   - [x] **The bot is off** (Matthew, 2026-10-17): the laptop ran warm with the
+         NNUE training and the bot's games together. Back on since 2026-10-18
+         17:24; nets train on the desktop, not beside it.
    - [x] **Share traffic at or under ~8 MB/s** (Matthew, 2026-10-16: faster
          knocks the laptop off the internet). make-book.py's Steady now
          paces reads of a network path at 8,000,000 bytes/s (CB_SHARE_RATE
@@ -207,7 +215,11 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          2,000 games byte for byte and every row right in all 11 columns
          against the game parsed again; dups as before (2.05%). The read ran
          at 11.4 MB/s beside the bot on 8 threads.
-   - [ ] Where the whole index lives: Matthew's call.
+   - [x] Where the whole index lives: `indexes\<month>\` in the project
+         folder on the laptop (Matthew, 2026-10-18; git ignores it;
+         index-month.cmd and clean-up.ps1 point there). Space: ~1.27 GB of rows
+         a month, ~58 GB for 46 months; C: has 84 GB free (2026-10-18,
+         `delete me` emptied).
    - [x] `rows` writes Parquet directly (10 M games a part, zstd, through
          DuckDB) and the plain .zst columns are gone; `check`, `dups`,
          `trial` read the Parquet, and `check` also compares every sampled
@@ -216,13 +228,13 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          `<name>.count` beside the `.sha256`, `rows` prints MATCHES or SHORT
          BY n. Done 2026-10-15 evening (WORKLOG); July-September's `.count`
          are on the share.
-   - [ ] **June's `.count`**: its download started before the change, so it
-         has none. Once June has landed: `pwsh -File
+   - [x] **June's `.count`** (on the share since 2026-10-17 09:36): its download started before the change, so it
+         had none. Once June has landed: `pwsh -File
          scripts\download-lichess-month.ps1 2026-06 -Dir
          \\id10terror-desktop\chessbruteforcer\lichess` saves it and
          downloads nothing (never while June's .part is still growing: it
          would start a second download). May onwards get theirs as they land.
-   - [ ] Can go now (Matthew's delete), 4.1 GB in games/index/2026-07:
+   - [x] Moved into `delete me` (2026-10-18), 4.1 GB from games/index/2026-07:
          lines.u16 (2.86 GB; the lines trial is done) and the old plain
          columns in games/ (1.27 GB; scripts/clean-up.ps1 offers them now the
          rows are Parquet). The new `rows` replaced parquet/ and cleared tmp/.
@@ -530,6 +542,11 @@ Sessions, in order:
       the evaluation scaled down as the 50-move count rises; a server near
       Lichess (Europe) if it should run all day (from Australia each move
       costs ~1.2 s of connection).
+- [ ] Knight endings with a far passed pawn: is the net overrating them? In
+      UBIA6Hdc (2026-10-18, WORKLOG) it said +2.4 for an ending Stockfish
+      called +0.25 and drew a game it had been winning. Check our losses and
+      draws for the same shape (the bot's eval v Stockfish's, by material),
+      before any training change.
 
 ### 3. Findings for the thesis
 
