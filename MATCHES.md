@@ -64,6 +64,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-18 | h512-mates | nnue1-h512 | 1,212 | +310 -349 =553 | 48.4% | -11 [-26, +3] | SPRT [0, 10] **accepted H0** (LLR -2.99): mates in training don't help; bot stopped |
 | 2026-10-19 | h512-3m | nnue1-h512 | 2,000 | +583 -521 =896 | 51.5% | **+11 [-1, +22]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 1.73), LOS 96.9%: three months' data, a small gain; bot stopped |
 | 2026-10-20 | h1024-3m | h512-3m | 584 | +211 -143 =230 | 55.8% | **+41 [+19, +63]** | SPRT [0, 10] **accepted H1** at game ~579 (LLR 2.95); games 321-584 beside the bot, 34 time losses there (see below) |
+| 2026-10-20 | h768-3m | h512-3m | 525 | +200 -189 =136 | 51.0% | +7 [-18, +33] | **stopped, not a result**: all beside the bot, 135 games lost on time (78 by h768-3m); to be played again with the bot off |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -147,6 +148,19 @@ two halves agree: games 1-320, +109 -74 =137, 55.5%, no time losses; games
 321-584, +102 -69 =93, 56.2%. In the clean half h1024-3m searched 1,600-1,790
 knps against h512-3m's ~2,000-2,110 (-16%), depth ~0.2 shallower. The bot
 plays on it (decision I in NNUE.md).
+
+**h768-3m against h512-3m, stopped** (2026-10-20, 04:01-04:54, all of it
+beside the bot): 525 games, +200 -189 =136, +7 [-18, +33], LLR 0.13.
+**135 games were lost on time** (games 139-437; h768-3m 78, h512-3m 57):
+with five match engines below the bot's priority, each side dropped to
+80-1,100 knps at times, and the slower net reached the clock more often.
+Without the time losses: +143 -111 =136 in 390 games, 54.1%. So the clock
+pulled h768-3m's score down by about 20 Elo: the match measured the
+crowding, not the nets. Matthew stopped it to play it again with the bot
+off; the games are kept as games\nnue\match-h768-3m-h512-3m-beside-bot.*.
+The lesson for matches beside the bot: at 10+0.1, five games at a time is
+too many while the bot plays; h1024-3m's last 264 games were near the
+edge too.
 
 ## Versions
 

@@ -3915,4 +3915,12 @@ has the tables; this is the story.
   round trip of ~5-20 µs against ~0.1-0.4 µs on the CPU (the GPU wins only
   on big batches, as Leela's search does). The CPU route instead: measure
   at 1024, AVX-512, then bitboards. He said that can wait; a session card
-  ("Engine speed: profile at 1024 hidden, then AVX-512") holds it.
+  ("Engine speed: profile at 1024 hidden, then AVX-512") holds it, which
+  he then started.
+- **h768-3m's match beside the bot, stopped**: at game 502, 135 games lost
+  on time (78 by h768-3m, 57 by h512-3m), +7 Elo as played but 54.1% with
+  the time losses left out: the crowding was deciding games, against the
+  slower net. Matthew closed the window at 04:54 (525 games). Its files
+  renamed to games\nnue\match-h768-3m-h512-3m-beside-bot.log/.pgn so the
+  launcher will take a fresh run; to play again with the bot off.
+  MATCHES.md has the numbers.

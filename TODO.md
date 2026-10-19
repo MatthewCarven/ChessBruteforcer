@@ -52,7 +52,8 @@ make-config.py tries first (delete it to go back to h512-3m). **The match
 then finished beside the bot: SPRT accepted H1, +41 [+19, +63] in 584
 games** (MATCHES.md; 34 time losses in the part beside the bot, the clean
 part agreeing). h768-3m's match started by itself at 04:01, also beside
-the bot (Matthew's (b): he wants the data). Earlier: the bot went down at
+the bot (Matthew's (b): he wants the data), and was stopped at 04:54 with
+27% of its games lost on time: to play again with the bot off (NNUE, below). Earlier: the bot went down at
 21:23 on 2026-10-19 when memory ran out (lichess-bot's TypeError, below);
 after a restart of the laptop, `bot\start-bot.cmd`, then `bot\learn.cmd`
 once the bot's window has built the engine (two builds at once trip over
@@ -133,8 +134,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     **Their matches against h512-3m** (Matthew's (a), from 03:04 on
     2026-10-20, back to back in one window): **h1024-3m +41 [+19, +63],
     SPRT accepted H1** at game ~579 (584 games, the last 264 beside the
-    bot); **the bot plays on it** (decision I). h768-3m's match from 04:01,
-    beside the bot.
+    bot); **the bot plays on it** (decision I). **h768-3m's match: play
+    it again with the bot off** (`scripts\nnue-match.cmd h768-3m h512-3m`,
+    30 min to 3.5 h): the run beside the bot was stopped at game 525 with
+    135 time losses (MATCHES.md), its files kept as
+    games\nnue\match-h768-3m-h512-3m-beside-bot.*.
   - **h1536-3m training on the desktop** (Matthew, 2026-10-20 04:45 by the
     desktop's clock): 1536 hidden, the three months, ~83 min a pass, **done
     ~18:45**. Then fetch it, and before its match against h1024-3m raise
