@@ -902,6 +902,24 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   positions a second, ~25 min a pass: done ~02:40. 768 needs no engine
   change and should cost roughly half 1024's speed (~13% a node against
   512, by a straight line through the probes; not measured).
+- **Both done** (2026-10-20): h768-3m at 02:42 on the laptop (4 h 17 min,
+  445-457 k positions a second, no pauses; the memory shortage at ~23:20
+  didn't touch it), h1024-3m at 02:47 by the desktop's clock (9 h 38 min,
+  195-200 k a second). Both load through EvalFile and play a6 against the
+  Ruy Lopez at depth 10. As the engine computes them, on September's held
+  back positions, with `bench 9` on one thread (6 rounds alternated, the
+  bot off):
+
+  | net | file | at K 1 | at its own K | `bench 9` tree | a node |
+  |---|---|---|---|---|---|
+  | h512-3m (the bot's) | 789,572 B, 9da33208a6f5 | 0.013640 | 0.013437 (K 1.10) | 3,752,937 | 1,746 knps |
+  | h768-3m | 1,184,324 B, f97825755d45 | 0.013038 (-4.4%) | 0.012795 (-4.8%, K 1.12) | 3,526,055 | 1,516 (-13.2%) |
+  | h1024-3m | 1,579,076 B, 510a8d0e6c43 | 0.012659 (-7.2%) | 0.012432 (-7.5%, K 1.11) | 3,775,106 | 1,470 (-15.8%) |
+
+  (Network sha256s as the engine prints them.) For scale: nnue1-h512 was
+  -8.0% in error and -4.0% a node against nnue1, and won by +76; h512-3m
+  was -1.7% and level in speed, and won by +11. 1024 cost 15.8% a node,
+  not the probe net's 23%. The matches against h512-3m decide.
 
 ## Risks
 

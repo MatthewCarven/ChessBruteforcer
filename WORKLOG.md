@@ -3796,3 +3796,38 @@ has the tables; this is the story.
   1,275 MHz, 74 W, 64 C. Commit free fell to 1.16 GB with it running (the
   page file can grow another ~1.6 GB): a watcher logs the headroom every 5
   minutes and calls out under 0.7 GB.
+
+## 2026-10-19/20 (23:20-03:00): a memory squeeze; h768-3m and h1024-3m done
+
+- **~23:18: commit headroom on the laptop fell to ~0.3 GB** (the watcher's
+  0.7 GB alarm): h768-3m flat at 3.5 GB, but a vmmem of 4.1 GB since 18:05
+  and ~1 GB from the new teaching session ("Learn how our NNUE networks
+  work", started on Matthew's word). I meant to stop my trainer (the pass-2
+  checkpoint was saved) and was refused by the permission check, as was a
+  look at what owned vmmem; a `wsl -e` of mine, to see what WSL ran, tried
+  to start the stopped Ubuntu and failed for lack of memory. Matthew ran
+  `wsl --shutdown` twice, cleanly, and vmmem stayed: Cowork's VM, he said,
+  not WSL. He chose to leave everything running and open nothing. Paging
+  out frees RAM (4 GB free) but not commit, which is RAM + a page file
+  already at its 6 GB maximum; a bigger maximum is his to set.
+- This session's own process went down in it (its background watchers were
+  marked stopped). h768-3m carried on: no pauses, commit flat, each pass's
+  errors lower. Matthew thought the loss was rising: the per-bucket figure
+  is the pass's running mean from a fresh start in a new bucket order, so it
+  opens each pass a little above the last pass's end (h512-3m did the
+  same); the per-pass lines fell every time.
+- **h768-3m finished 02:42:53**: training error 0.011513; held back as the
+  engine computes it 0.013038 at K 1, 0.012795 at K 1.1164. Its launcher
+  window never wrote "finished" into h768-3m.err: it went down earlier,
+  most likely with the session's process, while Python ran on. A long
+  laptop job started from a session's shell can die with it.
+- **h1024-3m finished 02:47:19** (desktop clock), exit 0: training error
+  0.011141; held back 0.012659 at K 1, 0.012432 at K 1.1119. Fetched.
+- Both load through EvalFile (a6 at depth 10). `bench 9`, one thread, 6
+  rounds alternated with h512-3m: h768-3m -13.2% a node (1,516 against
+  1,746 knps, a 6% smaller tree), h1024-3m -15.8% (1,470, the same size of
+  tree). Held back against h512-3m: -4.4%/-4.8% and -7.2%/-7.5%. Table in
+  NNUE.md; the matches against h512-3m wait on Matthew.
+- Twice tonight I left a stray `python -` at the head of a Bash call (the
+  notebook's warning): one hung for two minutes, one a moment; both were
+  stopped and neither wrote anything.

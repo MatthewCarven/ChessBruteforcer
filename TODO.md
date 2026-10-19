@@ -45,21 +45,18 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 "768 -> 512 x2 -> 1, sha256 8a6cd3aff627"). The desktop trains two levers
 overnight (NNUE, below).
 
-**2026-10-19, 22:30: the bot is OFF overnight on Matthew's word**: the
-laptop's 3070 trains h768-3m (768 hidden, three months) in its own window
-until ~03:00 (NNUE, below; his heat rule: no training beside the bot).
-`bot\start-bot.cmd` brings it back once that's done, on his word. It plays
-on **h512-3m** (Matthew's H(a); live from 14:35 on 2026-10-19, its log
-"768 -> 512 x2 -> 1, sha256 9da33208a6f5"); delete bot\eval\h512-3m.nnue
-to go back to nnue1-h512. He stopped it at 21:23.
+**2026-10-20, 02:50: the bot is OFF** (Matthew stopped it at 21:23 on
+2026-10-19 for h768-3m's training on the laptop). Both new nets are trained
+and load: **h768-3m and h1024-3m** (NNUE, below); their matches against
+h512-3m are next, with the bot off, on his word. `bot\start-bot.cmd` brings
+the bot back, on **h512-3m** (Matthew's H(a); live from 14:35 on
+2026-10-19, its log "768 -> 512 x2 -> 1, sha256 9da33208a6f5"); delete
+bot\eval\h512-3m.nnue to go back to nnue1-h512.
 
 **Running right now, each in its own window (check them, don't start them):**
-- **The bot is back online since 17:24:55 on 2026-10-18** (`bot\start-bot.cmd`
-  on Matthew's word; off from ~08:20 for the blend's and the mates'
-  matches). It plays on nnue1-h512 (from 23:26 on 2026-10-17), with the
-  **rejoin fix**; `bot\start-bot.cmd` brings it back (the learner and queue
-  are up). Its first ~30 rated games against nnue1's are the next check (it
-  searches ~9% slower; the match says it's worth it).
+- **The bot: OFF since 21:23 on 2026-10-19** (above). When on, it plays on
+  h512-3m with the rejoin, busy and one-player fixes; `bot\start-bot.cmd`
+  brings it back (the learner is up).
 - **The month queue: OFF on Matthew's word** (2026-10-18: he closed it at
   ~20:06 on purpose: his mum's YouTube was struggling, even at the 500 KB/s
   cap; leave it off until he says). When it comes back: `-LimitRate 300k`, or
@@ -70,8 +67,8 @@ to go back to nnue1-h512. He stopped it at 21:23.
   KB/s. Log games\month-queue.log; counts logs
   bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
 - The book learner (bot\learn.py, restarted 23:26).
-- On the desktop: task "nnue h1024-3m", 17:08 to ~03:00 (NNUE,
-  below).
+- On the desktop: nothing (h1024-3m finished 02:47 on 2026-10-20, desktop
+  clock).
 
 **Tonight's two matches, both with the bot off:**
 
@@ -117,24 +114,27 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     (LLR 1.73; 2026-10-19 11:09-14:27, the bot stopped). Very likely
     better, by a little. **The bot switches to it** (Matthew's H(a):
     bot\eval\h512-3m.nnue, tried first by make-config.py).
-  - **h1024-3m training** (Matthew's yes, 2026-10-19 ~17:00): h512-3m's
-    recipe at 1024 hidden on the desktop, started 17:08 (desktop clock),
-    ~1 h a pass, **done ~03:00 on 2026-10-20**. Then `scripts\nnue-desktop.ps1
-    fetch h1024-3m`, the load check, and its match against h512-3m (the
-    bot off: Matthew's call when). It runs ~23% slower a node, so it must
-    evaluate that much better to win.
-  - **h768-3m training on the laptop** (Matthew's (a), 2026-10-19 22:25,
-    the bot off overnight): 768 hidden, the same three months (July and
-    August copied to games\nnue\ from the desktop), ~25 min a pass, **done
-    ~02:40**. Log games\nnue\nets\h768-3m.log. Then the load check, and
-    matches against h512-3m (and h1024-3m) with the bot off: his call when.
+  - **h768-3m and h1024-3m trained** (2026-10-19/20: h1024-3m on the
+    desktop 17:08-02:47, h768-3m on the laptop 22:25-02:42; h512-3m's
+    recipe at 768 and 1024 hidden). Both in games\nnue\nets\, both load
+    through EvalFile. Held-back error as the engine computes it, and speed:
+
+    | net | at K 1 | at its own K | `bench 9` a node |
+    |---|---|---|---|
+    | h512-3m (the bot's) | 0.013640 | 0.013437 | 1,746 knps |
+    | h768-3m | 0.013038 (-4.4%) | 0.012795 (-4.8%) | 1,516 (-13.2%) |
+    | h1024-3m | 0.012659 (-7.2%) | 0.012432 (-7.5%) | 1,470 (-15.8%) |
+
+    **Next: their matches against h512-3m** (`scripts\nnue-match.cmd
+    h1024-3m h512-3m`, then h768-3m; 30 min to 3.5 h each, the bot off):
+    Matthew's call when.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
     held-back scoring needs smaller chunks at 2048 (it ran out of GPU
     memory there), and the engine's MaxHidden 1024 must rise (a C# change:
-    Matthew's word). It would search roughly half as fast as 512, so wait
-    for h1024-3m's match first.
+    Matthew's word). Its speed cost is unmeasured (1024 cost 15.8% a node,
+    not the probe's 23%), so wait for h1024-3m's match first.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 
