@@ -927,6 +927,65 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   there** (decision I, below): `bot\eval\h1024-3m.nnue`, which
   make-config.py tries first.
 
+### Speed at 1024 (2026-10-20): where a node's time goes
+
+Measured 04:52-05:29 with the bot playing and h768-3m's match running, one
+thread at below-normal priority, so these are the loaded laptop's figures
+(`bench 9`: 890 and 744 knps, against 1,746 and 1,470 with the bot off; the
+gap held, -16.3% against -15.8%). All of it is in
+`scripts/nnue-bench/results-2026-10-20.txt`. The engine wasn't changed: a
+scratchpad copy with hooks records every evaluation of a search and replays
+them, so arms without the forward pass, or without the updates as well,
+search the identical tree (checked: same nodes, every value equal). Time is
+the thread's own CPU time: beside the bot, a below-normal thread waits for a
+CPU so often that wall-clock time was useless (one arm read 0.7 to 2.1 µs a
+node from round to round).
+
+| a node (thread time, two runs) | h512-3m | h1024-3m |
+|---|---|---|
+| all of it | 1,015-1,062 ns | 1,182-1,253 ns |
+| the forward pass | 82-87 (8%) | 154-156 (12-13%) |
+| the accumulator updates | 191-198 (19%) | 336 (27-28%) |
+| the rest of the search | 718-771 (71-73%) | 726-763 (61%) |
+| in place: a push / an evaluation | 200-207 / 144-153 ns | 359 / 274-277 ns |
+
+(Tree-free, costs.cs's way: an update 117 / 228 ns, an evaluation 102 / 198 ns.)
+
+- **A node makes 0.94 accumulator pushes and 0.56 evaluations, and 28% of
+  the pushes are illegal moves**: made, found to leave the king in check,
+  taken back, mostly at nodes in check, where every pseudo-legal move is
+  tried. With the few leaves that return before evaluating (table hits,
+  repetitions), **29% of all pushes are never read by any evaluation.**
+  Skipping exactly those (an ideal lazy update; every evaluation checked
+  exact) saved 80 ns a node at 1024 (6.4%) and 40 at 512 (3.8%): 24% of the
+  updates' cost, a little under 29% because an illegal move's push finds its
+  parent and columns already in cache.
+- **The kernel lab** replays a real h1024 search's 465 k pushes and 285 k
+  evaluations with each kernel. Today's 256-bit kernels on the engine's
+  arrays: 299 ns a push, 237 an evaluation. 64-byte alignment alone: -13% a
+  push (the engine's feature weights sit 24 bytes past a 64-byte boundary on
+  every load, so half of today's column loads cross a cache line). AVX-512 on
+  today's arrays: -20% a push, -36% an evaluation; **AVX-512 with alignment:
+  -49% and -37%**. Unaligned, every 64-byte load crosses a line, and that is
+  where most of AVX-512's gain on the updates went.
+- **Estimates at 1024** (run 2's node of 1,253 ns; the low end is the lab's
+  nanoseconds saved, the high end its percentages applied in place):
+
+  | step | nodes a second |
+  |---|---|
+  | 64-byte alignment alone | +3% to +4% |
+  | AVX-512 + 64-byte alignment | **+18% to +22%** |
+  | lazy update | +5% to +7% |
+  | AVX-512 + alignment, then lazy | **+22% to +27%** |
+
+  At 512 the same steps come to +1-2%, +8-12% and +4%. With both, h1024-3m
+  would search about as fast as h512-3m does today. Two cautions: AVX-512's
+  multiplies may cost the whole core a little clock on this CPU (reportedly
+  ~100 MHz on Ice Lake and Tiger Lake), which only the engine's own A/B will
+  show (the fallback is 512 bits for the updates only); and the rest of the
+  search, 61% of a node at 1024 (a 64-square board, attacks found by walking
+  rays), is the lever after these. Matthew's pick: decision J.
+
 ## Risks
 
 | risk | what it would look like | what limits it |
@@ -1043,3 +1102,17 @@ of its match against h512-3m: +52 [+14, +91], LOS 99.6%, LLR 1.29 of 2.94):
 to go back). It searches 15.8% slower a node; the bot's 3+2 gives every
 move more time than the match's 10+0.1, which tends to favour the better
 evaluation.
+
+**J. The speed steps at 1024** (put 2026-10-20 ~05:40, from "Speed at 1024"
+above). Whichever is built keeps the scalar path and today's 256-bit path
+(other CPUs, and the tests' reference), is A/B'd with bench.ps1 against
+today's build, and needs the NNUE tests and the mutation battery green.
+- (a) AVX-512 with 64-byte-aligned weights and stack: **+18% to +22%** at
+  1024. The update kernels and the forward pass in 512 bits where the CPU has
+  them (this laptop does) and H is a multiple of 32; the weights and each
+  accumulator stack in pinned memory starting on a 64-byte boundary.
+- (b) The lazy update: +5% to +7%. A push only notes the move; the slot is
+  computed when an evaluation, or a child's push, needs it, so an illegal
+  move or a leaf that returns early never pays.
+- **(c) Both, (a) then (b)** (recommended), measured and committed apart:
+  **+22% to +27%**.

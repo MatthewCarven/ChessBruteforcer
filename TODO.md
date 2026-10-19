@@ -146,6 +146,12 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     memory there), and the engine's MaxHidden 1024 must rise (a C# change:
     Matthew's word). Its speed cost is unmeasured (1024 cost 15.8% a node,
     not the probe's 23%), so wait for h1024-3m's match first.
+  - **Speed at 1024, measured** (2026-10-20 04:45-05:40, a side session,
+    branch `claude/stoic-goodall-ecc132`; NNUE.md "Speed at 1024"): the
+    updates take 27-28% of a node, the forward pass 12-13%, the rest of the
+    search 61%. AVX-512 with 64-byte alignment +18-22% (estimated), a lazy
+    update +5-7%, both +22-27%. **Decision J waits on Matthew**; no C#
+    changed yet.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 
@@ -488,7 +494,12 @@ Sessions, in order:
         until session 4's match.
       - [ ] Later speed steps, each measured with scripts/nnue-bench: AVX-512
         (this CPU has it), 64-byte-aligned weights and stack, a lazy update
-        (only nodes that evaluate pay for their accumulators).
+        (only nodes that evaluate pay for their accumulators). **Measured
+        2026-10-20** (NNUE.md "Speed at 1024"): at 1024 the updates are
+        27-28% of a node and the forward pass 12-13%; 28% of the pushes are
+        illegal moves. Estimates: AVX-512 + alignment +18-22%, lazy +5-7%,
+        both +22-27% nodes a second. Matthew's pick (decision J), then
+        build it here in Nnue/, A/B'd.
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by

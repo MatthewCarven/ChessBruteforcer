@@ -3878,3 +3878,46 @@ has the tables; this is the story.
   tries it first (its loop picks it here), EvalFile loads it from bot\eval
   (sha256 510a8d0e6c43). Takes effect when he closes the match window,
   fast-forwards compression and runs `bot\start-bot.cmd`.
+
+## 2026-10-20 (04:45-05:40): speed at 1024, measured (a side session)
+
+- The brief: where a node's time goes with h1024-3m against h512-3m, then
+  the TODO's three speed steps with estimates, for Matthew to pick. No C#
+  changed (his word first). Branch `claude/stoic-goodall-ecc132`.
+- **Conditions**: the bot playing on h1024-3m and h768-3m's match running (5
+  games at a time), commit free 2.5-4.9 GB. Matthew asked whether to stop the
+  bot for this; no: every run was one thread at below-normal priority with
+  the arms alternated. `bench 9` read about half its quiet speed, with the
+  same gap: h512-3m 890 knps, h1024-3m 744 (-16.3%; -15.8% with the bot off).
+  costs.cs with the trained nets: an update 117 / 228 ns a move, an
+  evaluation 102 / 198 ns (both double with H).
+- **The probe** (a scratchpad copy of the engine with hooks): a counting run
+  records every evaluation's value, and replaying them searches the identical
+  tree, so arms without the forward pass, or without the updates too, give
+  the split directly. **Its first timed run was noise**: one arm read 0.7 to
+  2.1 µs a node from round to round, a below-normal thread waiting for a CPU
+  whenever the bot thought. Timed by the thread's own CPU time
+  (QueryThreadCycleTime) and rotated search by search, the rounds agreed to
+  ~10%. Two runs: **at 1024 the forward pass is 12-13% of a node, the
+  accumulator updates 27-28%, the rest of the search 61%**; at 512, 8%, 19%
+  and 71-73%.
+- **28% of the pushes are illegal moves** (made, found to leave the king in
+  check, taken back: mostly at nodes in check, where every pseudo-legal move
+  is tried), and 29% of all pushes are never read by any evaluation. An
+  ideal lazy update (skipping exactly those, every evaluation checked exact)
+  saved 80 ns a node at 1024 (6.4%), 40 at 512.
+- **The kernel lab** replayed 465 k pushes and 285 k evaluations logged from
+  a real h1024 search, kernel by kernel, all variants agreeing on a
+  checksum: AVX-512 on 64-byte-aligned memory -49% a push and -37% an
+  evaluation; on the engine's own arrays only -20% and -36%; alignment alone
+  -13% a push. The engine's feature weights land 24 bytes past a 64-byte
+  boundary on every load (by reflection), so half of today's 32-byte column
+  loads already cross a cache line.
+- **Estimates at 1024** (NNUE.md "Speed at 1024"): AVX-512 with alignment
+  +18-22% nodes a second, the lazy update +5-7%, both +22-27%. Put to
+  Matthew as decision J. Numbers and every round in
+  `scripts/nnue-bench/results-2026-10-20.txt`. The measuring scripts
+  (costs-nets.cs, the probe's hooks as a patch, probe.cs, probelog.cs,
+  lab.cs, align.cs) are in the session-notes folder for now
+  (`%APPDATA%\Claude\side-session-notes\local_93425b6c-...\speed-1024-scripts`)
+  and go into scripts/nnue-bench/ with whatever is built, as they are C#.

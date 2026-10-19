@@ -28,3 +28,10 @@ dotnet run -c Release costs.cs ../../bot/eval/eval-sf1.txt 7
 Results: `results-2026-10-16.txt`. With session 2's trained net, the same
 `bench.ps1` line with its file in place of the piece-square net gives the
 speed on its own tree.
+
+`results-2026-10-20.txt`: the trained nets h512-3m and h1024-3m, and where a
+node's time goes at 1024 (forward pass, accumulator updates, the rest),
+from a probe that replays a search's evaluations on the identical tree, plus
+a kernel lab for AVX-512 and 64-byte alignment (NNUE.md "Speed at 1024").
+Beside the bot, time a below-normal thread by its own CPU time
+(QueryThreadCycleTime): wall-clock time includes its waits for a CPU.
