@@ -3878,3 +3878,32 @@ has the tables; this is the story.
   tries it first (its loop picks it here), EvalFile loads it from bot\eval
   (sha256 510a8d0e6c43). Takes effect when he closes the match window,
   fast-forwards compression and runs `bot\start-bot.cmd`.
+
+## 2026-10-20 (~10:00-10:40): the bot's log says when a move came from a ponder hit
+
+- **Matthew asked** (game 5goydEra v ProsperoBot): move 65 logged "Source:
+  Engine" and nothing else, no Evaluation, Depth or Pv. Today's log: 373 of
+  1,629 engine moves (23%) look like that. In 5goydEra, matching each search's
+  predicted reply (the second move of its Pv) with what the opponent played:
+  11 of the 36 ponder hits had no stats, and none of the 16 misses lacked them.
+- **Why**: python-chess, on a ponder hit, sends "ponderhit" and keeps only the
+  `info` lines the engine sends after it (it drops the ponder search's own
+  while pondering). When no new depth finishes between the hit and the move,
+  there's nothing, and lichess-bot prints only its default "Source: Engine".
+- **bot\lichess-bot-ponder-note.patch** (lib\engine_wrapper.py, search()): the
+  same test as python-chess's own (the board and its moves equal the position
+  the last search left the engine pondering, with pondering on), then the
+  move's source reads "Engine, ponder hit", or with no stats "Engine, ponder
+  hit (thought in the opponent's time; no depth finished after the hit to
+  report)". Our chat's book note (bruteforcer_chat.py) only looks for the
+  book's source, so it's unaffected; for chat the line stays under 140.
+  start-bot.cmd applies it after the one-player patch; it touches a different
+  file, so it can't trip the others' checks.
+- **bot\test-ponder-note.py**: lichess-bot's own search() and get_stats() with a
+  scripted pretend engine: a first search, a hit with no stats, a miss, a hit
+  with stats, a predicted reply searched with pondering off. Passes with the
+  patch; without it, searches 2 and 4 fail. Run on a copy (LICHESS_BOT).
+- Not in src: the engine itself could send one last `info` before `bestmove`
+  after a ponderhit, so those moves get stats too. Left for after the
+  optimisation session's work in src lands (Matthew is in it now).
+- Goes live at the bot's next `bot\start-bot.cmd`.

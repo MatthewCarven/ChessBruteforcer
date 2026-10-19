@@ -59,6 +59,13 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-one-player.patch"
     if errorlevel 1 echo The one-player fix didn't go in ^(lichess-bot changed?^): a reconnect can put two players on a game.
 )
+rem A move found after a ponder hit says so in the log ("Source: Engine, ponder hit"), and why it has no stats when it has
+rem none: bot\lichess-bot-ponder-note.patch, 2026-10-20; bot\test-ponder-note.py tests it. Unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-ponder-note.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-ponder-note.patch"
+    if errorlevel 1 echo The ponder note didn't go in ^(lichess-bot changed?^): ponder hits log no source note, as before.
+)
 set BRUTEFORCER_TABLES=%CD%\tables
 rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers.
 pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0run-bot.ps1"
