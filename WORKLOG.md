@@ -3737,3 +3737,31 @@ has the tables; this is the story.
   the card at 1,200 MHz.)
 - The caveat stays: on a probe net 1024 hidden searched 23% slower a node
   than 512 (`bench 9`). Its match against h512-3m decides.
+
+## 2026-10-19 (21:25-21:50): the 3070 against the 1660 at 1024 and 2048 hidden
+
+- Matthew asked how long a 2048 net on September (nnue1-h512's recipe, 20
+  passes) would take, and whether the laptop's 3070 beats the 1660. His (a):
+  a speed race on the laptop with the bot off (he had stopped it at 21:23;
+  its TypeError on the way out was that stop, TODO). On the charger, 4.1 GB
+  of commit free, the book learner beside it.
+- `train speed-<H> --hidden <H> --buckets 16 --passes 1 --held-back-max
+  200000 --out <scratchpad>`, a quarter of September each:
+
+  | hidden | 3070 laptop | 1660 desktop | 3070 / 1660 |
+  |---|---|---|---|
+  | 256 (session 2) | 0.96-1.17 M a second | 634-641 k | 1.5-1.8x |
+  | 1024 | **295 k** (185.7 s for 54.7 M) | 188-200 k (h1024-3m, running) | 1.5x |
+  | 2048 | **161 k** (0.55x its 1024) | ~110 k (not measured; its own 0.55x) | ~1.5x |
+
+- So 2048 on September, 20 passes of 218.9 M: **~7.5 h on the 3070 (the
+  bot off throughout), ~11 h on the 1660.** The laptop is ~1.5x the desktop
+  at every size, not more: the bigger nets don't favour it.
+- The 2048 run trained to the end of its quarter-pass, then ran out of GPU
+  memory in the held-back scoring (`scores()`: chunks of 65,536 positions
+  make 0.5-1 GB tensors at 2048, and only ~3.9 of the card's 8 GB was free
+  with Windows' own users of it). A real 2048 run needs that chunk scaled
+  down with the hidden size. The 1024 run hit the same allocator warning
+  and recovered. The engine also loads at most 1024 (Network.MaxHidden),
+  though its int32 sums would still fit at 2048 (256 x 255 x 32,640 =
+  2.13 billion).

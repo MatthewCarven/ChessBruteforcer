@@ -589,6 +589,8 @@ WORKLOG has the story). What later sessions need:
   | positions a second, 256 hidden | 0.96-1.17 M at full speed | **634-641 k** (0.65x) |
   | a pass, 256 hidden | 190-228 s | 342-345 s |
   | positions a second, 512 hidden | | **362 k** (0.57x its own 256) |
+  | positions a second, 1024 hidden | **295 k** (2026-10-19, a quarter of September, the bot off) | 188-200 k (h1024-3m; 0.64-0.68x the laptop) |
+  | positions a second, 2048 hidden | **161 k** (the same; 0.55x its own 1024) | not measured: ~110 k at its own 0.55x a doubling |
   | torch's GPU memory, peak allocated / reserved | 615 / 994 MB | 615 / 996 MB at 256; ~700 MB allocated at 512 |
   | the card under training | ~99 W | 75-84 W of 130 W, 1,920 MHz steady, 62-70 °C, fan ~66%, PCIe 3.0 x16 |
   | the trainer's host commit | 2.8-3.2 GB | 2.6-3.2 GB (the desktop has 16 GB, ~11 GB free) |

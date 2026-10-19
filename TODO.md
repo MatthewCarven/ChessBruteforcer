@@ -123,6 +123,13 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     fetch h1024-3m`, the load check, and its match against h512-3m (the
     bot off: Matthew's call when). It runs ~23% slower a node, so it must
     evaluate that much better to win.
+  - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
+    passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
+    3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
+    held-back scoring needs smaller chunks at 2048 (it ran out of GPU
+    memory there), and the engine's MaxHidden 1024 must rise (a C# change:
+    Matthew's word). It would search roughly half as fast as 512, so wait
+    for h1024-3m's match first.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 
