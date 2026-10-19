@@ -3878,3 +3878,19 @@ has the tables; this is the story.
   tries it first (its loop picks it here), EvalFile loads it from bot\eval
   (sha256 510a8d0e6c43). Takes effect when he closes the match window,
   fast-forwards compression and runs `bot\start-bot.cmd`.
+
+## 2026-10-20 (03:28-04:15): the bot back on h1024-3m; its match decided beside it
+
+- Matthew fast-forwarded compression and started the bot (its log from
+  03:27:57: "768 -> 1024 x2 -> 1, sha256 510a8d0e6c43"; the Cowork VM gone,
+  6.6 GB of commit free at 03:52). The match window was still running, so
+  from ~03:36 the match played beside the bot. Asked, he chose (b): let both
+  matches run beside it, "only that i want the data".
+- **h1024-3m against h512-3m: SPRT accepted H1 at game ~579 (LLR 2.95)**;
+  584 games, +211 -143 =230, 55.8%, **+41 Elo [+19, +63]**, finished 04:01.
+  Beside the bot the engines' speeds swung from ~1,700 down to 80-500 knps
+  a side and 34 games were lost on time, all after game 420 (h512-3m 18,
+  h1024-3m 16). Games 1-320 (clean): +109 -74 =137, 55.5%; games 321-584:
+  +102 -69 =93, 56.2%. MATCHES.md and NNUE.md have it.
+- h768-3m's match started by itself at 04:01:54, beside the bot: 340-380
+  knps a side, depth ~7.5, in its first games.

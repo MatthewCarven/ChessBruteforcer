@@ -63,6 +63,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-18 | h512-blend25 | nnue1-h512 | 1,252 | +311 -349 =592 | 48.5% | -11 [-25, +3] | SPRT [0, 10] **accepted H0** (LLR -3.06): the result blend doesn't help; bot stopped |
 | 2026-10-18 | h512-mates | nnue1-h512 | 1,212 | +310 -349 =553 | 48.4% | -11 [-26, +3] | SPRT [0, 10] **accepted H0** (LLR -2.99): mates in training don't help; bot stopped |
 | 2026-10-19 | h512-3m | nnue1-h512 | 2,000 | +583 -521 =896 | 51.5% | **+11 [-1, +22]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 1.73), LOS 96.9%: three months' data, a small gain; bot stopped |
+| 2026-10-20 | h1024-3m | h512-3m | 584 | +211 -143 =230 | 55.8% | **+41 [+19, +63]** | SPRT [0, 10] **accepted H1** at game ~579 (LLR 2.95); games 321-584 beside the bot, 34 time losses there (see below) |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -131,6 +132,21 @@ repetitions, 344 table draws, 85 by the 50-move rule, 2 stalemates; no time
 losses, crashes or illegal moves. Equal speed (2,091 against 2,078 knps,
 depth 10.2 each). On Matthew's word (2026-10-19, ~14:35) the bot plays on
 it from its next start (`bot\eval\h512-3m.nnue`).
+
+**h1024-3m against h512-3m** (2026-10-20, 03:04-04:01): h512-3m's recipe at
+1024 hidden (NNUE.md, session 5). The SPRT accepted H1 at game ~579 (LLR
+2.95); 584 games in all: **+41 Elo [+19, +63]**, LOS 100.0%. As white +116
+-68, as black +95 -75. Ends: 175 checkmates, 145 by the tables, 131
+repetitions, 82 table draws, 34 on time, 16 by the 50-move rule, 1
+stalemate; no crashes or illegal moves. **Not all of it was clean**: the bot
+came back on h1024-3m at 03:28 (Matthew's call at game 188) and from about
+game 320 the match played beside it, at below-normal priority. Speeds there
+swung from ~1,700 down to 80-500 knps a side while the bot thought, and
+**all 34 time losses came after game 420** (h512-3m 18, h1024-3m 16). The
+two halves agree: games 1-320, +109 -74 =137, 55.5%, no time losses; games
+321-584, +102 -69 =93, 56.2%. In the clean half h1024-3m searched 1,600-1,790
+knps against h512-3m's ~2,000-2,110 (-16%), depth ~0.2 shallower. The bot
+plays on it (decision I in NNUE.md).
 
 ## Versions
 

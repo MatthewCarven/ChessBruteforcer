@@ -45,23 +45,18 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 "768 -> 512 x2 -> 1, sha256 8a6cd3aff627"). The desktop trains two levers
 overnight (NNUE, below).
 
-**2026-10-20, 03:30: the bot is OFF; it switches to h1024-3m** (Matthew's
-call at game 188 of its match: +52 [+14, +91] over h512-3m, LOS 99.6%;
-"battle testing 1024", the statistics later, which he does want for clean
-footing next time). bot\eval\h1024-3m.nnue, which make-config.py tries
-first (delete it to go back to h512-3m). It went down at 21:23 on
-2026-10-19 when memory ran out (lichess-bot's TypeError, below; its restart
-loop died too; 0.45 GB of commit free at 23:22: the Cowork VM 4.0 GB,
-h768-3m's training 3.5 GB, eight Claude sessions ~0.5 GB each). **Back on**:
-close the match window (h1024-3m's match, then h768-3m's, queued in one
-window), fast-forward compression to branch `claude/nnue-desktop-8d5f2a`,
-reboot (the only way to close the Cowork VM), then `bot\start-bot.cmd`, then
-the learner with `bot\learn.cmd` once the bot's window has built the engine
-(two builds at once trip over each other). Not `start.cmd`: it would start
-the month queue too, which is off. Its log should then say "768 -> 1024 x2
--> 1, sha256 510a8d0e6c43". **To finish later**, the bot off: h1024-3m's
-SPRT against h512-3m (rename its .log and .pgn first, or the launcher
-refuses) and h768-3m's match.
+**2026-10-20, 03:28: the bot is back, on h1024-3m** (Matthew's call at game
+188 of its match against h512-3m, "battle testing 1024"; its log: "768 ->
+1024 x2 -> 1, sha256 510a8d0e6c43"). bot\eval\h1024-3m.nnue, which
+make-config.py tries first (delete it to go back to h512-3m). **The match
+then finished beside the bot: SPRT accepted H1, +41 [+19, +63] in 584
+games** (MATCHES.md; 34 time losses in the part beside the bot, the clean
+part agreeing). h768-3m's match started by itself at 04:01, also beside
+the bot (Matthew's (b): he wants the data). Earlier: the bot went down at
+21:23 on 2026-10-19 when memory ran out (lichess-bot's TypeError, below);
+after a restart of the laptop, `bot\start-bot.cmd`, then `bot\learn.cmd`
+once the bot's window has built the engine (two builds at once trip over
+each other); not `start.cmd` (the month queue is off).
 
 **Running right now, each in its own window (check them, don't start them):**
 - **The bot: OFF since 21:23 on 2026-10-19** (above). From its next start it
@@ -136,9 +131,10 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     | h1024-3m | 0.012659 (-7.2%) | 0.012432 (-7.5%) | 1,470 (-15.8%) |
 
     **Their matches against h512-3m** (Matthew's (a), from 03:04 on
-    2026-10-20, back to back in one window): h1024-3m +52 [+14, +91] at
-    game 188, LOS 99.6%; **the bot switches to it** (decision I). The
-    SPRT's verdict and h768-3m's match: later, the bot off.
+    2026-10-20, back to back in one window): **h1024-3m +41 [+19, +63],
+    SPRT accepted H1** at game ~579 (584 games, the last 264 beside the
+    bot); **the bot plays on it** (decision I). h768-3m's match from 04:01,
+    beside the bot.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's

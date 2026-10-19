@@ -926,6 +926,13 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   h512-3m's 2,000-2,110 (-16%). **Matthew chose to play the bot on it from
   there** (decision I, below): `bot\eval\h1024-3m.nnue`, which
   make-config.py tries first.
+- **The SPRT accepted H1 at game ~579**: 584 games, +211 -143 =230,
+  **+41 Elo [+19, +63]** over h512-3m. From about game 320 it ran beside
+  the bot (Matthew's (b): he wants the data), with 34 time losses after
+  game 420 split 18/16, but the clean first 320 games say the same (55.5%
+  against 56.2%). So 1024 hidden won by about half of what 512 did over
+  256, at four times the speed cost a node: the better evaluation still
+  more than pays. MATCHES.md has the detail.
 
 ## Risks
 
