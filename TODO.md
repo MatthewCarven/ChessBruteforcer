@@ -161,8 +161,12 @@ had two players on one game; bot\lichess-bot-one-player.patch stops that
 between games (not `start.cmd`: that starts the month queue, which is off).
 Still open: lichess-bot quit on a TypeError in accept_challenges, twice
 (2026-10-19 00:32 and 21:23: `challenge_queue`, the manager's list, gave its
-length as None). The second time commit was nearly gone and run-bot.ps1 died
-too, so memory is the first suspect; if it happens with headroom, look closer.
+length as None). **Cause: memory ran out** (Matthew: a screenshot at 21:23
+tipped it over; commit was nearly gone, and run-bot.ps1 died too). So keep
+commit headroom while the bot plays: ~2 GB free at least (the engine alone
+holds ~0.8 GB of tables plus its hash). The second 16 GB stick (section 4)
+fixes it for good; until then, a bigger page file would raise the limit
+(Matthew's setting). If it ever happens with headroom, look closer.
 
 **Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
 on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now

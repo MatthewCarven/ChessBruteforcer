@@ -3743,3 +3743,8 @@ has the tables; this is the story.
   Cowork VM, and runs `bot\start-bot.cmd`, then `bot\learn.cmd` (not
   `start.cmd`, which would start the month queue, off on his word). The NNUE
   session knows.
+- **Cause confirmed** (Matthew, 00:50): memory ran out. Taking a screenshot
+  at 21:23 tipped it over. So the TypeError is what lichess-bot's manager
+  does when an allocation fails, not a bug of its own; the guard is
+  headroom (~2 GB free while the bot plays), the second memory stick, or a
+  bigger page file (his setting).
