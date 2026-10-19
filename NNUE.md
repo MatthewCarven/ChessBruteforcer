@@ -876,6 +876,14 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   0.013460, 0.013585 over passes 8-10) while the fitted one fell steadily
   (0.013393, 0.013383, 0.013356). Its training error, 0.012119 over all
   three months, isn't comparable with September's alone. The match decides.
+- **Its match: h512-3m +11 Elo [-1, +22] against nnue1-h512**, +583 -521
+  =896 over 2,000 games (2026-10-19, 11:09-14:27, the bot stopped), LOS
+  96.9%; the SPRT [0, 10] stopped undecided at the game limit (LLR 1.73 of
+  2.94). Ahead from game 400 on, at equal speed (2,091 against 2,078 knps).
+  Three times the data is very likely better, but by a seventh of what 512
+  hidden gave (+76): at this size, more of the same Lichess labels adds
+  little. MATCHES.md has the detail. Whether the bot switches is
+  Matthew's call.
 
 ## Risks
 

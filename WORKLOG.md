@@ -3694,3 +3694,20 @@ has the tables; this is the story.
 - Fetched into games\nnue\nets\ (network sha256 9da33208a6f5...); EvalFile
   loads it; a6 against the Ruy Lopez at depth 10. Its match against
   nnue1-h512 waits on Matthew (the bot off).
+
+## 2026-10-19 (11:05-14:35): h512-3m +11 Elo over nnue1-h512, by a little
+
+- Matthew stopped the bot at ~11:05; `scripts\nnue-match.cmd h512-3m
+  nnue1-h512` in its own window, 11:09:27-14:26:50 (10+0.1, 5 at a time,
+  the 300 openings, the tables adjudicating).
+- **2,000 games: +583 -521 =896, 51.5%, +11 Elo [-1, +22], LOS 96.9%.** The
+  SPRT [0, 10] stopped undecided at the game limit (LLR 1.73 of 2.94). Level
+  at game 300, ahead from game 400 on (+5 to +21). No time losses, crashes or
+  illegal moves; equal speed (2,091 against 2,078 knps, depth 10.2 each).
+- So three months' data is very likely better than September alone, but by
+  a seventh of what 512 hidden gave. Written into MATCHES.md, NNUE.md
+  (session 5) and TODO. Whether the bot switches to it is Matthew's call;
+  the bot stays off until he says.
+- Matthew asked twice for the count while it ran, and worried that opening
+  the log would stop its writes: it doesn't (an editor reads a copy; only
+  saving an edit could interfere).

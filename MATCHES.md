@@ -62,6 +62,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-17 | nnue1-h512 | nnue1 | 285 | +114 -53 =118 | 60.7% | **+76 [+45, +107]** | SPRT [0, 10] accepted H1 at game 284 (LLR 2.98); bot stopped (see below) |
 | 2026-10-18 | h512-blend25 | nnue1-h512 | 1,252 | +311 -349 =592 | 48.5% | -11 [-25, +3] | SPRT [0, 10] **accepted H0** (LLR -3.06): the result blend doesn't help; bot stopped |
 | 2026-10-18 | h512-mates | nnue1-h512 | 1,212 | +310 -349 =553 | 48.4% | -11 [-26, +3] | SPRT [0, 10] **accepted H0** (LLR -2.99): mates in training don't help; bot stopped |
+| 2026-10-19 | h512-3m | nnue1-h512 | 2,000 | +583 -521 =896 | 51.5% | **+11 [-1, +22]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 1.73), LOS 96.9%: three months' data, a small gain; bot stopped |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -117,6 +118,18 @@ the tables, 308 checkmates, 277 repetitions, 221 table draws, 54 by the
 50-move rule, 1 stalemate; no time losses, crashes or illegal moves. Equal
 speed (2,018 against 2,008 knps, depth 10.1 each). The bot stays on
 nnue1-h512.
+
+**h512-3m against nnue1-h512** (2026-10-19, 11:09-14:27, the bot stopped
+by Matthew for it): nnue1-h512's recipe at 512 hidden, trained on three
+months' records instead of one (July, August and September, 677 M
+positions, 10 passes; NNUE.md, session 5). 2,000 games in 3 h 17 min; the
+SPRT didn't decide (LLR 1.73 of the 2.94 needed at the game limit): **+11
+Elo [-1, +22]**, LOS 96.9%. Level at game 300 (-1), ahead from game 400 on
+(+5 at its lowest, game 454; +21 at its highest, game 795). As white +317
+-220, as black +266 -301. Ends: 604 by the tables, 500 checkmates, 465
+repetitions, 344 table draws, 85 by the 50-move rule, 2 stalemates; no time
+losses, crashes or illegal moves. Equal speed (2,091 against 2,078 knps,
+depth 10.2 each). Whether the bot switches is Matthew's call.
 
 ## Versions
 

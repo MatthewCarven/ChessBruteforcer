@@ -44,6 +44,10 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 "768 -> 512 x2 -> 1, sha256 8a6cd3aff627"). The desktop trains two levers
 overnight (NNUE, below).
 
+**2026-10-19, 14:27: the bot is OFF** (Matthew stopped it at ~11:05 for
+h512-3m's match, which has finished: NNUE, below). It comes back with
+`bot\start-bot.cmd`, on his word.
+
 **Running right now, each in its own window (check them, don't start them):**
 - **The bot is back online since 17:24:55 on 2026-10-18** (`bot\start-bot.cmd`
   on Matthew's word; off from ~08:20 for the blend's and the mates'
@@ -61,7 +65,8 @@ overnight (NNUE, below).
   KB/s. Log games\month-queue.log; counts logs
   bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
 - The book learner (bot\learn.py, restarted 23:26).
-- On the desktop: task "nnue h512-blend25 then h512-mates" (NNUE, below).
+- On the desktop: nothing (h512-3m finished 10:42 on 2026-10-19; NNUE,
+  below).
 
 **Tonight's two matches, both with the bot off:**
 
@@ -102,9 +107,12 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     05:32-10:42 (512 hidden, July + August + September, 10 passes): in
     games\nnue\nets\, loads in the engine; held-back error 0.013640 at K 1
     (-0.2% against nnue1-h512), 0.013437 at its fitted K 1.10 (-1.7%): the
-    modest gain expected. **Its match against nnue1-h512 is next**
-    (`scripts\nnue-match.cmd h512-3m nnue1-h512`, 30 min to 2 h, the bot
-    off: Matthew's call when).
+    modest gain expected. **Its match: +11 Elo [-1, +22] against
+    nnue1-h512**, LOS 96.9%, the SPRT undecided at the 2,000-game limit
+    (LLR 1.73; 2026-10-19 11:09-14:27, the bot stopped). Very likely
+    better, by a little. **Whether the bot switches to it is Matthew's
+    call** (it would go in as bot\eval\h512-3m.nnue, tried first by
+    make-config.py).
   - Other levers waiting: the export's rounding (small); a bigger net
     (1024: 7.7 h on the 1660 for September alone, 23% slower a node) once
     there's data enough for it; labels from our own search.
