@@ -174,9 +174,12 @@ def make_net(hidden):
     return Net()
 
 
-def scores(net, raw, chunk=1 << 16):
+def scores(net, raw, chunk=None):
     """The net's score, centipawns for the side to move, of each of these raw records (no mates expected)."""
     import torch
+    # 64 k positions a chunk at 256 hidden, fewer as the net grows, so a chunk's tensors stay ~256 MB: at 2048 the
+    # old 64 k ran the laptop's card out of memory, and what the cache keeps counts against Windows' commit.
+    chunk = chunk or max(4096, (1 << 24) // net.hidden)
     out = []
     with torch.no_grad():
         for at in range(0, raw.shape[0], chunk):
@@ -334,13 +337,14 @@ def export(state, path):
     return data[-32:].hex(), qb   # the hash of everything before it, as the engine prints it
 
 
-def int_scores(net_file, raw, chunk=1 << 15):
+def int_scores(net_file, raw, chunk=None):
     """A .nnue's scores, exactly as the engine computes them (Network.Forward), for these raw records on the GPU:
     the accumulators and sums in float64, which holds these integers exactly, then C#'s truncating divisions in
     int64. checks.py holds this to nnue_reference.evaluate."""
     import torch
     q = nnue_reference.read_nnue(net_file)
     dev, h = raw.device, q["hidden"]
+    chunk = chunk or max(1024, (1 << 23) // h)   # 32 k positions at 256 hidden, fewer as it grows (as in scores)
     fw = torch.zeros(INPUTS + 1, h, dtype=torch.float64, device=dev)
     fw[:INPUTS] = torch.from_numpy(q["fw"].astype(np.float64))
     fb = torch.from_numpy(q["fb"].astype(np.float64)).to(dev)
@@ -551,6 +555,10 @@ def train(args):
             e = scores(net, held)
             k, err = fit_k(e, held_target)
             line += f"; held back {error_at(e, held_target, 1.0):.6f} at K 1, {err:.6f} at K {k:.4f}"
+            # Hand the scoring's cached GPU memory back: on Windows it stayed in the process's commit for the rest of
+            # the run (+1.1 GB at 512 hidden, +2.2 GB at 1024 on the desktop, from the end of pass 1 on).
+            del e
+            torch.cuda.empty_cache()
         log(line)
         state = {k: v.detach().cpu().numpy() for k, v in net.state_dict().items()}
         tmp = str(checkpoint) + ".tmp"
