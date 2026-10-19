@@ -3742,8 +3742,9 @@ has the tables; this is the story.
 
 - Matthew asked how long a 2048 net on September (nnue1-h512's recipe, 20
   passes) would take, and whether the laptop's 3070 beats the 1660. His (a):
-  a speed race on the laptop with the bot off (he had stopped it at 21:23;
-  its TypeError on the way out was that stop, TODO). On the charger, 4.1 GB
+  a speed race on the laptop with the bot off (it had gone down at 21:23;
+  I took its TypeError for his stopping it, but memory had run out: the
+  23:20-00:45 entry). On the charger, 4.1 GB
   of commit free, the book learner beside it.
 - `train speed-<H> --hidden <H> --buckets 16 --passes 1 --held-back-max
   200000 --out <scratchpad>`, a quarter of September each:
@@ -3796,6 +3797,32 @@ has the tables; this is the story.
   1,275 MHz, 74 W, 64 C. Commit free fell to 1.16 GB with it running (the
   page file can grow another ~1.6 GB): a watcher logs the headroom every 5
   minutes and calls out under 0.7 GB.
+
+## 2026-10-19/20 (23:20-00:45): the bot down since 21:23; off till h768-3m is done
+
+- **lichess-bot quit at 21:23:27, between games** ("Process Freed. Count: 0"
+  at 21:22:34, so no game lost), on the same TypeError as at 00:32: in
+  accept_challenges, `while len(active_games) < max_games and
+  challenge_queue:`, the manager's list gave its length as None. This time
+  run-bot.ps1 died with it: no "stopped by itself" line in restarts.log and
+  no bot window left, so nothing restarted it.
+- **Memory**: 0.45 GB of 21.8 GB commit free at 23:22 (RAM 4.0 GB free). The
+  biggest: vmmem 4.0 GB (the Cowork sandbox VM; WSL is stopped), the h768-3m
+  training 3.5 GB (on this laptop's GPU from 22:25, started after the bot was
+  down: a 768-hidden net on September, July and August, 10 passes of ~25 min),
+  eight Claude sessions ~0.5 GB each. An allocation failing in the manager or
+  in pwsh fits both the None and the dead loop; the 00:32 crash came with no
+  measure of memory.
+- **Matthew's (a)**: the bot stays off while h768-3m trains (heat rule); it ends
+  ~02:40 (pass 6 of 10 at 00:42). Then he reboots, the only way to close the
+  Cowork VM, and runs `bot\start-bot.cmd`, then `bot\learn.cmd` (not
+  `start.cmd`, which would start the month queue, off on his word). The NNUE
+  session knows.
+- **Cause confirmed** (Matthew, 00:50): memory ran out. Taking a screenshot
+  at 21:23 tipped it over. So the TypeError is what lichess-bot's manager
+  does when an allocation fails, not a bug of its own; the guard is
+  headroom (~2 GB free while the bot plays), the second memory stick, or a
+  bigger page file (his setting).
 
 ## 2026-10-19/20 (23:20-03:00): a memory squeeze; h768-3m and h1024-3m done
 

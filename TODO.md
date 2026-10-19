@@ -47,18 +47,25 @@ overnight (NNUE, below).
 
 **2026-10-20, 03:30: the bot is OFF; it switches to h1024-3m** (Matthew's
 call at game 188 of its match: +52 [+14, +91] over h512-3m, LOS 99.6%;
-"battle testing 1024", the statistics later). bot\eval\h1024-3m.nnue, which
-make-config.py tries first (delete it to go back to h512-3m). It takes
-effect when the match window is closed (h1024-3m's match, then h768-3m's,
-queued in one window), compression is fast-forwarded to branch
-`claude/nnue-desktop-8d5f2a`, and `bot\start-bot.cmd` runs; its log should
-then say "768 -> 1024 x2 -> 1, sha256 510a8d0e6c43". To finish later:
-h1024-3m's SPRT against h512-3m (rename its .log and .pgn first, or the
-launcher refuses) and h768-3m's match.
+"battle testing 1024", the statistics later, which he does want for clean
+footing next time). bot\eval\h1024-3m.nnue, which make-config.py tries
+first (delete it to go back to h512-3m). It went down at 21:23 on
+2026-10-19 when memory ran out (lichess-bot's TypeError, below; its restart
+loop died too; 0.45 GB of commit free at 23:22: the Cowork VM 4.0 GB,
+h768-3m's training 3.5 GB, eight Claude sessions ~0.5 GB each). **Back on**:
+close the match window (h1024-3m's match, then h768-3m's, queued in one
+window), fast-forward compression to branch `claude/nnue-desktop-8d5f2a`,
+reboot (the only way to close the Cowork VM), then `bot\start-bot.cmd`, then
+the learner with `bot\learn.cmd` once the bot's window has built the engine
+(two builds at once trip over each other). Not `start.cmd`: it would start
+the month queue too, which is off. Its log should then say "768 -> 1024 x2
+-> 1, sha256 510a8d0e6c43". **To finish later**, the bot off: h1024-3m's
+SPRT against h512-3m (rename its .log and .pgn first, or the launcher
+refuses) and h768-3m's match.
 
 **Running right now, each in its own window (check them, don't start them):**
-- **The bot: OFF since 21:23 on 2026-10-19** (above). When on, it plays on
-  h512-3m with the rejoin, busy and one-player fixes; `bot\start-bot.cmd`
+- **The bot: OFF since 21:23 on 2026-10-19** (above). From its next start it
+  plays on h1024-3m, with the rejoin, busy and one-player fixes; `bot\start-bot.cmd`
   brings it back (the learner is up).
 - **The month queue: OFF on Matthew's word** (2026-10-18: he closed it at
   ~20:06 on purpose: his mum's YouTube was struggling, even at the 500 KB/s
@@ -168,11 +175,14 @@ make-config.py (the patch still helps at 1).
 had two players on one game; bot\lichess-bot-one-player.patch stops that
 (bot\test-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
 between games (not `start.cmd`: that starts the month queue, which is off).
-Still open: lichess-bot quit once on a TypeError in accept_challenges
-(00:32, the manager's list length None); watch for it again. The same
-error ended the bot at 21:23 on 2026-10-19 when Matthew stopped it by hand,
-so it means the queue's manager process went away first; at 00:32 nobody
-stopped it (run-bot.ps1 brought it back at 01:16), so something else did.
+Still open: lichess-bot quit on a TypeError in accept_challenges, twice
+(2026-10-19 00:32 and 21:23: `challenge_queue`, the manager's list, gave its
+length as None). **Cause: memory ran out** (Matthew: a screenshot at 21:23
+tipped it over; commit was nearly gone, and run-bot.ps1 died too). So keep
+commit headroom while the bot plays: ~2 GB free at least (the engine alone
+holds ~0.8 GB of tables plus its hash). The second 16 GB stick (section 4)
+fixes it for good; until then, a bigger page file would raise the limit
+(Matthew's setting). If it ever happens with headroom, look closer.
 
 **Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
 on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now
