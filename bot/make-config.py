@@ -35,13 +35,15 @@ engine["uci_options"] = {
     "Threads": 8,                                             # LazySMP on the 8 cores (WORKLOG 2026-10-15 21:25, 2026-10-16)
     "Move Overhead": 100,
 }
-# The evaluation: the network nnue1-h512 (NNUE.md; 2026-10-17: +76 Elo [+45, +107] over nnue1, 285 games at
-# 10+0.1, after SPRT [0, 10] accepted H1; nnue1's recipe at 512 hidden, trained on the desktop's GTX 1660), else
-# nnue1 (2026-10-17: +742 Elo [+645, +970] over sf1, 400 games at 10+0.1, after SPRT [0, 10] accepted H1), else
-# sf1's numbers, Texel-tuned towards Stockfish's verdicts on Lichess's analysed games (2026-10-14: +208 Elo [+130,
-# +311] over the built-in ones, 69 games at 10+0.1, SPRT decided). Delete nnue1-h512.nnue to go back to nnue1,
+# The evaluation: the network h512-3m (NNUE.md; 2026-10-19: +11 Elo [-1, +22] over nnue1-h512, 2,000 games at
+# 10+0.1, LOS 96.9%, SPRT [0, 10] undecided at the limit; nnue1-h512's recipe on July, August and September), else
+# nnue1-h512 (2026-10-17: +76 Elo [+45, +107] over nnue1, 285 games at 10+0.1, after SPRT [0, 10] accepted H1;
+# nnue1's recipe at 512 hidden, trained on the desktop's GTX 1660), else nnue1 (2026-10-17: +742 Elo [+645, +970]
+# over sf1, 400 games at 10+0.1, after SPRT [0, 10] accepted H1), else sf1's numbers, Texel-tuned towards
+# Stockfish's verdicts on Lichess's analysed games (2026-10-14: +208 Elo [+130, +311] over the built-in ones, 69
+# games at 10+0.1, SPRT decided). Delete h512-3m.nnue to go back to nnue1-h512, nnue1-h512.nnue as well for nnue1,
 # nnue1.nnue as well for sf1, and eval-sf1.txt as well for the built-in numbers.
-for name in ("nnue1-h512.nnue", "nnue1.nnue", "eval-sf1.txt"):
+for name in ("h512-3m.nnue", "nnue1-h512.nnue", "nnue1.nnue", "eval-sf1.txt"):
     evaluation = os.path.join(here, "eval", name)
     if os.path.exists(evaluation):
         engine["uci_options"]["EvalFile"] = evaluation

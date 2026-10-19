@@ -3711,3 +3711,14 @@ has the tables; this is the story.
 - Matthew asked twice for the count while it ran, and worried that opening
   the log would stop its writes: it doesn't (an editor reads a copy; only
   saving an edit could interfere).
+- **The switch, Matthew's H(a)** (~14:35): `bot\eval\h512-3m.nnue` (in git,
+  789,572 bytes, the bytes the match played: 665297e6... in games\nnue\nets,
+  %TEMP%\cb-match and bot\eval alike), and make-config.py tries h512-3m.nnue,
+  nnue1-h512.nnue, nnue1.nnue, eval-sf1.txt in that order (its loop, run on
+  this worktree's bot\eval, picks h512-3m). EvalFile loads it from bot\eval
+  (network sha256 9da33208a6f5; a6 against the Ruy Lopez at depth 10). Takes
+  effect when this branch is in the main checkout and `bot\start-bot.cmd`
+  runs.
+- A gotcha: `python - ... </dev/null` in Git Bash started Python 3.14's
+  interactive console (NUL is a character device, so it looks like a
+  terminal) and looped on console errors until stopped. Scripts go in files.

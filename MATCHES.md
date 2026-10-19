@@ -129,7 +129,8 @@ Elo [-1, +22]**, LOS 96.9%. Level at game 300 (-1), ahead from game 400 on
 -220, as black +266 -301. Ends: 604 by the tables, 500 checkmates, 465
 repetitions, 344 table draws, 85 by the 50-move rule, 2 stalemates; no time
 losses, crashes or illegal moves. Equal speed (2,091 against 2,078 knps,
-depth 10.2 each). Whether the bot switches is Matthew's call.
+depth 10.2 each). On Matthew's word (2026-10-19, ~14:35) the bot plays on
+it from its next start (`bot\eval\h512-3m.nnue`).
 
 ## Versions
 

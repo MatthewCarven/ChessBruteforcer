@@ -882,8 +882,9 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   2.94). Ahead from game 400 on, at equal speed (2,091 against 2,078 knps).
   Three times the data is very likely better, but by a seventh of what 512
   hidden gave (+76): at this size, more of the same Lichess labels adds
-  little. MATCHES.md has the detail. Whether the bot switches is
-  Matthew's call.
+  little. MATCHES.md has the detail. **The bot plays on it** from its
+  next start (Matthew's H(a), below): `bot\eval\h512-3m.nnue` (the bytes
+  the match played), which make-config.py tries before nnue1-h512.nnue.
 
 ## Risks
 
@@ -984,3 +985,12 @@ threads at 3+2 with pondering, the tables and its book.
   conditions, where the 9% speed cost may weigh differently.
 - (c) As (a), stopping the match at game 275 rather than letting the SPRT
   finish its last few games.
+
+**H. The bot and h512-3m** (chosen: a, 2026-10-19 ~14:35, after its match:
++11 [-1, +22] over nnue1-h512 in 2,000 games, LOS 96.9%, the SPRT undecided
+at the limit, equal speed).
+- **(a) Switch** (recommended): h512-3m.nnue into bot\eval\ (in git, 790
+  KB), make-config.py trying it before nnue1-h512.nnue (delete it to go
+  back). ~97% likely stronger, and no slower.
+- (b) Stay on nnue1-h512; the bot restarted as it was.
+- (c) Settle it first: 1,000-2,000 more games, 1.5-3 h with the bot off.

@@ -11,7 +11,8 @@ Where we are: every table of 5 pieces or fewer is solved, both kinds
 (FIVE-PIECE.md, FIVE-PIECE-PAWNS.md), and the engine plays them by the
 50-move rule. It plays on Lichess as matthewcarven (blitz ~2026) on a
 Texel-tuned evaluation (+208 Elo), then the network nnue1 (+742 over that),
-and from its next start nnue1-h512 (+76 over nnue1, 2026-10-17), with
+then nnue1-h512 (+76 over nnue1, 2026-10-17), and from its next start
+h512-3m (+11 over nnue1-h512 on three months' data, 2026-10-19), with
 opening books of its own. Real games
 set against the tables (all of September 2026, 5.23 M games reaching them):
 26.6% end otherwise than perfect play from there would, and 1 move in 31
@@ -45,8 +46,12 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 overnight (NNUE, below).
 
 **2026-10-19, 14:27: the bot is OFF** (Matthew stopped it at ~11:05 for
-h512-3m's match, which has finished: NNUE, below). It comes back with
-`bot\start-bot.cmd`, on his word.
+h512-3m's match, which has finished: NNUE, below). **It switches to h512-3m**
+(Matthew's H(a), ~14:35): bot\eval\h512-3m.nnue, which make-config.py tries
+first (delete it to go back to nnue1-h512). It takes effect once compression
+is fast-forwarded to branch `claude/nnue-desktop-8d5f2a` and
+`bot\start-bot.cmd` runs; its log should then say "768 -> 512 x2 -> 1,
+sha256 9da33208a6f5".
 
 **Running right now, each in its own window (check them, don't start them):**
 - **The bot is back online since 17:24:55 on 2026-10-18** (`bot\start-bot.cmd`
@@ -110,9 +115,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     modest gain expected. **Its match: +11 Elo [-1, +22] against
     nnue1-h512**, LOS 96.9%, the SPRT undecided at the 2,000-game limit
     (LLR 1.73; 2026-10-19 11:09-14:27, the bot stopped). Very likely
-    better, by a little. **Whether the bot switches to it is Matthew's
-    call** (it would go in as bot\eval\h512-3m.nnue, tried first by
-    make-config.py).
+    better, by a little. **The bot switches to it** (Matthew's H(a):
+    bot\eval\h512-3m.nnue, tried first by make-config.py).
   - Other levers waiting: the export's rounding (small); a bigger net
     (1024: 7.7 h on the 1660 for September alone, 23% slower a node) once
     there's data enough for it; labels from our own search.
@@ -423,6 +427,12 @@ Sessions, in order:
             (bot\eval\nnue1-h512.nnue, make-config.py tries it first).
       - [ ] **nnue1-h512's first ~30 rated games** against nnue1's (the
             bot's own games in bot\games, from its next start).
+      - [x] **h512-3m's match against nnue1-h512** (2026-10-19,
+            11:09-14:27, the bot off): **+11 Elo [-1, +22]**, +583 -521
+            =896 in 2,000 games, LOS 96.9%, SPRT [0, 10] undecided at the
+            limit; equal speed. MATCHES.md. Matthew's H(a): the bot
+            switches to it at its next start (bot\eval\h512-3m.nnue,
+            make-config.py tries it first).
       - [ ] `scripts\nnue-train.cmd` passes only `%2`-`%9` to train.py, so a
             ninth option token is dropped silently (train-desktop.cmd lost
             `--progress 2` that way before it was fixed with `for /f
