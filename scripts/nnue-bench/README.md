@@ -36,6 +36,14 @@ a kernel lab for AVX-512 and 64-byte alignment (NNUE.md "Speed at 1024").
 Beside the bot, time a below-normal thread by its own CPU time
 (QueryThreadCycleTime): wall-clock time includes its waits for a CPU.
 
+`results-2026-10-20-split.txt`: where the rest of a node goes at 1024 once
+the network's speed steps were in (ordering, generation, InCheck, make and
+unmake, the table, the repetition and tablebase checks), two quiescence
+levers measured, and a bitboard lab (NNUE.md "The rest of a node"). The
+scripts are in `search-split/` (README there): hooks into a scratch copy of
+the engine, removal arms that replay one piece's answers on the identical
+tree.
+
 Two builds, or two settings of one, on one net (2026-10-20, the AVX-512 and
 lazy-update A/Bs): an arm can name its own engine and environment, e.g.
 `-Arms "old=<net>;engine=<old dll>,new256=<net>;engine=<new dll>;env:CB_NNUE_SIMD=256,new=<net>;engine=<new dll>"`.

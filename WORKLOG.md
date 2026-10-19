@@ -3978,3 +3978,50 @@ has the tables; this is the story.
 - The morning's measuring scripts are in `scripts/nnue-bench/speed-1024/`
   now (the probe, its hooks as a patch against 619c703, the kernel lab,
   costs-nets.cs, align.cs; README there).
+
+## 2026-10-20 (09:40-10:30): the rest of a node, measured (a side session)
+
+- **Asked** (by the session that built the speed steps): where the 61% of a
+  node outside the network goes, and speed levers with estimates for
+  Matthew to pick from. No engine change. This branch
+  (`claude/friendly-cray-e85e18`) was fast-forwarded to
+  `claude/stoic-goodall-ecc132` (4ecea62) first.
+- **Conditions**: at 09:41 the bot was playing with 2.17 GB of commit free,
+  at the 2 GB floor; Matthew stopped the bot and the learner shortly before
+  09:52 ("should have more memory now"), and every run below was made with
+  them off (5.9 GB free, no engine running, checked before each run): the
+  quiet laptop's figures. Still off at 10:21.
+- **The probe** (`scripts/nnue-bench/search-split/`): a scratchpad copy of
+  the engine with hooks. A recording run notes every answer a node's pieces
+  give; removal arms replay one piece's answers instead of doing the work,
+  on the identical tree (checked every run: the same nodes, every replayed
+  stream read to its end); doubling arms do one piece twice. Thread time,
+  six rounds, rotated. Three runs (all arms; the quiescence levers; the
+  bot's 256 MB table) and a bitboard lab.
+- **The split** (NNUE.md "The rest of a node"): a `bench 9` node 515-522
+  ns, the network 125-135 (24-26%), the rest 386-389 (74-76%): move ordering
+  141 (PickNext's scan 92, ScoreMoves 50), generation 96 (460 ns a list),
+  InCheck 77 (39 ns a call, ~2 a node), make + unmake 25, the table 20 (26
+  at 256 MB), tablebase 5, repetition 2, the rest 21.
+- **Quiescence wastes most of the ordering**: it generates all ~34 moves,
+  scores them, and selection-sorts through 2.6 quiet moves a node that it
+  then skips. Stopping at the first quiet move is exact (quiet moves sort
+  last) and saves 11-12% of a node. A captures-only generator for it
+  (checked equal to the full list filtered, 2.7 M lists) with the check
+  status passed from Negamax: **the search 23.3% sooner, +30% nodes a
+  second** (+29% at 256 MB), the tree +494 nodes in 3.78 M (PickNext's tie
+  order). PawnMoves' `new[] { -1, 1 }` allocates 46 bytes a node (9 ns).
+- **The bitboard lab** (positions sampled from the searches, every answer
+  checked equal): a list -71%, quiescence's captures -83%, InCheck -67%.
+  Estimates on top of the quiescence fix: bitboards +25% to +39%; attack
+  tables beside today's board +6% to +15%; legality before make +7-8%.
+  **Decision K is Matthew's** (NNUE.md).
+- **To keep**: (1) the JIT must see every arm before timing: a depth-5 trial
+  without a warm-up had InCheck at twice its cost (tier-0 code in short
+  runs). Every arm runs twice at depth 6 first now. (2) A doubling arm reads
+  0.7-0.9x the removal arm's cost: the second call finds warm caches and
+  trained branch predictors. (3) Replayed evaluations can't follow a changed
+  tree (the captures-only arm's 0.013% tie-order change sent it 8% off), so
+  such arms run with the network on, on their own tree. (4) The hooks cost
+  nothing visible: the unhooked engine's `bench 9` read 1,731-1,756 knps
+  (570-578 ns a node, fresh processes) against the probe's 515-522 warmed up.

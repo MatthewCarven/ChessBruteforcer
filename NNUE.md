@@ -1016,6 +1016,73 @@ node from round to round).
   gets it at its next start once this branch is in compression; its Speed
   lines are the 8-thread check.
 
+### The rest of a node (2026-10-20): where the 74% outside the network goes
+
+Measured 10:01-10:15 with the bot off (Matthew stopped it just before), one
+thread at below-normal priority, thread time: the quiet laptop's figures,
+the rounds agreeing to 1-2 ns. All of it is in
+`scripts/nnue-bench/results-2026-10-20-split.txt`, the scripts in
+`scripts/nnue-bench/search-split/`. The engine wasn't changed: a scratchpad
+copy at 4ecea62 (AVX-512 and the lazy update in) with hooks records every
+answer a node's pieces give (each evaluation, InCheck, PickNext choice,
+table probe, repetition and tablebase answer, the move lists), then replays
+one piece's answers instead of doing its work, on the identical tree
+(checked every run: the same nodes, every stream read to its end). With the
+speed steps in, a `bench 9` node is 515-522 ns and the network 125-135 of
+it: **the rest of the search is now 74-76% of a node**, up from 61%.
+
+| a node, `bench 9`, 16 MB table | ns | of the rest | of a node | in place |
+|---|---|---|---|---|
+| the network | 125-135 | | 24-26% | 240 ns an evaluation |
+| **the rest** | 386-389 | 100% | 74-76% | |
+| move ordering | 141 | 36% | 27% | PickNext's scan 92, ScoreMoves 50 |
+| move generation | 96 | 25% | 18% | 460 ns a list (the allocation 9 of it) |
+| InCheck | 77 | 20% | 15% | 39 ns a call, 1.96 a node: after make 36, node entry 41 |
+| make + unmake, the board | 25 | 6% | 5% | 27 ns a pair |
+| table probe + store | 20 (26 at 256 MB) | 5% (7%) | 4% (5%) | 206 ns a probe (271) |
+| tablebase probe | 5 | 1% | 1% | castling rights, then a piece count |
+| repetition check | 2 | 0% | 0% | |
+| everything else | 21 | 5% | 4% | calls, alpha-beta, PV, killers, null move |
+
+- **Quiescence does most of the ordering's work for nothing.** It generates
+  every move (34 a list), scores them all, and selection-sorts its way down
+  to each quiet move only to skip it: 2.6 such picks a node, each scanning
+  ~17 scores. Stopping at the first quiet move (exact: quiet moves always
+  score below captures and queen promotions) saves 58-61 ns, 11-12% of a
+  node, on the identical tree.
+- **Generating only what quiescence searches** (captures with every
+  promotion piece, en passant, queen promotions, in today's order; checked
+  equal to the full list filtered, 2.7 M lists) and handing quiescence the
+  check status Negamax already knows (never in check at a hand-off: check
+  extends the depth) **made the search 23.3% sooner: +30% nodes a second**
+  (+29% at the bot's 256 MB). The tree grew by 494 nodes in 3.78 M:
+  PickNext's selection sort isn't stable, so equal-scored captures can come
+  out in another order.
+- **InCheck walks rays**: ~2 calls a node at 39 ns. 28% of the makes are
+  illegal (0.26 a node), 96% of them at nodes in check, where 82% of the
+  pseudo-legal moves fail; they cost 13 ns a node in all (make, test,
+  unmake). PawnMoves allocates a two-number array per pawn per list: 46
+  bytes a node, 14 GCs a bench, 9 ns a node.
+- **The bitboard lab**: positions sampled from bench's searches, every
+  answer checked equal on both boards; 12 sets with PEXT attack tables
+  against today's board: a list 511 -> 150 ns (-71%), quiescence's captures
+  413 -> 72 (-83%), InCheck 64 -> 21 (-67%). The lab's calls run colder than
+  the search's (InCheck 64 against 39 in place), so the estimates apply its
+  percentages to the in-place costs.
+- **Estimates** (a node 515 ns today, 396 after (a)):
+
+  | lever | nodes a second |
+  |---|---|
+  | (a) quiescence generates only what it searches, is told the check status; pawns stop allocating | **+30% measured** (+29% at 256 MB) |
+  | (b) bitboards: generation and InCheck on 12 sets, PEXT attack tables | +25% to +39% on top of (a); with (a), +63% to +81% |
+  | (c) attack tables only: sets beside today's board, InCheck by table | +6% to +15% on top of (a) |
+  | (d) legality before make (pins, check evasions), today's board | +7% to +8% on top of (a); part of (b) if it generates legal moves |
+  | smaller: table prefetch at make; the table move before generating; a kept piece count | ~+3%, ~+1%, ~+1% |
+
+  One caution for (b) and (c): the attack tables are ~840 KB and the net's
+  feature weights 1.5 MB, in a 1.25 MB L2; the low ends allow for losing
+  some of the tables there. Matthew's pick: decision K.
+
 ## Risks
 
 | risk | what it would look like | what limits it |
@@ -1146,3 +1213,22 @@ today's build, and needs the NNUE tests and the mutation battery green.
   move or a leaf that returns early never pays.
 - **(c) Both, (a) then (b)** (recommended), measured and committed apart:
   **+22% to +27%**.
+
+**K. The rest of the search** (measured 2026-10-20, "The rest of a node"
+above; open). Whichever is built is A/B'd with bench.ps1 against today's
+build and needs the full test suite green; the mutation battery for the new
+generator.
+- **(a) Quiescence generates only what it searches** (recommended, first): a
+  captures-only generator for quiescence when not in check (~70 lines, the
+  probe's version checked equal to today's list filtered), Negamax handing
+  quiescence its check status, PawnMoves without its allocation. **+30%
+  measured**, one session. The tree changes only in PickNext's tie order
+  (+0.013% nodes on `bench 9`).
+- (b) Bitboards: the board as 12 sets beside the squares, PEXT attack
+  tables, generation and InCheck on them, the tablebase's piece count by
+  popcount: **+25% to +39% on top of (a)** (estimated from the lab), 2-4
+  sessions (Position, MoveGenerator, IsAttacked, everything that reads the
+  board, the tests).
+- (c) Attack tables only: the sets kept beside today's board, InCheck and
+  castling's tests by table, generation as it is: +6% to +15% on top of
+  (a), one session, and (b)'s first step.

@@ -155,6 +155,14 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     builds the engine); then compare its Speed lines with today's for the
     8-thread effect (`CB_NNUE_SIMD=256` is the fallback if AVX-512's clock
     cost shows).
+  - **The rest of a node, measured** (2026-10-20, a side session, branch
+    `claude/friendly-cray-e85e18` on top of the speed branch; NNUE.md "The
+    rest of a node"): outside the network is 74-76% of a node now. Ordering
+    36% of it (quiescence sorts through moves it then skips), generation 25%,
+    InCheck 20%, make/unmake 6%, the table 5%. **Decision K, Matthew's**:
+    (a) quiescence generates only what it searches, +30% measured; (b)
+    bitboards, est. +25-39% on top; (c) attack tables only, +6-15% on top.
+    The bot was off from ~09:50 (Matthew, for memory).
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 
@@ -504,7 +512,11 @@ Sessions, in order:
         alignment +16.7%, with the lazy update +23.7%.
       - [ ] The next speed lever: the rest of the search, 61% of a node at
         1024 (a 64-square board, attacks found by walking rays; bitboards).
-        Re-measure the split after it.
+        **Measured 2026-10-20** (NNUE.md "The rest of a node", decision K,
+        open): 74-76% of a node now; quiescence's waste is the biggest piece
+        (a captures-only generator measured +30% nodes a second); bitboards
+        est. +25-39% on top. Matthew picks; re-measure the split after it
+        (`scripts/nnue-bench/search-split/`).
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by
