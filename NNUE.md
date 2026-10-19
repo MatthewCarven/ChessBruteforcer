@@ -920,6 +920,12 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   -8.0% in error and -4.0% a node against nnue1, and won by +76; h512-3m
   was -1.7% and level in speed, and won by +11. 1024 cost 15.8% a node,
   not the probe net's 23%. The matches against h512-3m decide.
+- **h1024-3m against h512-3m** (2026-10-20 from 03:04, the bot off; h768-3m's
+  match queued after it): **+52 Elo [+14, +91] at game 188**, +69 -41 =78,
+  LOS 99.6%, LLR 1.29. In play it searched 1,650-1,750 knps against
+  h512-3m's 2,000-2,110 (-16%). **Matthew chose to play the bot on it from
+  there** (decision I, below): `bot\eval\h1024-3m.nnue`, which
+  make-config.py tries first.
 
 ## Risks
 
@@ -1029,3 +1035,11 @@ at the limit, equal speed).
   back). ~97% likely stronger, and no slower.
 - (b) Stay on nnue1-h512; the bot restarted as it was.
 - (c) Settle it first: 1,000-2,000 more games, 1.5-3 h with the bot off.
+
+**I. The bot and h1024-3m** (Matthew's call, 2026-10-20 ~03:25, at game 188
+of its match against h512-3m: +52 [+14, +91], LOS 99.6%, LLR 1.29 of 2.94):
+"battle testing 1024", the statistics later. h1024-3m.nnue into bot\eval\
+(in git, 1.5 MB), make-config.py trying it before h512-3m.nnue (delete it
+to go back). It searches 15.8% slower a node; the bot's 3+2 gives every
+move more time than the match's 10+0.1, which tends to favour the better
+evaluation.

@@ -3831,3 +3831,23 @@ has the tables; this is the story.
 - Twice tonight I left a stray `python -` at the head of a Bash call (the
   notebook's warning): one hung for two minutes, one a moment; both were
   stopped and neither wrote anything.
+
+## 2026-10-20 (03:00-03:35): h1024-3m leads h512-3m; the bot switches to it
+
+- Matthew's (a): both matches against h512-3m, back to back in one window
+  (a scratch launcher calling `scripts\nnue-match.cmd` twice with stdin
+  from nul, so the first one's closing pause doesn't hold up the second).
+  Started 03:04:17; commit free 8.5 GB beforehand, the bot off, on AC.
+- He saw ~29% CPU: 5 games at a time, one thread each, only the side to
+  move thinking, on 16 logical processors (5/16 = 31%). Not the pipes: in
+  play the engines searched as fast as `bench` alone. The CPU sat at
+  88-92 C on that load (his monitor), under its 100 C limit.
+- **At game 188: +69 -41 =78, 57.4%, +52 Elo [+14, +91], LOS 99.6%, LLR
+  1.29** (game 100: +31, LOS 89%). In play 1,650-1,750 knps against
+  2,000-2,110 (-16%).
+- Matthew: "battle testing 1024", the statistics later; I didn't advise
+  against (99.6% already, and 3+2 gives the bigger net more time a move).
+  `bot\eval\h1024-3m.nnue` (the match's bytes, 96dc708d...), make-config.py
+  tries it first (its loop picks it here), EvalFile loads it from bot\eval
+  (sha256 510a8d0e6c43). Takes effect when he closes the match window,
+  fast-forwards compression and runs `bot\start-bot.cmd`.

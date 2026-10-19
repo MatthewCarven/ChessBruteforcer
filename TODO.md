@@ -45,13 +45,16 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 "768 -> 512 x2 -> 1, sha256 8a6cd3aff627"). The desktop trains two levers
 overnight (NNUE, below).
 
-**2026-10-20, 02:50: the bot is OFF** (Matthew stopped it at 21:23 on
-2026-10-19 for h768-3m's training on the laptop). Both new nets are trained
-and load: **h768-3m and h1024-3m** (NNUE, below); their matches against
-h512-3m are next, with the bot off, on his word. `bot\start-bot.cmd` brings
-the bot back, on **h512-3m** (Matthew's H(a); live from 14:35 on
-2026-10-19, its log "768 -> 512 x2 -> 1, sha256 9da33208a6f5"); delete
-bot\eval\h512-3m.nnue to go back to nnue1-h512.
+**2026-10-20, 03:30: the bot is OFF; it switches to h1024-3m** (Matthew's
+call at game 188 of its match: +52 [+14, +91] over h512-3m, LOS 99.6%;
+"battle testing 1024", the statistics later). bot\eval\h1024-3m.nnue, which
+make-config.py tries first (delete it to go back to h512-3m). It takes
+effect when the match window is closed (h1024-3m's match, then h768-3m's,
+queued in one window), compression is fast-forwarded to branch
+`claude/nnue-desktop-8d5f2a`, and `bot\start-bot.cmd` runs; its log should
+then say "768 -> 1024 x2 -> 1, sha256 510a8d0e6c43". To finish later:
+h1024-3m's SPRT against h512-3m (rename its .log and .pgn first, or the
+launcher refuses) and h768-3m's match.
 
 **Running right now, each in its own window (check them, don't start them):**
 - **The bot: OFF since 21:23 on 2026-10-19** (above). When on, it plays on
@@ -125,9 +128,10 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     | h768-3m | 0.013038 (-4.4%) | 0.012795 (-4.8%) | 1,516 (-13.2%) |
     | h1024-3m | 0.012659 (-7.2%) | 0.012432 (-7.5%) | 1,470 (-15.8%) |
 
-    **Next: their matches against h512-3m** (`scripts\nnue-match.cmd
-    h1024-3m h512-3m`, then h768-3m; 30 min to 3.5 h each, the bot off):
-    Matthew's call when.
+    **Their matches against h512-3m** (Matthew's (a), from 03:04 on
+    2026-10-20, back to back in one window): h1024-3m +52 [+14, +91] at
+    game 188, LOS 99.6%; **the bot switches to it** (decision I). The
+    SPRT's verdict and h768-3m's match: later, the bot off.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
