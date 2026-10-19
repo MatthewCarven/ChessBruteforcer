@@ -9,13 +9,16 @@ namespace ChessBruteforcer.Core.Engine.Nnue;
 /// the parent plus the move's 2-4 piece changes, in one pass per perspective; unmake pops. A null move
 /// changes no piece, so it shares the slot. Each search thread has its own position, so its own stack;
 /// the network's weights are shared, read only. Every slot and column is a bounds-checked span, so a
-/// mistake throws rather than writing past the array.
+/// mistake throws rather than writing past the array. The slots start on a 64-byte boundary (Aligned), and
+/// as a slot is 4H bytes, so does every slot, and every half when H is a multiple of 32.
 /// </summary>
 internal sealed class AccumulatorStack
 {
     private readonly int _hidden;
     private readonly int _stride;
-    private short[] _data;
+    private short[] _data;   // pinned: the slots are the _capacity numbers from _at on
+    private int _at;
+    private int _capacity;
     private int _top;
 
     public AccumulatorStack(Network network, int slots = 32)
@@ -23,7 +26,8 @@ internal sealed class AccumulatorStack
         Network = network;
         _hidden = network.Hidden;
         _stride = 2 * _hidden;
-        _data = new short[slots * _stride];
+        _capacity = slots * _stride;
+        _data = Aligned.Allocate(_capacity, out _at);
     }
 
     public Network Network { get; }
@@ -31,9 +35,12 @@ internal sealed class AccumulatorStack
     /// <summary>How many moves deep the current position is from where the stack starts.</summary>
     public int Depth => _top;
 
-    public ReadOnlySpan<short> White => _data.AsSpan(_top * _stride, _hidden);
+    public ReadOnlySpan<short> White => Slots.Slice(_top * _stride, _hidden);
 
-    public ReadOnlySpan<short> Black => _data.AsSpan(_top * _stride + _hidden, _hidden);
+    public ReadOnlySpan<short> Black => Slots.Slice(_top * _stride + _hidden, _hidden);
+
+    /// <summary>Every slot there is room for.</summary>
+    private Span<short> Slots => _data.AsSpan(_at, _capacity);
 
     /// <summary>Start again from the board: one slot, refreshed.</summary>
     public void Reset(Position position)
@@ -45,7 +52,7 @@ internal sealed class AccumulatorStack
     /// <summary>The current slot from the board, from scratch.</summary>
     public void Refresh(Position position)
     {
-        var slot = _data.AsSpan(_top * _stride, _stride);
+        var slot = Slots.Slice(_top * _stride, _stride);
         Network.Refresh(position, slot[.._hidden], slot[_hidden..]);
     }
 
@@ -62,7 +69,7 @@ internal sealed class AccumulatorStack
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Evaluate(Colour sideToMove)
     {
-        var slot = _data.AsSpan(_top * _stride, _stride);
+        var slot = Slots.Slice(_top * _stride, _stride);
         return sideToMove == Colour.White
             ? Network.Forward(slot[.._hidden], slot[_hidden..])
             : Network.Forward(slot[_hidden..], slot[.._hidden]);
@@ -107,14 +114,23 @@ internal sealed class AccumulatorStack
     private Span<short> NextSlots()
     {
         int parent = _top * _stride;
-        if (parent + 2 * _stride > _data.Length)
-            Array.Resize(ref _data, _data.Length * 2);
+        if (parent + 2 * _stride > _capacity)
+            Grow();
         _top++;
-        return _data.AsSpan(parent, 2 * _stride);
+        return Slots.Slice(parent, 2 * _stride);
+    }
+
+    /// <summary>Twice the room, the slots so far copied over, still on a boundary.</summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void Grow()
+    {
+        var bigger = Aligned.Allocate(2 * _capacity, out int at);
+        Slots.CopyTo(bigger.AsSpan(at));
+        (_data, _at, _capacity) = (bigger, at, 2 * _capacity);
     }
 
     /// <summary>The weight column of a piece on a square, for one perspective (bounds-checked: an empty square has none).</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ReadOnlySpan<short> Column(Piece piece, int square, int perspective) =>
-        Network.FeatureWeights.AsSpan(Network.Feature(piece, square, perspective) * _hidden, _hidden);
+        Network.FeatureWeights.Slice(Network.Feature(piece, square, perspective) * _hidden, _hidden);
 }

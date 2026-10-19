@@ -53,25 +53,31 @@ public sealed class Network
     /// <summary>The file's SHA-256, in hex: says which net a log or a match used.</summary>
     public string Sha256 { get; }
 
-    /// <summary>[768][H], feature-major.</summary>
-    internal short[] FeatureWeights { get; }
+    /// <summary>[768][H], feature-major, from a 64-byte boundary on (so every column starts on one when H is a multiple of 32).</summary>
+    internal ReadOnlySpan<short> FeatureWeights => _featureWeights.AsSpan(_featureWeightsAt, Inputs * Hidden);
 
     /// <summary>[H].</summary>
     internal short[] FeatureBiases { get; }
 
-    /// <summary>[2H]: the side to move's half first.</summary>
-    internal short[] OutputWeights { get; }
+    /// <summary>[2H]: the side to move's half first; from a 64-byte boundary on.</summary>
+    internal ReadOnlySpan<short> OutputWeights => _outputWeights.AsSpan(_outputWeightsAt, 2 * Hidden);
 
-    private Network(int hidden, int qa, int qb, int scale, short[] featureWeights, short[] featureBiases,
-                    short[] outputWeights, int outputBias, string sha256)
+    // Pinned (Aligned), each holding its numbers from ...At on.
+    private readonly short[] _featureWeights, _outputWeights;
+    private readonly int _featureWeightsAt, _outputWeightsAt;
+
+    private Network(int hidden, int qa, int qb, int scale, ReadOnlySpan<short> featureWeights, short[] featureBiases,
+                    ReadOnlySpan<short> outputWeights, int outputBias, string sha256)
     {
         Hidden = hidden;
         QA = qa;
         QB = qb;
         Scale = scale;
-        FeatureWeights = featureWeights;
+        _featureWeights = Aligned.Allocate(featureWeights.Length, out _featureWeightsAt);
+        featureWeights.CopyTo(_featureWeights.AsSpan(_featureWeightsAt));
         FeatureBiases = featureBiases;
-        OutputWeights = outputWeights;
+        _outputWeights = Aligned.Allocate(outputWeights.Length, out _outputWeightsAt);
+        outputWeights.CopyTo(_outputWeights.AsSpan(_outputWeightsAt));
         OutputBias = outputBias;
         Sha256 = sha256;
     }
@@ -164,11 +170,12 @@ public sealed class Network
         foreach (short w in OutputWeights)
             if (Math.Abs(w) * QA > short.MaxValue)
                 throw new FormatException($"{name}: output weight {w} times QA {QA} doesn't fit in 16 bits.");
+        var weights = FeatureWeights;
         var column = new int[Inputs];
         for (int j = 0; j < Hidden; j++)
         {
             for (int f = 0; f < Inputs; f++)
-                column[f] = FeatureWeights[f * Hidden + j];
+                column[f] = weights[f * Hidden + j];
             Array.Sort(column);
             long low = FeatureBiases[j], high = FeatureBiases[j];
             for (int k = 0; k < 32; k++)
@@ -194,16 +201,22 @@ public sealed class Network
         BinaryPrimitives.WriteInt32LittleEndian(span[20..], QA);
         BinaryPrimitives.WriteInt32LittleEndian(span[24..], QB);
         BinaryPrimitives.WriteInt32LittleEndian(span[28..], Scale);
-        int at = HeaderBytes;
-        foreach (var array in new[] { FeatureWeights, FeatureBiases, OutputWeights })
-            foreach (short value in array)
+        int at = Write(span, HeaderBytes, FeatureWeights);
+        at = Write(span, at, FeatureBiases);
+        at = Write(span, at, OutputWeights);
+        BinaryPrimitives.WriteInt32LittleEndian(span[at..], OutputBias);
+        SHA256.HashData(span[..^HashBytes], span[^HashBytes..]);
+        return bytes;
+
+        static int Write(Span<byte> span, int at, ReadOnlySpan<short> values)
+        {
+            foreach (short value in values)
             {
                 BinaryPrimitives.WriteInt16LittleEndian(span[at..], value);
                 at += 2;
             }
-        BinaryPrimitives.WriteInt32LittleEndian(span[at..], OutputBias);
-        SHA256.HashData(span[..^HashBytes], span[^HashBytes..]);
-        return bytes;
+            return at;
+        }
     }
 
     public void Save(string path) => File.WriteAllBytes(path, ToBytes());
@@ -271,19 +284,21 @@ public sealed class Network
         black = black[..Hidden];
         FeatureBiases.CopyTo(white);
         FeatureBiases.CopyTo(black);
+        var weights = FeatureWeights;
         for (int square = 0; square < 64; square++)
         {
             var piece = position[square];
             if (piece.IsEmpty)
                 continue;
-            Kernels.Add(white, FeatureWeights.AsSpan(Feature(piece, square, 0) * Hidden, Hidden));
-            Kernels.Add(black, FeatureWeights.AsSpan(Feature(piece, square, 1) * Hidden, Hidden));
+            Kernels.Add(white, weights.Slice(Feature(piece, square, 0) * Hidden, Hidden));
+            Kernels.Add(black, weights.Slice(Feature(piece, square, 1) * Hidden, Hidden));
         }
     }
 
     /// <summary>The same as <see cref="Refresh"/>, one number at a time: the tests' reference.</summary>
     internal void RefreshScalar(Position position, Span<short> white, Span<short> black)
     {
+        var weights = FeatureWeights;
         for (int i = 0; i < Hidden; i++)
             white[i] = black[i] = FeatureBiases[i];
         for (int square = 0; square < 64; square++)
@@ -294,8 +309,8 @@ public sealed class Network
             int wo = Feature(piece, square, 0) * Hidden, bo = Feature(piece, square, 1) * Hidden;
             for (int i = 0; i < Hidden; i++)
             {
-                white[i] = (short)(white[i] + FeatureWeights[wo + i]);
-                black[i] = (short)(black[i] + FeatureWeights[bo + i]);
+                white[i] = (short)(white[i] + weights[wo + i]);
+                black[i] = (short)(black[i] + weights[bo + i]);
             }
         }
     }
@@ -311,33 +326,57 @@ public sealed class Network
 
     // ---- the forward pass ----
 
-    /// <summary>The score for the side to move from its accumulator and the other side's.</summary>
+    /// <summary>The score for the side to move from its accumulator and the other side's, at <see cref="Kernels.Width"/>.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal int Forward(ReadOnlySpan<short> us, ReadOnlySpan<short> them) =>
-        Avx2.IsSupported ? ForwardSimd(us, them) : ForwardScalar(us, them);
+    internal int Forward(ReadOnlySpan<short> us, ReadOnlySpan<short> them) => Kernels.Width switch
+    {
+        512 => Forward512(us, them),
+        256 => Forward256(us, them),
+        _ => ForwardScalar(us, them),
+    };
 
     /// <summary>
     /// SCReLU 16 lanes at a time: v = clamp(a, 0, QA); (v x w) in 16 bits (|w| x QA fits, checked on
     /// load), then x v and pairs summed into int32 by <see cref="Avx2.MultiplyAddAdjacent(Vector256{short}, Vector256{short})"/>.
     /// A lane collects H / 8 products of at most 255 x 32,767, so it can't overflow for H up to 1024.
     /// </summary>
-    internal int ForwardSimd(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
+    internal int Forward256(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
     {
-        if (us.Length < Hidden || them.Length < Hidden)
-            throw new ArgumentOutOfRangeException(nameof(us), $"accumulators of {us.Length} and {them.Length} for a hidden size of {Hidden}");
-        ref short ow = ref MemoryMarshal.GetArrayDataReference(OutputWeights);
-        long sum = HalfSimd(ref MemoryMarshal.GetReference(us), ref ow)
-                 + HalfSimd(ref MemoryMarshal.GetReference(them), ref Unsafe.Add(ref ow, Hidden));
+        CheckAccumulators(us, them);
+        ref short ow = ref MemoryMarshal.GetReference(OutputWeights);
+        long sum = Half256(ref MemoryMarshal.GetReference(us), ref ow, 0)
+                 + Half256(ref MemoryMarshal.GetReference(them), ref Unsafe.Add(ref ow, Hidden), 0);
         return Finish(sum);
     }
 
+    /// <summary>
+    /// The same 32 lanes at a time (AVX-512's <see cref="Avx512BW.MultiplyAddAdjacent(Vector512{short}, Vector512{short})"/>),
+    /// the last 16 as <see cref="Forward256"/> does when H isn't a multiple of 32. A lane collects H / 16
+    /// products, so it can't overflow for H up to 4096.
+    /// </summary>
+    internal int Forward512(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
+    {
+        CheckAccumulators(us, them);
+        ref short ow = ref MemoryMarshal.GetReference(OutputWeights);
+        long sum = Half512(ref MemoryMarshal.GetReference(us), ref ow)
+                 + Half512(ref MemoryMarshal.GetReference(them), ref Unsafe.Add(ref ow, Hidden));
+        return Finish(sum);
+    }
+
+    private void CheckAccumulators(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
+    {
+        if (us.Length < Hidden || them.Length < Hidden)
+            throw new ArgumentOutOfRangeException(nameof(us), $"accumulators of {us.Length} and {them.Length} for a hidden size of {Hidden}");
+    }
+
+    /// <summary>One perspective's sum, 16 lanes at a time from <paramref name="from"/> to H.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private long HalfSimd(ref short accumulator, ref short weights)
+    private long Half256(ref short accumulator, ref short weights, int from)
     {
         var zero = Vector256<short>.Zero;
         var qa = Vector256.Create((short)QA);
         var lanes = Vector256<int>.Zero;
-        for (int i = 0; i < Hidden; i += 16)
+        for (int i = from; i < Hidden; i += 16)
         {
             var v = Vector256.Min(Vector256.Max(Vector256.LoadUnsafe(ref accumulator, (nuint)i), zero), qa);
             var w = Vector256.LoadUnsafe(ref weights, (nuint)i);
@@ -347,16 +386,36 @@ public sealed class Network
         return Vector256.Sum(low + high);
     }
 
-    /// <summary>The forward pass one number at a time, in 64 bits: the reference the SIMD pass must equal.</summary>
+    /// <summary>One perspective's sum, 32 lanes at a time, then any last 16.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private long Half512(ref short accumulator, ref short weights)
+    {
+        var zero = Vector512<short>.Zero;
+        var qa = Vector512.Create((short)QA);
+        var lanes = Vector512<int>.Zero;
+        int i = 0;
+        for (; i + 32 <= Hidden; i += 32)
+        {
+            var v = Vector512.Min(Vector512.Max(Vector512.LoadUnsafe(ref accumulator, (nuint)i), zero), qa);
+            var w = Vector512.LoadUnsafe(ref weights, (nuint)i);
+            lanes += Avx512BW.MultiplyAddAdjacent(v * w, v);
+        }
+        var (low, high) = Vector512.Widen(lanes);
+        long sum = Vector512.Sum(low + high);
+        return i < Hidden ? sum + Half256(ref accumulator, ref weights, i) : sum;
+    }
+
+    /// <summary>The forward pass one number at a time, in 64 bits: the reference the SIMD passes must equal.</summary>
     internal int ForwardScalar(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
     {
+        var weights = OutputWeights;
         long sum = 0;
         for (int i = 0; i < Hidden; i++)
         {
             long v = Math.Clamp((int)us[i], 0, QA);
-            sum += v * v * OutputWeights[i];
+            sum += v * v * weights[i];
             long u = Math.Clamp((int)them[i], 0, QA);
-            sum += u * u * OutputWeights[Hidden + i];
+            sum += u * u * weights[Hidden + i];
         }
         return Finish(sum);
     }
