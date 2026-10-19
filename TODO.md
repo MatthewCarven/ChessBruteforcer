@@ -53,6 +53,18 @@ is fast-forwarded to branch `claude/nnue-desktop-8d5f2a` and
 `bot\start-bot.cmd` runs; its log should then say "768 -> 512 x2 -> 1,
 sha256 9da33208a6f5".
 
+**2026-10-19, 21:23: the bot is OFF again**, between games (no game lost):
+lichess-bot quit on the TypeError in accept_challenges (the second time, after
+00:32), and its restart loop (run-bot.ps1) died with it, so nothing brought it
+back; commit was nearly gone (0.45 GB free at 23:22: the Cowork VM 4.0 GB,
+h768-3m training 3.5 GB, eight Claude sessions ~0.5 GB each). **Matthew's (a)**:
+it stays off while h768-3m trains on this laptop (heat rule; from 22:25, ten
+passes of ~25 min, done ~02:40, games\nnue\nets\h768-3m.log). Then he reboots
+(the only way to close the Cowork VM) and starts the bot with
+`bot\start-bot.cmd`, then the learner with `bot\learn.cmd` once the bot's
+window has built the engine (two builds at once trip over each other). Not
+`start.cmd`: it would start the month queue too, which is off.
+
 **Running right now, each in its own window (check them, don't start them):**
 - **The bot is back online since 17:24:55 on 2026-10-18** (`bot\start-bot.cmd`
   on Matthew's word; off from ~08:20 for the blend's and the mates'
@@ -147,8 +159,10 @@ make-config.py (the patch still helps at 1).
 had two players on one game; bot\lichess-bot-one-player.patch stops that
 (bot\test-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
 between games (not `start.cmd`: that starts the month queue, which is off).
-Still open: lichess-bot quit once on a TypeError in accept_challenges
-(00:32, the manager's list length None); watch for it again.
+Still open: lichess-bot quit on a TypeError in accept_challenges, twice
+(2026-10-19 00:32 and 21:23: `challenge_queue`, the manager's list, gave its
+length as None). The second time commit was nearly gone and run-bot.ps1 died
+too, so memory is the first suspect; if it happens with headroom, look closer.
 
 **Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
 on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now

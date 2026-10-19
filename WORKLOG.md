@@ -3722,3 +3722,24 @@ has the tables; this is the story.
 - A gotcha: `python - ... </dev/null` in Git Bash started Python 3.14's
   interactive console (NUL is a character device, so it looks like a
   terminal) and looped on console errors until stopped. Scripts go in files.
+
+## 2026-10-19/20 (23:20-00:45): the bot down since 21:23; off till h768-3m is done
+
+- **lichess-bot quit at 21:23:27, between games** ("Process Freed. Count: 0"
+  at 21:22:34, so no game lost), on the same TypeError as at 00:32: in
+  accept_challenges, `while len(active_games) < max_games and
+  challenge_queue:`, the manager's list gave its length as None. This time
+  run-bot.ps1 died with it: no "stopped by itself" line in restarts.log and
+  no bot window left, so nothing restarted it.
+- **Memory**: 0.45 GB of 21.8 GB commit free at 23:22 (RAM 4.0 GB free). The
+  biggest: vmmem 4.0 GB (the Cowork sandbox VM; WSL is stopped), the h768-3m
+  training 3.5 GB (on this laptop's GPU from 22:25, started after the bot was
+  down: a 768-hidden net on September, July and August, 10 passes of ~25 min),
+  eight Claude sessions ~0.5 GB each. An allocation failing in the manager or
+  in pwsh fits both the None and the dead loop; the 00:32 crash came with no
+  measure of memory.
+- **Matthew's (a)**: the bot stays off while h768-3m trains (heat rule); it ends
+  ~02:40 (pass 6 of 10 at 00:42). Then he reboots, the only way to close the
+  Cowork VM, and runs `bot\start-bot.cmd`, then `bot\learn.cmd` (not
+  `start.cmd`, which would start the month queue, off on his word). The NNUE
+  session knows.
