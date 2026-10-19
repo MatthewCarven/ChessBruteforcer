@@ -3722,3 +3722,18 @@ has the tables; this is the story.
 - A gotcha: `python - ... </dev/null` in Git Bash started Python 3.14's
   interactive console (NUL is a character device, so it looks like a
   terminal) and looped on console errors until stopped. Scripts go in files.
+
+## 2026-10-19 (17:00-17:20): h1024-3m training on the desktop
+
+- Matthew's yes to the next lever: 1024 hidden on all three months.
+  `scripts\nnue-desktop.ps1 train h1024-3m --hidden 1024 --add-data 2026-07
+  2026-08 --passes 10 --lr-drops 4/7/9`, h512-3m's recipe but for the size.
+  The desktop was idle beforehand (300 MHz, no PySynthRack on the card, D:
+  1.27 TB free).
+- Started 17:08:40 (desktop clock), first line 17:11:52: 188-192 k positions
+  a second over the first 16 buckets, the 1660 at 1,920 MHz, 83 W, 100%, 70
+  C, 1.1 GB peak on the card. ~1 h a pass, **done ~03:00**. (The 158 k a
+  second of 2026-10-18's estimate was probably taken while PySynthRack held
+  the card at 1,200 MHz.)
+- The caveat stays: on a probe net 1024 hidden searched 23% slower a node
+  than 512 (`bench 9`). Its match against h512-3m decides.

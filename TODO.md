@@ -70,7 +70,7 @@ sha256 9da33208a6f5".
   KB/s. Log games\month-queue.log; counts logs
   bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
 - The book learner (bot\learn.py, restarted 23:26).
-- On the desktop: nothing (h512-3m finished 10:42 on 2026-10-19; NNUE,
+- On the desktop: task "nnue h1024-3m", 17:08 to ~03:00 (NNUE,
   below).
 
 **Tonight's two matches, both with the bot off:**
@@ -117,9 +117,14 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     (LLR 1.73; 2026-10-19 11:09-14:27, the bot stopped). Very likely
     better, by a little. **The bot switches to it** (Matthew's H(a):
     bot\eval\h512-3m.nnue, tried first by make-config.py).
-  - Other levers waiting: the export's rounding (small); a bigger net
-    (1024: 7.7 h on the 1660 for September alone, 23% slower a node) once
-    there's data enough for it; labels from our own search.
+  - **h1024-3m training** (Matthew's yes, 2026-10-19 ~17:00): h512-3m's
+    recipe at 1024 hidden on the desktop, started 17:08 (desktop clock),
+    ~1 h a pass, **done ~03:00 on 2026-10-20**. Then `scripts\nnue-desktop.ps1
+    fetch h1024-3m`, the load check, and its match against h512-3m (the
+    bot off: Matthew's call when). It runs ~23% slower a node, so it must
+    evaluate that much better to win.
+  - Other levers waiting: the export's rounding (small); labels from our
+    own search.
 
 **Watch out:**
 - **Memory**: commit was down to 2.8 GB free at 23:20, with the Claude app's

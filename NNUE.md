@@ -885,6 +885,13 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   little. MATCHES.md has the detail. **The bot plays on it** from its
   next start (Matthew's H(a), below): `bot\eval\h512-3m.nnue` (the bytes
   the match played), which make-config.py tries before nnue1-h512.nnue.
+- **h1024-3m started 17:08** (2026-10-19, desktop clock; Matthew's yes):
+  h512-3m's recipe at 1024 hidden (`--hidden 1024 --add-data 2026-07
+  2026-08 --passes 10 --lr-drops 4/7/9`). 192 k positions a second over
+  the first 16 buckets (1,920 MHz, 83 W, 70 C, 1.1 GB of the card's 6), ~1
+  h a pass: done ~03:00. Passed over on 2026-10-18 for its speed (`bench
+  9` 23% slower a node than nnue1-h512, on a probe net); with three times
+  the data its evaluation may now win that back. The match decides.
 
 ## Risks
 
