@@ -153,7 +153,10 @@ had two players on one game; bot\lichess-bot-one-player.patch stops that
 (bot\test-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
 between games (not `start.cmd`: that starts the month queue, which is off).
 Still open: lichess-bot quit once on a TypeError in accept_challenges
-(00:32, the manager's list length None); watch for it again.
+(00:32, the manager's list length None); watch for it again. The same
+error ended the bot at 21:23 on 2026-10-19 when Matthew stopped it by hand,
+so it means the queue's manager process went away first; at 00:32 nobody
+stopped it (run-bot.ps1 brought it back at 01:16), so something else did.
 
 **Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
 on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now
