@@ -589,6 +589,7 @@ WORKLOG has the story). What later sessions need:
   | positions a second, 256 hidden | 0.96-1.17 M at full speed | **634-641 k** (0.65x) |
   | a pass, 256 hidden | 190-228 s | 342-345 s |
   | positions a second, 512 hidden | | **362 k** (0.57x its own 256) |
+  | positions a second, 768 hidden | **436-447 k** (2026-10-19, h768-3m) | |
   | positions a second, 1024 hidden | **295 k** (2026-10-19, a quarter of September, the bot off) | 188-200 k (h1024-3m; 0.64-0.68x the laptop) |
   | positions a second, 2048 hidden | **161 k** (the same; 0.55x its own 1024) | not measured: ~110 k at its own 0.55x a doubling |
   | torch's GPU memory, peak allocated / reserved | 615 / 994 MB | 615 / 996 MB at 256; ~700 MB allocated at 512 |
@@ -894,6 +895,13 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   h a pass: done ~03:00. Passed over on 2026-10-18 for its speed (`bench
   9` 23% slower a node than nnue1-h512, on a probe net); with three times
   the data its evaluation may now win that back. The match decides.
+- **h768-3m started 22:25** (2026-10-19, on the laptop's 3070; Matthew's
+  (a), the bot off overnight): the same recipe at 768 hidden, between the
+  two. July's and August's records copied from the desktop first (15.8 GB
+  at 6.5-6.9 MB/s, all 132 files' hashes equal to the desktop's own). 447 k
+  positions a second, ~25 min a pass: done ~02:40. 768 needs no engine
+  change and should cost roughly half 1024's speed (~13% a node against
+  512, by a straight line through the probes; not measured).
 
 ## Risks
 

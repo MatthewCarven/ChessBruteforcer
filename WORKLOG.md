@@ -3765,3 +3765,34 @@ has the tables; this is the story.
   and recovered. The engine also loads at most 1024 (Network.MaxHidden),
   though its int32 sums would still fit at 2048 (256 x 255 x 32,640 =
   2.13 billion).
+
+## 2026-10-19 (21:45-22:40): h768-3m on the laptop overnight
+
+- Matthew asked about 768 hidden on the laptop (no engine change: 16 to
+  1024 in steps of 16 load already) and chose (a): h768-3m, the three-month
+  recipe, on the laptop tonight with the bot off. He asked whether it could
+  start on September while the rest copied: it could, but the trainer fixes
+  its files at the start, so it would no longer be the recipe h512-3m and
+  h1024-3m had; waiting cost ~40 min. "recommendation taken".
+- **July's and August's records copied from the desktop** into
+  games\nnue\2026-07 and 2026-08 (scripts\capped-copy.py at 7.5 MB/s, one
+  job): 15.8 GB, 21:46-22:25, 6.5-6.9 MB/s. All 132 files' SHA-256 as read
+  over the link equal the desktop's own, read on its disk over SSH.
+- **The trainer's commit**: on the desktop it rose after pass 1 and stayed up
+  (+1.1 GB at 512 hidden, +2.2 GB at 1024), the held-back scoring's GPU
+  cache. With ~4 GB of commit free on the laptop that would have been close.
+  train.py now scores in chunks of 2^24 / hidden positions (64 k at 256, as
+  before) and empties the cache after; int_scores the same at 2^23 / hidden.
+  A 768 test (4 buckets, 3 passes): commit flat at 3.3-3.4 GB; `checks.py
+  quantised` on 25,000 positions: the GPU's integer scores against
+  nnue_reference 0 differ. Also 430-440 k positions a second at 768.
+- **scripts\nnue-train.cmd** dropped options past the ninth word (TODO);
+  tonight's command has ten. Fixed with train-desktop.cmd's `for /f`, and it
+  takes the main checkout's venv when run from a worktree, so the run uses
+  this branch's train.py.
+- **Started 22:25:55** (its own window, `scripts\nnue-train.cmd h768-3m
+  --hidden 768 --add-data 2026-07 2026-08 --passes 10 --lr-drops 4/7/9`):
+  445-447 k positions a second, ~25 min a pass, **done ~02:40**. The 3070 at
+  1,275 MHz, 74 W, 64 C. Commit free fell to 1.16 GB with it running (the
+  page file can grow another ~1.6 GB): a watcher logs the headroom every 5
+  minutes and calls out under 0.7 GB.

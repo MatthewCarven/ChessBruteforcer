@@ -45,13 +45,13 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 "768 -> 512 x2 -> 1, sha256 8a6cd3aff627"). The desktop trains two levers
 overnight (NNUE, below).
 
-**2026-10-19, 14:27: the bot is OFF** (Matthew stopped it at ~11:05 for
-h512-3m's match, which has finished: NNUE, below). **It switches to h512-3m**
-(Matthew's H(a), ~14:35): bot\eval\h512-3m.nnue, which make-config.py tries
-first (delete it to go back to nnue1-h512). It takes effect once compression
-is fast-forwarded to branch `claude/nnue-desktop-8d5f2a` and
-`bot\start-bot.cmd` runs; its log should then say "768 -> 512 x2 -> 1,
-sha256 9da33208a6f5".
+**2026-10-19, 22:30: the bot is OFF overnight on Matthew's word**: the
+laptop's 3070 trains h768-3m (768 hidden, three months) in its own window
+until ~03:00 (NNUE, below; his heat rule: no training beside the bot).
+`bot\start-bot.cmd` brings it back once that's done, on his word. It plays
+on **h512-3m** (Matthew's H(a); live from 14:35 on 2026-10-19, its log
+"768 -> 512 x2 -> 1, sha256 9da33208a6f5"); delete bot\eval\h512-3m.nnue
+to go back to nnue1-h512. He stopped it at 21:23.
 
 **Running right now, each in its own window (check them, don't start them):**
 - **The bot is back online since 17:24:55 on 2026-10-18** (`bot\start-bot.cmd`
@@ -123,6 +123,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     fetch h1024-3m`, the load check, and its match against h512-3m (the
     bot off: Matthew's call when). It runs ~23% slower a node, so it must
     evaluate that much better to win.
+  - **h768-3m training on the laptop** (Matthew's (a), 2026-10-19 22:25,
+    the bot off overnight): 768 hidden, the same three months (July and
+    August copied to games\nnue\ from the desktop), ~25 min a pass, **done
+    ~02:40**. Log games\nnue\nets\h768-3m.log. Then the load check, and
+    matches against h512-3m (and h1024-3m) with the bot off: his call when.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
@@ -448,10 +453,10 @@ Sessions, in order:
             limit; equal speed. MATCHES.md. Matthew's H(a): the bot
             switches to it at its next start (bot\eval\h512-3m.nnue,
             make-config.py tries it first).
-      - [ ] `scripts\nnue-train.cmd` passes only `%2`-`%9` to train.py, so a
-            ninth option token is dropped silently (train-desktop.cmd lost
-            `--progress 2` that way before it was fixed with `for /f
-            "tokens=1,*"` over `%*`). The same fix there.
+      - [x] `scripts\nnue-train.cmd` passed only `%2`-`%9` to train.py, so a
+            tenth option token was dropped silently. Fixed 2026-10-19 as
+            train-desktop.cmd was (`for /f "tokens=1,*"` over `%*`), and it
+            uses the main checkout's venv when run from a worktree.
       - [ ] A full-length reproducibility check (decision F's (a)): nnue1's
             recipe on the desktop, ~1.9 h, for the end-of-run spread between
             two runs of one recipe, the noise floor for judging levers by
