@@ -25,15 +25,21 @@ public class NnueTests
 
     private static string DataPath(string name) => Path.Combine(AppContext.BaseDirectory, "Data", name);
 
-    /// <summary>The position's accumulators against a refresh from its board, one number at a time.</summary>
-    private static void AssertMatchesRefresh(Position position)
+    /// <summary>
+    /// The position's accumulators against a refresh from its board, one number at a time. Either side's
+    /// read must compute a slot still waiting on its move, so a caller can read black's first.
+    /// </summary>
+    private static void AssertMatchesRefresh(Position position, bool blackFirst = false)
     {
         var accumulators = position.Accumulators!;
         var network = accumulators.Network;
         var white = new short[network.Hidden];
         var black = new short[network.Hidden];
         network.RefreshScalar(position, white, black);
-        if (!accumulators.White.SequenceEqual(white) || !accumulators.Black.SequenceEqual(black))
+        bool same = blackFirst
+            ? accumulators.Black.SequenceEqual(black) && accumulators.White.SequenceEqual(white)
+            : accumulators.White.SequenceEqual(white) && accumulators.Black.SequenceEqual(black);
+        if (!same)
             Assert.Fail($"the accumulators differ from a refresh at {position.ToFen()} (depth {accumulators.Depth})");
     }
 
@@ -122,14 +128,65 @@ public class NnueTests
         Assert.True(deepest > 256, $"deepest {deepest} of {plies} plies");
     }
 
+    [Theory]
+    [InlineData(Fen.StartPosition, 4)]   // (3 plies from the start meet no illegal move: the first check comes on the third)
+    [InlineData(MoveGeneratorTests.Kiwipete, 3)]
+    [InlineData(MoveGeneratorTests.EnPassantPins, 4)]
+    [InlineData(MoveGeneratorTests.Promotions, 3)]
+    [InlineData(MoveGeneratorTests.CastlingDiscovery, 3)]
+    [InlineData(PromotionCaptures, 3)]
+    public void IncrementalEqualsRefreshWhereASearchWouldLook(string fen, int depth)
+    {
+        // As a search goes: every pseudo-legal move made, the illegal ones taken back unseen, and only some
+        // nodes looked at (an evaluation, or the accumulators read). So most slots are computed late, by a
+        // look or a child's push, and many never are; every look must still equal a refresh of the board.
+        var rng = new Random(fen.Length * 10 + depth);
+        var position = Position.FromFen(fen, Net32);
+        int looks = 0, unseen = 0;
+        Visit(depth);
+        AssertMatchesRefresh(position);
+        Assert.Equal(0, position.Accumulators!.Depth);
+        Assert.True(looks > 100 && unseen > 0, $"{looks} looks, {unseen} illegal moves taken back unseen");
+
+        void Visit(int left)
+        {
+            double roll = rng.NextDouble();
+            if (roll < 0.15)
+            {
+                AssertMatchesRefresh(position, blackFirst: roll < 0.075);
+                looks++;
+            }
+            else if (roll < 0.3)
+            {
+                Assert.Equal(Net32.Evaluate(position), Evaluation.Evaluate(position));   // (Net32.Evaluate refreshes from the board)
+                looks++;
+            }
+            if (left == 0)
+                return;
+            var moves = new List<Move>();
+            MoveGenerator.Pseudo(position, moves);
+            foreach (var move in moves)
+            {
+                var undo = position.MakeMove(move);
+                if (position.InCheck(Position.Opponent(position.SideToMove)))
+                    unseen++;
+                else
+                    Visit(left - 1);
+                position.UnmakeMove(move, undo);
+            }
+        }
+    }
+
     [Fact]
     public void AMoveFromAnEmptySquareThrowsRatherThanReadingPastTheWeights()
     {
         // The square's piece picks the weight column; an empty square has none. The column is a checked
-        // span, so this throws (before, an unchecked read went 64 columns before the weights).
+        // span, so computing the slot throws (before, an unchecked read went 64 columns before the
+        // weights). A push only notes its move, so the throw comes when the slot is needed.
         var position = Position.FromFen(Fen.StartPosition, Net32);
         var nothing = new Move((byte)Position.ParseSquare("e4"), (byte)Position.ParseSquare("e5"));
-        Assert.Throws<ArgumentOutOfRangeException>(() => position.MakeMove(nothing));
+        position.MakeMove(nothing);
+        Assert.Throws<ArgumentOutOfRangeException>(() => Evaluation.Evaluate(position));
     }
 
     /// <summary>
@@ -205,6 +262,17 @@ public class NnueTests
         AssertMatchesRefresh(position);
         position.UnmakeMove(move, undo);
         AssertMatchesRefresh(position);
+
+        // On a slot still waiting on its move: the refresh stands, and a move made on top builds on it.
+        var waiting = Position.FromFen(MoveGeneratorTests.Kiwipete, Net32);
+        waiting.MakeMove(MoveGenerator.Legal(waiting)[0]);
+        waiting.SetPiece(Position.ParseSquare("d4"), new Piece(PieceType.Queen, Colour.Black));
+        AssertMatchesRefresh(waiting);
+        var onTop = MoveGenerator.Legal(waiting)[0];
+        var onTopUndo = waiting.MakeMove(onTop);
+        AssertMatchesRefresh(waiting);
+        waiting.UnmakeMove(onTop, onTopUndo);
+        AssertMatchesRefresh(waiting);
 
         // Attached mid-game, then taken back past where the stack starts: it refreshes from the board.
         var game = Position.Start();
