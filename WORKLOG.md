@@ -3921,3 +3921,60 @@ has the tables; this is the story.
   lab.cs, align.cs) are in the session-notes folder for now
   (`%APPDATA%\Claude\side-session-notes\local_93425b6c-...\speed-1024-scripts`)
   and go into scripts/nnue-bench/ with whatever is built, as they are C#.
+
+## 2026-10-20 (07:55-09:40): AVX-512, alignment and the lazy update built (Matthew's J(c))
+
+- **Matthew chose (c)**: both, AVX-512 with 64-byte alignment first, each
+  A/B'd and committed apart. The bot played on h1024-3m throughout: every run
+  below normal priority, commit headroom checked first (2.5-5.6 GB free).
+- **(a) AVX-512 + alignment** (commit c75f3ce): `Aligned` keeps the feature
+  and output weights and every accumulator stack in pinned arrays from a
+  64-byte boundary, growth included. The kernels run 32 lanes with AVX-512
+  (and a last 16), 16 with AVX2, or one at a time; the forward pass the same
+  (Forward512, Forward256, scalar). `Kernels.Width` is the widest the CPU
+  has; `CB_NNUE_SIMD=256` or `0` holds it narrower.
+- **(b) the lazy update** (commit a8dd037): a push only notes its move; the
+  slot is computed at an evaluation, a read, or a child's push, so its parent
+  always has its numbers and no chain is longer than one. An illegal move or
+  a leaf that returns early never pays.
+- **Tests**: NnueTests 38 to 49. The SIMD pass and every kernel at every
+  width (H = 48 for the 16-lane tail; operands at four offsets from a cache
+  line); weights and slots aligned through growth; the width setting; a walk
+  that moves as a search does (every pseudo-legal move made, the illegal
+  ones taken back unseen, only some nodes looked at, by a read or an
+  evaluation, against a refresh); SetPiece on a slot still waiting; a move
+  from an empty square now throws when its slot is computed, not at the
+  push. All green at 512, 256 and 0 bits. Full suite: 421 passed, 2 skipped
+  (415 after (a)).
+- **Mutation battery** (session 3's script brought up to date, with a guard
+  that waits for 2.6 GB of commit before each build; it waited a few times
+  while the bot played two games): (a) 43 of 43 red; (b) 54 of 54 red. One
+  lazy mutant survived the first run, "reading Black doesn't compute":
+  every test read White first, which computes the slot. The search-like walk
+  now reads Black first in half its looks, and the mutant goes red. The
+  256-bit mutations are caught only by the new width tests, since the walks
+  run at 512 bits here, which is what those tests are for. No crash events
+  in the Application or System logs. (After a battery, `bin` holds the last
+  mutant's build: a `--no-build` test run then read 6 failures, gone after a
+  rebuild.)
+- **`bench 9` on h1024-3m**, one thread, identical trees, alternated rounds,
+  the engine's clock: old build 1,024-1,072 knps; the alignment alone +3.8%
+  (8 of 8 rounds faster, paired); AVX-512 +16.7% (16 of 16); with the lazy
+  update +23.7% over the old build (8 of 8), +2.6% over AVX-512 alone (17 of
+  24 rounds). h512-3m: AVX-512 +8.5%. So h1024-3m now searches a node about
+  as fast as h512-3m did on the old build (1,262-1,322 knps against 1,206,
+  25 minutes apart).
+- Against the estimates: (a) at the bottom of +18-22%; (b) under +5-7%,
+  because a push now costs half what it did, so skipping 29% of them saves
+  about half as much as the ideal lazy arm measured on the old kernels.
+- bench.ps1 takes an engine and environment per arm now, and prints a
+  CPU-time column. Beside the bot that column was noisier than the wall
+  clock (one old-build run read 2,491 knps by CPU against 892 by the clock),
+  so the wall clock leads, rounds paired for the small gain.
+- **The bot** gets both at its next start once this branch is in compression
+  (Matthew's merge; start-bot.cmd builds the engine). Unmeasured: whether
+  AVX-512 lowers the clock with 8 threads busy. The bot's Speed lines will
+  show it, and `CB_NNUE_SIMD=256` is the fallback.
+- The morning's measuring scripts are in `scripts/nnue-bench/speed-1024/`
+  now (the probe, its hooks as a patch against 619c703, the kernel lab,
+  costs-nets.cs, align.cs; README there).

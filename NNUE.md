@@ -199,7 +199,9 @@ and a result blend. Each is a lever for session 5, measured one at a time.
    promotion on, a capture off, the rook for castling, the pawn for en
    passant) and writes child = parent + changes in one pass; `UnmakeMove`
    pops; the null move pushes an unchanged copy (or shares the slot: as
-   built, it shares it). `FromFen` and `SetPiece` refresh from the board
+   built, it shares it). (Since 2026-10-20 the write is lazy: `MakeMove`
+   only notes the changes, and the slot is computed when an evaluation, a
+   read or a child's push needs it; "Speed at 1024".) `FromFen` and `SetPiece` refresh from the board
    (as built: `Position.FromFen(fen, network)` and `UseNetwork(network)`
    attach and refresh; a take-back past where the stack starts refreshes). Every Lazy SMP helper
    builds its own Position from the root's FEN (Search.cs 355, 432), so each
@@ -209,7 +211,10 @@ and a result blend. Each is a lever for session 5, measured one at a time.
    (v x w) x v with `Avx2.MultiplyAddAdjacent` into int32. The (v x w) step
    fits in 16 bits because v <= 255 and |w| <= 127. This is what the probe
    ran. A plain scalar version beside it is the tests' reference. AVX-512 is
-   accelerated on this CPU too: a later speed step, measured.
+   accelerated on this CPU too: a later speed step, measured. (Built
+   2026-10-20: 32 lanes with `Vector512` and `Avx512BW.MultiplyAddAdjacent`
+   where the CPU has them, on weights and stacks aligned to 64 bytes; AVX2
+   and scalar kept; "Speed at 1024".)
 5. **Quantisation**: trained in float32. The trainer clamps weights to
    +-1.98 throughout, so the feature layer becomes int16 at x255 (QA) and
    the output weights at x64 (QB) with no overflow. The export checks the
@@ -985,6 +990,31 @@ node from round to round).
   show (the fallback is 512 bits for the updates only); and the rest of the
   search, 61% of a node at 1024 (a 64-square board, attacks found by walking
   rays), is the lever after these. Matthew's pick: decision J.
+- **Built, both (Matthew's J(c), 2026-10-20 morning)**: (a) AVX-512 with
+  64-byte alignment, commit c75f3ce; then (b) the lazy update, a8dd037. `bench 9` on
+  h1024-3m, one thread, the bot playing alongside, the identical tree in
+  every arm (3,775,106 nodes), alternated rounds, by the engine's own clock:
+
+  | build | knps | against the old build | rounds faster, paired |
+  |---|---|---|---|
+  | old | 1,024-1,072 | | |
+  | new, held at 256 bits (the alignment alone) | 1,070 | +3.8% | 8 of 8 |
+  | AVX-512 + alignment | 1,205-1,272 | **+16.7%** | 16 of 16 |
+  | AVX-512 + alignment + lazy | 1,262-1,322 | **+23.7%** (+2.6% over AVX-512 alone) | 8 of 8 (17 of 24) |
+
+  h512-3m: AVX-512 +8.5%. Against the estimates, (a) came in at the bottom
+  of its +18-22% and (b) under its +5-7%: a push now costs half what it did,
+  so skipping 29% of them saves less than the ideal lazy arm measured on the
+  old kernels. Every path stays: `CB_NNUE_SIMD=256` (or 0) holds the engine to
+  256 bits (or one number at a time), for an A/B or as the fallback if
+  AVX-512's clock cost ever shows on 8 threads. Tests: NnueTests 49 (11
+  new), green at 512, 256 and 0 bits; full suite 421 passed, 2 skipped;
+  mutation battery 54 of 54 red (the one survivor at first, "reading Black
+  doesn't compute", lived because every test read White first; a look that
+  reads Black first now kills it). bench.ps1's CPU-time column (new) proved
+  noisier than the wall clock beside the bot, so the wall clock leads. The bot
+  gets it at its next start once this branch is in compression; its Speed
+  lines are the 8-thread check.
 
 ## Risks
 
@@ -1103,8 +1133,8 @@ to go back). It searches 15.8% slower a node; the bot's 3+2 gives every
 move more time than the match's 10+0.1, which tends to favour the better
 evaluation.
 
-**J. The speed steps at 1024** (put 2026-10-20 ~05:40, from "Speed at 1024"
-above). Whichever is built keeps the scalar path and today's 256-bit path
+**J. The speed steps at 1024** (chosen: c, 2026-10-20 morning; built: +23.7%
+`bench 9` at 1024, "Speed at 1024" above; put ~05:40). Whichever is built keeps the scalar path and today's 256-bit path
 (other CPUs, and the tests' reference), is A/B'd with bench.ps1 against
 today's build, and needs the NNUE tests and the mutation battery green.
 - (a) AVX-512 with 64-byte-aligned weights and stack: **+18% to +22%** at

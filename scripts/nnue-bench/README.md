@@ -35,3 +35,11 @@ from a probe that replays a search's evaluations on the identical tree, plus
 a kernel lab for AVX-512 and 64-byte alignment (NNUE.md "Speed at 1024").
 Beside the bot, time a below-normal thread by its own CPU time
 (QueryThreadCycleTime): wall-clock time includes its waits for a CPU.
+
+Two builds, or two settings of one, on one net (2026-10-20, the AVX-512 and
+lazy-update A/Bs): an arm can name its own engine and environment, e.g.
+`-Arms "old=<net>;engine=<old dll>,new256=<net>;engine=<new dll>;env:CB_NNUE_SIMD=256,new=<net>;engine=<new dll>"`.
+`CB_NNUE_SIMD` (256 or 0) holds the engine to 256 bits or to one number at a
+time; unset, it uses the widest the CPU has. bench.ps1 also prints speed by
+the process's CPU time, less its start-up; beside the bot that column was
+noisier than the wall clock, so read both, and pair rounds for a small gain.
