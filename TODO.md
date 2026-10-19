@@ -72,8 +72,8 @@ each other); not `start.cmd` (the month queue is off).
   KB/s. Log games\month-queue.log; counts logs
   bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
 - The book learner (bot\learn.py, restarted 23:26).
-- On the desktop: nothing (h1024-3m finished 02:47 on 2026-10-20, desktop
-  clock).
+- On the desktop: task "nnue h1536-3m", 04:45 to ~18:45 on 2026-10-20
+  (NNUE, below).
 
 **Tonight's two matches, both with the bot off:**
 
@@ -135,6 +135,10 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     SPRT accepted H1** at game ~579 (584 games, the last 264 beside the
     bot); **the bot plays on it** (decision I). h768-3m's match from 04:01,
     beside the bot.
+  - **h1536-3m training on the desktop** (Matthew, 2026-10-20 04:45 by the
+    desktop's clock): 1536 hidden, the three months, ~83 min a pass, **done
+    ~18:45**. Then fetch it, and before its match against h1024-3m raise
+    the engine's MaxHidden from 1024 (a C# change: Matthew's word).
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's

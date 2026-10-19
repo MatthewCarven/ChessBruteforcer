@@ -933,6 +933,15 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   against 56.2%). So 1024 hidden won by about half of what 512 did over
   256, at four times the speed cost a node: the better evaluation still
   more than pays. MATCHES.md has the detail.
+- **h1536-3m started 04:45** (2026-10-20, desktop clock; Matthew: "on the
+  desktop"): the same recipe at 1536 hidden, with train.py's smaller
+  held-back chunks synced to the share first. 135 k positions a second
+  (1,920 MHz, 90 W, 71 C, 1.5 GB peak on the card), ~83 min a pass:
+  **done ~18:45**. The guess beforehand: about -3 to -4% in error against
+  h1024-3m, -12 to -20% a node, so anywhere from a wash to +20. The engine
+  loads at most 1024 hidden (Network.MaxHidden): its match needs that
+  raised first, a small C# change on Matthew's word (the int32 sums fit at
+  1536: 192 x 255 x 32,640 = 1.6 billion).
 
 ## Risks
 
