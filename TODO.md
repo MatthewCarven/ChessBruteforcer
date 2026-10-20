@@ -490,6 +490,26 @@ Sessions, in order:
         small net wins there, build it: one engine holding both nets (a few
         MB), accumulators refreshed at the switch, a switch point by time
         left. If the big net still wins, the idea is answered.
+- [ ] **16 threads while only one game is on** (Matthew, 2026-10-21): the
+      laptop has 8 cores / 16 threads. With two games at once each engine
+      has 8 (and pondering keeps both busy), but while one game plays alone,
+      8 threads sit idle. Let a lone game use 16, back to 8 when a second
+      game starts. To weigh first:
+      - **Measure**: 16 threads were never timed. On 2026-10-15
+        (scripts/threads-bench-d12.txt) Lazy SMP on 8 gave 12.9 M nodes a
+        second, 6.9x one thread. The extra 8 are hyperthreads on the same 8
+        cores: chess engines usually gain +15-30% nodes a second from them,
+        not 2x, and a bit less in depth. Then a match, 16 v 8 threads,
+        nearer the bot's 3+2.
+      - **How often it applies**: the share of the bot's time with one game
+        on, from its logs (if it's mostly two games, the gain is small).
+      - **Heat**: the CPU sat at 88-92 C with 5 busy threads (2026-10-20);
+        16 busy threads may throttle the clocks and give part of it back.
+      - **How**: lichess-bot fixes Threads when it starts an engine.
+        Switching means a `setoption Threads` between moves, not while the
+        engine ponders: a lichess-bot patch that counts active games (16
+        alone, 8 each when a second starts), like the busy and one-player
+        patches.
 - [ ] **Texel tuning** (WORKLOG has it all; step 1, human results, gained
       nothing; step 2a, Stockfish's verdicts, +208 Elo [+130, +311], the bot
       uses bot/eval/eval-sf1.txt via EvalFile):
