@@ -27,6 +27,14 @@ public sealed record SearchLimits
 
     /// <summary>Time kept back on every move for communication and the operating system.</summary>
     public int MoveOverheadMs { get; init; } = 50;
+
+    /// <summary>
+    /// Percent more planned time a move, for a game in which we ponder (the
+    /// UCI engine passes its PonderTimeBonus when the GUI sets Ponder): a ponder
+    /// hit answers sooner than planned, and this spends the clock it saves, on
+    /// every move.  The hard limit stays as it would be without it.
+    /// </summary>
+    public int PonderTimeBonusPercent { get; init; }
 }
 
 /// <summary>Progress after each completed depth.</summary>
@@ -327,6 +335,9 @@ public sealed class Search
 
     /// <summary>The positions the current or last search's helpers searched from (each thread's own copy of the root).</summary>
     internal IEnumerable<Position?> HelperRoots => _helpers.Take(_activeHelpers).Select(helper => helper._root);
+
+    /// <summary>The last search's budget from its clock, in ms (<see cref="TimeBudget"/>; 0: none), pondering or not.</summary>
+    internal (long Soft, long Hard) PlannedBudget => (_plannedSoftMs, _plannedHardMs);
 
     private long TotalNodes
     {
@@ -896,8 +907,11 @@ public sealed class Search
     /// Soft limit: the planned time for this move (no new depth is started
     /// past half of it, since the next depth usually takes longer than all
     /// the previous ones).  Hard limit: abort mid-search.  Zero means none.
+    /// Pondering, the soft limit gets <see cref="SearchLimits.PonderTimeBonusPercent"/>
+    /// more, as Stockfish plans a quarter more when Ponder is on; the hard
+    /// limit comes from the plain soft limit, as in Stockfish.
     /// </summary>
-    private static (long Soft, long Hard) TimeBudget(Position root, SearchLimits limits)
+    internal static (long Soft, long Hard) TimeBudget(Position root, SearchLimits limits)
     {
         if (limits.Infinite)
             return (0, 0);
@@ -912,6 +926,7 @@ public sealed class Search
         long soft = remaining / movesToGo + increment * 3L / 4;
         long hard = Math.Min(soft * 3, remaining / 3 + increment);
         hard = Math.Max(5, Math.Min(hard, remaining - 20));
+        soft += soft * limits.PonderTimeBonusPercent / 100;
         return (Math.Min(soft, hard), hard);
     }
 

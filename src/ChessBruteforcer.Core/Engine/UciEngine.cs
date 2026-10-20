@@ -25,6 +25,8 @@ public sealed class UciEngine
 
     private Position _position = Position.Start();
     private int _moveOverheadMs = 50;
+    private bool _ponder;              // the GUI may send "go ponder" (UCI's Ponder option)
+    private int _ponderTimeBonus = 25;   // percent more planned time a move when it may
     private int _threads = 1;
     private ParallelMode _split = ParallelMode.LazySmp;
     private bool _ponderFinish, _ponderCap;   // (P2's two rules, off: neither won games; PONDER.md)
@@ -86,6 +88,7 @@ public sealed class UciEngine
                     Send("option name Ponder type check default false");
                     Send("option name PonderFinish type check default false");
                     Send("option name PonderCap type check default false");
+                    Send("option name PonderTimeBonus type spin default 25 min 0 max 100");
                     Send("uciok");
                     break;
                 case "isready":
@@ -106,7 +109,11 @@ public sealed class UciEngine
                 case "go":
                     StopSearch();
                     EnsureTablesLoaded();
-                    StartSearch(ParseGo(words) with { MoveOverheadMs = _moveOverheadMs });
+                    StartSearch(ParseGo(words) with
+                    {
+                        MoveOverheadMs = _moveOverheadMs,
+                        PonderTimeBonusPercent = _ponder ? _ponderTimeBonus : 0,
+                    });
                     break;
                 case "ponderhit":
                     // The opponent played the move we were pondering on: the search goes on, on our clock.
@@ -178,8 +185,12 @@ public sealed class UciEngine
                 };
                 break;
             case "ponder":
-                // Only tells us the GUI may send "go ponder", which works either way.  (UCI lets an
-                // engine plan its time differently when it may ponder; this one doesn't, yet.)
+                // The GUI may send "go ponder" (which works either way).  If it may, every move plans
+                // PonderTimeBonus percent more time: hits answer early, and this spends what they save.
+                _ponder = bool.Parse(value);
+                break;
+            case "pondertimebonus":
+                _ponderTimeBonus = Math.Clamp(int.Parse(value, CultureInfo.InvariantCulture), 0, 100);
                 break;
             case "ponderfinish":
                 // A ponder hit lets a depth begun past half the planned time finish, within that time from the
