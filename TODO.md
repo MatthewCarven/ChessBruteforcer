@@ -77,7 +77,8 @@ each other); not `start.cmd` (the month queue is off).
   KB/s. Log games\month-queue.log; counts logs
   bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
 - The book learner (bot\learn.py, restarted 23:26).
-- On the desktop: nothing (h1536-3m finished 18:34 on 2026-10-20).
+- On the desktop: task "nnue h1024-3m-l32 then h1024-3m-l16-32", from
+  00:30 on 2026-10-21 to ~19:50 (NNUE, below).
 
 **Tonight's two matches, both with the bot off:**
 
@@ -149,6 +150,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     Matthew's word; best on top of the engine-speed chain, which changes
     Network.cs). **On hold** (Matthew, 2026-10-20 ~18:50): he tests the
     engine speed upgrade first, before the next upgrade.
+  - **Deeper nets training on the desktop** (Matthew's (a), 2026-10-21):
+    h1024-3m-l32 (1024 x2 -> 32 -> 1) from 00:30, then h1024-3m-l16-32
+    (-> 16 -> 32 -> 1), ~9.5 h each: **done ~10:10 and ~19:50** (desktop
+    clock). Float held-back error against h1024-3m's 0.012394 decides
+    whether the engine work to play one (format, forward pass) is worth it.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's

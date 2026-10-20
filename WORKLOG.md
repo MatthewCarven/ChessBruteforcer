@@ -4525,3 +4525,23 @@ has the tables; this is the story.
 - **Done**: this entry and the TODO's "In compression" committed on the branch,
   then compression fast-forwarded to it. Not pushed (Matthew's). The bot takes
   the Ctrl+C fix and quit.soon at his next `bot\start-bot.cmd`.
+
+## 2026-10-21 (00:15-00:40): one last training test, a deeper net
+
+- Matthew: "call up the chain ... we're unfinished here: one last training
+  test to see if it fits the data better, maybe a hidden row or two". The
+  session that started this one (local_e943bf5b) was told, with where
+  things stand.
+- **train.py `--layers`** (a194fc0): small layers between the feature layer
+  and the output (32, or 16/32), each a torch Linear then clamp(0, 1); the
+  feature layer keeps its clamp; no .nnue for such a net. Checked on the
+  laptop (the bot off, 1 bucket, 2 passes): without --layers the errors and
+  the .nnue are byte-identical to before; 256 x2 -> 32 -> 1 and -> 16 -> 32
+  -> 1 both train at the same speed.
+- His (a): both on the desktop, one task (`nnue-desktop.ps1 train
+  h1024-3m-l32 --hidden 1024 --layers 32 ... + h1024-3m-l16-32 --hidden
+  1024 --layers 16/32 ...`, h1024-3m's three months, 10 passes, drops after
+  4/7/9). train.py copied to the share first (hashes equal). From 00:30:27
+  (desktop clock): 196-200 k positions a second, 1,920 MHz, 85 W, 70 C;
+  ~9.5 h each, done ~10:10 and ~19:50. The yardstick: h1024-3m's float
+  held-back error, 0.012394.

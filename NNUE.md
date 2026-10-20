@@ -966,6 +966,19 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   AVX2 forward pass sums H / 8 products a lane, which fits up to 2048
   (256 x 255 x 32,767 = 2.14 billion against 2.147); the AVX-512 one H /
   16, up to 4096.
+- **Deeper, not wider** (Matthew, 2026-10-21: "a hidden row or two"):
+  train.py's `--layers` puts small layers between the feature layer and
+  the output, each a Linear then clamp(0, 1), in float (no export: the
+  format and the engine know one output layer). Without it nothing
+  changes (a byte-identical .nnue on a 1-bucket check). His (a): both on
+  the desktop in one task, h1024-3m's recipe otherwise: **h1024-3m-l32**
+  (1024 x2 -> 32 -> 1) from 00:30, then **h1024-3m-l16-32** (-> 16 -> 32
+  -> 1). 196-200 k positions a second, as h1024-3m: ~9.5 h each, done
+  ~10:10 and ~19:50 (desktop clock). The measure: float held-back error
+  against h1024-3m's float one, 0.012394 (K 1.11; 0.012626 at K 1). If a
+  deeper net fits clearly better, playing it means a new file format and
+  forward pass in C#, and a 32-wide layer is 32 times the output step's
+  multiply-adds: worth it only for a clear gain.
 
 ### Speed at 1024 (2026-10-20): where a node's time goes
 
