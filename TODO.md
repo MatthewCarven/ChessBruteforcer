@@ -736,6 +736,24 @@ Sessions, in order:
                   suite 529 passed. The slower control was skipped (a null
                   would need ~11 h); measure P2 again after P4. PONDER.md,
                   "P2".)
+            - [ ] **Matthew's "dirty trick"** (2026-10-21, beside p2.1's
+                  "think long early"): think a full minute on the first move
+                  out of book, then let a smaller, faster network carry the
+                  rest of the game. An A/B match through python-chess
+                  (scripts/ponder-match.py's loop) needs no engine change:
+                  arm A's first move out of book gets `Limit(time=60)`, then
+                  the script sends `setoption EvalFile` with the small net
+                  (h512-3m or nnue1, ~9-13% more nodes a second, MATCHES.md);
+                  arm B plays normally on h1024-3m. It needs a clock where a
+                  minute is affordable, e.g. the bot's 3+2 (a third of the
+                  clock) or 5+3: ~3-5 min a game, so ~300 games is 5-8 h at
+                  3 at a time. What to expect: a minute is ~10x a move's
+                  time, about +3 plies on that one move (p2.1: a ply costs
+                  ~2.2x the time); the table keeps that work only while the
+                  opponent follows our line (56.5% of replies on Lichess, so
+                  ~6% for five moves running); and every later move has less
+                  clock and a weaker net. Measure the halves apart too (the
+                  minute alone, the small net alone), as P2's split was.
             - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
                   Search.TimeBudget and the Ponder option, ~1 h.
             - [ ] P4: play an unfinished depth's better move instead of
