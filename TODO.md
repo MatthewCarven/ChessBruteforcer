@@ -22,9 +22,12 @@ that could go wrong does.
 
 - **The bot, the book learner and the month queue**: `start.cmd` starts all
   three, each in its own window, and skips any already running. Logs:
-  bot/logs/bot-<date>.log, bot/logs/restarts.log (the network guard),
+  bot/logs/bot-<date>.log, bot/logs/restarts.log (the network guard; from
+  its next start, Ctrl+C stops too), bot/lichess-bot/lichess_bot_auto_logs
+  (lichess-bot's DEBUG log, 7 days: signals, events),
   bot/logs/learn-<date>.log, games/month-queue.log. Restart the bot only
-  between games. The laptop must stay awake (plugged in).
+  between games: `bot\quit-soon.cmd` stops it once its games are over. The
+  laptop must stay awake (plugged in).
 - **The month queue** (`scripts\month-queue.cmd`; Matthew 2026-10-13: "queue
   the lot up"): newest first, 2026-09 back to 2022-12 (46 months, ~1.4 TB,
   ~4.3 B games, ~16 days at ~1 MB/s) onto the desktop share (Z:\lichess,
@@ -50,9 +53,10 @@ call at game 188 of its match: +52 [+14, +91] over h512-3m, LOS 99.6%;
 "battle testing 1024", the statistics later, which he does want for clean
 footing next time). bot\eval\h1024-3m.nnue, which make-config.py tries
 first (delete it to go back to h512-3m). It went down at 21:23 on
-2026-10-19 when memory ran out (lichess-bot's TypeError, below; its restart
-loop died too; 0.45 GB of commit free at 23:22: the Cowork VM 4.0 GB,
-h768-3m's training 3.5 GB, eight Claude sessions ~0.5 GB each). **Back on**:
+2026-10-19 to a Ctrl+C held in its window, not memory as first thought
+(lichess-bot's TypeError, below; commit was tight that evening all the same,
+0.45 GB free at 23:22: the Cowork VM 4.0 GB, h768-3m's training 3.5 GB,
+eight Claude sessions ~0.5 GB each). **Back on**:
 close the match window (h1024-3m's match, then h768-3m's, queued in one
 window), fast-forward compression to branch `claude/nnue-desktop-8d5f2a`,
 reboot (the only way to close the Cowork VM), then `bot\start-bot.cmd`, then
@@ -158,8 +162,9 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     morning engine over UCI as the bot runs it (10.1 to 20.3 M nodes a
     second, a ply deeper in 2 s), all of today's work together; AVX-512's
     own share +12.1% on 8 threads (+12.6% on one), so no clock cost: keep
-    512 bits. Left: the bot's own Speed lines once it plays (this
-    morning's: 7.0-7.1 Mnps at moves 10-29).
+    512 bits. **In play** (5 games after the 22:33 restart): its Speed
+    lines are about 2x the morning's, alone (1.8-2.1x) and with two games
+    at once (1.9-2.0x); WORKLOG has the table.
   - **The rest of a node, measured** (2026-10-20, a side session, branch
     `claude/friendly-cray-e85e18` on top of the speed branch; NNUE.md "The
     rest of a node"): outside the network is 74-76% of a node now. Ordering
@@ -233,22 +238,43 @@ make-config.py (the patch still helps at 1).
 had two players on one game; bot\lichess-bot-one-player.patch stops that
 (bot\test-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
 between games (not `start.cmd`: that starts the month queue, which is off).
-Still open: lichess-bot quit on a TypeError in accept_challenges, twice
-(2026-10-19 00:32 and 21:23: `challenge_queue`, the manager's list, gave its
-length as None). **Cause: memory ran out** (Matthew: a screenshot at 21:23
-tipped it over; commit was nearly gone, and run-bot.ps1 died too). So keep
-commit headroom while the bot plays: ~2 GB free at least (the engine alone
-holds ~0.8 GB of tables plus its hash). The second 16 GB stick (section 4)
-fixes it for good; until then, a bigger page file would raise the limit
-(Matthew's setting). If it ever happens with headroom, look closer.
-**It happened with headroom** (2026-10-20 22:27:24, 16 minutes after a
-restart): the same TypeError, `len(active_games)` this time, 50 s after a
-game ended and 10 s before matchmaking's next challenge; no
-Resource-Exhaustion event, 3.5 GB of commit free a minute later, nothing
-in the Application log. run-bot.ps1 died with it again (no restart line).
-So memory isn't the whole cause: the manager's proxies, our patches to the
-challenge flow and the restart loop want a look. The bot is off until it's
-restarted.
+**lichess-bot's "TypeError in accept_challenges" is a held Ctrl+C, not a
+crash** (2026-10-20, a side session; WORKLOG). All four (2026-10-16 03:32,
+10-19 00:32 and 21:23, 10-20 22:27) came straight after a burst of SIGINTs
+33 ms apart, a Ctrl+C held down in the bot's window (lichess-bot's DEBUG log,
+bot\lichess-bot\lichess_bot_auto_logs, has every one); not memory. The
+Ctrl+C handler logs a line, and in lichess-bot's main process logging goes
+through the Manager on the main loop's own connection: while the loop waits
+for Lichess's next keep-alive (6 s apart), each repeat stacks a handler on
+the stuck one, at 82 deep Python's recursion limit breaks them off, and
+their replies go to the wrong calls (the challenge list's length: None).
+Of the 26 Ctrl+C stops since 10-13, 21 ended clean, 4 in the TypeError
+(93-116 SIGINTs each), 1 in an AssertionError from Python's pool shutdown
+(10-19 08:32). run-bot.ps1 didn't die: the same Ctrl+C stops it, by design
+(a copy tested with a real console Ctrl+C), and it does restart lichess-bot
+after a real crash (2026-10-15 14:15). Keep ~2 GB of commit free anyway.
+**Matthew picked (a)** (2026-10-20, ~23:15), now in start-bot.cmd and
+run-bot.ps1: bot\lichess-bot-sigint.patch (the handler only sets the stop
+flags; bot\test-sigint.py; a held Ctrl+C failed 0 of 6 trials, 5 of 10
+before) goes in after the ponder note, and run-bot.ps1 writes "lichess-bot
+stopped by Ctrl+C after N min" (or "between runs") to restarts.log. **In
+compression** (fast-forwarded 2026-10-21 with the bot stopped); live from the
+bot's next `bot\start-bot.cmd`. A merge that changes start-bot.cmd wants the
+bot stopped first: its window reads the file as it goes. Upstream
+lichess-bot (master, 2026-10-20) has the same handler: reporting it is his
+call.
+
+**bot\quit.soon stops the bot once its games are over** (2026-10-20, Matthew
+asked; WORKLOG). Double-click `bot\quit-soon.cmd` (or make bot\quit.soon; a
+quit.soon.txt from Explorer counts): lichess-bot declines new challenges
+("later": a decline can't carry words of its own), makes and accepts none,
+ends the games still on with "Good game! Sorry, no new challenges at this
+time: we're going to sleep, and when we wake up we'll be even better!", and
+stops when none is left; run-bot.ps1 notes it in restarts.log, deletes the
+file and starts nothing. Delete the file before then to cancel. A fresh
+`bot\start-bot.cmd` clears an old one. bot\lichess-bot-quit-soon.patch,
+bot\test-quit-soon.py. **In compression** (2026-10-21); works from the bot's
+next `bot\start-bot.cmd`.
 
 **The ponder note** (2026-10-20, Matthew asked; WORKLOG): 23% of the bot's
 engine moves logged "Source: Engine" and no stats, every one a ponder hit
