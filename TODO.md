@@ -150,21 +150,20 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     branch `claude/stoic-goodall-ecc132`; NNUE.md "Speed at 1024"): the
     updates took 27-28% of a node, the forward pass 12-13%. Matthew's J(c):
     AVX-512 with 64-byte alignment (+16.7% `bench 9` at 1024), then the lazy
-    update (+23.7% in all). **To take effect**: Matthew merges the branch
-    into compression and restarts the bot between games (`bot\start-bot.cmd`
-    builds the engine); then compare its Speed lines with today's for the
-    8-thread effect (`CB_NNUE_SIMD=256` is the fallback if AVX-512's clock
-    cost shows).
+    update (+23.7% in all). **In compression** since 2026-10-20 ~21:50,
+    with K(a) and the bitboards below (not pushed). It takes effect when the
+    bot restarts between games (`bot\start-bot.cmd` builds the engine); then
+    compare its Speed lines with today's for the 8-thread effect
+    (`CB_NNUE_SIMD=256` is the fallback if AVX-512's clock cost shows).
   - **The rest of a node, measured** (2026-10-20, a side session, branch
     `claude/friendly-cray-e85e18` on top of the speed branch; NNUE.md "The
     rest of a node"): outside the network is 74-76% of a node now. Ordering
     36% of it (quiescence sorts through moves it then skips), generation 25%,
     InCheck 20%, make/unmake 6%, the table 5%. **Matthew's K(a), built**:
     quiescence generates only what it searches, +24.6% to +25.5% `bench 9`
-    (A/B, 16 of 16 rounds; tests and mutation battery green). **To take
-    effect**: Matthew merges the branch (it sits on the speed branch) into
-    compression and restarts the bot between games. The bot was off from
-    ~09:50 (Matthew, for memory).
+    (A/B, 16 of 16 rounds; tests and mutation battery green). **In
+    compression** since ~21:50, live at the bot's next start. The bot was off
+    from ~09:50 (Matthew, for memory).
   - **Bitboards, measured** (2026-10-20 noon, a side session, branch
     `claude/affectionate-hugle-66968f`, which is K(a)'s branch plus write-up
     and scripts; NNUE.md "Bitboards, measured"): with K(a) in, a node is 392
@@ -183,9 +182,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     tablebase's count and Material by popcount. **+13.2% to +14.1% `bench
     9`**, the identical tree; full suite green on each path (`CB_ATTACKS`
     unset, magic, rays); small tables re-solved byte-identical, the solver
-    22-25% sooner; battery 41 of 41 as expected. **To take
-    effect**: Matthew merges the branch (it lacks compression's 0173e3a,
-    the ponder note) and restarts the bot between games; then its Speed
+    22-25% sooner; battery 41 of 41 as expected. **In compression** since
+    ~21:50 (merge 50c7645), live at the bot's next start; then its Speed
     lines for the 8-thread figure.
   - **Bitboards session 2, built** (2026-10-20 evening, branch
     `claude/affectionate-hugle-66968f` = session 1's 73028d8 plus one
@@ -193,10 +191,9 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     in today's move order, so the identical tree. **+9.5% to +9.8% `bench 9`
     over session 1, +24.7% to +25.9% over 180fe25's engine** (16 of 16
     rounds); full suite 477 + 2 skipped; deep perft 21 of 21 on each path;
-    small tables byte-identical; battery as expected. **To take effect**:
-    Matthew merges session 1's branch, then this one (each a real merge:
-    compression has 0173e3a; WORKLOG.md conflicts at its end, keep both),
-    and restarts the bot between games. Then its Speed lines. Not chosen:
+    small tables byte-identical; battery as expected. **In compression**
+    since ~21:50 (merge 31dcbb8, on Matthew's word; not pushed), live at the
+    bot's next start, between games. Then its Speed lines. Not chosen:
     the sets' own move order (+9% more in the probe, the tree 9% smaller:
     a match would judge it).
   - **The split probe is behind the engine**: split-patch.py targets

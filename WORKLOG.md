@@ -4262,3 +4262,30 @@ has the tables; this is the story.
   into compression (each a real merge; WORKLOG.md conflicts at its end,
   keep both), and restarts the bot between games; its Speed lines then
   give the 8-thread figure.
+
+## 2026-10-20 (21:45-21:55): both bitboard sessions merged into compression
+
+- **Asked**: Matthew's "Yes: merge refs/heads/claude/busy-newton-fc0a07,
+  then refs/heads/claude/affectionate-hugle-66968f, into compression,
+  keeping both sides of the WORKLOG conflict." The main checkout was on
+  compression at 0173e3a, clean, nothing running from it.
+- **Merge 1** (50c7645): session 1's branch, and with it everything since
+  efd4fbd on that line (the speed steps, K(a), the measurements). TODO.md
+  merged by itself; WORKLOG.md conflicted where both sides had added
+  entries. Both kept, compression's ponder-note entry (~10:00-10:40) put
+  back in time order between "the rest of a node" and K(a). Checked: the
+  merged file is each side's plus the other's entries, nothing lost
+  (+29 lines against the branch, +309 against compression).
+- **Merge 2** (31dcbb8): session 2's branch, clean (the ponder entry now
+  sits mid-file, away from session 2's at the end).
+- **Checked**: compression's src/ and tests/ are byte-identical to
+  c4274a9, the build every test, perft, table re-solve and A/B ran on. It
+  differs from it only by compression's own ponder-note files (bot/, two
+  docs entries). Not pushed (Matthew's). The bot, off since ~09:50, runs
+  all of it from its next `bot\start-bot.cmd`: AVX-512 and the lazy update
+  (+23.7%), K(a) (+25%), bitboards (+25%). `bench 9` on h1024-3m with the
+  bot off went from 1,470 knps (before today) to 2,713-2,728 tonight, about
+  1.85x. Its Speed lines will show the 8-thread figure.
+- This branch was then fast-forwarded to compression (31dcbb8) for this
+  entry and the TODO's handoff ("In compression" where it said "Matthew
+  merges"), and compression fast-forwarded to it.
