@@ -159,9 +159,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     the engine computes it, **but -47.9% knps** in `bench 9` (and a 37%
     bigger tree). h1024-3m-l16-32 (-> 16 -> 32 -> 1) training on the
     desktop, done ~19:20 by its clock, exported as version 2 by itself.
-    **Next, Matthew's call**: match l32 against h1024-3m now (the bot off),
-    wait for l16-32 (half the first layer's arithmetic), or more speed
-    work first (int8 weights; the small layers trained clamped).
+    **Matthew's (a), 2026-10-21 ~10:40: wait for l16-32, then both deep
+    nets against h1024-3m back to back tonight, the bot off** (from this
+    branch's engine: `scripts\nnue-match.cmd h1024-3m-l32 h1024-3m`, then
+    `h1024-3m-l16-32 h1024-3m`). More speed work (int8 weights; the small
+    layers trained clamped) if they lose on speed.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
