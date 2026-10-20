@@ -1015,6 +1015,28 @@ node from round to round).
   noisier than the wall clock beside the bot, so the wall clock leads. The bot
   gets it at its next start once this branch is in compression; its Speed
   lines are the 8-thread check.
+- **8 threads, measured** (2026-10-20, 22:03-22:07, the bot off and the
+  laptop otherwise idle; `scripts/nnue-bench/speed-1024/uci-ab.py`): each
+  build over UCI as the bot runs it (EvalFile h1024-3m, Threads 8, Hash 256
+  MB; no tables), 2 s on each of bench's six positions, the arms in turn, 5
+  rounds, the engine's own nodes a second:
+
+  | build | 8 threads | against the bot's morning engine | depth in 2 s |
+  |---|---|---|---|
+  | the bot's engine this morning (efd4fbd) | 10.1 M | | 12.00 |
+  | compression now (81173f8), held at 256 bits | 18.1 M | +79.8% | 12.83 |
+  | compression now, AVX-512 | 20.3 M | **+101.6%** | 13.07 |
+
+  All of today's speed work together (AVX-512 and alignment, the lazy
+  update, K(a), both bitboard sessions) doubles the engine's speed on 8
+  threads, a ply deeper in 2 s. AVX-512's own share there is +12.1%, against
+  +12.6% on one thread: **no sign of a clock cost with 8 cores busy**, so
+  512 bits stay on. Every round agreed (the morning's engine 9.6-10.3 M, now
+  19.3-21.8 M). This is also the bitboard sessions' "8-thread figure", for
+  all of them together. The bot's own Speed lines, once it plays, check its
+  conditions (pondering, the tables, its games); this morning's read 7.0-7.1
+  Mnps at moves 10-29 (median), with h768-3m's match taking 5 cores for part
+  of it.
 
 ### The rest of a node (2026-10-20): where the 74% outside the network goes
 

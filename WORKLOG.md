@@ -4290,6 +4290,58 @@ has the tables; this is the story.
   entry and the TODO's handoff ("In compression" where it said "Matthew
   merges"), and compression fast-forwarded to it.
 
+## 2026-10-20 (22:00-23:10): 8 threads, measured, and the bot in play on the new engine (the speed session)
+
+- Matthew asked for the bot's Speed lines against the morning's, for the
+  8-thread effect. The bot was still off (stopped 09:48:32, "Termination
+  requested", for memory), its engine copy this morning's 03:27 build. So
+  the 8-thread figure was taken directly instead, with the laptop to
+  itself: `scripts/nnue-bench/speed-1024/uci-ab.py`, each build over UCI as
+  the bot runs it (EvalFile h1024-3m, Threads 8, Hash 256 MB, no tables),
+  2 s on each of bench's six positions, arms in turn, 5 rounds, one engine
+  at a time (commit 3.0 GB free).
+- **The bot's morning engine (efd4fbd) 10.1 M nodes a second; compression
+  (81173f8) 20.3 M, +101.6%**, a ply deeper in 2 s (12.00 to 13.07); held
+  at 256 bits 18.1 M (+79.8%). So AVX-512's share on 8 threads is +12.1%,
+  against +12.6% on one thread: no clock cost with 8 cores busy, and 512
+  bits stay on. One thread, the earlier entry's `bench 9` gave 1.85x; on 8
+  threads it's 2.02x.
+- For the bot's own Speed lines later: this morning's (33 games on
+  h1024-3m, the old engine) read 7.1 / 7.0 / 6.7 / 6.2 / 3.6 Mnps (medians)
+  at moves 10-19 / 20-29 / 30-39 / 40-59 / 60 on, with h768-3m's match on 5
+  cores for part of the morning, so a little low.
+- **The bot on the new engine** (Matthew's `bot\start-bot.cmd` at 22:11,
+  the build has the aligned kernels and the bitboards; net sha256
+  510a8d0e6c43): one game, a loss by mate as black to BretemaBot (2798, the
+  bot's own matchmaking: 2249-2849), its evaluation -0.84 out of the book
+  and a slide from move 60. Speed lines: 20.8 / 19.3 / 17.4 / 17.1 / 15.1
+  Mnps at the same move bands, 2.6-2.9x this morning's (4.2x from move 60);
+  more than the clean 2.0x because the morning's ran beside the match. One
+  game is thin.
+- **Then lichess-bot stopped** at 22:27:24, 50 s after the game, on the
+  accept_challenges TypeError. I took it for a third crash, with memory to
+  spare this time (no Resource-Exhaustion event, 3.5 GB of commit free a
+  minute later), and wrote that run-bot.ps1 had died with it. **Both wrong**:
+  the side session below found every one of these TypeErrors was a held
+  Ctrl+C (Matthew stopping the bot), and run-bot.ps1 stops on Ctrl+C by
+  design. The engine wasn't involved either way (the game had ended).
+- **Restarted 22:33 (Matthew); the Speed lines over 5 games** (to 23:05: a
+  loss to BretemaBot 2798, wins over FSChess-Engine 2370 and TalosBot 2463,
+  a draw with TalosBot 2457, Jamie22553 2892 in progress; no crash since).
+  Split by whether another game was on at the same time (concurrency 2:
+  two 8-thread engines then share the 16 logical CPUs, and each runs at
+  ~0.6x), the medians at moves 10-19 / 20-29 / 30-39 / 40-59:
+
+  | | this morning, old engine | tonight, new engine | |
+  |---|---|---|---|
+  | alone | 9.8 / 9.6 / 9.5 / 8.4 Mnps | 19.5 / 20.0 / 17.4 / 17.1 | 1.8-2.1x |
+  | beside another game | 6.3 / 6.1 / 6.1 / 5.9 | 11.9 / 12.0 / 11.5 / 11.4 | 1.9-2.0x |
+
+  About 2x in play, as the clean 8-thread A/B said (2.02x). (Moves 60 on
+  are left out: the tables answer there at once, so the Speed lines say
+  nothing.) The earlier "2.6-2.9x" for the first game compared it, played
+  alone, with the morning's mix of single and paired games.
+
 ## 2026-10-20 (22:40-23:15): lichess-bot's TypeError is a held Ctrl+C (a side session)
 
 - **Asked**: why lichess-bot quits on a TypeError in accept_challenges (2026-10-19
