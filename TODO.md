@@ -466,6 +466,29 @@ Sessions, in order:
 
 ### 2. The engine's strength
 
+- [ ] **Two nets, switched by the clock** (Matthew's idea, 2026-10-21, "feel
+      free to push back"): keep a smaller, faster net loaded beside the big
+      one, and play on it when time runs short (to build some time up, then
+      back to the big net), or for bullet. Test before building. What our
+      numbers say so far (they lean against it, but one cheap match
+      decides):
+      - The nets differ a lot in strength and little in speed. 256 -> 1024
+        hidden won ~+128 Elo in matches (+76, then +11 for more data, then
+        +41) for ~19% fewer nodes a second (`bench 9`: -4%, then -16%;
+        likely less since AVX-512). 19% more speed is worth roughly +15-20
+        Elo, so the small net gives up far more than it gains.
+      - Our matches already play fast: 10+0.1 is ~0.25 s a move, faster than
+        Lichess bullet (1+0, ~0.85 s a move over ~70 moves) and far faster
+        than a 3+2 scramble (the 2 s increment keeps every move at ~2 s).
+        The bigger net still won there.
+      - A faster net doesn't bank time by itself: the time manager decides
+        how long a move takes, and the net only changes the depth reached
+        in it. Time trouble is the time manager's to fix first.
+      - **The test**: h1024-3m against h512-3m (or nnue1) at a much faster
+        clock, e.g. 2+0.02 (~0.05 s a move), the bot off, ~30 min. If the
+        small net wins there, build it: one engine holding both nets (a few
+        MB), accumulators refreshed at the switch, a switch point by time
+        left. If the big net still wins, the idea is answered.
 - [ ] **Texel tuning** (WORKLOG has it all; step 1, human results, gained
       nothing; step 2a, Stockfish's verdicts, +208 Elo [+130, +311], the bot
       uses bot/eval/eval-sf1.txt via EvalFile):
