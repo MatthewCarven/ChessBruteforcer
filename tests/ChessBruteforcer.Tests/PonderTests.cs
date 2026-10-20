@@ -88,13 +88,14 @@ public class PonderTests
         Assert.Equal(infos.Length, infos.Select(i => i.Depth).Distinct().Count());
     }
 
-    private static (UciEngine Engine, Output Output) Start(int threads = 1, string split = "LazySMP", bool ponderFinish = true)
+    private static (UciEngine Engine, Output Output) Start(int threads = 1, string split = "LazySMP", bool? ponderFinish = null)
     {
         var output = new Output();
         var engine = new UciEngine(output);
         engine.Handle($"setoption name Threads value {threads}");
         engine.Handle($"setoption name ThreadSplit value {split}");
-        engine.Handle($"setoption name PonderFinish value {(ponderFinish ? "true" : "false")}");
+        if (ponderFinish is bool finish)   // (otherwise the engine's default, on)
+            engine.Handle($"setoption name PonderFinish value {(finish ? "true" : "false")}");
         return (engine, output);
     }
 
@@ -322,6 +323,7 @@ public class PonderTests
         int ownTime = new Search(new TranspositionTable(8)).Run(Position.FromFen(MoveGeneratorTests.Kiwipete), limits).Depth;
 
         var search = new Search(new TranspositionTable(8));
+        Assert.True(search.PonderFinish);   // (on by default, as in the UCI engine)
         using var started = new ManualResetEventSlim();
         SearchResult? pondered = null;
         var thread = new Thread(() => pondered = search.Run(Position.FromFen(MoveGeneratorTests.Kiwipete),
@@ -356,6 +358,7 @@ public class PonderTests
     [InlineData(3500, 400, 1000, 3000, false, 3000, false)]   // (past the hard limit: the clock check stops it)
     // On: a depth begun past S/2 has S from the hit.
     [InlineData(600, 501, 1000, 3000, true, 1600, false)]
+    [InlineData(2500, 2400, 1000, 3000, true, 3500, false)]   // (past the hard limit, if it must)
     [InlineData(4000, 3900, 1000, 3000, true, 5000, false)]
     // On: a hit past the hard limit gives the depth in progress S from the hit, however early it began.
     [InlineData(3500, 400, 1000, 3000, true, 4500, false)]
@@ -374,12 +377,18 @@ public class PonderTests
     }
 
     [Theory]
-    [InlineData(1, "LazySMP")]
-    [InlineData(4, "LazySMP")]
-    [InlineData(4, "Ranges")]
-    public void APonderHitLetsTheDepthItWouldDropFinish(int threads, string split)
+    [InlineData(1, "LazySMP", false)]
+    [InlineData(4, "LazySMP", false)]
+    [InlineData(4, "Ranges", false)]
+    [InlineData(1, "LazySMP", true)]
+    public void APonderHitLetsTheDepthItWouldDropFinish(int threads, string split, bool switchedOffAndOn)
     {
-        var (engine, output) = Start(threads, split);
+        var (engine, output) = Start(threads, split);   // (on by default)
+        if (switchedOffAndOn)
+        {
+            engine.Handle("setoption name PonderFinish value false");
+            engine.Handle("setoption name PonderFinish value true");
+        }
         int finished = 0, rounds = 0;
         var log = new List<string>();
         for (int attempt = 1; finished == 0 && attempt <= 4; attempt++)   // (whether a depth can finish within S depends on the depth)
@@ -459,6 +468,57 @@ public class PonderTests
             Assert.InRange(clock.ElapsedMilliseconds, 0, planned + Margin);
             AssertLegal(engine.Position, best!);
         }
+    }
+
+    [Theory]
+    [InlineData(1, "LazySMP")]
+    [InlineData(4, "LazySMP")]
+    [InlineData(4, "Ranges")]
+    public void AHitAtOnceStopsAsAPlainSearchWouldNotAtTheCap(int threads, string split)
+    {
+        // No depth begins past S/2, so the answer comes when the depth begun before it finishes: often well before
+        // the hit + S, which only cuts a depth still running then.
+        var (engine, output) = Start(threads, split);
+        var log = new List<string>();
+        bool early = false;
+        for (int round = 1; !early && round <= 6; round++)
+        {
+            int planned = 300 << ((round - 1) % 3);   // 300, 600, 1200 ms
+            engine.Handle("ucinewgame");
+            engine.Handle(Pondered);
+            engine.Handle($"go ponder {ClockPlanning(planned)}");
+            var clock = Stopwatch.StartNew();
+            engine.Handle("ponderhit");
+            Assert.NotNull(output.WaitForBestMove(round, planned + 5000));
+            long answeredMs = clock.ElapsedMilliseconds;
+            var infos = output.InfosBefore(round);
+            log.Add($"S {planned} ms, answered at {answeredMs}: " + string.Join(" | ", infos.Select(i => $"{i.Depth} at {i.TimeMs}")));
+            Assert.True(answeredMs <= planned + Margin, string.Join("\n", log));
+            // each depth begins when the one before it ends: none past S/2 (a little more for the clock's grain)
+            Assert.All(infos.SkipLast(1), i => Assert.True(i.TimeMs <= planned / 2 + 5, string.Join("\n", log)));
+            early = answeredMs < planned - 100;
+        }
+        Assert.True(early, "never answered before the cap:\n" + string.Join("\n", log));
+    }
+
+    [Theory]
+    [InlineData(1, "LazySMP")]
+    [InlineData(4, "LazySMP")]
+    [InlineData(4, "Ranges")]
+    public void WithPonderFinishOffAHitDropsTheDepthBegunPastHalfThePlannedTime(int threads, string split)
+    {
+        const int planned = 400;
+        var (engine, output) = Start(threads, split, ponderFinish: false);
+        engine.Handle(Pondered);
+        engine.Handle($"go ponder {ClockPlanning(planned)}");
+        Assert.NotNull(output.WaitForInfo(1, i => i.TimeMs > planned / 2, 30_000));   // (and the next depth begun)
+        var before = output.InfosBefore(1);
+        var clock = Stopwatch.StartNew();
+        engine.Handle("ponderhit");
+        Assert.NotNull(output.WaitForBestMove(1, 5000));
+        Assert.InRange(clock.ElapsedMilliseconds, 0, 200);   // at once, as before P2
+        var line = Assert.Single(output.InfosBefore(1)[before.Length..]);   // no new depth: the last line sent again
+        Assert.Equal((before[^1].Depth, before[^1].Pv), (line.Depth, line.Pv));
     }
 
     [Fact]
