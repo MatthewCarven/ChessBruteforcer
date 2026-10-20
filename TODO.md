@@ -152,6 +152,59 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     memory there), and the engine's MaxHidden 1024 must rise (a C# change:
     Matthew's word). Its speed cost is unmeasured (1024 cost 15.8% a node,
     not the probe's 23%), so wait for h1024-3m's match first.
+  - **Speed at 1024, measured and built** (2026-10-20, a side session,
+    branch `claude/stoic-goodall-ecc132`; NNUE.md "Speed at 1024"): the
+    updates took 27-28% of a node, the forward pass 12-13%. Matthew's J(c):
+    AVX-512 with 64-byte alignment (+16.7% `bench 9` at 1024), then the lazy
+    update (+23.7% in all). **In compression** since 2026-10-20 ~21:50,
+    with K(a) and the bitboards below (not pushed). It takes effect when the
+    bot restarts between games (`bot\start-bot.cmd` builds the engine); then
+    compare its Speed lines with today's for the 8-thread effect
+    (`CB_NNUE_SIMD=256` is the fallback if AVX-512's clock cost shows).
+  - **The rest of a node, measured** (2026-10-20, a side session, branch
+    `claude/friendly-cray-e85e18` on top of the speed branch; NNUE.md "The
+    rest of a node"): outside the network is 74-76% of a node now. Ordering
+    36% of it (quiescence sorts through moves it then skips), generation 25%,
+    InCheck 20%, make/unmake 6%, the table 5%. **Matthew's K(a), built**:
+    quiescence generates only what it searches, +24.6% to +25.5% `bench 9`
+    (A/B, 16 of 16 rounds; tests and mutation battery green). **In
+    compression** since ~21:50, live at the bot's next start. The bot was off
+    from ~09:50 (Matthew, for memory).
+  - **Bitboards, measured** (2026-10-20 noon, a side session, branch
+    `claude/affectionate-hugle-66968f`, which is K(a)'s branch plus write-up
+    and scripts; NNUE.md "Bitboards, measured"): with K(a) in, a node is 392
+    ns; generation 76-79 and InCheck 69-72 are the biggest pieces outside
+    the network. A prototype in the probe (no engine change), every answer
+    checked against today's: attack tables beside today's board **+16%**,
+    and generation from the sets in today's order **+26%** (both on the
+    identical tree); in the sets' own order +38%, but the tree changes 9%
+    (LMR reduces by place in the list), so that needs a match. The 840 KB
+    tables cost nothing beside the net's 1.5 MB (the L2 worry). **Matthew
+    chose L(b)** (~16:25): sessions 1 and 2, each merged on its own.
+  - **Bitboards session 1, built** (2026-10-20 afternoon, a side session,
+    branch `claude/busy-newton-fc0a07` = 9e22fb7 plus one commit; NNUE.md
+    "Bitboards session 1, built"): sets beside the squares, IsAttacked by
+    PEXT tables (magic multiplication where PEXT is slow or missing), the
+    tablebase's count and Material by popcount. **+13.2% to +14.1% `bench
+    9`**, the identical tree; full suite green on each path (`CB_ATTACKS`
+    unset, magic, rays); small tables re-solved byte-identical, the solver
+    22-25% sooner; battery 41 of 41 as expected. **In compression** since
+    ~21:50 (merge 50c7645), live at the bot's next start; then its Speed
+    lines for the 8-thread figure.
+  - **Bitboards session 2, built** (2026-10-20 evening, branch
+    `claude/affectionate-hugle-66968f` = session 1's 73028d8 plus one
+    commit; NNUE.md "Bitboards session 2, built"): generation from the sets
+    in today's move order, so the identical tree. **+9.5% to +9.8% `bench 9`
+    over session 1, +24.7% to +25.9% over 180fe25's engine** (16 of 16
+    rounds); full suite 477 + 2 skipped; deep perft 21 of 21 on each path;
+    small tables byte-identical; battery as expected. **In compression**
+    since ~21:50 (merge 31dcbb8, on Matthew's word; not pushed), live at the
+    bot's next start, between games. Then its Speed lines. Not chosen:
+    the sets' own move order (+9% more in the probe, the tree 9% smaller:
+    a match would judge it).
+  - **The split probe is behind the engine**: split-patch.py targets
+    180fe25, and session 1 rewrote Position.IsAttacked, so its Position
+    edits stop the script. Bring them up to date before the next split.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 
@@ -502,9 +555,23 @@ Sessions, in order:
         without; the probe's bound was -9 to -18%). The 08:02 access
         violation was a battery mutant (WORKLOG). The bot stays on sf1
         until session 4's match.
-      - [ ] Later speed steps, each measured with scripts/nnue-bench: AVX-512
+      - [x] Later speed steps, each measured with scripts/nnue-bench: AVX-512
         (this CPU has it), 64-byte-aligned weights and stack, a lazy update
-        (only nodes that evaluate pay for their accumulators).
+        (only nodes that evaluate pay for their accumulators). **Measured
+        and built 2026-10-20** (NNUE.md "Speed at 1024", decision J(c)): at
+        1024 the updates were 27-28% of a node and the forward pass 12-13%;
+        28% of the pushes were illegal moves. `bench 9` at 1024: AVX-512 +
+        alignment +16.7%, with the lazy update +23.7%.
+      - [ ] The next speed lever: the rest of the search, 61% of a node at
+        1024 (a 64-square board, attacks found by walking rays; bitboards).
+        **Measured 2026-10-20** (NNUE.md "The rest of a node", decision K):
+        74-76% of a node now; quiescence's waste was the biggest piece.
+        **K(a) built the same day**: quiescence generates only what it
+        searches, +24.6% to +25.5% `bench 9`. Bitboards measured in the
+        probe (+16% attack tables, +26% with generation from the sets) and
+        **chosen, L(b)**: session 1 (sets and attack tables) built, +13.2%
+        to +14.1% `bench 9`; session 2 (generation from the sets in today's
+        order) built, +9.5% to +9.8% on top: +25% over 180fe25 in all.
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by

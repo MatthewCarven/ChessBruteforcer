@@ -2,3 +2,5 @@
 *.nnue binary
 # Patches for lichess-bot stay LF in the working copy, as `git apply` (start-bot.cmd) wants them.
 bot/*.patch text eol=lf
+# So does the speed probe's (scripts/nnue-bench/speed-1024/README.md applies it).
+scripts/nnue-bench/speed-1024/*.patch text eol=lf

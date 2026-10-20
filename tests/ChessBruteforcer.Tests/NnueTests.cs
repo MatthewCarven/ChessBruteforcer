@@ -25,15 +25,21 @@ public class NnueTests
 
     private static string DataPath(string name) => Path.Combine(AppContext.BaseDirectory, "Data", name);
 
-    /// <summary>The position's accumulators against a refresh from its board, one number at a time.</summary>
-    private static void AssertMatchesRefresh(Position position)
+    /// <summary>
+    /// The position's accumulators against a refresh from its board, one number at a time. Either side's
+    /// read must compute a slot still waiting on its move, so a caller can read black's first.
+    /// </summary>
+    private static void AssertMatchesRefresh(Position position, bool blackFirst = false)
     {
         var accumulators = position.Accumulators!;
         var network = accumulators.Network;
         var white = new short[network.Hidden];
         var black = new short[network.Hidden];
         network.RefreshScalar(position, white, black);
-        if (!accumulators.White.SequenceEqual(white) || !accumulators.Black.SequenceEqual(black))
+        bool same = blackFirst
+            ? accumulators.Black.SequenceEqual(black) && accumulators.White.SequenceEqual(white)
+            : accumulators.White.SequenceEqual(white) && accumulators.Black.SequenceEqual(black);
+        if (!same)
             Assert.Fail($"the accumulators differ from a refresh at {position.ToFen()} (depth {accumulators.Depth})");
     }
 
@@ -122,14 +128,65 @@ public class NnueTests
         Assert.True(deepest > 256, $"deepest {deepest} of {plies} plies");
     }
 
+    [Theory]
+    [InlineData(Fen.StartPosition, 4)]   // (3 plies from the start meet no illegal move: the first check comes on the third)
+    [InlineData(MoveGeneratorTests.Kiwipete, 3)]
+    [InlineData(MoveGeneratorTests.EnPassantPins, 4)]
+    [InlineData(MoveGeneratorTests.Promotions, 3)]
+    [InlineData(MoveGeneratorTests.CastlingDiscovery, 3)]
+    [InlineData(PromotionCaptures, 3)]
+    public void IncrementalEqualsRefreshWhereASearchWouldLook(string fen, int depth)
+    {
+        // As a search goes: every pseudo-legal move made, the illegal ones taken back unseen, and only some
+        // nodes looked at (an evaluation, or the accumulators read). So most slots are computed late, by a
+        // look or a child's push, and many never are; every look must still equal a refresh of the board.
+        var rng = new Random(fen.Length * 10 + depth);
+        var position = Position.FromFen(fen, Net32);
+        int looks = 0, unseen = 0;
+        Visit(depth);
+        AssertMatchesRefresh(position);
+        Assert.Equal(0, position.Accumulators!.Depth);
+        Assert.True(looks > 100 && unseen > 0, $"{looks} looks, {unseen} illegal moves taken back unseen");
+
+        void Visit(int left)
+        {
+            double roll = rng.NextDouble();
+            if (roll < 0.15)
+            {
+                AssertMatchesRefresh(position, blackFirst: roll < 0.075);
+                looks++;
+            }
+            else if (roll < 0.3)
+            {
+                Assert.Equal(Net32.Evaluate(position), Evaluation.Evaluate(position));   // (Net32.Evaluate refreshes from the board)
+                looks++;
+            }
+            if (left == 0)
+                return;
+            var moves = new List<Move>();
+            MoveGenerator.Pseudo(position, moves);
+            foreach (var move in moves)
+            {
+                var undo = position.MakeMove(move);
+                if (position.InCheck(Position.Opponent(position.SideToMove)))
+                    unseen++;
+                else
+                    Visit(left - 1);
+                position.UnmakeMove(move, undo);
+            }
+        }
+    }
+
     [Fact]
     public void AMoveFromAnEmptySquareThrowsRatherThanReadingPastTheWeights()
     {
         // The square's piece picks the weight column; an empty square has none. The column is a checked
-        // span, so this throws (before, an unchecked read went 64 columns before the weights).
+        // span, so computing the slot throws (before, an unchecked read went 64 columns before the
+        // weights). A push only notes its move, so the throw comes when the slot is needed.
         var position = Position.FromFen(Fen.StartPosition, Net32);
         var nothing = new Move((byte)Position.ParseSquare("e4"), (byte)Position.ParseSquare("e5"));
-        Assert.Throws<ArgumentOutOfRangeException>(() => position.MakeMove(nothing));
+        position.MakeMove(nothing);
+        Assert.Throws<ArgumentOutOfRangeException>(() => Evaluation.Evaluate(position));
     }
 
     /// <summary>
@@ -206,6 +263,17 @@ public class NnueTests
         position.UnmakeMove(move, undo);
         AssertMatchesRefresh(position);
 
+        // On a slot still waiting on its move: the refresh stands, and a move made on top builds on it.
+        var waiting = Position.FromFen(MoveGeneratorTests.Kiwipete, Net32);
+        waiting.MakeMove(MoveGenerator.Legal(waiting)[0]);
+        waiting.SetPiece(Position.ParseSquare("d4"), new Piece(PieceType.Queen, Colour.Black));
+        AssertMatchesRefresh(waiting);
+        var onTop = MoveGenerator.Legal(waiting)[0];
+        var onTopUndo = waiting.MakeMove(onTop);
+        AssertMatchesRefresh(waiting);
+        waiting.UnmakeMove(onTop, onTopUndo);
+        AssertMatchesRefresh(waiting);
+
         // Attached mid-game, then taken back past where the stack starts: it refreshes from the board.
         var game = Position.Start();
         var e4 = game.ParseUciMove("e2e4")!.Value;
@@ -246,14 +314,21 @@ public class NnueTests
         }
     }
 
+    /// <summary>The SIMD widths this CPU runs: the forward pass and every kernel are checked at each.</summary>
+    private static readonly int[] SimdWidths = new[] { 256, 512 }.Where(width => width <= Kernels.Widest).ToArray();
+
+    private static int ForwardAt(int width, Network network, ReadOnlySpan<short> us, ReadOnlySpan<short> them) =>
+        width == 512 ? network.Forward512(us, them) : network.Forward256(us, them);
+
     [Theory]
     [InlineData(16)]
     [InlineData(32)]
+    [InlineData(48)]
     [InlineData(256)]
     [InlineData(1024)]
     public void SimdEqualsScalar(int hidden)
     {
-        Assert.True(Avx2.IsSupported, "this test is about the AVX2 pass");
+        Assert.True(Avx2.IsSupported, "this test is about the SIMD passes");
         var network = Network.Random(hidden, 100 + hidden, featureRange: 200 / (hidden >= 1024 ? 2 : 1));
         var white = new short[hidden];
         var black = new short[hidden];
@@ -264,8 +339,11 @@ public class NnueTests
             network.Refresh(position, white, black);
             network.RefreshScalar(position, whiteScalar, blackScalar);
             Assert.True(white.AsSpan().SequenceEqual(whiteScalar) && black.AsSpan().SequenceEqual(blackScalar));
-            Assert.Equal(network.ForwardScalar(white, black), network.ForwardSimd(white, black));
-            Assert.Equal(network.ForwardScalar(black, white), network.ForwardSimd(black, white));
+            foreach (int width in SimdWidths)
+            {
+                Assert.Equal(network.ForwardScalar(white, black), ForwardAt(width, network, white, black));
+                Assert.Equal(network.ForwardScalar(black, white), ForwardAt(width, network, black, white));
+            }
         }
 
         // Every int16 an accumulator can hold, either side of the clamp.
@@ -277,7 +355,8 @@ public class NnueTests
                 white[i] = (short)rng.Next(short.MinValue, short.MaxValue + 1);
                 black[i] = (short)(trial % 2 == 0 ? rng.Next(-300, 300) : rng.Next(short.MinValue, short.MaxValue + 1));
             }
-            Assert.Equal(network.ForwardScalar(white, black), network.ForwardSimd(white, black));
+            foreach (int width in SimdWidths)
+                Assert.Equal(network.ForwardScalar(white, black), ForwardAt(width, network, white, black));
         }
     }
 
@@ -285,13 +364,90 @@ public class NnueTests
     public void SimdEqualsScalarAtTheLargestSums()
     {
         // H = 1024, every output weight the largest the loader allows, every accumulator past QA: each
-        // int32 lane of the SIMD pass holds 128 products of 255 x 255 x 128, its largest.
+        // int32 lane of the 256-bit pass holds 128 products of 255 x 255 x 128, its largest (512 bits: 64).
         var network = Network.Read(Craft(1024, f: _ => 0, b: _ => 0, o: i => i % 3 == 0 ? (short)-128 : (short)128, outputBias: 0));
         var full = Enumerable.Repeat((short)1000, 1024).ToArray();
-        Assert.Equal(network.ForwardScalar(full, full), network.ForwardSimd(full, full));
         var limited = Network.Read(Craft(1024, f: _ => 0, b: _ => 0, o: _ => 128, outputBias: 0));
-        Assert.Equal(Network.MaxScore, limited.ForwardSimd(full, full));
         Assert.Equal(Network.MaxScore, limited.ForwardScalar(full, full));
+        foreach (int width in SimdWidths)
+        {
+            Assert.Equal(network.ForwardScalar(full, full), ForwardAt(width, network, full, full));
+            Assert.Equal(Network.MaxScore, ForwardAt(width, limited, full, full));
+        }
+    }
+
+    [Theory]
+    [InlineData(16)]
+    [InlineData(48)]
+    [InlineData(1024)]
+    public void EveryKernelEqualsScalarAtEveryWidth(int n)
+    {
+        // Wrapping int16 arithmetic, so any values at all; each operand at several offsets from a 64-byte
+        // boundary (alignment is for speed: no result may depend on it). 16 and 48 take the 512-bit
+        // kernels' 16-lane tail.
+        var rng = new Random(n);
+        short[] Numbers(int length)
+        {
+            var numbers = new short[length];
+            for (int i = 0; i < length; i++)
+                numbers[i] = (short)rng.Next(short.MinValue, short.MaxValue + 1);
+            return numbers;
+        }
+        foreach (int offset in new[] { 0, 4, 12, 16 })
+        {
+            var o = Enumerable.Range(0, 5).Select(_ => Numbers(n + offset)).ToArray();
+            ReadOnlySpan<short> Op(int k) => o[k].AsSpan(offset, n);
+            var start = Numbers(n);
+            var expected = new short[4][];
+            for (int kernel = 0; kernel < 4; kernel++)
+                expected[kernel] = Run(0, kernel);
+            foreach (int width in SimdWidths)
+                for (int kernel = 0; kernel < 4; kernel++)
+                    Assert.True(Run(width, kernel).AsSpan().SequenceEqual(expected[kernel]), $"kernel {kernel} at {width} bits, n {n}, offset {offset}");
+
+            short[] Run(int width, int kernel)
+            {
+                var dst = new short[n + offset];
+                var d = dst.AsSpan(offset, n);
+                switch (kernel)
+                {
+                    case 0: start.CopyTo(d); Kernels.Add(width, d, Op(0)); break;
+                    case 1: Kernels.AddSub(width, d, Op(0), Op(1), Op(2)); break;
+                    case 2: Kernels.AddSubSub(width, d, Op(0), Op(1), Op(2), Op(3)); break;
+                    default: Kernels.AddAddSubSub(width, d, Op(0), Op(1), Op(2), Op(3), Op(4)); break;
+                }
+                return d.ToArray();
+            }
+        }
+    }
+
+    [Fact]
+    public void TheWeightsAndEverySlotStartOnACacheLine()
+    {
+        // For speed only (a load across a 64-byte line costs two), so no other test would notice.
+        foreach (var network in new[] { Net32, Net256, Network.Random(1024, 3) })
+        {
+            Assert.Equal(0, Aligned.Offset(network.FeatureWeights));
+            Assert.Equal(0, Aligned.Offset(network.OutputWeights));
+            Assert.Equal(0, Aligned.Offset(network.OutputWeights[network.Hidden..]));
+            var stack = new AccumulatorStack(network, slots: 2);
+            stack.Reset(Position.Start());
+            var knight = new Piece(PieceType.Knight, Colour.White);
+            for (int depth = 0; depth < 40; depth++)   // past 2, 4, 8, 16 and 32 slots: it grows, still aligned
+            {
+                Assert.Equal(depth, stack.Depth);
+                Assert.Equal(0, Aligned.Offset(stack.White));
+                Assert.Equal(0, Aligned.Offset(stack.Black));
+                stack.PushQuiet(knight, depth % 2 == 0 ? 6 : 21, knight, depth % 2 == 0 ? 21 : 6);
+            }
+        }
+
+        // CB_NNUE_SIMD can hold the width narrower, never wider than the CPU.
+        Assert.Equal(Kernels.Widest, Kernels.ChooseWidth(null));
+        Assert.Equal(Kernels.Widest, Kernels.ChooseWidth("512"));
+        Assert.Equal(Kernels.Widest, Kernels.ChooseWidth("1024"));
+        Assert.Equal(0, Kernels.ChooseWidth("0"));
+        Assert.Equal(Math.Min(256, Kernels.Widest), Kernels.ChooseWidth("256"));
     }
 
     /// <summary>The colour-mirror: the board flipped top to bottom, colours and the side to move swapped.</summary>

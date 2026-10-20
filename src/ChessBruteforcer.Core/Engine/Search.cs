@@ -571,7 +571,7 @@ public sealed class Search
         if (inCheck)
             depth++;
         if (depth <= 0)
-            return Quiescence(position, alpha, beta, ply);
+            return Quiescence(position, alpha, beta, ply, inCheck);
 
         bool pvNode = beta - alpha > 1;
         Move ttMove = default;
@@ -687,8 +687,12 @@ public sealed class Search
         return best;
     }
 
-    /// <summary>Only captures (and queen promotions) until the position is quiet, so a hanging piece isn't missed.</summary>
-    private int Quiescence(Position position, int alpha, int beta, int ply)
+    /// <summary>
+    /// Only captures (and queen promotions) until the position is quiet, so a hanging piece isn't missed; in
+    /// check, every evasion. <paramref name="knownCheck"/> is whether the side to move is in check when the
+    /// caller already knows (Negamax, handing on at depth 0), so it isn't asked twice.
+    /// </summary>
+    private int Quiescence(Position position, int alpha, int beta, int ply, bool? knownCheck = null)
     {
         _pvLength[ply] = ply;
         if ((++_nodes & 2047) == 0)
@@ -698,7 +702,7 @@ public sealed class Search
         if (ply >= MaxPly - 2)
             return Evaluation.Evaluate(position);
 
-        bool inCheck = position.InCheck();
+        bool inCheck = knownCheck ?? position.InCheck();
         int best;
         if (inCheck)
         {
@@ -712,8 +716,13 @@ public sealed class Search
             alpha = Math.Max(alpha, best);
         }
 
+        // Not in check, only the moves searched here are generated (and scored and sorted): generating them
+        // all and skipping the quiet ones cost a quarter of a node.
         var moves = _moveLists[ply];
-        MoveGenerator.Pseudo(position, moves);
+        if (inCheck)
+            MoveGenerator.Pseudo(position, moves);
+        else
+            MoveGenerator.Captures(position, moves);
         var scores = _moveScores[ply];
         ScoreMoves(position, moves, scores, default, ply);
         Colour us = position.SideToMove;
@@ -721,8 +730,6 @@ public sealed class Search
         for (int i = 0; i < moves.Count; i++)
         {
             var move = PickNext(moves, scores, i);
-            if (!inCheck && !move.IsCapture && move.Promotion != PieceType.Queen)
-                continue;
             var undo = position.MakeMove(move);
             if (position.InCheck(us))
             {
@@ -745,6 +752,13 @@ public sealed class Search
             }
         }
         return best;
+    }
+
+    /// <summary>Quiescence alone, from <paramref name="position"/> with the full window: what the search sees at its horizon (for the tests).</summary>
+    internal int QuiescenceScore(Position position)
+    {
+        Prepare(position, new SearchLimits(), null);
+        return Quiescence(position, -Infinity, Infinity, 0);
     }
 
     /// <summary>Order: table move, captures (most valuable victim, least valuable attacker), promotions, killers, history.</summary>
