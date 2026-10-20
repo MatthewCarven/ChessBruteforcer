@@ -147,6 +147,7 @@ end of the game. Details in PONDER.md.
 | 2026-10-16 | ponder on | ponder off | 119 | +48 -20 =51 | 61.8% | +83 [+37, +133] | 10+0.1, sf1 numbers; hit rate 71.5%; clock left 48% v 20% |
 | 2026-10-21 | P2 (PonderFinish on) | P2 off, both pondering | 360 | +61 -103 =196 | 44.2% | **-41 [-65, -17]** | 10+0.1, h1024-3m, 3 at a time, the bot stopped; SPRT [0, 10] **accepted H0** at game 358 (LLR -3.07); hit rate 69%; clock left 34% v 43%; no time losses |
 | 2026-10-21 | P2's cap only (PonderCap on) | both off | 575 | +106 -142 =327 | 46.9% | **-22 [-41, -3]** | 10+0.1, as above; SPRT [0, 10] **accepted H0** at game 571; clock left 46% v 40%; no time losses |
+| 2026-10-21 | P2's finish only (PonderFinish on) | both off | 614 | +117 -129 =368 | 49.0% | -7 [-24, +11] | 10+0.1, as above; SPRT [0, 10] undecided (LLR -1.50), stopped at a fixed count; clock left 28% v 44%; no time losses |
 
 ## Versions
 

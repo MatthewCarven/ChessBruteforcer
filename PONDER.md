@@ -359,6 +359,18 @@ from the main checkout):
 
 ### P2: a hit may finish the depth it would drop (2026-10-21)
 
+**Verdict: built, measured, and off. It does what the replay said (a ply more on most such hits) but doesn't win
+games.** At 10+0.1, both sides pondering, against both rules off:
+
+| P2 version | games | Elo [95%] | SPRT [0, 10] |
+|---|---:|---|---|
+| both rules (finish + cap) | 360 | **-41 [-65, -17]** | H0 accepted |
+| cap only | 575 | **-22 [-41, -3]** | H0 accepted |
+| finish only | 614 | -7 [-24, +11] | undecided; stopped at a fixed count |
+
+So both options default to off: merged as it stands, P2 changes nothing in the bot. The code and the A/B match
+mode stay, to measure again after P4 (below).
+
 A side session, branch `claude/p2-finish-depth-246981`, on compression with P1 (7cb0adb). **At `ponderhit`, a
 depth begun past half the planned time S is no longer stopped. It has until the hit + S to finish, and no depth
 starts after it. And whatever else runs on after a hit stops by the hit + S, not at the hard limit H (3S from `go
@@ -370,12 +382,12 @@ games). Both off, a hit does exactly what it did before.
 The rule is `Search.AfterPonderHit`, which `PonderHit` calls. For a hit at h (on the search's clock, from `go
 ponder`), with the depth in progress begun at b:
 
-| case | before (PonderFinish off) | P2 (on) |
-|---|---|---|
-| b > S/2: a depth the clock alone would never have begun | stopped at once; the depth before is played | runs to h + S; played if it finishes |
-| h ≥ H: pondering ran past the whole budget | stopped at once (by the clock check) | the depth in progress runs to h + S |
-| otherwise: the depth goes on, as in a plain search | runs to H; new depths until S/2 | the same, but stops by h + S if that comes before H |
-| `movetime` (no S) | the hard limit | the same |
+| case | both off (as before P2) | `PonderFinish` ("finish") | `PonderCap` ("cap") |
+|---|---|---|---|
+| b > S/2: a depth the clock alone would never have begun | stopped at once; the depth before is played | runs to h + S; played if it finishes | as off |
+| h ≥ H: pondering ran past the whole budget | stopped at once (by the clock check) | the depth in progress runs to h + S | as off |
+| otherwise: the depth goes on, as in a plain search | runs to H; new depths until S/2 | as off | the same, but stops by h + S if that comes before H |
+| `movetime` (no S) | the hard limit | the same | the same |
 
 **The lab** (`experiment.py p2`, `p2.py`; `results/p2.jsonl`). The replay's 12 hit positions, one thread, each from
 the table its trace started from. Hits at 0.75 to 2 S (S = 4.83 s, as the bot's median), PonderFinish on and off in
@@ -436,6 +448,7 @@ above.
 |---|---:|---|---|---|---|---|
 | both rules (P2 as first measured) | 360 | +61 -103 =196 | **-41 [-65, -17]** | H0 at 358 | 167 / 243 ms (B 139 / 262) | 34% / 43% |
 | cap only | 575 | +106 -142 =327 | **-22 [-41, -3]** | H0 at 571 | 130 / 267 ms (B 150 / 253) | 46% / 40% |
+| finish only | 614 | +117 -129 =368 | -7 [-24, +11] | undecided (LLR -1.50); stopped at 600 | 188 / 226 ms (B 139 / 259) | 28% / 44% |
 
 The cap alone loses too, though it spends *less* after hits and leaves more clock for the misses and the end. So
 the "time after a miss is worth more" reading can't be the whole story. What the cap does is cut a depth that a
@@ -443,7 +456,21 @@ plain search would have finished, by 3S, and an unfinished depth is thrown away 
 time it ran buys nothing, and the move comes from the depth before. In self-play most hits come early (the
 opponent's own hit makes it reply at once), which is where the cap bites.
 
-**Tests** (PonderTests 20 → 48):
+Finish alone breaks even, near enough: a ply more on the late hits, paid for with 36% more clock after hits (5,627 s
+against 4,143) and 13% less on the other moves (3,203 s against 3,697), and games ended with 28% of the clock left
+against 44%. The SPRT would need thousands more games to tell -7 from 0 (about 11 hours here), so the match stopped
+at a fixed count. Even its top end, +11, is below the +5 to +15 guessed in "Proposed changes" for the whole of P2.
+
+**What next, for P2.** The matches skipped the planned slower control (30+0.3, "like 3+2"): telling a near-zero
+effect from zero there would take about 1,500 games, some 11 hours, for a likely null. The one change that would
+alter P2's sums is P4, which plays an unfinished depth's better move instead of throwing the depth away. Then the
+cap no longer wastes the depth it cuts, and a late depth that misses S still counts for something. So run P2's
+A/B match again on top of P4 (`--arms "PonderFinish=true,PonderCap=true;PonderFinish=false,PonderCap=false"`, and
+each half). And for P3: the off arm still ended its games with 40-44% of the clock left at 10+0.1, so the bank P3
+would spend is there. But P2 says spending more of it on the hits doesn't help; P3 spends it on every move,
+misses included.
+
+**Tests** (PonderTests 20 → 65):
 
 | test | threads | what it checks |
 |---|---|---|
@@ -458,13 +485,14 @@ opponent's own hit makes it reply at once), which is where the cap bites.
 | PonderHitAppliesBothOptions | | The hard limit a hit sets: the cap's hit + S, or H without it; finish's hit + S past H, or H without it. |
 
 Changed: `APonderHitKeepsTheDepthPonderingReached` asserted an answer within 200 ms of a hit after a long ponder. Under
-P2 that depth may finish first, so it now allows S (98 ms there) + 200 ms, and says why. The second half of
-`PonderThenPonderhitAnswersWithinTheClock` likewise. `APonderHitAnsweredAtOnceSendsItsLastInfoAgain` (P1's) runs with
-the option off, since its premise is a hit that answers at once.
+P2 that depth may finish first, so it now runs both ways: off within 200 ms, PonderFinish on within S (98 ms there)
++ 200 ms, and it says why. The second half of `PonderThenPonderhitAnswersWithinTheClock` allows S + 200 ms likewise.
+`APonderHitAnsweredAtOnceSendsItsLastInfoAgain` (P1's) runs with the option off, since its premise is a hit that
+answers at once. The tests of P2's own rules turn the options on themselves.
 
 Mutations: 26, all caught. Two lived at first, and the tests above catch them now: a late depth hit between 2S and
-3S given only to H, and a hit that forgot the soft limit, which runs on to h + S on every hit. Full suite: 512
-passed, 2 skipped.
+3S given only to H, and a hit that forgot the soft limit, which runs on to h + S on every hit. Then 23 more for the
+split (all caught) and 4 for the defaults turned off (all caught). Full suite: 529 passed, 2 skipped.
 
 ## Scripts and data
 

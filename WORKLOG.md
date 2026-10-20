@@ -4569,7 +4569,7 @@ needed. P2 builds on this branch. Not merged.
 - No Elo match (none needed: the moves don't change). 10.8-12.2 GB of
   commit free throughout; the bot wasn't running.
 
-## 2026-10-21 (01:15-): P2, a ponder hit may finish the depth it would drop (a side session)
+## 2026-10-21 (01:15-06:45): P2, a ponder hit may finish the depth it would drop (a side session)
 
 Decision M's second step, on branch claude/p2-finish-depth-246981. P1 was
 already fast-forwarded into compression (7cb0adb), so this branch was moved
@@ -4582,8 +4582,9 @@ up to it (a fast-forward, nothing of its own yet). Not merged.
   else that runs on after a hit stops by the hit + S, not at H (3S from `go
   ponder`). So a hit never spends more than S of real clock. These are
   PONDER.md's replay rules "finish" and "capped", exactly as simulate.py
-  has them. UCI option `PonderFinish` (check, default true); off, nothing
-  changes. `movetime` searches have no S and keep the old rule.
+  has them. UCI option `PonderFinish` (check; at first default true, and
+  both rules split and off by default since, below); off, nothing changes.
+  `movetime` searches have no S and keep the old rule.
 - **Lab** (`experiment.py p2`, `p2.py`, results/p2.jsonl): the replay's 12
   hit positions, one thread, from the tables their traces started from,
   hits at 0.75, 1, 1.5 and 2 S (S 4.83 s), on and off in turn. A ply more
@@ -4616,8 +4617,26 @@ up to it (a fast-forward, nothing of its own yet). Not merged.
   its clock left against 43%. Likely reading: time after a hit buys a ply
   on a search that's already deep, while time after a miss is worth more,
   so spending the bank on hits starves the misses. The match can't say
-  which of P2's two rules (finish, cap) does the harm. Matthew's call
-  what next (PONDER.md, "P2"); 10.0-10.3 GB of commit free throughout.
+  which of P2's two rules (finish, cap) does the harm; 10.0-10.3 GB of
+  commit free throughout.
+- **The split** (Matthew: "b and then c depending on how b turns out"):
+  `PonderCap` became its own option (both off is the old rule), 23 more
+  mutations, all caught. Each half against both off, 10+0.1, the same
+  conditions: **cap only -22 [-41, -3]** (575 games, 03:32-04:56, SPRT
+  accepted H0), though it spends *less* after hits and ends with more
+  clock (46% v 40%), so the cost is the depths it cuts (an unfinished
+  depth is thrown away); **finish only -7 [-24, +11]** (614 games,
+  04:57-06:28, stopped at a fixed count: an SPRT on a near-zero effect
+  needs ~4,500 games). Files games/ponder/p2-cap-10+0.1.jsonl and
+  p2-finish-10+0.1.jsonl in the main checkout.
+- **So both rules default off** (d97c9d4): merging P2 changes nothing in
+  the bot. 4 more mutations for the defaults, caught. PonderTests 65,
+  suite 529 passed, 2 skipped. "c", the slower 30+0.3 control, skipped on
+  my judgement: telling a near-zero effect from zero there needs ~1,500
+  games, ~11 h, while P3-P6 wait for the cores. P2 is worth measuring
+  again after P4 (an unfinished depth's better move played), which
+  changes the sums for both rules. P3, on hold on Matthew's word until
+  P2's follow-ups end, was told the cores are free.
 - Matthew asked whether depth wins games, and how to tell a blunder from
   being out-calculated. Two side sessions for those, started on his word
   and holding for his start: p2.1 (what a ply and extra time are worth:

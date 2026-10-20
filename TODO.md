@@ -724,15 +724,18 @@ Sessions, in order:
             - [x] P2: a hit may finish the depth it would drop, within the
                   move's planned time, and stops by then. Search.PonderHit,
                   ~2 h. (Done 2026-10-21 on claude/p2-finish-depth-246981,
-                  not merged yet: UCI option PonderFinish, default true, so
-                  merging it turns it on in the bot at its next restart. In
-                  the lab, a ply more on 6-9 of 12 hits at 0.75-2 S, as the
-                  replay said, never more than S after the hit; every depth
-                  node for node as before. PonderTests 20 → 48, 26 of 26
-                  mutations caught, suite 512 passed. **But the A/B match
-                  at 10+0.1 says it loses: -41 [-65, -17] over 360 games,
-                  SPRT [0, 10] accepted H0.** It moves clock from misses to
-                  hits. Don't merge it with the option on; PONDER.md, "P2".)
+                  not merged yet. **Measured, and off: it doesn't win
+                  games.** In the lab a ply more on 6-9 of 12 hits at
+                  0.75-2 S, as the replay said, never more than S after the
+                  hit, every depth node for node as before. But at 10+0.1,
+                  both sides pondering: both rules -41 [-65, -17] (360
+                  games), the cap alone -22 [-41, -3] (575), finish alone
+                  -7 [-24, +11] (614). Two UCI options, PonderFinish and
+                  PonderCap, both default off, so merging changes nothing
+                  in the bot. PonderTests 20 → 65, 53 mutations caught,
+                  suite 529 passed. The slower control was skipped (a null
+                  would need ~11 h); measure P2 again after P4. PONDER.md,
+                  "P2".)
             - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
                   Search.TimeBudget and the Ponder option, ~1 h.
             - [ ] P4: play an unfinished depth's better move instead of
