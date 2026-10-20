@@ -839,8 +839,10 @@ Sessions, in order:
       true` in bot/lichess-bot/config.yml; restart the bot between games. The
       ponder search takes a core for the whole game, from the learner and any
       index run. (Done 2026-10-16: merged, and on in bot/make-config.py.)
-- [ ] Decision M (pondering, [PONDER.md](PONDER.md)): pick an option, (a) to
-      (e), at the end of PONDER.md.
+- [x] Decision M (pondering, [PONDER.md](PONDER.md)): pick an option, (a) to
+      (e), at the end of PONDER.md. (2026-10-21: Matthew chose all six, P1 to
+      P6, one session each, in sequence; the steps are ticked under
+      "Decision M" in section 2. P1 is in compression, 7cb0adb.)
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;
