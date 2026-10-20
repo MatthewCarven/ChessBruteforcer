@@ -1,7 +1,8 @@
 # Pondering: what the engine keeps, and what it throws away
 
-A scoping pass, 2026-10-21 (a side session, branch `claude/ponder-tree-scope-5945b6`, on
-`compression` at 81173f8). Nothing in `src` changed. Matthew's question: when the bot ponders
+A scoping pass, 2026-10-21 (a side session, branch `claude/ponder-tree-scope-5945b6`). The
+engine was measured at `compression`'s 81173f8. The branch now sits on 6975e96, with no `src`
+change between the two. This pass changed nothing in `src`. Matthew's question: when the bot ponders
 (thinks on the opponent's time) and then moves from that ponder, does the engine keep the part of
 the tree it was working on?
 
@@ -13,7 +14,7 @@ is spent slowly, so games end with a lot of clock left.
 | question | answer | evidence |
 |---|---|---|
 | 1. Ponder hit (the opponent plays the predicted reply): does the same search go on? | **Yes.** Same thread, same depth loop, same table, history, killers and PV. The depth goes on from where the ponder got to. | Code: `Search.PonderHit` only changes the limits. Lab: 495 of 495 depths finished by ponder searches had exactly the node count of a plain `go`'s same depth. Bot log: 745 of 745 hits that reported after the hit went on at the next depth; none started again at depth 1. |
-| 2. Ponder miss (`stop`, then a new `position` and `go`): is the table kept? | **Yes.** `stop` and `position` clear nothing. Each `go` clears only the history and killer tables. Only `ucinewgame`, `Hash` and `EvalFile` clear the table. | Code below. Lab: see "Misses" |
+| 2. Ponder miss (`stop`, then a new `position` and `go`): is the table kept? | **Yes.** `stop` and `position` clear nothing. Each `go` clears only the history and killer tables. Only `ucinewgame`, `Hash` and `EvalFile` clear the table. **But** on the bot's 8 threads, a long ponder on the wrong reply overwrites some of what our own search left for the real position. | Code below. Lab: the next search does 1.08-1.33x the work of no ponder after an 8-thread miss; 1.18x from scratch. |
 | 3. After our own move, does the next search reuse the last one's tree? | **Yes, through the table.** No `ucinewgame` comes between moves. The early depths come nearly free; the last few cost about what they'd cost from scratch. | Bot log: ponder searches finish depth 12 in 36 ms (median), against 981 ms for a search with nothing of ours before it. Lab: at the deepest depth, 0.90x the nodes of a cold search when the position was our own line. |
 | 4. After a ponderhit, does the clock count the pondering? | **It counts the pondering as spent.** The budget runs from `go ponder`. A hit uses only what's left of the move's budget, and often nothing. The bank is spent only as each later move's budget (1/30 of the clock left) grows. | Code: `Search.Prepare`, `Search.TimeBudget`. Lab: ponder for a quarter of the budget, then the hit: the identical search, 1.2 s sooner. Bot log: 3+2 games end with 41% of the clock left, against 22% before pondering. |
 
@@ -105,16 +106,18 @@ same as the hits.
    after `ponderhit`, and nothing does. lichess-bot then scores the move as "mate in 1 for us",
    its placeholder, which breaks a run of draw-offer scores. Offers still went out 144 times
    that day, so the effect is small.
-5. **Misses.** Pondering the wrong reply mostly doesn't help the next search, and it doesn't
-   hurt it either: see "Misses" below. The ponder's tree is for a position the game didn't reach.
+5. **Misses.** The ponder's tree is for a position the game didn't reach, so it's lost. Worse,
+   on the bot's 8 threads a ponder of 0.8-1.5x the budget overwrites part of what our own search
+   had left in the table for the position the game did reach. The next search then does 8-24%
+   more work for the same depth (on one thread there's no such effect). See "Misses" below.
 
 ## The lab runs
 
-A Release build of this branch, driven over raw UCI (scratchpad scripts, below). One thread,
-Hash 256, the bot's network (h1024-3m), Move Overhead 100, no endgame tables. Positions: 12 hits
-and 12 misses from the bot's games of 2026-10-20 (every 79th and 57th candidate, middlegames,
-12+ pieces). One clock for all: 100 s + 2 s, so a 4.8 s budget (the bot's median), hard limit
-14.5 s. Before each arm: `ucinewgame`, then our own search on the position before (A), to the
+A Release build of this branch, driven over raw UCI (`scripts/ponder-scope`, below). One
+thread, Hash 256, the bot's network (h1024-3m), Move Overhead 100, no endgame tables.
+Positions: 12 hits and 12 misses from the bot's games of 2026-10-20 (every 79th and 57th
+candidate, middlegames, 12+ pieces), and 8 of the misses again with the ponder on 8 threads.
+One clock for all: 100 s + 2 s, so a 4.8 s budget (the bot's median), hard limit 14.5 s. Before each arm: `ucinewgame`, then our own search on the position before (A), to the
 fixed depth it reached in 2.5 s. So every arm starts from the same table. On one thread the
 search repeats node for node.
 
@@ -176,13 +179,31 @@ On one thread the node count to depth D measures the head start: fewer nodes, mo
 | ... 1.5x the budget | 7.0 M | 2.10 s | 1.11 | 15.5% |
 | ... 3x the budget | 6.6 M | 1.93 s | 1.02 | 22.3% |
 
-So the table from our own search is worth about 12% at the next position, and pondering the
-wrong reply neither adds to that nor takes it away, on average. One position at a time it
-swings both ways (0.47x to 2.98x), since a different table sends the search down a different
-tree. The move played at B was the same as with no ponder in 10-11 of 12. Nothing is cleared
-that matters. The one thing a new `go` does clear, the history and killer tables, is P5 below.
+On one thread, then, the table from our own search is worth about 12% at the next position, and
+pondering the wrong reply neither adds to that nor takes it away, on average. One position at a
+time it swings both ways (0.47x to 2.98x), since a different table sends the search down a
+different tree.
 
-(The same with the ponder on 8 threads, as the bot ponders: running, next commit.)
+**But the bot ponders on 8 threads**, which fills the table about five times as fast. The same
+runs with the ponder on 8 threads (8 of the 12 positions; the search at B still on one thread):
+
+| search at B, to depth D | nodes (median) | time (median) | nodes v "no ponder" (geometric mean) | table filled at the `stop` | time to depth D-4 (median) |
+|---|---:|---:|---:|---:|---:|
+| from scratch (`ucinewgame` first) | 9.6 M | 2.57 s | **1.18** | | 130 ms |
+| after our own search, no ponder | 8.2 M | 2.12 s | 1.00 | | 33 ms |
+| ... then 3/4 of the budget pondering the wrong reply | 7.6 M | 2.05 s | 1.08 | 27% | 70 ms |
+| ... 1.5x the budget | 9.3 M | 2.65 s | **1.24** | 48% | |
+| ... 3x the budget | 8.5 M | 2.39 s | **1.33** | 47% | 143 ms |
+
+Here a long ponder on the wrong reply overwrites what our own search had left for the real
+position, and then some. After 1.5-3x the budget the next search does worse than one from
+scratch, and its early depths come no faster than from scratch. In the bot a miss ponders a
+median 3.9 s (p75 7.0 s), about 0.8-1.5x the budget, so its next search does roughly 8-24% more
+work for the same depth. That's about a fifth of a ply. The cause is the table's replacement
+rule: any new position takes the slot, so shallow entries from the ponder push out deeper ones
+from our own search. That's P6 below. The move played at B was the same as with no ponder in
+10-11 of 12 (one thread) and 7 of 8 (8 threads). The one other thing a new `go` clears, the
+history and killer tables, is P5.
 
 ### What other hit rules would do (a replay)
 
@@ -224,11 +245,12 @@ nearly a whole budget on every hit, which is the clock pondering exists to save.
 
 ## Proposed changes
 
-All are in `src`, so they wait for the work in flight there (the AVX-512 and lazy-update branch
+All are in `src`, so they wait for the work in flight there (the speed branch
 `claude/stoic-goodall-ecc132`, the bitboard sessions). P1-P3 touch only `UciEngine` and the
-time-keeping in `Search`, away from what those branches change. The Elo figures are **guesses**,
-not measurements. The only figure measured here is pondering's own +83 at 10+0.1, against
-itself. Each change is measured before it reaches the bot.
+time-keeping in `Search`, away from what those branches change. P4 and P6 touch the search's
+core and the table, so they go after. The Elo figures are **guesses**, not measurements. The
+only figure measured here is pondering's own +83 at 10+0.1, against itself. Each change is
+measured before it reaches the bot.
 
 | | change | where | effort | gain (measured above) | gain in Elo (guess) | how to measure |
 |---|---|---|---|---|---|---|
@@ -237,12 +259,14 @@ itself. Each change is measured before it reaches the bot.
 | **P3** | **Plan more time a move when pondering**, as Stockfish does (+25% to the planned time when `Ponder` is on). Spends the bank on every move, the misses included. | `Search.TimeBudget`, and the `Ponder` option (now ignored) | ~1 h, 1 test | The bank: 41% of the clock left at the end of 3+2 games, against 22% with no pondering | +5 to +15, partly the same gain as P2 | The same A/B match, after P2 |
 | **P4** | **Play an unfinished depth's better move** instead of throwing the depth away. When the hard limit cuts a depth after a root move other than the last depth's best has been searched and proved better, play it. This is standard in engines. | `Search.IterativeDeepening` (Search.cs:244), the root of `Negamax`, and the Ranges path | about half a day, tests | Gives some value to the 37% of the clock after hits and 14% of ordinary searches' clock now spent on depths that never finish. Not pondering's own loss, but where it shows most. | +5 to +20 | An SPRT match against the current build, no pondering, then the ponder A/B |
 | **P5** | **Keep the history table between moves** (halve it, don't clear it, at each `go`). The table already carries over; the move-ordering history doesn't. | `Search.Prepare` (Search.cs:325) | ~30 min, plus a bench | Not measured. The search after a miss starts its ordering cold. | 0 to +5 | Nodes to a fixed depth on runs of positions from real games, then a match if that shows anything |
+| **P6** | **A table that keeps its deep entries**: slots in buckets of 2-4, with a search number (age) in each entry. A new entry replaces the shallowest or oldest in its bucket, not whatever is there. Engines commonly do this. The slot has room for an age: the move's flags use 4 of their 8 bits, and its squares 6 of 8. | `TranspositionTable` (Store, TryGet, the slot layout; the lockless XOR stays) | about half a day, tests | Wins back the 8-24% extra work after an 8-thread miss (above). Helps every search that fills the table, ponder or not. | +3 to +10 | This harness's miss runs with an 8-thread ponder (nodes to depth D), then an SPRT match |
 
-Not proposed: aging the table, so entries from a pondered branch could be told apart. At Hash
-256 the lab found no harm from a miss's entries (above).
+Hash itself is a cheaper lever (512 MB would halve the filling), but the laptop's commit is
+tight (TODO: memory ran out on 2026-10-19), so P6 rather than more memory.
 
-**The A/B match.** `scripts/ponder-match.py` plays ponder on against ponder off. P2-P4 need both
-sides pondering, differing only in the change. The simplest way is a UCI option per change
+**The A/B match.** `scripts/ponder-match.py` plays ponder on against ponder off. P2 and P3 need
+both sides pondering, differing only in the change (and P4 and P6, once their plain match is
+in). The simplest way is a UCI option per change
 (e.g. `PonderFinish`, default on), so one build serves both arms, plus an `--arms` mode in the
 script (~1 h). Play 10+0.1 first, because it's quick, then a control with an increment, like
 the bot's 3+2: the bank only builds up with an increment. Against itself the hit rate is 71.5%,
@@ -256,12 +280,12 @@ against Stockfish (`book-match.py`, the TODO's "Lichess-like hit rate") would se
   dropped with the budget unspent, and the long runs after a hit. About half a day with the
   match.
 - **(c)** (b) + P3 measured on top: the whole of "spend the banked clock".
-- **(d)** P4 first, as a change to the search in general, then (b) on top.
+- **(d)** P4 and P6 first, as changes to the search and its table in general, then (b) on top.
 - **(e)** Nothing for now.
 
-My pick: **(b)**, then P4 as a decision of its own. P2 is small and goes straight at what this
-pass found. It spends only clock the bank already holds, and never more on a move than pondering
-off would. P1 rides along: it's an hour, and its test sits beside P2's in PonderTests. P3 is
+My pick: **(b)**, then P4 and P6 as a decision of their own. P2 is small and goes straight at
+what this pass found. It spends only clock the bank already holds, and never more on a move than
+pondering off would. P1 rides along: it's an hour, and its test sits beside P2's in PonderTests. P3 is
 worth trying only if a bank still shows after P2.
 
 ## Scripts and data

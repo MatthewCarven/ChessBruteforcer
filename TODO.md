@@ -707,8 +707,10 @@ Sessions, in order:
             budget unspent; 8.5% run a median 10.4 s after the hit on a depth
             the hard limit then cuts (37% of all the clock spent after hits
             buys nothing, 14% for ordinary searches); 45% of hits report no
-            stats. Proposals, each with effort, expected gain and the
-            measurement, in PONDER.md:
+            stats. And on the bot's 8 threads a miss's ponder overwrites
+            part of what our own search left in the table, so the next
+            search does 8-24% more work. Proposals, each with effort,
+            expected gain and the measurement, in PONDER.md:
             - [ ] P1: a final `info` after ponderhit (task_16a444a7): stats on
                   every move. UciEngine, ~1 h. No Elo.
             - [ ] P2: a hit may finish the depth it would drop, within the
@@ -721,6 +723,10 @@ Sessions, in order:
                   Search.IterativeDeepening, about half a day.
             - [ ] P5: keep the history table between moves (halve it, not
                   clear it). Search.Prepare, ~30 min, a bench first.
+            - [ ] P6: a table that keeps its deep entries (buckets of 2-4
+                  slots, an age; the slot has spare bits). Always-replace
+                  lets an 8-thread ponder push out our own search's
+                  entries. TranspositionTable, about half a day.
             - [ ] An A/B mode for scripts/ponder-match.py (both sides
                   ponder, the arms differ by a UCI option), which P2-P4 need.
             After the src work in flight lands (AVX-512 and the lazy update,

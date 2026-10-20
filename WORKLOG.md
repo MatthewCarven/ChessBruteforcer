@@ -4491,9 +4491,15 @@ pondering, and was moved to compression's 81173f8 before any commit.
 - **The bank**: 3+2 games end with 80 s (41%) of the clock, against 40 s
   (22%) on 10-14/15 with no pondering (other builds then, so mostly but
   not all pondering).
-- **Misses**: pondering the wrong reply neither helps nor hurts the next
-  search (0.98-1.11x the nodes to a fixed depth, against 1.13x from
-  scratch).
+- **Misses**: with the ponder on one thread, pondering the wrong reply
+  neither helps nor hurts the next search (0.98-1.11x the nodes to a fixed
+  depth, against 1.13x from scratch). **On 8 threads, as the bot ponders,
+  it hurts**: the table fills to 27-48%, and the next search does 1.08x
+  (3/4 of the budget), 1.24x (1.5x) and 1.33x (3x) the work, against 1.18x
+  from scratch. Its early depths are no faster than from scratch. The
+  table's always-replace rule lets shallow ponder entries push out our own
+  search's deep ones. Bot misses ponder a median 3.9 s, so that's 8-24%
+  more work after a typical miss.
 - **The table from the move before** makes the next search's first ~11
   depths nearly free. At the deepest depth: 0.90x the nodes of a fresh
   search when the position was our own line, 1.11x when it wasn't.
@@ -4504,14 +4510,16 @@ pondering, and was moved to compression's 81173f8 before any commit.
 - **Proposals** P1 (a final `info` after ponderhit: the task_16a444a7
   card), P2 (finish the dropped depth, and cap a hit's run-on at the
   planned time), P3 (Stockfish's +25% planned time), P4 (play an
-  unfinished depth's better move), P5 (keep the history between moves).
+  unfinished depth's better move), P5 (keep the history between moves),
+  P6 (a table that keeps its deep entries: buckets and an age).
   Each has its effort, the gain measured here, a guessed Elo, and how to
   measure it. **Decision M**, options (a)-(e), is at the end of PONDER.md.
   My pick is (b), P1 + P2 with an A/B mode for ponder-match.py, after the
   src work in flight lands.
 - Lab setup: a Release build of 81173f8 over raw UCI, one thread, Hash
   256, h1024-3m, no tables, a 100 s + 2 s clock (4.8 s budget, the bot's
-  median), 12 + 12 positions from the 10-20 log. Before each arm,
+  median), 12 + 12 positions from the 10-20 log (and 8 of the misses again
+  with an 8-thread ponder). Before each arm,
   `ucinewgame` and our own search on the position before, to a fixed
   depth, so every arm starts from the same table. Scripts, samples and
   results are in scripts/ponder-scope/. The bot wasn't running (no
