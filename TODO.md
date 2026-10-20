@@ -139,8 +139,9 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     2026-10-20, back to back in one window): **h1024-3m +41 [+19, +63],
     SPRT accepted H1** at game ~579 (584 games, the last 264 beside the
     bot); **the bot plays on it** (decision I). **h768-3m's match: play
-    it again with the bot off** (`scripts\nnue-match.cmd h768-3m h512-3m`,
-    30 min to 3.5 h): the run beside the bot was stopped at game 525 with
+    it again with the bot off, after the six ponder sessions (P1-P6)**
+    (Matthew's order, 2026-10-21; when is his call; `scripts\nnue-match.cmd
+    h768-3m h512-3m`, 30 min to 3.5 h): the run beside the bot was stopped at game 525 with
     135 time losses (MATCHES.md), its files kept as
     games\nnue\match-h768-3m-h512-3m-beside-bot.*.
   - **h1536-3m trained** (the desktop, 2026-10-20 04:45-18:34): held back
@@ -153,8 +154,12 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   - **Deeper nets training on the desktop** (Matthew's (a), 2026-10-21):
     h1024-3m-l32 (1024 x2 -> 32 -> 1) from 00:30, then h1024-3m-l16-32
     (-> 16 -> 32 -> 1), ~9.5 h each: **done ~10:10 and ~19:50** (desktop
-    clock). Float held-back error against h1024-3m's 0.012394 decides
-    whether the engine work to play one (format, forward pass) is worth it.
+    clock). Float held-back error against h1024-3m's 0.012394. **Matthew's
+    go-ahead (2026-10-21): the engine change to play them comes first**
+    (a .nnue version for the extra layers, the trainer's export, a numpy
+    reference, the C# loader and quantised forward pass, tested as session
+    3 was; branch claude/nnue-deep-layers), then each matched against
+    h1024-3m, the bot off, on his word.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
