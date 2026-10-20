@@ -143,6 +143,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     2026-10-20, back to back in one window): h1024-3m +52 [+14, +91] at
     game 188, LOS 99.6%; **the bot switches to it** (decision I). The
     SPRT's verdict and h768-3m's match: later, the bot off.
+    **Order (Matthew, 2026-10-21): h768-3m's match is re-run after the
+    six ponder sessions (P1-P6) are done**, with the bot off (beside it,
+    27% of its games were lost on time). When is his call. First comes the
+    engine change for the deeper nets (h1024-3m-l32, then -l16-32), with
+    each matched against h1024-3m.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
