@@ -729,8 +729,10 @@ Sessions, in order:
                   the lab, a ply more on 6-9 of 12 hits at 0.75-2 S, as the
                   replay said, never more than S after the hit; every depth
                   node for node as before. PonderTests 20 → 48, 26 of 26
-                  mutations caught, suite 512 passed. The A/B match:
-                  PONDER.md, "P2".)
+                  mutations caught, suite 512 passed. **But the A/B match
+                  at 10+0.1 says it loses: -41 [-65, -17] over 360 games,
+                  SPRT [0, 10] accepted H0.** It moves clock from misses to
+                  hits. Don't merge it with the option on; PONDER.md, "P2".)
             - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
                   Search.TimeBudget and the Ponder option, ~1 h.
             - [ ] P4: play an unfinished depth's better move instead of

@@ -399,6 +399,34 @@ turn on each position:
 In the bot, hits come at a median 0.75 S (p75 1.0 S), and 37% of them are the kind P2 changes ("stopped at once").
 So expect a ply more on roughly half to three quarters of those, about 2-3 s each.
 
+**The A/B match: P2 loses.** `ponder-match.py --arms "PonderFinish=true;PonderFinish=false" --sprt 0,10`, 10+0.1,
+both sides pondering, the bot's network (h1024-3m), one thread and one physical core each, 3 games at a time, the
+bot not running. The SPRT accepted H0 at game 358 (LLR -3.07):
+
+| A (P2 on) v B (off), 360 games | A | B |
+|---|---:|---:|
+| won / lost / drawn, A's point of view | +61 -103 =196 | |
+| score, Elo [95%] | 44.2%, **-41 [-65, -17]** | |
+| ponder hit rate | 68.9% | 68.5% |
+| clock a move: all / after a hit / otherwise | 191 / 167 / 243 ms | 178 / 139 / 262 ms |
+| clock spent in all, after hits / otherwise | 3,026 s / 1,989 s | 2,510 s / 2,174 s |
+| clock left at the end of the game | 3.37 s (34%) | 4.30 s (43%) |
+
+A scored 46% in games under 100 plies, 46% at 100-150, 40% at 150-200 and 46% past 200: a steady loss, not one
+phase of the game. As white 51%, as black 37%.
+
+**Why, most likely: P2 moves clock from the misses to the hits.** It spent 21% more after hits (3,026 s against
+2,510) and so had less for the rest (9% less after misses, 1,989 s against 2,174). After a hit the search is already
+as deep as a whole budget would take it, and the extra time buys a ply on an already deep search. After a miss the
+search starts cold, so time there is worth more. Spending the bank on hits starves the moves that need it. (The lab
+saw only the hits.)
+
+Two things this match can't separate. P2 is two rules behind one switch: "finish" spends more on late hits, and
+the cap spends less on early ones. In self-play about 69% of replies come right after the opponent's own hit, so
+early, where the cap applies. And at 10+0.1 a move gets about 0.2 s on one thread, far shallower than the bot's
+4.8 s on eight threads (depth 15); deeper, a ply may be worth more against the clock it costs. Self-play also
+overstates hits (69% against the bot's 56.5%).
+
 **Tests** (PonderTests 20 → 48):
 
 | test | threads | what it checks |

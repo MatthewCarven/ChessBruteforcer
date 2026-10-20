@@ -132,6 +132,21 @@ losses, crashes or illegal moves. Equal speed (2,091 against 2,078 knps,
 depth 10.2 each). On Matthew's word (2026-10-19, ~14:35) the bot plays on
 it from its next start (`bot\eval\h512-3m.nnue`).
 
+## Pondering (2026-10-16 on)
+
+Our engine against itself through python-chess, as lichess-bot drives it
+(`scripts/ponder-match.py`): each engine pinned to a physical core of its
+own, one thread, Hash 64, below-normal priority, the 300 book openings in
+colour-reversed pairs, no endgame tables. Plain mode: one side ponders, the
+other doesn't. A/B mode: both ponder, and they differ by a UCI option.
+Results from the first-named side's point of view; "clock left" is at the
+end of the game. Details in PONDER.md.
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-16 | ponder on | ponder off | 119 | +48 -20 =51 | 61.8% | +83 [+37, +133] | 10+0.1, sf1 numbers; hit rate 71.5%; clock left 48% v 20% |
+| 2026-10-21 | P2 (PonderFinish on) | P2 off, both pondering | 360 | +61 -103 =196 | 44.2% | **-41 [-65, -17]** | 10+0.1, h1024-3m, 3 at a time, the bot stopped; SPRT [0, 10] **accepted H0** at game 358 (LLR -3.07); hit rate 69%; clock left 34% v 43%; no time losses |
+
 ## Versions
 
 - **v0.1**: first engine (alpha-beta + PVS, TT, null move, LMR, quiescence,

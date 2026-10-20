@@ -4608,3 +4608,18 @@ up to it (a fast-forward, nothing of its own yet). Not merged.
   side's hit rate, clock a move (after a hit and otherwise) and clock left
   at the end. Old results files still summarise (ponder-10+0.1-run1:
   +83 [+37, +133], as before; clock left 48% on, 20% off).
+- **The A/B match** (02:08-03:03, games/ponder/p2-ab-10+0.1.jsonl in the
+  main checkout): 10+0.1, the bot's network, 3 at a time on CPUs 2-12,
+  the bot not running. **P2 loses: -41 [-65, -17] over 360 games** (+61
+  -103 =196); the SPRT [0, 10] accepted H0 at game 358. It spent 21% more
+  clock after hits and 9% less after misses, and ended games with 34% of
+  its clock left against 43%. Likely reading: time after a hit buys a ply
+  on a search that's already deep, while time after a miss is worth more,
+  so spending the bank on hits starves the misses. The match can't say
+  which of P2's two rules (finish, cap) does the harm. Matthew's call
+  what next (PONDER.md, "P2"); 10.0-10.3 GB of commit free throughout.
+- Matthew asked whether depth wins games, and how to tell a blunder from
+  being out-calculated. Two side sessions for those, started on his word
+  and holding for his start: p2.1 (what a ply and extra time are worth:
+  depth d v d+1, 2x the clock v 1x) and p2.2 (where games turn: our
+  mistake, out-calculated, or misjudged, from the bot's logs).
