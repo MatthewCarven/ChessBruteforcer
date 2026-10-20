@@ -12,7 +12,7 @@ Run it with the venv's python (scripts/nnue/.venv, PyTorch with CUDA). Options o
                             stays --data's alone, so it compares with nets trained before
     --out <dir>             where the net, checkpoint and log go (default games\\nnue\\nets)
     --hidden 256            hidden numbers per perspective
-    --layers 32             small hidden layers after it (32, or 16/32): a float experiment, no .nnue written
+    --layers 32             small hidden layers after it (32, or 16/32), exported as .nnue version 2
     --passes 20             passes over the training buckets
     --batch 16384           positions a step
     --lr 0.001              AdamW's learning rate, times --lr-gamma after each pass in --lr-drops
@@ -146,8 +146,8 @@ def make_net(hidden, layers=()):
     class Net(torch.nn.Module):
         """768 -> hidden x2 -> 1, SCReLU. y = sum of clamp(a, 0, 1)^2 x w + b; the score is 400 y centipawns.
         With layers (--layers 32, or 16/32): 768 -> hidden x2 -> 32 [-> ...] -> 1 instead, each small layer a
-        torch.nn.Linear then clamp(0, 1). A float experiment (2026-10-21, Matthew: does a deeper net fit the data
-        better?): the export and the engine know only the one output layer, so such a net isn't exported."""
+        torch.nn.Linear then clamp(0, 1) (2026-10-21, Matthew: does a deeper net fit the data better?). Exported
+        as .nnue version 2 (nnue_reference's docstring has the format), each small layer at its own scale."""
 
         def __init__(self):
             super().__init__()
@@ -342,14 +342,65 @@ def quantise(state):
     return fwq, fbq, owq, obq, qb
 
 
-def export(state, path):
-    """Writes the .nnue; returns (the engine's Network.Sha256, QB)."""
-    fwq, fbq, owq, obq, qb = quantise(state)
+def feature_layer(state):
+    """The feature weights and biases as int16, checked as quantise checks them (a full board can't overflow)."""
+    fw = np.round(np.asarray(state["fw"], np.float64)[:INPUTS] * QA)
+    fb = np.round(np.asarray(state["fb"], np.float64) * QA)
+    if max(np.abs(fw).max(), np.abs(fb).max()) > 32767:
+        raise ValueError("a feature weight doesn't fit in int16")
+    fwq, fbq = fw.astype(np.int16), fb.astype(np.int16)
+    cols = np.sort(fwq.astype(np.int64), axis=0)
+    low = fbq + np.minimum(cols[:32], 0).sum(0)
+    high = fbq + np.maximum(cols[-32:], 0).sum(0)
+    if low.min() < -32768 or high.max() > 32767:
+        raise ValueError(f"a hidden unit can reach {low.min()}..{high.max()} on a full board")
+    return fwq, fbq
+
+
+def layer_q(w, b):
+    """A small layer's scale Q (version 2): the largest power of two up to 2^14 with every weight x Q within int16
+    and every output's sum within int32 at any inputs, QA x sum|w x Q| + |b x QA x Q| + Q / 2 (Network.Read's
+    check)."""
+    q = 1 << 14
+    while q >= 1:
+        wq, bq = np.round(w * q), np.round(b * QA * q)
+        if np.abs(wq).max() <= 32767 and (QA * np.abs(wq).sum(-1) + np.abs(bq)).max() + q // 2 <= 2**31 - 1:
+            return q, wq.astype(np.int16), bq.astype(np.int64)
+        q //= 2
+    raise ValueError("a small layer's weights don't fit even at Q = 1")
+
+
+def quantise_deep(state, layers):
+    """Version 2's numbers from a --layers checkpoint: the feature layer as version 1's, each small layer and the
+    output with its own Q (layer_q)."""
+    fwq, fbq = feature_layer(state)
+    quantised = []
+    for k in range(len(layers)):
+        w = np.asarray(state[f"dense.{k}.weight"], np.float64)
+        b = np.asarray(state[f"dense.{k}.bias"], np.float64)
+        q, wq, bq = layer_q(w, b)
+        quantised.append((q, wq, bq.astype(np.int32)))
+    w = np.asarray(state["final.weight"], np.float64).reshape(-1)
+    b = np.asarray(state["final.bias"], np.float64).reshape(-1)
+    q, wq, bq = layer_q(w[None, :], b)
+    return fwq, fbq, quantised, (q, wq[0], int(bq[0]))
+
+
+def export(state, path, layers=()):
+    """Writes the .nnue (version 2 for a net with --layers); returns (the engine's Network.Sha256, a note of its
+    scales: QB, or each layer's Q)."""
     tmp = str(path) + ".tmp"
-    nnue_reference.write_nnue(tmp, fwq, fbq, owq, obq, QA, qb, SCALE)
+    if layers:
+        fwq, fbq, quantised, final = quantise_deep(state, layers)
+        nnue_reference.write_nnue_deep(tmp, fwq, fbq, quantised, final, QA, SCALE)
+        note = "Q " + " / ".join(str(q) for q, _, _ in quantised + [final])
+    else:
+        fwq, fbq, owq, obq, qb = quantise(state)
+        nnue_reference.write_nnue(tmp, fwq, fbq, owq, obq, QA, qb, SCALE)
+        note = f"QB {qb}"
     os.replace(tmp, path)
     data = pathlib.Path(path).read_bytes()
-    return data[-32:].hex(), qb   # the hash of everything before it, as the engine prints it
+    return data[-32:].hex(), note   # the hash of everything before it, as the engine prints it
 
 
 def int_scores(net_file, raw, chunk=None):
@@ -363,7 +414,14 @@ def int_scores(net_file, raw, chunk=None):
     fw = torch.zeros(INPUTS + 1, h, dtype=torch.float64, device=dev)
     fw[:INPUTS] = torch.from_numpy(q["fw"].astype(np.float64))
     fb = torch.from_numpy(q["fb"].astype(np.float64)).to(dev)
-    ow = torch.from_numpy(q["ow"].astype(np.float64)).to(dev)
+    deep = q.get("layers")
+    if deep:   # version 2: the small layers' weights as float64 too (integers below 2^53 stay exact)
+        layers = [(lq, torch.from_numpy(w.astype(np.float64)).to(dev), torch.from_numpy(b.astype(np.float64)).to(dev))
+                  for lq, w, b in deep]
+        fq, fwt, fbias = q["final"]
+        fwt = torch.from_numpy(fwt.astype(np.float64)).to(dev)
+    else:
+        ow = torch.from_numpy(q["ow"].astype(np.float64)).to(dev)
     out = []
     with torch.no_grad():
         for at in range(0, raw.shape[0], chunk):
@@ -372,9 +430,17 @@ def int_scores(net_file, raw, chunk=None):
             aw, ab = f(w, fw, mode="sum", padding_idx=PAD) + fb, f(b, fw, mode="sum", padding_idx=PAD) + fb
             m = btm[:, None]
             v = torch.cat((torch.where(m, ab, aw), torch.where(m, aw, ab)), 1).clamp(0, q["qa"])
-            total = (v * v * ow).sum(1).to(torch.int64)
-            s = torch.div(total, q["qa"], rounding_mode="trunc") + q["ob"]
-            s = torch.div(s * q["scale"], q["qa"] * q["qb"], rounding_mode="trunc")
+            if deep:
+                # As nnue_reference.evaluate: rounded SCReLU, then each layer rounded to the nearest step.
+                x = torch.div(v * v + q["qa"] // 2, q["qa"], rounding_mode="floor")   # >= 0: floor = truncation
+                for lq, lw, lb in layers:
+                    x = torch.div(x @ lw.T + lb + lq // 2, lq, rounding_mode="trunc").clamp(0, q["qa"])
+                total = (x @ fwt).to(torch.int64) + fbias
+                s = torch.div(total * q["scale"], q["qa"] * fq, rounding_mode="trunc")
+            else:
+                total = (v * v * ow).sum(1).to(torch.int64)
+                s = torch.div(total, q["qa"], rounding_mode="trunc") + q["ob"]
+                s = torch.div(s * q["scale"], q["qa"] * q["qb"], rounding_mode="trunc")
             out.append(s.clamp(-nnue_reference.MAX_SCORE, nnue_reference.MAX_SCORE).to(torch.float32))
     return torch.cat(out)
 
@@ -585,14 +651,10 @@ def train(args):
     ws, priv = host_memory()
     log(f"GPU peak allocated {torch.cuda.max_memory_allocated() / 2**20:,.0f} MB, reserved "
         f"{torch.cuda.max_memory_reserved() / 2**20:,.0f} MB; host {ws:,.0f} MB working set, {priv:,.0f} MB commit")
-    if layers:
-        log(f"no .nnue: the export and the engine know one output layer only (this net: {args.hidden} x2 -> "
-            f"{' -> '.join(map(str, layers))} -> 1); its float held-back error above is the measure")
-        return 0
     state = {k: v.detach().cpu().numpy() for k, v in net.state_dict().items()}
     path = out / f"{args.run}.nnue"
-    sha, qb = export(state, path)
-    log(f"wrote {path} (QA {QA}, QB {qb}; network sha256 {sha})")
+    sha, note = export(state, path, layers)   # version 2 for a net with --layers
+    log(f"wrote {path} (QA {QA}, {note}; network sha256 {sha})")
     if held is not None:
         e = int_scores(path, held)
         k, err = fit_k(e, held_target)
@@ -613,8 +675,7 @@ def main(argv):
     t.add_argument("--out", type=pathlib.Path, default=NETS)
     t.add_argument("--hidden", type=int, default=256)
     t.add_argument("--layers", default="",
-                   help="small hidden layers after the feature layer, e.g. 32 or 16/32 (a float experiment, not "
-                        "exported)")
+                   help="small hidden layers after the feature layer, e.g. 32 or 16/32 (exported as .nnue version 2)")
     t.add_argument("--passes", type=int, default=20)
     t.add_argument("--batch", type=int, default=16384)
     t.add_argument("--lr", type=float, default=0.001)
@@ -652,8 +713,8 @@ def main(argv):
     if args.command == "export":
         import torch
         saved = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
-        sha, qb = export(saved["state"], args.nnue)
-        print(f"QA {QA}, QB {qb}; network sha256 {sha}")
+        sha, note = export(saved["state"], args.nnue, tuple(saved.get("layers", ())))
+        print(f"QA {QA}, {note}; network sha256 {sha}")
         return 0
     if args.command == "evaluate":
         import torch

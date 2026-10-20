@@ -98,20 +98,21 @@ def targets(n=10_000):
 def quantised(checkpoint, n=1_000):
     import torch
     saved = torch.load(checkpoint, map_location="cuda", weights_only=False)
-    net = train.make_net(saved["hidden"]).cuda()
+    layers = tuple(saved.get("layers", ()))   # a --layers net exports as version 2
+    net = train.make_net(saved["hidden"], layers).cuda()
     net.load_state_dict({k: torch.as_tensor(v).cuda() for k, v in saved["state"].items()})
     r = sample(n)
     raw = torch.from_numpy(np.ascontiguousarray(r).view(np.uint8).reshape(-1, records.SIZE)).cuda()
     floats = train.scores(net, raw).cpu().numpy().astype(np.float64)
     with tempfile.TemporaryDirectory() as d:
         path = pathlib.Path(d) / "q.nnue"
-        _, qb = train.export(saved["state"], path)
+        _, qb = train.export(saved["state"], path, layers)
         q = nnue_reference.read_nnue(path)
         ints = np.array([nnue_reference.evaluate(q, records.to_fen(x)) for x in r], np.float64)
         gpu = train.int_scores(path, raw).cpu().numpy().astype(np.float64)
     signed = ints - floats
     diff = np.abs(signed)
-    print(f"{n:,} positions, exported at QA {train.QA}, QB {qb}: int16 - float signed mean {signed.mean():+.2f} cp; "
+    print(f"{n:,} positions, exported at QA {train.QA}, {qb}: int16 - float signed mean {signed.mean():+.2f} cp; "
           f"|int16 - float| mean {diff.mean():.2f}, median {np.median(diff):.2f}, 95th {np.percentile(diff, 95):.2f}, "
           f"max {diff.max():.2f} (scores: median |float| {np.median(np.abs(floats)):.0f} cp)")
     worst = int(diff.argmax())
