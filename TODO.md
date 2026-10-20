@@ -151,15 +151,17 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     Matthew's word; best on top of the engine-speed chain, which changes
     Network.cs). **On hold** (Matthew, 2026-10-20 ~18:50): he tests the
     engine speed upgrade first, before the next upgrade.
-  - **Deeper nets training on the desktop** (Matthew's (a), 2026-10-21):
-    h1024-3m-l32 (1024 x2 -> 32 -> 1) from 00:30, then h1024-3m-l16-32
-    (-> 16 -> 32 -> 1), ~9.5 h each: **done ~10:10 and ~19:50** (desktop
-    clock). Float held-back error against h1024-3m's 0.012394. **Matthew's
-    go-ahead (2026-10-21): the engine change to play them comes first**
-    (a .nnue version for the extra layers, the trainer's export, a numpy
-    reference, the C# loader and quantised forward pass, tested as session
-    3 was; branch claude/nnue-deep-layers), then each matched against
-    h1024-3m, the bot off, on his word.
+  - **Deeper nets** (Matthew's (a), 2026-10-21; NNUE.md session 6):
+    h1024-3m-l32 (1024 x2 -> 32 -> 1) trained 00:30-09:48 and **plays now**
+    (branch `claude/nnue-deep-layers`: .nnue version 2, the trainer's
+    export, the numpy reference, the C# loader and pass; 69 of 69 network
+    tests, 29 of 29 mutants red): **held back -8.4% against h1024-3m** as
+    the engine computes it, **but -47.9% knps** in `bench 9` (and a 37%
+    bigger tree). h1024-3m-l16-32 (-> 16 -> 32 -> 1) training on the
+    desktop, done ~19:20 by its clock, exported as version 2 by itself.
+    **Next, Matthew's call**: match l32 against h1024-3m now (the bot off),
+    wait for l16-32 (half the first layer's arithmetic), or more speed
+    work first (int8 weights; the small layers trained clamped).
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's

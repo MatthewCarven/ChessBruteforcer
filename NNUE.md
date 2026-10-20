@@ -1390,6 +1390,62 @@ castling dropped, every move quiet. The one equivalent mutant stayed
 green: the sets on every path, the same lists, only the walk's reference
 gone.
 
+### Session 6: the deeper nets in the engine (2026-10-21)
+
+Matthew's go-ahead, relayed down the chain: make the deeper nets
+(`--layers`, session 5) playable, tested as session 3 was, benched against
+h1024-3m, then matched on his word. Branch `claude/nnue-deep-layers` (from
+`claude/nnue-desktop-8d5f2a` and compression's a9e2355; only the network
+code, the trainer and the reference, clear of the ponder sessions' files).
+
+- **The file, version 2**: version 1's header and feature layer, then 1-4
+  small layers (1-256 numbers each: int16 weights a row per output, int32
+  biases, a power-of-two Q), the output's row and Q, the SHA-256. The
+  arithmetic, which nnue_reference.evaluate defines: x = (v v + QA/2) / QA
+  from the clamped accumulators; each layer clamp((b + sum x w + Q/2) / Q,
+  0, QA); the score (b + sum x w) x scale / (QA x Q), divisions truncating.
+  The + half steps round to the nearest: truncation alone left the side to
+  move -2 to -4 cp; rounded, -0.1 to +1.0 (checks.py quantised).
+- **The trainer** exports `--layers` nets as version 2 (layer_q: the
+  largest Q up to 2^14 that keeps every weight in int16 and every row's sum
+  in int32) and scores them exactly on the GPU (against the numpy
+  reference, 0 of 3,000 differ, for one layer and two). Without `--layers`
+  the .nnue is byte-identical to before.
+- **The engine** reads, checks (every row's int32 sum at the largest
+  inputs, Q/2 included) and writes version 2. ForwardDeepScalar is the
+  definition; ForwardDeep runs at 0, 256 and 512 bits. 83% of the first
+  layer's 2,048 inputs are zero on real positions (h1024-3m-l32: a median
+  of 343 non-zero, 317 non-zero pairs), so the SIMD pass lists the
+  non-zero pairs first (8 at a time from a table of bit positions: walking
+  a mask bit by bit mispredicted once a chunk) and adds each pair to all
+  outputs' sums with MultiplyAddAdjacent, two pairs at a time.
+- **Tests** (NnueDeepTests, 20; with NnueTests 69 of 69; the full suite 504 passed, 2 skipped): C# equals the
+  numpy reference on two fixtures of 1,000 positions at every width; every
+  width equals the definition over 8 shapes (H 16-1024, 1-4 layers, odd
+  sizes) on real and random accumulators and every activation value, with
+  the pass's scratch filled with junk first; the largest sums; the row
+  check's half step; colour symmetry; move by move equals fresh; the file
+  round trip and an independent craft; the refusals; the search with
+  helper threads; UCI EvalFile. **Mutation battery: 29 of 29 red**
+  (scripts/nnue-bench/deep/battery.py).
+- **h1024-3m-l32**, exported from its checkpoint (Q 4,096 / 16,384, 1.7
+  MB, network sha256 c6f6c82972c5): held back as the engine computes it
+  **0.011390 at K 1.131 (-8.4% against h1024-3m's 0.012432)**, 0.011693 at
+  K 1; rounding against its float net 2.9 cp mean, -0.2 signed. Loads
+  through EvalFile, a6 against the Ruy Lopez at depth 10.
+- **Speed, the catch**: one evaluation ~800 ns against h1024-3m's ~130
+  (the first, row-by-row version 1,255); `bench 9`, one thread, 6 rounds
+  alternated: 1,242 knps against 2,386 (**-47.9%**; the first version
+  -65.6%), and a 37% bigger tree to depth 9, so ~2.6x the time to the same
+  depth. The floor in int16 is ~2 cycles a pair for 317 pairs; the rest is
+  listing and overheads. For scale: 256 -> 512 hidden was -8% in error at
+  -9% speed in play and won +76.
+- **Ways on** (Matthew's call): the match as it stands (the bot off, 30
+  min to 3.5 h); h1024-3m-l16-32 (done ~19:20 by the desktop's clock; a
+  16-wide first layer is half the pairs' arithmetic); more speed (int8
+  weights with VNNI-style sums, which needs the small layers trained
+  clamped, as Stockfish trains them).
+
 ## Risks
 
 | risk | what it would look like | what limits it |

@@ -4653,3 +4653,42 @@ needed. P2 builds on this branch. Not merged.
   finished after the hit to report" (183 on 10-20).
 - No Elo match (none needed: the moves don't change). 10.8-12.2 GB of
   commit free throughout; the bot wasn't running.
+
+## 2026-10-21 (07:45-10:30): the deeper nets play (session 6, branch claude/nnue-deep-layers)
+
+- 07:43: h1024-3m-l32 at pass 7, held back -8.1% against h1024-3m at the
+  same pass; the session up the chain told (Matthew asked). Then
+  Matthew's go-ahead came down from it: make the deeper nets playable,
+  tested as session 3 was, benched, then matched on his word.
+- A worktree of its own was refused by this session's hook (no writing
+  another worktree's files), so this worktree switched to the new branch
+  `claude/nnue-deep-layers` (claude/nnue-desktop-8d5f2a + compression's
+  a9e2355; the extra worktree removed, its one merge kept).
+- **.nnue version 2** (0a95b9b): the format, the numpy reference (its
+  definition), the trainer's export and exact GPU scoring, two fixtures.
+  Rounding to the nearest step took the side to move's bias from -2..-4 cp
+  to about 0. The engine (eab78ab): loader, checks, writer, the scalar
+  definition and the SIMD pass; NnueDeepTests; a mutation battery.
+- **Speed**: the first pass, a dot product a row, made bench 9 -65.6%
+  against h1024-3m. 83% of the first layer's inputs are zero, so by pairs
+  of inputs, skipping zeros (e794b8e), then listing the non-zero pairs first
+  (a27da8f): the walk bit by bit mispredicted about once a chunk, which cost
+  more than the arithmetic (timed by switching parts off: pairs ~900 ns,
+  listing ~70, the rest ~290). One evaluation 1,255 -> ~800 ns against
+  h1024-3m's ~130; bench 9 -47.9%. Measured alongside another session's
+  depth match (the laptop ~30% busy), so absolute times are noisy; the arms
+  alternate.
+- **h1024-3m-l32 finished 09:48** (desktop clock), 10 passes; its trainer
+  (the old train.py on the share) wrote no .nnue, so the checkpoint came
+  over (12 MB, capped) and `train.py export` made it: Q 4,096 / 16,384,
+  1.7 MB. **Held back as the engine computes it: 0.011390 at K 1.131,
+  -8.4% against h1024-3m**; 0.011693 at K 1. The new train.py went to the
+  share at ~09:21, so h1024-3m-l16-32 (started 09:49) exports itself.
+- **Battery**: 27 of 29 at first; the two survivors were the tests' blind
+  spots (the per-thread scratch kept the previous width's correct numbers;
+  no shape put 48 into the output's dot product). The tests now fill the
+  scratch with junk and have that shape: **29 of 29 red**. Network tests 69
+  of 69.
+- Once more a stray `python -` at the head of a Bash call (the notebook's
+  warning), in a timing experiment; stopped, nothing written. The variants
+  went through a script file after that.
