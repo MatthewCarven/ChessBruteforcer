@@ -4118,3 +4118,72 @@ has the tables; this is the story.
   move order changes the tree by 9%. (2) split.cs printed an own-tree
   arm's wall clock against the recorded tree's nodes (fullbb ~9% low);
   thread time was right, and it divides by each arm's own nodes now.
+
+## 2026-10-20 (15:10-18:00): bitboards session 1, sets and attack tables (Matthew's L(b))
+
+- **Asked** (by a side session, on the condition that Matthew had picked
+  decision L): build session 1 in the engine. No pick was written anywhere
+  (the only NNUE.md with decision L, 9e22fb7's, had none), so I asked him
+  here; **he chose (b)** at ~16:25: sessions 1 and 2, each merged on its
+  own. This branch (`claude/busy-newton-fc0a07`) had started at
+  compression's tip (0173e3a, which 180fe25's line lacks) with no commits of
+  its own, so it was moved to 9e22fb7 (180fe25 plus the bitboard write-up)
+  first. Whoever merges: compression's 0173e3a isn't in it.
+- **Conditions**: the bot off (nothing of ours running but Matthew's
+  Syncplay), 3.1-3.5 GB of commit free, on AC.
+- **The change** (NNUE.md "Bitboards session 1, built"): Position keeps a
+  set per colour and piece type and one per colour beside the squares,
+  kept in make and unmake by XOR of from and to (one routine for both),
+  built in FromFen and SetPiece; `Bitboards` holds knight, king and pawn
+  sets and the rook and bishop tables, by PEXT or, where PEXT is slow or
+  missing, magic multiplication over the same layout (the magic numbers
+  from `scripts/bitboards/magics.cs`); IsAttacked from the sets, the ray
+  walk kept behind `CB_ATTACKS=rays`; the tablebase's count and
+  Material.FromPosition by popcount.
+- **`bench 9` A/B** on h1024-3m (bench.ps1, two builds, alternated): the
+  identical tree (3,775,600 nodes, the same moves and scores), **+13.2% to
+  +14.1%** on PEXT (paired medians of three runs, 30 of 30 rounds faster),
+  +13.6% to +14.3% on magic, -1.1% to -1.2% on rays (the upkeep alone,
+  ~5 ns a node, half the prototype's). Inlining
+  IsAttacked into InCheck was worth +1.2-1.5%: the first version, with a
+  call more a test, read +12.5-13.3%. Reading a slider's table only when
+  one of theirs is on a line through the square added +0.2-0.3% (12 of 20
+  rounds), kept since it can only skip work.
+- **Tests**: `BitboardTests` (33): the sets against the squares and every
+  table path against the rays at every node of perft walks over 10
+  positions, illegal positions and null moves included; every blocker
+  subset of both slider tables; perft on each path; Material; the
+  tablebase's count; the path's choice. Full suite 467 passed, 2 skipped,
+  under each of `CB_ATTACKS` unset, magic and rays. The CLI's perft past the
+  tests' depths, 21 of 21 published counts on each path. Small tables
+  re-solved by both builds: 14 of 14 files byte-identical, and the solver
+  22-25% sooner on 4-piece tables (KRvKN 8.8 -> 6.8 s, KBNvK 11.4 -> 8.6 s,
+  alternated; a first timing beside the suite read 2x, the old arm slowed
+  more by the load).
+- **Mutation battery** (`scripts/bitboards/battery.py`), 41 mutants: **41
+  of 41 as expected**, 40 red and the equivalent one green (rays on every
+  path: the same answers, only slower). Mutants 0-18 ran on ten classes
+  (216 of 469 tests); five of them overflowed a test host's stack, and each
+  put a "testhost.exe - System Error" box on Matthew's screen (he sent a
+  screenshot at ~17:27). With an attack answer wrong, the endgame solver in
+  the table fixtures takes a hanging king, finds the same material (kings
+  aren't counted) and starts its own table again. The SetErrorMode call
+  meant to stop such boxes didn't. I stopped the run with a Ctrl+C into its
+  console (its `finally` restored the source: every mutant's original text
+  checked present once, the diff the same size as before), cleared the
+  orphaned test tree, and re-ran 19-40 on `BitboardTests` alone (33 tests;
+  `MoveGeneratorTests` was meant too, but cmd splits arguments at commas):
+  no more boxes. One mutant (FromFen without the sets) timed out at 420 s
+  and its tree was killed: red.
+- **To keep**: (1) a gate that asks the bench for the probe's number reads
+  it ~0.85 low (K(a): +25 against +30; here +14 against +16): fresh
+  processes pay the JIT's warm-up. Inlining the public IsAttacked closed
+  most of the rest. (2) A battery mutant can hide behind a helper that
+  exists only for the tests: the first `RookMask` recomputed the mask
+  instead of reading the one the table was built with, so a mask mutant in
+  the build would have passed its check. The tables now take their masks
+  from the arrays `RookMask` reads. (3) I told Matthew no more boxes would
+  come after the first four, on a cause I hadn't checked; the System log
+  showed a fifth from a kind of mutant I'd ruled out. Read the log before
+  reassuring, and warn before a battery whose mutants break what the solver
+  leans on.

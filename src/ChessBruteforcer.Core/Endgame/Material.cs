@@ -1,3 +1,4 @@
+using System.Numerics;
 using ChessBruteforcer.Core.Game;
 
 namespace ChessBruteforcer.Core.Endgame;
@@ -32,18 +33,28 @@ public sealed record Material
         return new Material(ParseSide(sides[0][1..]), ParseSide(sides[1][1..]));
     }
 
-    public static Material FromPosition(Position position)
+    /// <summary>A position's material, counted from its sets.</summary>
+    public static Material FromPosition(Position position) =>
+        new(Side(position, Colour.White), Side(position, Colour.Black), sorted: true);
+
+    private Material(PieceType[] white, PieceType[] black, bool sorted)
     {
-        var white = new List<PieceType>();
-        var black = new List<PieceType>();
-        for (int square = 0; square < 64; square++)
-        {
-            var piece = position[square];
-            if (piece.IsEmpty || piece.Type == PieceType.King)
-                continue;
-            (piece.Colour == Colour.White ? white : black).Add(piece.Type);
-        }
-        return new Material(white, black);
+        White = white;
+        Black = black;
+    }
+
+    /// <summary>One side's pieces besides the king, strongest first (as <see cref="Sorted"/> leaves them).</summary>
+    private static PieceType[] Side(Position position, Colour colour)
+    {
+        int count = 0;
+        foreach (var type in Order)
+            count += BitOperations.PopCount(position.Pieces(colour, type));
+        var pieces = new PieceType[count];
+        int next = 0;
+        foreach (var type in Order)
+            for (int n = BitOperations.PopCount(position.Pieces(colour, type)); n > 0; n--)
+                pieces[next++] = type;
+        return pieces;
     }
 
     /// <summary>The same material with the colours swapped.</summary>

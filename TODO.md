@@ -174,10 +174,20 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     and generation from the sets in today's order **+26%** (both on the
     identical tree); in the sets' own order +38%, but the tree changes 9%
     (LMR reduces by place in the list), so that needs a match. The 840 KB
-    tables cost nothing beside the net's 1.5 MB (the L2 worry). **Decision
-    L is Matthew's**: (a) session 1 only, (b) sessions 1 and 2
-    (recommended), (c) both, then the order behind a match and legality
-    before make.
+    tables cost nothing beside the net's 1.5 MB (the L2 worry). **Matthew
+    chose L(b)** (~16:25): sessions 1 and 2, each merged on its own.
+  - **Bitboards session 1, built** (2026-10-20 afternoon, a side session,
+    branch `claude/busy-newton-fc0a07` = 9e22fb7 plus one commit; NNUE.md
+    "Bitboards session 1, built"): sets beside the squares, IsAttacked by
+    PEXT tables (magic multiplication where PEXT is slow or missing), the
+    tablebase's count and Material by popcount. **+13.2% to +14.1% `bench
+    9`**, the identical tree; full suite green on each path (`CB_ATTACKS`
+    unset, magic, rays); small tables re-solved byte-identical, the solver
+    22-25% sooner; battery 41 of 41 as expected. **To take
+    effect**: Matthew merges the branch (it lacks compression's 0173e3a,
+    the ponder note) and restarts the bot between games; then its Speed
+    lines for the 8-thread figure. **Next**: session 2, generation from the
+    sets in today's order (+26% in all in the probe), its own session.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 
@@ -530,9 +540,11 @@ Sessions, in order:
         **Measured 2026-10-20** (NNUE.md "The rest of a node", decision K):
         74-76% of a node now; quiescence's waste was the biggest piece.
         **K(a) built the same day**: quiescence generates only what it
-        searches, +24.6% to +25.5% `bench 9`. Next on offer: bitboards, est.
-        +25-39% on top. Re-measure the split before choosing
-        (`scripts/nnue-bench/search-split/`).
+        searches, +24.6% to +25.5% `bench 9`. Bitboards measured in the
+        probe (+16% attack tables, +26% with generation from the sets) and
+        **chosen, L(b)**: session 1 (sets and attack tables) built, +13.2%
+        to +14.1% `bench 9`; session 2 (generation from the sets in today's
+        order) next, in its own session.
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by

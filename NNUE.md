@@ -1182,6 +1182,99 @@ bot's Speed lines after the switch, as for J. After session 2 the network
 is 40% of a node again and move ordering (56 ns) the largest piece outside
 it. Matthew's pick: decision L.
 
+### Bitboards session 1, built (2026-10-20, afternoon): +13-14% `bench 9`
+
+**Matthew's L(b)** (~16:25): sessions 1 and 2, each A/B'd and merged on its
+own. Session 1 is in, on branch `claude/busy-newton-fc0a07` (9e22fb7 plus
+one commit):
+
+- **The sets**: Position keeps its pieces as sets beside the squares, a bit
+  a square (`Pieces(colour, type)`, `Pieces(colour)`, `Occupied`): one
+  array of 16, `[colour * 8 + type]`, type None holding the colour's whole
+  set. MakeMove and UnmakeMove keep them by XOR of the move's from and to
+  bits, one routine for both (XOR undoes itself): the mover's colour and
+  type, a promotion's from bit in the pawns and its to bit in the new
+  piece's set, a capture's bit out of the victim's two sets (en passant's
+  beside the to square), castling's rook. FromFen and SetPiece build them
+  square by square; null moves leave them alone.
+- **The tables** (`Bitboards`): knight, king and pawn attacks a set per
+  square; rook and bishop attacks by PEXT into a table per square (64-bit
+  entries, 840 KB), or by magic multiplication over the same layout where
+  PEXT is slow or missing (AMD's family 17h and 18h, Zen to Zen 2, microcode
+  it; or no BMI2). The 128 magic numbers come from
+  `scripts/bitboards/magics.cs` (a fixed seed, 0.3 s) and are checked again
+  as the table is built. Only the table the path reads is built.
+  `CB_ATTACKS` (pext, magic or rays) picks the path for an A/B, as
+  `CB_NNUE_SIMD` does the width; `bench` prints it.
+- **IsAttacked from the sets**: InCheck, castling's tests, the search, the
+  solver and the tables all ask there. The ray walk stays as
+  `AttackPath.Rays`, the tests' reference. A slider's table is read only
+  when one of theirs stands on a line through the square.
+- **The tablebase's piece count** by popcount; **Material.FromPosition** by
+  popcounts, without its two lists and their sort.
+
+`bench 9` on h1024-3m, the bot off, one thread, below normal, alternated
+rounds, the engine's clock, paired medians: PEXT from three runs on this
+build's hot path (the last on the committed build), magic and rays from
+two each (magic's first on the version before IsAttacked was inlined):
+
+| build | nodes | knps | against 180fe25's engine | rounds faster |
+|---|---|---|---|---|
+| 180fe25's engine (9e22fb7) | 3,775,600 | 2,172-2,222 | | |
+| session 1, PEXT (this laptop's path) | 3,775,600 | 2,479-2,539 | **+13.2% to +14.1%** | 30 of 30 |
+| session 1, `CB_ATTACKS=magic` | 3,775,600 | 2,488-2,524 | +13.6% to +14.3% | 18 of 18 |
+| session 1, `CB_ATTACKS=rays` | 3,775,600 | 2,148-2,150 | -1.1% to -1.2%: the sets' upkeep, ~5 ns a node | 1 of 22 |
+
+The identical tree throughout (the same moves and scores too). Three
+variants, measured on the way:
+
+| variant | against 180fe25's engine |
+|---|---|
+| IsAttacked not inlined into InCheck (a call more a test) | +12.5% to +13.3% |
+| inlined | +13.9% to +14.2% |
+| and a slider's table read only with one of theirs on its lines (kept) | +14.0% to +14.1%; +0.2% to +0.3% over the last, 12 of 20 rounds |
+
+Under the probe's +16% as K(a)'s +25% was under its probe's +30%: each
+bench run is a fresh process, whose JIT warm-up both builds pay alike. The
+upkeep is about half the prototype's 9 ns (it set and cleared bits in every
+Put; here one XOR of from and to a set).
+
+Tests: `BitboardTests`, 33. At every node of perft walks over 10 positions
+(illegal positions after make, null moves and unmakes included) the sets
+equal the squares, and each table path finds every square's attackers for
+both colours as the ray walk does; every blocker subset of every slider
+table against the engine's own rays (102,400 + 5,248, with pieces scattered
+beyond the masks); perft on each path (7 positions); knight, king and pawn
+sets; SetPiece over anything (5,000 random); Material from the sets (6
+positions, 120 bytes a call at most); the tablebase turning six pieces away
+before it reads a table; the path's choice, PEXT's speed by CPU family, and
+the best path on this CPU. The full suite, 467 passed and 2 skipped, on
+each path (`CB_ATTACKS` unset, magic, rays). The CLI's perft past the tests'
+depths (the start d5, Kiwipete d4, positions 3 to 6, the promotion position
+d5) on each path: 21 of 21 published counts. Small tables re-solved by
+both builds (KvK, KQvK, KRvK, KPvK, KBvK, KNvK, KRvKN, KBNvK, and the
+3-piece ones' DTZ): 14 of 14 files byte-identical, and the solver 22-25%
+sooner on the 4-piece ones (KRvKN 8.8 -> 6.8 s, KBNvK 11.4 -> 8.6 s,
+alternated, two rounds): its legality tests are attack tests too.
+
+Mutation battery (`scripts/bitboards/battery.py`), 41 mutants: **41 of 41
+as expected**, 40 red and the one equivalent mutant green (rays on every
+path: the same answers, slower; only the bench sees it). The castling
+rook, en passant's victim, promotion, capture-promotion, the unmake of
+each, null moves, SetPiece, FromFen, every part of the attack test, wrong
+masks, a wrong magic number and shift, a PEXT slot, the line filter, the
+path's choice, Material and the tablebase's count. Mutants 0-18 ran on ten
+classes (216 of the suite's 469 tests), 19-40 on `BitboardTests` alone
+(33): five of the first nineteen overflowed a test host's stack and put a
+"System Error" box on Matthew's screen. With an attack answer wrong, the
+solver in the table fixtures takes a hanging king, finds the same material
+(kings aren't counted) and starts its own table again. The run was stopped
+and the rest re-run on classes that solve no tables.
+
+Next: session 2, generation from the sets in today's order (+26% in all in
+the probe), a separate step; and once this is in the bot, its Speed lines,
+for the 8-thread figure.
+
 ## Risks
 
 | risk | what it would look like | what limits it |
@@ -1333,7 +1426,9 @@ the full test suite green; the mutation battery for the new generator.
   (a), one session, and (b)'s first step.
 
 **L. Bitboards** (measured 2026-10-20 noon in the probe's prototype,
-"Bitboards, measured" above; put ~13:00). Whichever is built is A/B'd with
+"Bitboards, measured" above; put ~13:00; **chosen: b**, ~16:25; session 1
+built the same afternoon: +13.2% to +14.1% `bench 9`, "Bitboards session
+1, built" above). Whichever is built is A/B'd with
 bench.ps1 against the build before it (identical nodes), needs the full
 suite and a mutation battery green, and is merged on its own.
 - (a) Session 1 only: sets and attack tables beside today's board: **+16%

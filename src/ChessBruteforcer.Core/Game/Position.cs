@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using ChessBruteforcer.Core.Engine.Nnue;
 
@@ -29,9 +30,11 @@ public enum GameStatus
 /// A full game state: the board plus everything FEN carries beyond it
 /// (side to move, castling rights, en passant square, move clocks).
 ///
-/// The board is a plain 64-square array (a1 = 0) for now; correctness first,
-/// speed later.  <see cref="MakeMove"/> and <see cref="UnmakeMove"/> change
-/// the position in place so searches don't copy boards.
+/// The board is a 64-square array (a1 = 0), with the same pieces kept as sets
+/// beside it, a bit a square (<see cref="Pieces(Colour, PieceType)"/>), from
+/// which attacks are found by table (<see cref="Bitboards"/>).
+/// <see cref="MakeMove"/> and <see cref="UnmakeMove"/> change the position in
+/// place so searches don't copy boards.
 /// </summary>
 public sealed class Position
 {
@@ -40,6 +43,11 @@ public sealed class Position
     private readonly Piece[] _squares = new Piece[64];
     private readonly int[] _kingSquare = { NoSquare, NoSquare };
     private AccumulatorStack? _nnue;
+
+    // The pieces as sets, a bit a square (a1 = bit 0): [colour * 8 + type] holds that colour's pieces of that type,
+    // and [colour * 8] (type None) all of that colour's pieces. MakeMove and UnmakeMove keep them by XOR (a move's
+    // from and to bits); FromFen and SetPiece build them square by square (Place).
+    private readonly ulong[] _sets = new ulong[16];
 
     public Colour SideToMove { get; private set; }
     public CastlingRights Castling { get; private set; }
@@ -56,6 +64,15 @@ public sealed class Position
     public Piece this[int square] => _squares[square];
 
     public int KingSquare(Colour colour) => _kingSquare[(int)colour];
+
+    /// <summary>The squares holding <paramref name="colour"/>'s pieces of <paramref name="type"/>, a bit a square (a1 = bit 0).</summary>
+    public ulong Pieces(Colour colour, PieceType type) => _sets[(int)colour << 3 | (int)type];
+
+    /// <summary>The squares holding any of <paramref name="colour"/>'s pieces.</summary>
+    public ulong Pieces(Colour colour) => _sets[(int)colour << 3];
+
+    /// <summary>The squares holding a piece.</summary>
+    public ulong Occupied => _sets[0] | _sets[8];
 
     /// <summary>The network this position keeps accumulators for (and the evaluation then uses), or null.</summary>
     public Network? Network => _nnue?.Network;
@@ -92,7 +109,7 @@ public sealed class Position
     /// </summary>
     public void SetPiece(int square, Piece piece)
     {
-        Put(square, piece);
+        Place(square, piece);
         _nnue?.Refresh(this);
     }
 
@@ -135,7 +152,7 @@ public sealed class Position
         for (int square = 0; square < 64; square++)
         {
             board.TryGetPiece(square, out var piece);
-            position.Put(square, piece);
+            position.Place(square, piece);
         }
 
         position.SideToMove = fields[1] switch
@@ -199,8 +216,37 @@ public sealed class Position
         return (name[1] - '1') * 8 + (name[0] - 'a');
     }
 
-    /// <summary>Is <paramref name="square"/> attacked by any piece of <paramref name="by"/>?</summary>
-    public bool IsAttacked(int square, Colour by)
+    /// <summary>
+    /// Is <paramref name="square"/> attacked by any piece of <paramref name="by"/>? From the sets by table, or by walking
+    /// rays (<see cref="Bitboards.Path"/>). Check, castling's tests, the search, the solver and the tables all ask here.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsAttacked(int square, Colour by) => IsAttacked(Bitboards.Path, square, by);
+
+    /// <summary><see cref="IsAttacked(int, Colour)"/> by the given path (the tests try each).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal bool IsAttacked(AttackPath path, int square, Colour by)
+    {
+        if (path == AttackPath.Rays)
+            return IsAttackedByRays(square, by);
+        var sets = _sets;
+        int c = (int)by << 3;
+        // Their pawns attack the square from where a pawn of the other colour on it would attack.
+        if ((Bitboards.Pawn(Opponent(by), square) & sets[c | (int)PieceType.Pawn]) != 0
+            || (Bitboards.Knight(square) & sets[c | (int)PieceType.Knight]) != 0
+            || (Bitboards.King(square) & sets[c | (int)PieceType.King]) != 0)
+            return true;
+        // A slider's table is read only when one of theirs stands on a line through the square at all.
+        ulong occupied = sets[0] | sets[8];
+        ulong queens = sets[c | (int)PieceType.Queen];
+        ulong diagonal = (sets[c | (int)PieceType.Bishop] | queens) & Bitboards.BishopLines(square);
+        if (diagonal != 0 && (Bitboards.Bishop(path, square, occupied) & diagonal) != 0)
+            return true;
+        ulong straight = (sets[c | (int)PieceType.Rook] | queens) & Bitboards.RookLines(square);
+        return straight != 0 && (Bitboards.Rook(path, square, occupied) & straight) != 0;
+    }
+
+    private bool IsAttackedByRays(int square, Colour by)
     {
         // Pawns: look one rank back from the attacker's point of view.
         int file = square % 8;
@@ -266,6 +312,7 @@ public sealed class Position
         var placed = move.IsPromotion ? new Piece(move.Promotion, SideToMove) : mover;
         Put(move.From, Piece.Empty);
         Put(move.To, placed);
+        ToggleSets(move.From, move.To, mover, placed, captured, capturedSquare);
 
         if ((move.Flags & MoveFlags.Castle) != 0)
         {
@@ -273,6 +320,7 @@ public sealed class Position
             var rook = _squares[rookFrom];
             Put(rookTo, rook);
             Put(rookFrom, Piece.Empty);
+            ToggleRook(rook, rookFrom, rookTo);
             _nnue?.PushCastle(mover, move.From, move.To, rook, rookFrom, rookTo);
         }
         else if (_nnue is not null)
@@ -302,24 +350,30 @@ public sealed class Position
         if (SideToMove == Colour.Black)
             FullmoveNumber--;
 
-        var moved = move.IsPromotion ? new Piece(PieceType.Pawn, SideToMove) : _squares[move.To];
+        var placed = _squares[move.To];
+        var moved = move.IsPromotion ? new Piece(PieceType.Pawn, SideToMove) : placed;
         Put(move.From, moved);
 
+        int capturedSquare = move.To;
         if ((move.Flags & MoveFlags.EnPassant) != 0)
         {
+            capturedSquare = move.To + (SideToMove == Colour.White ? -8 : 8);
             Put(move.To, Piece.Empty);
-            Put(move.To + (SideToMove == Colour.White ? -8 : 8), undo.Captured);
+            Put(capturedSquare, undo.Captured);
         }
         else
         {
             Put(move.To, undo.Captured);
         }
+        ToggleSets(move.From, move.To, moved, placed, undo.Captured, capturedSquare);
 
         if ((move.Flags & MoveFlags.Castle) != 0)
         {
             var (rookFrom, rookTo) = CastlingRook(move.To);
-            Put(rookFrom, _squares[rookTo]);
+            var rook = _squares[rookTo];
+            Put(rookFrom, rook);
             Put(rookTo, Piece.Empty);
+            ToggleRook(rook, rookFrom, rookTo);
         }
 
         Castling = undo.Castling;
@@ -379,6 +433,7 @@ public sealed class Position
         _ => CastlingRights.None,
     };
 
+    /// <summary>The square, the hash and the king's square; a move's caller keeps the sets (<see cref="ToggleSets"/>).</summary>
     private void Put(int square, Piece piece)
     {
         var old = _squares[square];
@@ -388,6 +443,62 @@ public sealed class Position
         _squares[square] = piece;
         if (piece.Type == PieceType.King)
             _kingSquare[(int)piece.Colour] = square;
+    }
+
+    /// <summary><see cref="Put"/> and the sets with it: the square's bit out of the old piece's two sets, into the new one's.</summary>
+    private void Place(int square, Piece piece)
+    {
+        var old = _squares[square];
+        ulong bit = 1UL << square;
+        if (!old.IsEmpty)
+        {
+            _sets[(int)old.Colour << 3] &= ~bit;
+            _sets[(int)old.Colour << 3 | (int)old.Type] &= ~bit;
+        }
+        if (!piece.IsEmpty)
+        {
+            _sets[(int)piece.Colour << 3] |= bit;
+            _sets[(int)piece.Colour << 3 | (int)piece.Type] |= bit;
+        }
+        Put(square, piece);
+    }
+
+    /// <summary>
+    /// A move's change to the sets, made or unmade alike (XOR undoes itself): the from and to bits in the mover's
+    /// colour's set and its type's (a promotion's from bit in the pawns, its to bit in the new piece's), and a capture's
+    /// bit out of the victim's two (en passant's victim is beside the to square).
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ToggleSets(int from, int to, Piece mover, Piece placed, Piece captured, int capturedSquare)
+    {
+        var sets = _sets;
+        ulong fromBit = 1UL << from, toBit = 1UL << to;
+        int us = (int)mover.Colour << 3;
+        sets[us] ^= fromBit | toBit;
+        if (placed.Type == mover.Type)
+        {
+            sets[us | (int)mover.Type] ^= fromBit | toBit;
+        }
+        else
+        {
+            sets[us | (int)mover.Type] ^= fromBit;
+            sets[us | (int)placed.Type] ^= toBit;
+        }
+        if (!captured.IsEmpty)
+        {
+            ulong bit = 1UL << capturedSquare;
+            int them = (int)captured.Colour << 3;
+            sets[them] ^= bit;
+            sets[them | (int)captured.Type] ^= bit;
+        }
+    }
+
+    /// <summary>Castling's rook in the sets, made or unmade alike.</summary>
+    private void ToggleRook(Piece rook, int from, int to)
+    {
+        ulong bits = 1UL << from | 1UL << to;
+        _sets[(int)rook.Colour << 3] ^= bits;
+        _sets[(int)rook.Colour << 3 | (int)rook.Type] ^= bits;
     }
 
     public override string ToString() => ToFen();

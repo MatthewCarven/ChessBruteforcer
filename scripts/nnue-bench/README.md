@@ -51,3 +51,9 @@ lazy-update A/Bs): an arm can name its own engine and environment, e.g.
 time; unset, it uses the widest the CPU has. bench.ps1 also prints speed by
 the process's CPU time, less its start-up; beside the bot that column was
 noisier than the wall clock, so read both, and pair rounds for a small gain.
+
+`CB_ATTACKS` (pext, magic or rays; bitboards session 1, NNUE.md) picks how
+the engine finds attacks: unset, PEXT tables where the CPU does PEXT in
+hardware and magic multiplication elsewhere; `rays` is the ray walk from
+before the sets, which leaves the sets' upkeep alone in an A/B. `bench`
+prints the path it ran on (`attacks: pext`).
