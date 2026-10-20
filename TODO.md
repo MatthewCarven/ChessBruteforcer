@@ -159,8 +159,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     `claude/friendly-cray-e85e18` on top of the speed branch; NNUE.md "The
     rest of a node"): outside the network is 74-76% of a node now. Ordering
     36% of it (quiescence sorts through moves it then skips), generation 25%,
-    InCheck 20%, make/unmake 6%, the table 5%. **Decision K, Matthew's**:
-    (a) quiescence generates only what it searches, +30% measured; (b)
+    InCheck 20%, make/unmake 6%, the table 5%. **Matthew's K(a), built**:
+    quiescence generates only what it searches, +24.6% to +25.5% `bench 9`
+    (A/B, 16 of 16 rounds; tests and mutation battery green). **To take
+    effect**: Matthew merges the branch (it sits on the speed branch) into
+    compression and restarts the bot between games. Next on offer: (b)
     bitboards, est. +25-39% on top; (c) attack tables only, +6-15% on top.
     The bot was off from ~09:50 (Matthew, for memory).
   - Other levers waiting: the export's rounding (small); labels from our
@@ -512,10 +515,11 @@ Sessions, in order:
         alignment +16.7%, with the lazy update +23.7%.
       - [ ] The next speed lever: the rest of the search, 61% of a node at
         1024 (a 64-square board, attacks found by walking rays; bitboards).
-        **Measured 2026-10-20** (NNUE.md "The rest of a node", decision K,
-        open): 74-76% of a node now; quiescence's waste is the biggest piece
-        (a captures-only generator measured +30% nodes a second); bitboards
-        est. +25-39% on top. Matthew picks; re-measure the split after it
+        **Measured 2026-10-20** (NNUE.md "The rest of a node", decision K):
+        74-76% of a node now; quiescence's waste was the biggest piece.
+        **K(a) built the same day**: quiescence generates only what it
+        searches, +24.6% to +25.5% `bench 9`. Next on offer: bitboards, est.
+        +25-39% on top. Re-measure the split before choosing
         (`scripts/nnue-bench/search-split/`).
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game

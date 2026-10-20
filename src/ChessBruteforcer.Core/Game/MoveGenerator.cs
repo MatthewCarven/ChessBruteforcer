@@ -45,7 +45,18 @@ public static class MoveGenerator
     }
 
     /// <summary>Fill <paramref name="moves"/> (cleared first) with the pseudo-legal moves.</summary>
-    public static void Pseudo(Position position, List<Move> moves)
+    public static void Pseudo(Position position, List<Move> moves) => Generate(position, moves, quiet: true);
+
+    /// <summary>
+    /// Fill <paramref name="moves"/> (cleared first) with what quiescence searches when not in check: the
+    /// pseudo-legal captures (with every promotion piece), en passant, and pushes that promote to a queen,
+    /// in the order <see cref="Pseudo"/> gives them. Quiescence used to generate every move and skip the
+    /// rest, which cost it 23% of a node (NNUE.md, "The rest of a node").
+    /// </summary>
+    public static void Captures(Position position, List<Move> moves) => Generate(position, moves, quiet: false);
+
+    /// <summary>The pseudo-legal moves, or with <paramref name="quiet"/> false only <see cref="Captures"/>'.</summary>
+    private static void Generate(Position position, List<Move> moves, bool quiet)
     {
         moves.Clear();
         Colour us = position.SideToMove;
@@ -57,23 +68,24 @@ public static class MoveGenerator
             switch (piece.Type)
             {
                 case PieceType.Pawn:
-                    PawnMoves(position, from, us, moves);
+                    PawnMoves(position, from, us, quiet, moves);
                     break;
                 case PieceType.Knight:
-                    StepMoves(position, from, us, Attacks.Knight[from], moves);
+                    StepMoves(position, from, us, Attacks.Knight[from], quiet, moves);
                     break;
                 case PieceType.King:
-                    StepMoves(position, from, us, Attacks.King[from], moves);
-                    CastlingMoves(position, from, us, moves);
+                    StepMoves(position, from, us, Attacks.King[from], quiet, moves);
+                    if (quiet)
+                        CastlingMoves(position, from, us, moves);
                     break;
                 case PieceType.Bishop:
-                    SlideMoves(position, from, us, Attacks.FirstBishopDirection, Attacks.DirectionCount, moves);
+                    SlideMoves(position, from, us, Attacks.FirstBishopDirection, Attacks.DirectionCount, quiet, moves);
                     break;
                 case PieceType.Rook:
-                    SlideMoves(position, from, us, Attacks.FirstRookDirection, Attacks.FirstBishopDirection, moves);
+                    SlideMoves(position, from, us, Attacks.FirstRookDirection, Attacks.FirstBishopDirection, quiet, moves);
                     break;
                 case PieceType.Queen:
-                    SlideMoves(position, from, us, 0, Attacks.DirectionCount, moves);
+                    SlideMoves(position, from, us, 0, Attacks.DirectionCount, quiet, moves);
                     break;
             }
         }
@@ -87,7 +99,8 @@ public static class MoveGenerator
         return legal;
     }
 
-    private static void PawnMoves(Position position, int from, Colour us, List<Move> moves)
+    /// <summary>A pawn's pushes (without <paramref name="quiet"/>, only a push that promotes, to a queen), then its captures.</summary>
+    private static void PawnMoves(Position position, int from, Colour us, bool quiet, List<Move> moves)
     {
         int forward = us == Colour.White ? 8 : -8;
         int rank = from / 8, file = from % 8;
@@ -97,13 +110,22 @@ public static class MoveGenerator
         int one = from + forward;
         if (one is >= 0 and < 64 && position[one].IsEmpty)
         {
-            AddPawnMove(from, one, MoveFlags.None, lastRank, moves);
-            int two = one + forward;
-            if (rank == startRank && position[two].IsEmpty)
-                moves.Add(new Move((byte)from, (byte)two, PieceType.None, MoveFlags.DoublePawnPush));
+            if (quiet)
+            {
+                AddPawnMove(from, one, MoveFlags.None, lastRank, moves);
+                int two = one + forward;
+                if (rank == startRank && position[two].IsEmpty)
+                    moves.Add(new Move((byte)from, (byte)two, PieceType.None, MoveFlags.DoublePawnPush));
+            }
+            else if (one / 8 == lastRank)
+            {
+                moves.Add(new Move((byte)from, (byte)one, PieceType.Queen));
+            }
         }
 
-        foreach (int side in new[] { -1, 1 })
+        // Towards the a-file, then the h-file. (Not foreach over new[] { -1, 1 }: that allocated an array
+        // per pawn per list, 46 bytes a node.)
+        for (int side = -1; side <= 1; side += 2)
         {
             int targetFile = file + side;
             if (targetFile is < 0 or > 7)
@@ -130,20 +152,25 @@ public static class MoveGenerator
             moves.Add(new Move((byte)from, (byte)to, promotion, flags));
     }
 
-    private static void StepMoves(Position position, int from, Colour us, int[] targets, List<Move> moves)
+    private static void StepMoves(Position position, int from, Colour us, int[] targets, bool quiet, List<Move> moves)
     {
         foreach (int to in targets)
         {
             var target = position[to];
             if (target.IsEmpty)
-                moves.Add(new Move((byte)from, (byte)to));
+            {
+                if (quiet)
+                    moves.Add(new Move((byte)from, (byte)to));
+            }
             else if (target.Colour != us)
+            {
                 moves.Add(new Move((byte)from, (byte)to, PieceType.None, MoveFlags.Capture));
+            }
         }
     }
 
     private static void SlideMoves(Position position, int from, Colour us, int firstDirection, int endDirection,
-                                   List<Move> moves)
+                                   bool quiet, List<Move> moves)
     {
         for (int d = firstDirection; d < endDirection; d++)
         {
@@ -152,7 +179,8 @@ public static class MoveGenerator
                 var target = position[to];
                 if (target.IsEmpty)
                 {
-                    moves.Add(new Move((byte)from, (byte)to));
+                    if (quiet)
+                        moves.Add(new Move((byte)from, (byte)to));
                     continue;
                 }
                 if (target.Colour != us)

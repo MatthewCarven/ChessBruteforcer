@@ -157,6 +157,35 @@ public class SearchTests : IClassFixture<RookEndgame>
         Assert.Equal(0, result.Score);
     }
 
+    // Quiescence generates only captures when not in check, every evasion when in check, and takes the
+    // check status Negamax hands it at depth 0; these three would each see a mate that isn't there, or
+    // miss one that is.
+
+    [Fact]
+    public void QuiescenceInCheckSearchesQuietEvasions()
+    {
+        // White is in check from the rook and can only step aside (Kg2, Kh2): no capture escapes, no mate.
+        int score = new Search(new TranspositionTable(1)).QuiescenceScore(Position.FromFen("7k/8/8/8/8/8/8/r6K w - - 0 1"));
+        Assert.True(score > -Search.MateBound, $"quiescence scored {score}: a mate");
+    }
+
+    [Fact]
+    public void QuiescenceSeesACaptureThatMates()
+    {
+        // Qxf7 is a capture, and mate: quiescence must find Black in check with no move.
+        int score = new Search(new TranspositionTable(1)).QuiescenceScore(
+            Position.FromFen("r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4"));
+        Assert.Equal(1, Search.MateIn(score));
+    }
+
+    [Fact]
+    public void AStalemateAtTheHorizonIsNotMate()
+    {
+        // Kc7 stalemates Black; a depth-1 search only stands pat there, and must not take it for mate.
+        var result = Think("k7/8/1PK5/8/8/8/8/8 w - - 0 1", 1);
+        Assert.Null(Search.MateIn(result.Score));
+    }
+
     /// <summary>
     /// Mate distances from the search, which knows nothing about the
     /// tables, must match the tables exactly: two independent methods, one

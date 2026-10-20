@@ -129,6 +129,68 @@ public class MoveGeneratorTests
         Assert.Equal(new[] { "a7a8b", "a7a8n", "a7a8q", "a7a8r" }, promotions);
     }
 
+    /// <summary>
+    /// Captures is what quiescence searches when not in check: Pseudo's captures (every promotion piece),
+    /// en passant and pushes to a queen, in Pseudo's order, at every position of a perft walk.
+    /// </summary>
+    [Theory]
+    [InlineData(Fen.StartPosition, 3)]
+    [InlineData(Kiwipete, 3)]
+    [InlineData(EnPassantPins, 4)]
+    [InlineData(Promotions, 3)]
+    [InlineData(CastlingDiscovery, 3)]
+    [InlineData(Middlegame, 3)]
+    [InlineData("r1n1k3/1P4P1/8/8/8/8/1p4p1/R1N1K2N w - - 0 1", 3)]   // both sides promote, pushing and capturing
+    [InlineData("8/8/8/KPp4r/8/8/8/7k w - c6 0 2", 3)]               // en passant, and a pinned one
+    public void CapturesAreWhatQuiescenceSearches(string fen, int depth)
+    {
+        var pseudo = new List<Move>(256);
+        var captures = new List<Move>(256);
+        long lists = 0;
+
+        void Walk(Position position, int plies)
+        {
+            MoveGenerator.Pseudo(position, pseudo);
+            MoveGenerator.Captures(position, captures);
+            Assert.Equal(pseudo.Where(m => m.IsCapture || m.Promotion == PieceType.Queen), captures);
+            lists++;
+            if (plies == 0)
+                return;
+            foreach (var move in MoveGenerator.Legal(position))
+            {
+                var undo = position.MakeMove(move);
+                Walk(position, plies - 1);
+                position.UnmakeMove(move, undo);
+            }
+        }
+
+        Walk(Position.FromFen(fen), depth);
+        Assert.True(lists > 1);
+    }
+
+    /// <summary>
+    /// PawnMoves used to allocate a two-number array per pawn per list, 46 bytes a node. (Kiwipete with its
+    /// kings off their home squares: a king at home makes castling ask Enum.HasFlag, which boxes in a Debug
+    /// build, as the tests run; optimized code doesn't.)
+    /// </summary>
+    [Theory]
+    [InlineData("r4k1r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R4K1R w - - 0 1")]
+    [InlineData("r4k1r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R4K1R b - - 0 1")]
+    public void GeneratingMovesAllocatesNothing(string fen)
+    {
+        var position = Position.FromFen(fen);
+        var moves = new List<Move>(256);
+        MoveGenerator.Pseudo(position, moves);   // (the first calls may compile)
+        MoveGenerator.Captures(position, moves);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 100; i++)
+        {
+            MoveGenerator.Pseudo(position, moves);
+            MoveGenerator.Captures(position, moves);
+        }
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
     [Fact]
     public void EnPassantThatExposesTheKingIsIllegal()
     {

@@ -1082,6 +1082,25 @@ it: **the rest of the search is now 74-76% of a node**, up from 61%.
   One caution for (b) and (c): the attack tables are ~840 KB and the net's
   feature weights 1.5 MB, in a 1.25 MB L2; the low ends allow for losing
   some of the tables there. Matthew's pick: decision K.
+- **Built (Matthew's K(a), 2026-10-20 late morning)**: `MoveGenerator.Captures`
+  (one generator with Pseudo, a `quiet` flag between them), quiescence using
+  it when not in check, Negamax handing quiescence its check status, and
+  PawnMoves without its allocation. `bench 9` on h1024-3m, the bot off, one
+  thread, alternated rounds, the engine's clock:
+
+  | build | knps | against today's | rounds faster, paired |
+  |---|---|---|---|
+  | today's | 1,744-1,748 | | |
+  | quiescence generating only what it searches | 2,180-2,188 | **+24.6% to +25.5%** | 16 of 16 |
+
+  Nodes 3,775,600 against 3,775,106 (PickNext's tie order). Under the
+  probe's +30%: each bench run is a fresh process, whose JIT warm-up both
+  builds pay alike; a variant with Captures as separate functions, as the
+  probe had it, ran +23.9% beside the flag's +24.6%, so the shared generator
+  costs nothing. Tests: 5 new (Captures equal to Pseudo filtered, in order,
+  over perft walks of 8 positions; no allocation; quiescence in check, a
+  capture that mates, a stalemate at the horizon); mutation battery 14 of
+  14 as expected (13 red, the one equivalent mutant green).
 
 ## Risks
 
@@ -1215,9 +1234,9 @@ today's build, and needs the NNUE tests and the mutation battery green.
   **+22% to +27%**.
 
 **K. The rest of the search** (measured 2026-10-20, "The rest of a node"
-above; open). Whichever is built is A/B'd with bench.ps1 against today's
-build and needs the full test suite green; the mutation battery for the new
-generator.
+above; **chosen: a**, the same morning; built: +24.6% to +25.5% `bench 9`).
+Whichever is built is A/B'd with bench.ps1 against today's build and needs
+the full test suite green; the mutation battery for the new generator.
 - **(a) Quiescence generates only what it searches** (recommended, first): a
   captures-only generator for quiescence when not in check (~70 lines, the
   probe's version checked equal to today's list filtered), Negamax handing

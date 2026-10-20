@@ -124,3 +124,9 @@ lever                                          saves a node                     
 smaller, estimated from the pieces above: table prefetch at make (26 ns a node at 256 MB; ~half recoverable): ~+3%; table move first,
 before generating (0.007 nodes a node cut on it): ~+1%; the tablebase precheck from a kept piece count: ~+1%;
 repetition: nothing (1.7 ns).
+
+=== Built afterwards ===
+Matthew's K(a), 11:43-11:45, the bot still off: `bench 9`, one thread, bench.ps1, alternated
+rounds. Today's 1,744 / 1,748 knps; quiescence generating only what it searches 2,188 / 2,180: +25.5% / +24.6%, 16
+of 16 rounds faster, 3,775,600 nodes against 3,775,106. Captures as separate functions instead of a flag: 2,167,
++23.9%. Under (a)'s +30% here because each bench run is a fresh process, paying the JIT's warm-up alike.

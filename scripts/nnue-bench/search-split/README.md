@@ -58,3 +58,11 @@ have reached a table (806 of 1.57 M at depth 9, no hits).
 
 Runs 1-3 were made before the lab's sampling hooks (`OnGen`, `OnChk`: a
 null check per call) were added; the scripts here have them.
+
+`qs-battery.py <repo>`: the mutation battery run on the build that followed
+(Matthew's K(a): quiescence generates only what it searches), 14 mutants of
+the repo's own sources, each restored after its run. Its test filter names
+classes: EngineTests.cs holds SearchTests, UciTests and four others, and a
+filter on "EngineTests" runs none of them. A mutant that crashes a test
+host can put a Windows dialog on the screen, and the run waits until it is
+answered.

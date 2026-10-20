@@ -4025,3 +4025,47 @@ has the tables; this is the story.
   such arms run with the network on, on their own tree. (4) The hooks cost
   nothing visible: the unhooked engine's `bench 9` read 1,731-1,756 knps
   (570-578 ns a node, fresh processes) against the probe's 515-522 warmed up.
+
+## 2026-10-20 (10:35-11:55): quiescence generates only what it searches (Matthew's K(a))
+
+- **Matthew chose (a)**: "A/B it with bench.ps1 against today's build,
+  tests and mutation battery green". The bot stayed off throughout (his,
+  from ~09:50); 5.8 GB of commit free.
+- **The change**: `MoveGenerator.Captures` is what quiescence searches when
+  not in check (captures with every promotion piece, en passant, pushes that
+  promote to a queen), in Pseudo's order. One generator serves both lists
+  through a `quiet` flag, so they can't drift apart. Quiescence uses it when
+  not in check and Pseudo (every evasion) in check; the line that skipped
+  the quiet moves is gone. Negamax hands quiescence the check status it has
+  just found (`knownCheck`). PawnMoves loops over its two capture sides
+  instead of allocating `new[] { -1, 1 }` per pawn. `Search.QuiescenceScore`
+  (internal) runs quiescence alone, for the tests.
+- **Tests**, 5 new: CapturesAreWhatQuiescenceSearches (8 positions, perft
+  walks to depth 3-4, Captures equal to Pseudo filtered, in order, at every
+  position); GeneratingMovesAllocatesNothing; QuiescenceInCheckSearchesQuiet
+  Evasions; QuiescenceSeesACaptureThatMates; AStalemateAtTheHorizonIsNotMate.
+  Full suite: 434 passed, 2 skipped. A Debug-build trap on the way: castling's
+  Enum.HasFlag boxes there whenever a king stands at home (96 bytes a
+  list), so the allocation test moves the kings off e1/e8; optimized code
+  doesn't box.
+- **Mutation battery**, 14 mutants: 13 red, and the one equivalent mutant
+  green as it should be (the hand-off told "not in check", which at depth 0
+  a node never is: check extends the depth, and no reduction takes it below
+  0). The first run left three quiescence mutants alive, because its filter
+  named `EngineTests`, which matches no class: EngineTests.cs holds
+  SearchTests, UciTests and four others, so the search's own tests never
+  ran. With the classes named (175 tests, 17 s) and the three quiescence
+  tests added, all red. Three mutants (quiet moves let into quiescence)
+  timed out at 300 s, red. One, knights and kings capturing their own
+  pieces, overflowed a test host's stack and put a System Error dialog on
+  Matthew's screen; the run waited on it until he clicked OK (749 s).
+- **`bench 9` A/B** on h1024-3m, one thread, alternated rounds, the engine's
+  clock: today's 1,744-1,748 knps; the new build 2,180-2,188, **+24.6% to
+  +25.5%** (two runs, 16 of 16 rounds faster, paired), 3,775,600 nodes
+  against 3,775,106 (PickNext's tie order). A variant with Captures as
+  separate functions, as the probe had it, ran +23.9% beside the flag's
+  +24.6%, so the shared generator stays. Under the probe's +30% because
+  each bench run is a fresh process and pays the JIT's warm-up, the same
+  for both builds.
+- **The bot** gets it at its next start once this branch is in compression
+  (Matthew's merge; it sits on the speed branch, `claude/stoic-goodall-ecc132`).
