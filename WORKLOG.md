@@ -4460,3 +4460,26 @@ has the tables; this is the story.
 - **Done**: this entry and the TODO's "In compression" committed on the branch,
   then compression fast-forwarded to it. Not pushed (Matthew's). The bot takes
   the Ctrl+C fix and quit.soon at his next `bot\start-bot.cmd`.
+
+## 2026-10-21 (01:05-01:40): piece pairs measured, h1024-3m already knows them (a side session)
+
+- **Asked** (from the NNUE teaching session): Matthew's idea of bonuses for
+  both rooks, both knights, both bishops and all three together, measured
+  first. What Stockfish says each pair is worth at equal material and stage,
+  and whether h1024-3m (and sf1) lean on it. Analysis only, nothing in the
+  engine or the trainer changed. The bot off, nothing else running.
+- **Result** (scripts/piece-pairs-2026-09.md; September's held-back
+  positions, 4.47 M from 175,885 games): Stockfish puts the **bishop pair at
+  +48 cp [+46, +51]** (+37 with every piece on, +78 with few left), the
+  **knight pair at about nothing** (+8 [+5, +10] by regression, -10 [-14, -6]
+  like for like) and the **second rook at -27 [-33, -20]**. "All three" can't
+  be told apart from a piece for pawns in these games. **h1024-3m's lean is -1,
+  0 and +2 cp** on the three (+4 on all three) at its own scale, within 2 cp
+  in every stage band: it has learned them. sf1 has the bishop pair right and
+  overvalues the second rook by 26 cp (it has no such term).
+- **Decision for Matthew** (in the report): (a) nothing to do (recommended);
+  (b) a bonus or pair inputs for the net, worth at most ~2 cp; (c) a rook-pair
+  term in sf1, only if sf1 plays again.
+- **New**: scripts/nnue/piece-pairs.py (features, net, report: like-for-like
+  means and squashed-scale regressions, intervals by game, sandwich checked
+  against 20 bootstrap refits); scripts/piece-pairs-2026-09-full.md its output.
