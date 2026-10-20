@@ -241,6 +241,14 @@ commit headroom while the bot plays: ~2 GB free at least (the engine alone
 holds ~0.8 GB of tables plus its hash). The second 16 GB stick (section 4)
 fixes it for good; until then, a bigger page file would raise the limit
 (Matthew's setting). If it ever happens with headroom, look closer.
+**It happened with headroom** (2026-10-20 22:27:24, 16 minutes after a
+restart): the same TypeError, `len(active_games)` this time, 50 s after a
+game ended and 10 s before matchmaking's next challenge; no
+Resource-Exhaustion event, 3.5 GB of commit free a minute later, nothing
+in the Application log. run-bot.ps1 died with it again (no restart line).
+So memory isn't the whole cause: the manager's proxies, our patches to the
+challenge flow and the restart loop want a look. The bot is off until it's
+restarted.
 
 **The ponder note** (2026-10-20, Matthew asked; WORKLOG): 23% of the bot's
 engine moves logged "Source: Engine" and no stats, every one a ponder hit

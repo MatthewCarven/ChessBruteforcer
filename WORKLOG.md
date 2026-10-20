@@ -4310,3 +4310,18 @@ has the tables; this is the story.
   h1024-3m, the old engine) read 7.1 / 7.0 / 6.7 / 6.2 / 3.6 Mnps (medians)
   at moves 10-19 / 20-29 / 30-39 / 40-59 / 60 on, with h768-3m's match on 5
   cores for part of the morning, so a little low.
+- **The bot on the new engine** (Matthew's `bot\start-bot.cmd` at 22:11,
+  the build has the aligned kernels and the bitboards; net sha256
+  510a8d0e6c43): one game, a loss by mate as black to BretemaBot (2798, the
+  bot's own matchmaking: 2249-2849), its evaluation -0.84 out of the book
+  and a slide from move 60. Speed lines: 20.8 / 19.3 / 17.4 / 17.1 / 15.1
+  Mnps at the same move bands, 2.6-2.9x this morning's (4.2x from move 60);
+  more than the clean 2.0x because the morning's ran beside the match. One
+  game is thin.
+- **Then lichess-bot quit** at 22:27:24, 50 s after the game: the
+  accept_challenges TypeError again (`len(active_games)` gave None), the
+  third time, and this time with headroom (no Resource-Exhaustion event;
+  3.5 GB of commit free a minute later). run-bot.ps1 died with it, so no
+  restart. The engine wasn't involved (the game had ended, its process
+  freed). In TODO for a closer look; the bot stays off until Matthew
+  restarts it.
