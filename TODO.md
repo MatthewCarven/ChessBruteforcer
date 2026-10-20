@@ -152,9 +152,14 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     AVX-512 with 64-byte alignment (+16.7% `bench 9` at 1024), then the lazy
     update (+23.7% in all). **In compression** since 2026-10-20 ~21:50,
     with K(a) and the bitboards below (not pushed). It takes effect when the
-    bot restarts between games (`bot\start-bot.cmd` builds the engine); then
-    compare its Speed lines with today's for the 8-thread effect
-    (`CB_NNUE_SIMD=256` is the fallback if AVX-512's clock cost shows).
+    bot restarts between games (`bot\start-bot.cmd` builds the engine).
+    **8 threads, measured** (22:03, the bot off; NNUE.md "Speed at 1024"):
+    compression's engine searches **+101.6%** faster than the bot's
+    morning engine over UCI as the bot runs it (10.1 to 20.3 M nodes a
+    second, a ply deeper in 2 s), all of today's work together; AVX-512's
+    own share +12.1% on 8 threads (+12.6% on one), so no clock cost: keep
+    512 bits. Left: the bot's own Speed lines once it plays (this
+    morning's: 7.0-7.1 Mnps at moves 10-29).
   - **The rest of a node, measured** (2026-10-20, a side session, branch
     `claude/friendly-cray-e85e18` on top of the speed branch; NNUE.md "The
     rest of a node"): outside the network is 74-76% of a node now. Ordering

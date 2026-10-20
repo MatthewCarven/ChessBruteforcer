@@ -4289,3 +4289,24 @@ has the tables; this is the story.
 - This branch was then fast-forwarded to compression (31dcbb8) for this
   entry and the TODO's handoff ("In compression" where it said "Matthew
   merges"), and compression fast-forwarded to it.
+
+## 2026-10-20 (22:00-22:10): 8 threads, measured (the speed session)
+
+- Matthew asked for the bot's Speed lines against the morning's, for the
+  8-thread effect. The bot was still off (stopped 09:48:32, "Termination
+  requested", for memory), its engine copy this morning's 03:27 build. So
+  the 8-thread figure was taken directly instead, with the laptop to
+  itself: `scripts/nnue-bench/speed-1024/uci-ab.py`, each build over UCI as
+  the bot runs it (EvalFile h1024-3m, Threads 8, Hash 256 MB, no tables),
+  2 s on each of bench's six positions, arms in turn, 5 rounds, one engine
+  at a time (commit 3.0 GB free).
+- **The bot's morning engine (efd4fbd) 10.1 M nodes a second; compression
+  (81173f8) 20.3 M, +101.6%**, a ply deeper in 2 s (12.00 to 13.07); held
+  at 256 bits 18.1 M (+79.8%). So AVX-512's share on 8 threads is +12.1%,
+  against +12.6% on one thread: no clock cost with 8 cores busy, and 512
+  bits stay on. One thread, the earlier entry's `bench 9` gave 1.85x; on 8
+  threads it's 2.02x.
+- For the bot's own Speed lines later: this morning's (33 games on
+  h1024-3m, the old engine) read 7.1 / 7.0 / 6.7 / 6.2 / 3.6 Mnps (medians)
+  at moves 10-19 / 20-29 / 30-39 / 40-59 / 60 on, with h768-3m's match on 5
+  cores for part of the morning, so a little low.
