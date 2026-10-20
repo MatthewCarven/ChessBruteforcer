@@ -942,6 +942,25 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   loads at most 1024 hidden (Network.MaxHidden): its match needs that
   raised first, a small C# change on Matthew's word (the int32 sums fit at
   1536: 192 x 255 x 32,640 = 1.6 billion).
+- **h1536-3m done 18:34** (desktop clock; 13 h 48 min, 135-138 k positions
+  a second, commit flat at ~2.5 GB with the smaller held-back chunks):
+  `games\nnue\nets\h1536-3m.nnue`, 2,368,580 bytes, QB 64, network sha256
+  50bedcc21898... As the engine computes it on September's held-back
+  positions:
+
+  | net | at K 1 | at its own K |
+  |---|---|---|
+  | h512-3m | 0.013640 | 0.013437 (K 1.10) |
+  | h768-3m | 0.013038 | 0.012795 (K 1.12) |
+  | h1024-3m (the bot's) | 0.012659 | 0.012432 (K 1.11) |
+  | **h1536-3m** | **0.012193 (-3.7%)** | **0.011952 (-3.9%, K 1.12)** |
+
+  As guessed beforehand (-3 to -4% against h1024-3m). Not yet loadable:
+  MaxHidden is still 1024 on every branch, including the engine-speed
+  chain (AVX-512, quiescence, bitboards; awaiting Matthew's merge). Its
+  AVX2 forward pass sums H / 8 products a lane, which fits up to 2048
+  (256 x 255 x 32,767 = 2.14 billion against 2.147); the AVX-512 one H /
+  16, up to 4096.
 
 ## Risks
 

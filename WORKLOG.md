@@ -3953,3 +3953,21 @@ has the tables; this is the story.
   after a ponderhit, so those moves get stats too. Left for after the
   optimisation session's work in src lands (Matthew is in it now).
 - Goes live at the bot's next `bot\start-bot.cmd`.
+
+## 2026-10-20 (18:34-18:50): h1536-3m done, -3.9% against h1024-3m
+
+- **h1536-3m finished 18:34:13** (desktop clock), exit 0: 10 passes at
+  135-138 k positions a second (13 h 48 min); training error 0.010613;
+  held back as the engine computes it **0.012193 at K 1, 0.011952 at K
+  1.1158: -3.7% / -3.9% against h1024-3m**, inside the -3 to -4% guessed.
+  The trainer's commit stayed at ~2.5 GB (h1024-3m's run, before the
+  chunk fix, held 5.9 GB). Fetched into games\nnue\nets\ (file sha256
+  8c9a7a4e..., network 50bedcc21898).
+- Not loadable yet: MaxHidden is 1024 on every branch, the engine-speed
+  chain (stoic-goodall, friendly-cray, affectionate-hugle, busy-newton:
+  AVX-512 and the lazy update, quiescence, bitboards session 1; awaiting
+  Matthew's merge) included. Raising it to 2048 is safe for both forward
+  passes there (AVX2: H / 8 products a lane, 2.14 billion at 2048; AVX-512:
+  H / 16). The question for Matthew: where and when (C#, his word).
+- compression merged into the branch again (the ponder-note work; WORKLOG
+  in time order).
