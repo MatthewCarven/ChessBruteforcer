@@ -4325,3 +4325,19 @@ has the tables; this is the story.
   restart. The engine wasn't involved (the game had ended, its process
   freed). In TODO for a closer look; the bot stays off until Matthew
   restarts it.
+- **Restarted 22:33 (Matthew); the Speed lines over 5 games** (to 23:05: a
+  loss to BretemaBot 2798, wins over FSChess-Engine 2370 and TalosBot 2463,
+  a draw with TalosBot 2457, Jamie22553 2892 in progress; no crash since).
+  Split by whether another game was on at the same time (concurrency 2:
+  two 8-thread engines then share the 16 logical CPUs, and each runs at
+  ~0.6x), the medians at moves 10-19 / 20-29 / 30-39 / 40-59:
+
+  | | this morning, old engine | tonight, new engine | |
+  |---|---|---|---|
+  | alone | 9.8 / 9.6 / 9.5 / 8.4 Mnps | 19.5 / 20.0 / 17.4 / 17.1 | 1.8-2.1x |
+  | beside another game | 6.3 / 6.1 / 6.1 / 5.9 | 11.9 / 12.0 / 11.5 / 11.4 | 1.9-2.0x |
+
+  About 2x in play, as the clean 8-thread A/B said (2.02x). (Moves 60 on
+  are left out: the tables answer there at once, so the Speed lines say
+  nothing.) The earlier "2.6-2.9x" for the first game compared it, played
+  alone, with the morning's mix of single and paired games.
