@@ -811,6 +811,21 @@ Sessions, in order:
       called +0.25 and drew a game it had been winning. Check our losses and
       draws for the same shape (the bot's eval v Stockfish's, by material),
       before any training change.
+- [ ] **Later, should the other levers run out: the piece-pair options**
+      (Matthew, 2026-10-21: b and c on the long-term list, "the closer we fit
+      to real life"; [scripts/piece-pairs-2026-09.md](scripts/piece-pairs-2026-09.md)).
+      Stockfish: bishop pair +48 cp, knight pair ~0, second rook -27.
+      h1024-3m already leans by only -1, 0 and +2 cp on them (+4 on all
+      three), so neither is worth a match yet. Before either, re-measure the
+      lean on whatever net plays then (`scripts/nnue/piece-pairs.py`, ~8 min).
+      - [ ] (b) A pair bonus beside the net, or pair flags as extra inputs:
+            at most ~2 cp to correct (~5 for all three, in 2.4% of
+            positions). A bonus: an engine change, tests, a match (~2 h, the
+            bot off). Inputs: a new input layout in the trainer and the
+            engine, a ~12 h retrain on the 1660, and the match.
+      - [ ] (c) A rook-pair term in sf1, which overvalues the second rook by
+            +26 cp [+21, +32] (it has none): a Texel round (~1 h) and a match
+            against sf1 (~2 h, the bot off). Only if sf1 plays again.
 
 ### 3. Findings for the thesis
 
