@@ -711,8 +711,16 @@ Sessions, in order:
             part of what our own search left in the table, so the next
             search does 8-24% more work. Proposals, each with effort,
             expected gain and the measurement, in PONDER.md:
-            - [ ] P1: a final `info` after ponderhit (task_16a444a7): stats on
-                  every move. UciEngine, ~1 h. No Elo.
+            - [x] P1: a final `info` after ponderhit (task_16a444a7): stats on
+                  every move. UciEngine, ~1 h. No Elo. (Done 2026-10-21 on
+                  claude/p1-final-info-a1e9a9, not merged yet: a hit with no
+                  new depth sends its last line again before `bestmove`.
+                  Through python-chess, hits with no stats went from 14 of
+                  27 to 0 of 33. PonderTests 13 → 20, 11 of 12 mutations
+                  caught (the 12th a race, now ruled out by the code), suite
+                  484 passed. After the bot's next restart, ponderlog.py
+                  should show 0 hits with no info after ponderhit; PONDER.md,
+                  "Results".)
             - [ ] P2: a hit may finish the depth it would drop, within the
                   move's planned time, and stops by then. Search.PonderHit,
                   ~2 h.

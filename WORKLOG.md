@@ -4525,3 +4525,46 @@ pondering, and was moved to compression's 81173f8 before any commit.
   results are in scripts/ponder-scope/. The bot wasn't running (no
   lichess-bot or engine process from 00:05). There was 4.0 GB of commit
   free before the build and 5.9 GB during the runs.
+
+## 2026-10-21 (00:48-01:10): P1, a final info line after ponderhit (a side session)
+
+Decision M: Matthew chose all six proposals, P1 to P6, a session each, in
+turn. This is P1 (the card task_16a444a7), on branch
+claude/p1-final-info-a1e9a9, cut from claude/ponder-tree-scope-5945b6
+(1d56571). compression (6975e96) was already inside it, so no rebase was
+needed. P2 builds on this branch. Not merged.
+
+- **The change** (UciEngine, plus `Search.Elapsed`): when a ponder search
+  that got `ponderhit` answers with no `info` line sent since the hit, the
+  engine sends its last line again just before `bestmove`. The depth, score
+  and pv are the same; nodes, time (from `go ponder`) and hashfull are as of
+  the answer. No new depth, the same move. A miss sends nothing again.
+  python-chess keeps only the lines after `ponderhit`, so 45% of the bot's
+  hits on 10-20 (23% of its engine moves) had no stats. One lock covers
+  sending every `info` line, the last line and the two flags, and
+  `ponderhit` calls `Search.PonderHit` under it, so an answer at once can't
+  miss the hit.
+- **Through python-chess** (the bot venv's 1.11.2, `play(..., info=INFO_ALL,
+  ponder=True)` as lichess-bot calls it; 4 threads, 6 s + 0.5 s, the
+  opponent waiting 0-2x the planned time): hits with no depth or score in
+  the result went from 14 of 27 (the build before) to 0 of 33.
+- **Tests**: PonderTests 13 → 20. A hit answered at once sends its last
+  line again (1, L4, R4, two rounds in one engine); a hit that finishes a
+  depth after the hit sends nothing again (1, L4, R4); a table move found at
+  depth 1 while pondering is sent again; a miss sends nothing again (an
+  assertion in the stop test). **Mutations: 12, 11 caught.** The survivor
+  noted the hit only after `Search.PonderHit` released the search, a race
+  the UCI thread nearly always wins. The code now does both under the lock,
+  so their order doesn't matter. Full suite: 484 passed, 2 skipped.
+  bot/test-ponder-note.py passed, run on a copy of lichess-bot.
+- **scripts/ponder-scope**: ponderlog.py has `new_infos_after_hit`, the
+  lines after a hit not counting the one sent again, and prints how many
+  hits had only that one. ponderlog2.py uses it, so its rows keep their
+  meaning on logs from after P1. On the 10-20 log both print what they
+  printed before (plus the new line, at 0).
+- **For Matthew, after the bot's next restart** (with this merged):
+  ponderlog.py on that day's DEBUG log should say "hits with no info after
+  ponderhit: 0", and bot/logs/bot-<date>.log should have no "no depth
+  finished after the hit to report" (183 on 10-20).
+- No Elo match (none needed: the moves don't change). 10.8-12.2 GB of
+  commit free throughout; the bot wasn't running.

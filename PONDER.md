@@ -288,6 +288,75 @@ what this pass found. It spends only clock the bank already holds, and never mor
 pondering off would. P1 rides along: it's an hour, and its test sits beside P2's in PonderTests. P3 is
 worth trying only if a bank still shows after P2.
 
+## Results
+
+### P1: a final `info` after ponderhit (2026-10-21, done)
+
+A side session, branch `claude/p1-final-info-a1e9a9`. **When a ponder search that got `ponderhit` answers
+with no `info` line sent since the hit, the engine now sends its last line again, just before `bestmove`.**
+The depth, score and line (pv) are the same. Nodes, time and hashfull are as of the answer, with the time
+counted from `go ponder`, as the engine's clock counts it. Nothing else changes: no new depth, the same move.
+A miss (`stop`) sends nothing again.
+
+That covers every kind of hit that had no stats: those stopped at once, those whose depth in progress the
+hard limit cut, a ponder search that ended by itself (a mate seen, a depth limit), and a move from the
+endgame tables, which is reported as depth 1 while pondering. lichess-bot then logs real stats for those
+moves, and its draw-offer and resign runs no longer see its "mate in 1 for us" placeholder.
+
+An example from the run below. The hit came at 1,142 ms, past the budget, and stopped the search at once:
+
+```
+>> info depth 12 score cp 35 nodes 12170983 nps 15119233 time 805 hashfull 517 pv b1c3 g8e7 a2a3 b4a5 ...
+<< ponderhit
+>> info depth 12 score cp 35 nodes 17038733 nps 14920081 time 1142 hashfull 552 pv b1c3 g8e7 a2a3 b4a5 ...
+>> bestmove b1c3 ponder g8e7
+```
+
+**How.** UciEngine keeps the search's last line and two flags (the hit came; a line went out after it)
+under one lock. Every `info` line is sent under that lock, and `ponderhit` notes the hit and calls
+`Search.PonderHit` under it too. So a hit that answers at once can't miss the hit, and a line written
+before the engine read `ponderhit` doesn't count as after it. (python-chess starts keeping lines just
+before it sends `ponderhit`, so it may count such a line as well. Then the line sent again repeats a depth
+it already has, and its stats just take the newer nodes and time. Harmless.) `Search.Elapsed` (the
+search's clock) is new.
+
+**Measured**, with the engine driven through python-chess exactly as lichess-bot drives it (`play(...,
+info=INFO_ALL, ponder=True)`). A game of 60 plies against nobody: 4 threads, a 6 s + 0.5 s clock (about
+0.57 s planned a move). The opponent waits 0, 0.25, 0.8 or 2 times the planned time, and plays the reply
+we pondered on four times in five.
+
+| build | hits | hits with no depth or score in python-chess's result | hits with no `info` after `ponderhit` (ponderlog.py) |
+|---|---:|---:|---:|
+| before P1 (1d56571) | 27 | **14 (52%)** | 14 |
+| with P1 | 33 | **0** | 0 (in 14, 42%, the only line after the hit is the one sent again) |
+
+The two runs' games part early, since the timing differs, hence 27 hits against 33. In the bot on
+2026-10-20 it was 45% of hits (619 of 1,364).
+
+**Tests** (PonderTests, 13 → 20):
+
+| test | threads | what it checks |
+|---|---|---|
+| APonderHitAnsweredAtOnceSendsItsLastInfoAgain | 1, L4, R4 | Ponder past the whole budget, then `ponderhit`, twice in one engine. An `info` line comes between `ponderhit` and `bestmove`: the last depth's depth, score and pv, more nodes, and a time counted from `go ponder`. |
+| APonderHitThatFinishesADepthSendsNothingAgain | 1, L4, R4 | A hit at once on a 10 s clock: depths finish after the hit, and no depth is sent twice. |
+| ATableMoveFoundWhilePonderingIsSentAgainAfterTheHit | 1 | A K+R v K table move (depth 1) found while pondering is sent again after the hit. |
+| PonderThenStopGivesABestmoveAtOnce (one assertion added) | 1, L4, R4 | A miss sends nothing again. |
+
+Mutations: 12 of the new lines, 11 caught. The one that lived noted the hit only after releasing the
+search. That's a race the UCI thread nearly always wins, so no test can force it. The code now does both
+under one lock, so their order no longer matters. Full suite: 484 passed, 2 skipped. `bot/test-ponder-note.py`
+passes (run on a copy of lichess-bot).
+
+**Confirming it in the bot**, after the next restart once this is merged (start-bot.cmd builds the engine
+from the main checkout):
+- `python scripts/ponder-scope/ponderlog.py bot/lichess-bot/lichess_bot_auto_logs/lichess-bot.log.<date>`
+  should say "hits with no info after ponderhit: 0 of N" (619 of 1,364 on 10-20). Its new line, "hits whose
+  only info after ponderhit is the last one sent again (P1)", should be about 45%.
+- Simpler: the bot's INFO log, `bot/logs/bot-<date>.log`, should have no more "no depth finished after the
+  hit to report" (183 on 10-20). The ponder-note patch writes that only when a hit has no score.
+- `ponderlog2.py` doesn't count the line sent again as a depth finished (`new_infos_after_hit` in
+  ponderlog.py), so its three rows keep their meaning on logs from after P1.
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's

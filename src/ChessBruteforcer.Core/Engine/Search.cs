@@ -268,6 +268,9 @@ public sealed class Search
     /// <summary>Nodes searched in the current or last search, by this thread and its helpers.</summary>
     public long Nodes => TotalNodes;
 
+    /// <summary>Time since the current or last search began ("go", or "go ponder" for a ponder search).</summary>
+    public TimeSpan Elapsed => _clock.Elapsed;
+
     /// <summary>The positions the current or last search's helpers searched from (each thread's own copy of the root).</summary>
     internal IEnumerable<Position?> HelperRoots => _helpers.Take(_activeHelpers).Select(helper => helper._root);
 

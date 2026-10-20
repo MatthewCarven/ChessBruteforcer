@@ -88,6 +88,16 @@ def parse(paths):
     return searches
 
 
+def new_infos_after_hit(s):
+    """A hit's info lines after ponderhit that report a depth of their own. Since P1 (2026-10-21) a hit that answers
+    with no new depth finished sends its last line again, so python-chess has its stats; that one isn't counted."""
+    k = s["infos_before_hit"]
+    after = s["infos"][k:]
+    if len(after) == 1 and k and after[0][1] == s["infos"][k - 1][1]:
+        return []
+    return after
+
+
 def q(values, p):
     values = sorted(values)
     if not values:
@@ -127,6 +137,9 @@ def main():
     row("hit: pondered / soft budget", frac, "{:.2f}")
     no_info_after = [s for s in hits if len(s["infos"]) == s["infos_before_hit"]]
     print(f"\nhits with no info after ponderhit: {len(no_info_after)} of {len(hits)} ({len(no_info_after)/max(1,len(hits)):.1%})")
+    sent_again = [s for s in hits if len(s["infos"]) > s["infos_before_hit"] and not new_infos_after_hit(s)]
+    print(f"hits whose only info after ponderhit is the last one sent again (P1): {len(sent_again)} of {len(hits)} "
+          f"({len(sent_again)/max(1,len(hits)):.1%})")
     d_before = [s["infos"][s["infos_before_hit"] - 1][1] for s in hits if s["infos_before_hit"] > 0]
     d_final = [s["infos"][-1][1] for s in hits if s["infos"]]
     print("\n| quantity (ms or plies) | n | p25 | median | p75 | mean |\n|---|---:|---:|---:|---:|---:|")

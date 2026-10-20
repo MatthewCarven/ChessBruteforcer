@@ -7,7 +7,7 @@ import statistics as st
 from collections import defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ponderlog import parse, budget, q, row  # noqa: E402
+from ponderlog import parse, budget, q, row, new_infos_after_hit  # noqa: E402
 
 
 def main():
@@ -17,7 +17,7 @@ def main():
     at_once, finished, wasted = [], [], []
     for s in hits:
         after = 1000 * (s["end"] - s["hit"])
-        n_after = len(s["infos"]) - s["infos_before_hit"]
+        n_after = len(new_infos_after_hit(s))   # (not the last line sent again: that's no depth finished)
         if n_after > 0:
             finished.append(s)
         elif after < 20:
@@ -65,7 +65,7 @@ def main():
     print(f"\nfinished after hit: first depth reported after the hit = the depth before it + 1 in {cont} of {len(finished)}; "
           f"depth 1 (a restart) in {restart}")
     print("\n| went on and finished | n | p25 | median | p75 | mean |\n|---|---:|---:|---:|---:|---:|")
-    row("depths finished after the hit", [len(s["infos"]) - s["infos_before_hit"] for s in finished])
+    row("depths finished after the hit", [len(new_infos_after_hit(s)) for s in finished])
     row("ms after ponderhit", [1000 * (s["end"] - s["hit"]) for s in finished])
 
     # clock at the end of each game (per engine pid): our clock in the last go, and the clock we started with
