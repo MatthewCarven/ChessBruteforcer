@@ -4568,3 +4568,57 @@ needed. P2 builds on this branch. Not merged.
   finished after the hit to report" (183 on 10-20).
 - No Elo match (none needed: the moves don't change). 10.8-12.2 GB of
   commit free throughout; the bot wasn't running.
+
+## 2026-10-21 (06:45-11:00): does depth win games? (p2.1, a side session)
+
+Matthew's question, prompted by P2 measuring a one-ply-on-some-moves change
+that looks near zero: what is more search worth to our engine in games?
+Branch claude/gallant-nash-c4b034, fast-forwarded onto compression (7cb0adb)
+first; it had no commits of its own.
+
+- **The match tool** gave both sides one clock and had no depth. Now an
+  engine's settings take `tc=<time control>` in place of `--tc`: a clock
+  (time odds) or `depth=<n>` (`go depth n`, no clock charged, 10 minutes
+  before it counts as no answer); `--tc depth=<n>` works too. GamePlayer.Play
+  takes an optional `blackClock`, the MoveRequest carries each side's
+  increment and the mover's depth, and a PGN with two controls gets
+  WhiteTimeControl / BlackTimeControl tags. Two new tests; the match,
+  takeover and UCI tests pass (41), and the Cli builds. Commit 793d71d.
+- **scripts/depth-match.py** plays a list of pairs (`7v6`, `13v12/300`,
+  `20+0.2v10+0.1`) one after another: this checkout built and copied to
+  %TEMP%\cb-depth, the bot's network (h1024-3m, sha256 96dc708dac17), one
+  thread and Hash 64 each, the 300 openings in colour-reversed pairs, our
+  tables adjudicating, below-normal priority; depth pairs 7 at a time (a
+  one-thread fixed-depth search plays the same game however loaded the
+  machine is), clock pairs 5. It waits before each pair while any other
+  ChessBruteforcer.Engine.exe runs or commit is under 2 GB. Logs and PGNs in
+  games\depth\ (main checkout). The logs say commit 7cb0adb: the binaries
+  were built from the working tree a minute before 793d71d recorded it, the
+  same code. **scripts/depth-summary.py** prints the table.
+- **Results** (MATCHES.md, "More search against less"; nothing else ran, the
+  bot stopped):
+
+  | pair | games | +W -L =D | Elo [95%] | time |
+  | --- | --- | --- | --- | --- |
+  | depth 7 v 6 | 600 | +321 -56 =223 | +165 [+143, +188] | 4 min |
+  | depth 9 v 8 | 600 | +261 -43 =296 | +132 [+113, +152] | 18 min |
+  | depth 11 v 10 | 600 | +207 -31 =362 | +105 [+88, +122] | 1 h 41 min |
+  | 20+0.2 v 10+0.1 | 600 | +212 -65 =323 | +87 [+68, +106] | 1 h 26 min |
+
+  A ply is worth 20% less every two plies deeper and costs ~2.2x the time,
+  so a doubling of time is ~0.88 ply, ~+92 by the depth pairs at depths
+  10-11, against +87 measured on the clock. Mean depth at 10+0.1 on one
+  thread: 10.8 (12.0 at 20+0.2). Smoke tests, 14 games each, not pooled:
+  depth 9 v 8 +130, 11 v 10 +102, 13 v 12 +76 [0, +159]. No time losses,
+  crashes or illegal moves in 2,400 games.
+- **For P2 and the pondering proposals**: a whole ply on every move is
+  ~+105 at the bot's depth, so a ply on a fraction of moves is worth at
+  most about that fraction of it, and a gain of 10 Elo needs ~2,000 games
+  for its 95% interval to clear zero (at ~55% draws).
+- **Stopped, on Matthew's word (10:42), so he could start the bot**: depth
+  13 v 12 (300 games, ~4 h; 3 played, kept as d13-d12-stopped.*) and the 4x
+  pair (40+0.4 v 10+0.1, 400 games), which he'll run himself after P3.
+  Stopping the driver (python) left its running match going on its own,
+  then stopping the match tool took its engines with it; nothing was left
+  running. TODO has both, and the optional "think long early" arm.
+- 9.3-10.4 GB of commit free throughout.

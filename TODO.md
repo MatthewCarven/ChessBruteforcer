@@ -675,6 +675,24 @@ Sessions, in order:
         that size, and 4-byte block offsets (~55 MB in memory at 8 KB).
         Recompress from the compressed files, one at a time, each checked
         against the old before it replaces it.
+- [ ] **Does depth win games?** (Matthew, 2026-10-21; MATCHES.md "More search
+      against less", branch claude/gallant-nash-c4b034, not merged yet.) Yes:
+      one more ply is worth +165, +132, +105 Elo at depths 6-7, 8-9, 10-11
+      (600 games each; 20% less every two plies), and twice the clock at
+      10+0.1 +87 [+68, +106] (a ply costs ~2.2x the time, so the two agree).
+      The match tool takes `tc=` per engine now (a clock, or `depth=N`);
+      `scripts/depth-match.py` plays a list of pairs.
+      - [ ] Depth 13 v 12, 300 games (~4 h with the machine to itself;
+            stopped at game 3 on Matthew's word so the bot could play):
+            `python scripts/depth-match.py 13v12/300`. Fixed depths give the
+            same games beside other work, so it can run beside the bot if
+            he's happy to share the cores.
+      - [ ] 4x time odds, `40+0.4v10+0.1/400` (~1 h 45 min, the machine to
+            itself). Matthew's, after P3.
+      - [ ] Optional: "think long early", an arm that spends much more of
+            its clock on its first moves out of book, against normal time
+            use (needs an engine option; the effect is likely under 20 Elo,
+            so ~2,000 games).
 - [ ] **Pondering** (2026-10-15, branch claude/vigilant-murdock-d223f5, built on
       the threads branch; WORKLOG "pondering, and what it's worth"): the engine
       thinks on the opponent's time (`go ponder`, `ponderhit`, `bestmove ...
@@ -800,6 +818,9 @@ Sessions, in order:
 
 ### Done lately (details in WORKLOG)
 
+- 2026-10-21: **does depth win games?** One more ply +165 / +132 / +105 Elo
+  at depths 6-7 / 8-9 / 10-11; twice the clock at 10+0.1 +87 [+68, +106]
+  (2,400 games; MATCHES.md).
 - 2026-10-17 (night): **nnue1-h512 +76 Elo [+45, +107] over nnue1** (285
   games, SPRT accepted H1), after the bot beat Stockfish-2500 10-0 at 3+2;
   Matthew chose to switch the bot to it at its next start.
