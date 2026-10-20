@@ -252,7 +252,8 @@ flags; bot\test-sigint.py; a held Ctrl+C failed 0 of 6 trials, 5 of 10
 before) goes in after the ponder note, and run-bot.ps1 writes "lichess-bot
 stopped by Ctrl+C after N min" (or "between runs") to restarts.log. **Takes
 effect** when branch `claude/cranky-rhodes-c9f479` is merged into compression
-and the bot restarted between games with `bot\start-bot.cmd`. Upstream
+and the bot restarted between games with `bot\start-bot.cmd`; stop the bot
+before the merge (its window reads start-bot.cmd as it goes). Upstream
 lichess-bot (master, 2026-10-20) has the same handler: reporting it is his
 call.
 

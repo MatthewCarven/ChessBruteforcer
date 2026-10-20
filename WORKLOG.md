@@ -4398,4 +4398,7 @@ has the tables; this is the story.
   real file parses clean.
 - **Takes effect** when this branch is merged into compression and the bot is
   restarted between games with `bot\start-bot.cmd` (Matthew's, both). Not
-  pushed.
+  pushed. **Stop the bot before merging**: cmd.exe reads start-bot.cmd line by
+  line as it runs, so if the file changes under a running window and its pwsh
+  then exits without a Ctrl+C (the loop giving up), cmd carries on at its old
+  byte position in the new file: mid-block, then the line that starts the bot.
