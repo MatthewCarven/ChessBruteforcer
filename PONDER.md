@@ -427,6 +427,21 @@ early, where the cap applies. And at 10+0.1 a move gets about 0.2 s on one threa
 4.8 s on eight threads (depth 15); deeper, a ply may be worth more against the clock it costs. Self-play also
 overstates hits (69% against the bot's 56.5%).
 
+**The split** (Matthew's choice after that). `PonderCap` became an option of its own (check, default true), so
+`PonderFinish=false,PonderCap=false` is the rule before P2, and each half can play against it. Same conditions as
+above.
+
+| A v B (both off), 10+0.1 | games | +W -L =D | Elo [95%] | SPRT [0, 10] | A's clock a move after a hit / otherwise | clock left at the end, A / B |
+|---|---:|---|---|---|---|---|
+| both rules (P2 as first measured) | 360 | +61 -103 =196 | **-41 [-65, -17]** | H0 at 358 | 167 / 243 ms (B 139 / 262) | 34% / 43% |
+| cap only | 575 | +106 -142 =327 | **-22 [-41, -3]** | H0 at 571 | 130 / 267 ms (B 150 / 253) | 46% / 40% |
+
+The cap alone loses too, though it spends *less* after hits and leaves more clock for the misses and the end. So
+the "time after a miss is worth more" reading can't be the whole story. What the cap does is cut a depth that a
+plain search would have finished, by 3S, and an unfinished depth is thrown away (Search.cs:244, P4's subject): the
+time it ran buys nothing, and the move comes from the depth before. In self-play most hits come early (the
+opponent's own hit makes it reply at once), which is where the cap bites.
+
 **Tests** (PonderTests 20 → 48):
 
 | test | threads | what it checks |
