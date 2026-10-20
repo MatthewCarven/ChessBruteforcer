@@ -40,7 +40,7 @@ is spent slowly, so games end with a lot of clock left.
 | command | what it does to what the search knows |
 |---|---|
 | `go ponder <clock>` | A new search (`Search.Prepare`). It clears the history and killers, keeps the table and starts its clock now. It works out the budget from `<clock>` but holds it back (soft and hard limits 0) until `ponderhit`. |
-| `ponderhit` | `Search.PonderHit` (Search.cs:166): the budget now applies, counted from `go ponder`. A depth begun past half the planned time is stopped at once, and the answer is the last finished depth. Otherwise the depth goes on, as it would in a plain search. |
+| `ponderhit` | `Search.PonderHit` (Search.cs:166): the budget now applies, counted from `go ponder`. A depth begun past half the planned time is stopped at once, and the answer is the last finished depth. Otherwise the depth goes on, as it would in a plain search. (Since P2, below: such a depth may finish within the planned time of the hit, and nothing runs past it.) |
 | `stop` | Stops the search. Clears nothing (UciEngine.cs:103). |
 | `position` | Stops any search and sets the board. Clears nothing (UciEngine.cs:90, `SetPosition`). |
 | `go` | A new search: clears the **history and killers** (Search.cs:325-326), keeps the table. Every new search starts at depth 1. |
@@ -357,6 +357,69 @@ from the main checkout):
 - `ponderlog2.py` doesn't count the line sent again as a depth finished (`new_infos_after_hit` in
   ponderlog.py), so its three rows keep their meaning on logs from after P1.
 
+### P2: a hit may finish the depth it would drop (2026-10-21)
+
+A side session, branch `claude/p2-finish-depth-246981`, on compression with P1 (7cb0adb). **At `ponderhit`, a
+depth begun past half the planned time S is no longer stopped. It has until the hit + S to finish, and no depth
+starts after it. And whatever else runs on after a hit stops by the hit + S, not at the hard limit H (3S from `go
+ponder`).** These are the replay's "finish" and "capped" rules. A hit never spends more than S of real clock, which
+is the move's own planned time: no more than a plain search on our clock would plan to spend. Behind the UCI option
+`PonderFinish` (check, default true). Off, a hit does exactly what it did before.
+
+The rule is `Search.AfterPonderHit`, which `PonderHit` calls. For a hit at h (on the search's clock, from `go
+ponder`), with the depth in progress begun at b:
+
+| case | before (PonderFinish off) | P2 (on) |
+|---|---|---|
+| b > S/2: a depth the clock alone would never have begun | stopped at once; the depth before is played | runs to h + S; played if it finishes |
+| h ≥ H: pondering ran past the whole budget | stopped at once (by the clock check) | the depth in progress runs to h + S |
+| otherwise: the depth goes on, as in a plain search | runs to H; new depths until S/2 | the same, but stops by h + S if that comes before H |
+| `movetime` (no S) | the hard limit | the same |
+
+**The lab** (`experiment.py p2`, `p2.py`; `results/p2.jsonl`). The replay's 12 hit positions, one thread, each from
+the table its trace started from. Hits at 0.75 to 2 S (S = 4.83 s, as the bot's median), PonderFinish on and off in
+turn on each position:
+
+| hit at | off: depth played (median) | on: depth played | on deeper than off | the replay predicted | positions where the replay was right | real clock after the hit, on: median | mean | most | off: mean |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0.75 S | 14 | 15 | **6/12** | 5/12 | 11/12 | 1.9 s | 2.2 s | 4.83 s | 0.4 s |
+| 1.0 S | 14.5 | 15.5 | **9/12** | 9/12 | 12/12 | 2.9 s | 2.4 s | 4.83 s | 0.3 s |
+| 1.5 S | 14.5 | 15.5 | **8/12** | 7/12 | 11/12 | 1.7 s | 2.2 s | 4.83 s | 0.05 s |
+| 2.0 S | 15.5 | 16 | **8/12** | 8/12 | 12/12 | 2.6 s | 2.9 s | 4.83 s | 0 |
+
+- **The build does what the replay said**: a ply more on 6-9 of 12 hits, for about 2-3 s of real clock each. The
+  replay was right about which positions gain the ply in 46 of 48. A hit spent S for no new depth on 1-3 of 12
+  (the depth didn't finish in time). The move changed on 2-4 of 12.
+- **Never more than S after the hit**: at most 4,830 ms, S to the millisecond. Off, a depth begun before S/2 ran
+  4.2 s past a hit at 0.75 S, and could have run to H.
+- **The option changes only when the search stops.** Every one of the 1,383 depths searched (both arms, all
+  positions) had exactly the node count of the trace's same depth. The traces were made by the build before P1, so
+  the tree is also node for node what it was.
+
+In the bot, hits come at a median 0.75 S (p75 1.0 S), and 37% of them are the kind P2 changes ("stopped at once").
+So expect a ply more on roughly half to three quarters of those, about 2-3 s each.
+
+**Tests** (PonderTests 20 → 48):
+
+| test | threads | what it checks |
+|---|---|---|
+| APonderHitSetsTheLimitsP2Describes | | 14 cases of the rule, on and off, at its edges (b at S/2 exactly, h at H exactly, a late depth hit between 2S and 3S, movetime) |
+| APonderHitLetsTheDepthItWouldDropFinish | 1, L4, R4; 1 with the option switched off and on | Find a depth whose next depth is quick for its time, set S just under twice that depth's time, and hit as the next one begins. It finishes after the hit, within S, and its move is played; or, if it can't, the answer comes by S with the depth before, its line sent again (P1). At least one try in four finishes. |
+| APonderHitAnswersWithinThePlannedTime | 1, L4, R4 | Hits at once, at 0.9 S and past H: answered within S (+200 ms). |
+| AHitAtOnceStopsAsAPlainSearchWouldNotAtTheCap | 1, L4, R4 | No depth begins past S/2 after a hit, and the answer comes when a depth ends, well before the hit + S in at least one of six tries. |
+| WithPonderFinishOffAHitDropsTheDepthBegunPastHalfThePlannedTime | 1, L4, R4 | Off: a hit as a late depth begins answers at once with the depth before. |
+| PonderFinishLeavesTheSearchItselfAlone | 1 | On and off, the same depths, node for node, and the same move. |
+| UciOffersPonderOffByDefault (extended) | | `option name PonderFinish type check default true`; true and false accepted, anything else an error. |
+
+Changed: `APonderHitKeepsTheDepthPonderingReached` asserted an answer within 200 ms of a hit after a long ponder. Under
+P2 that depth may finish first, so it now allows S (98 ms there) + 200 ms, and says why. The second half of
+`PonderThenPonderhitAnswersWithinTheClock` likewise. `APonderHitAnsweredAtOnceSendsItsLastInfoAgain` (P1's) runs with
+the option off, since its premise is a hit that answers at once.
+
+Mutations: 26, all caught. Two lived at first, and the tests above catch them now: a late depth hit between 2S and
+3S given only to H, and a hit that forgot the soft limit, which runs on to h + S on every hit. Full suite: 512
+passed, 2 skipped.
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's
@@ -367,9 +430,15 @@ python):
   its `info` lines, how it ended. The tables in "What a hit does in the bot" and "What's lost"
   come from these.
 - `extract.py <log> samples.json 12`: the sample positions (`samples.json`, kept).
-- `uci.py`, `experiment.py hits|misses|trace <first> <last> <out.jsonl> [ponder threads]`: the
-  lab runs. They use the Release build under `src/ChessBruteforcer.Engine/bin` and
-  `bot/eval/h1024-3m.nnue`. In a worktree, set `PONDER_SCOPE_NET` to the main checkout's copy.
-- `summarise.py <hits.jsonl> <misses.jsonl>...`, `simulate.py <trace.jsonl>`: the tables.
+- `uci.py`, `experiment.py hits|misses|trace|p2 <first> <last> <out.jsonl> [ponder threads]`: the
+  lab runs. They use the Release build under `src/ChessBruteforcer.Engine/bin` (or
+  `PONDER_SCOPE_ENGINE`) and `bot/eval/h1024-3m.nnue`. In a worktree, set `PONDER_SCOPE_NET` to the
+  main checkout's copy. `p2` replays the trace's positions from the same table (each position's own
+  depth K from `results/trace.jsonl`) and hits at 0.75, 1, 1.5 and 2 S with `PonderFinish` on and off.
+- `summarise.py <hits.jsonl> <misses.jsonl>...`, `simulate.py <trace.jsonl>`, `p2.py <p2.jsonl>`: the
+  tables. `p2.py` sets the p2 run beside the replay of the same positions.
 - `results/`: the runs behind this page (hits, misses, misses with an 8-thread ponder,
-  traces).
+  traces, P2's hits).
+- `scripts/ponder-match.py`: a match through python-chess, as lichess-bot plays. Plain: ponder on
+  against off. `--arms "<A options>;<B options>"`: both sides ponder, differing by UCI options (P2's
+  `PonderFinish=true;PonderFinish=false`). `--sprt 0,10` stops once the SPRT decides.

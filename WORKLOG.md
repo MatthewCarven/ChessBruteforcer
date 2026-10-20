@@ -4568,3 +4568,43 @@ needed. P2 builds on this branch. Not merged.
   finished after the hit to report" (183 on 10-20).
 - No Elo match (none needed: the moves don't change). 10.8-12.2 GB of
   commit free throughout; the bot wasn't running.
+
+## 2026-10-21 (01:15-): P2, a ponder hit may finish the depth it would drop (a side session)
+
+Decision M's second step, on branch claude/p2-finish-depth-246981. P1 was
+already fast-forwarded into compression (7cb0adb), so this branch was moved
+up to it (a fast-forward, nothing of its own yet). Not merged.
+
+- **The change** (`Search.PonderHit`, the rule in `Search.AfterPonderHit`):
+  at `ponderhit`, a depth begun past half the planned time S, or still
+  running when the hit comes past the hard limit H, is no longer stopped.
+  It has until the hit + S to finish; no depth starts after it. Anything
+  else that runs on after a hit stops by the hit + S, not at H (3S from `go
+  ponder`). So a hit never spends more than S of real clock. These are
+  PONDER.md's replay rules "finish" and "capped", exactly as simulate.py
+  has them. UCI option `PonderFinish` (check, default true); off, nothing
+  changes. `movetime` searches have no S and keep the old rule.
+- **Lab** (`experiment.py p2`, `p2.py`, results/p2.jsonl): the replay's 12
+  hit positions, one thread, from the tables their traces started from,
+  hits at 0.75, 1, 1.5 and 2 S (S 4.83 s), on and off in turn. A ply more
+  on 6, 9, 8 and 8 of 12 (the replay said 5, 9, 7, 8; it was right about
+  the position in 46 of 48), for a median 1.7-2.9 s of real clock after
+  the hit, at most 4,830 ms (S). All 1,383 depths searched had the trace's
+  node count, on and off: the option changes only when the search stops.
+- **Tests**: PonderTests 20 → 48 (PONDER.md lists them). The test that a
+  late depth finishes picks S from a profile of the depths' times first:
+  with a fixed S, the first depth to end past S/2 often ends far past it
+  (12 at 556 ms for S/2 = 250), and the next can't finish in S. Two of P1's
+  and the scoping pass's tests asserted an answer within 200 ms of a late
+  hit; they now allow S + 200 ms, or run with the option off, and say why.
+- **Mutations**: 26 over the new lines, all caught. Two lived at first: a
+  late depth hit between 2S and 3S given only H (a case added), and a hit
+  that forgot the soft limit, which the cap hides by keeping every answer
+  within S. A new test catches that: a hit at once must stop as a plain
+  search would, when a depth ends past S/2, not at the cap. Full suite:
+  512 passed, 2 skipped.
+- **ponder-match.py's A/B mode**: `--arms "<A options>;<B options>"`, both
+  sides pondering; `--sprt elo0,elo1` (the C# match tool's LLR); each
+  side's hit rate, clock a move (after a hit and otherwise) and clock left
+  at the end. Old results files still summarise (ponder-10+0.1-run1:
+  +83 [+37, +133], as before; clock left 48% on, 20% off).

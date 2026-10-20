@@ -721,9 +721,16 @@ Sessions, in order:
                   484 passed. After the bot's next restart, ponderlog.py
                   should show 0 hits with no info after ponderhit; PONDER.md,
                   "Results".)
-            - [ ] P2: a hit may finish the depth it would drop, within the
+            - [x] P2: a hit may finish the depth it would drop, within the
                   move's planned time, and stops by then. Search.PonderHit,
-                  ~2 h.
+                  ~2 h. (Done 2026-10-21 on claude/p2-finish-depth-246981,
+                  not merged yet: UCI option PonderFinish, default true, so
+                  merging it turns it on in the bot at its next restart. In
+                  the lab, a ply more on 6-9 of 12 hits at 0.75-2 S, as the
+                  replay said, never more than S after the hit; every depth
+                  node for node as before. PonderTests 20 → 48, 26 of 26
+                  mutations caught, suite 512 passed. The A/B match:
+                  PONDER.md, "P2".)
             - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
                   Search.TimeBudget and the Ponder option, ~1 h.
             - [ ] P4: play an unfinished depth's better move instead of
@@ -735,8 +742,11 @@ Sessions, in order:
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's
                   entries. TranspositionTable, about half a day.
-            - [ ] An A/B mode for scripts/ponder-match.py (both sides
+            - [x] An A/B mode for scripts/ponder-match.py (both sides
                   ponder, the arms differ by a UCI option), which P2-P4 need.
+                  (With P2: `--arms "PonderFinish=true;PonderFinish=false"`,
+                  `--sprt 0,10`; the summary gives each side's clock left
+                  at the end.)
             After the src work in flight lands (AVX-512 and the lazy update,
             the bitboard sessions).
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
