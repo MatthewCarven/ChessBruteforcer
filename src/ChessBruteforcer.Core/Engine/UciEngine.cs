@@ -32,6 +32,12 @@ public sealed class UciEngine
     private List<ulong> _previousHashes = new();
     private Network? _network;   // EvalFile's network: this engine's positions carry its accumulators
 
+    // For the line a ponder hit may owe (ReportInfoAfterHit): the search's last "info", whether "ponderhit"
+    // came, and whether an "info" went out after it.  The search thread and the UCI thread both write them.
+    private readonly object _infoLock = new();
+    private SearchInfo? _lastInfo;
+    private bool _ponderHit, _infoSinceHit;
+
     public UciEngine(TextWriter output, string? tablePath = null)
     {
         _output = output;
@@ -98,7 +104,12 @@ public sealed class UciEngine
                     break;
                 case "ponderhit":
                     // The opponent played the move we were pondering on: the search goes on, on our clock.
-                    _search.PonderHit();
+                    // (Under the lock its answer takes, so an answer that comes at once still sees the hit.)
+                    lock (_infoLock)
+                    {
+                        _ponderHit = true;
+                        _search.PonderHit();
+                    }
                     break;
                 case "stop":
                     StopSearch();
@@ -289,6 +300,8 @@ public sealed class UciEngine
         var search = _search;
         search.Threads = _threads;
         search.Split = _split;
+        lock (_infoLock)
+            (_lastInfo, _ponderHit, _infoSinceHit) = (null, false, false);
         // "go" returns once the search is ready, so a "stop" or "ponderhit" straight after it isn't lost.
         var started = new ManualResetEventSlim();
         _searchThread = new Thread(() =>
@@ -296,6 +309,8 @@ public sealed class UciEngine
             try
             {
                 var result = search.Run(root, limits, history, ReportInfo, started.Set);
+                if (limits.Ponder)
+                    ReportInfoAfterHit(result.Nodes, search.Elapsed);
                 if (result.BestMove is not Move move)
                     Send("bestmove 0000");
                 else if (PonderMove(root, result) is Move reply)
@@ -347,8 +362,31 @@ public sealed class UciEngine
         long ms = Math.Max(1, (long)info.Elapsed.TotalMilliseconds);
         string score = info.MateIn is int mate ? $"mate {mate}" : $"cp {info.Score}";
         string pv = string.Join(' ', info.PrincipalVariation.Select(m => m.ToUci()));
-        Send($"info depth {info.Depth} score {score} nodes {info.Nodes} nps {info.Nodes * 1000 / ms} " +
-             $"time {ms} hashfull {_table.Usage()} pv {pv}");
+        lock (_infoLock)
+        {
+            // (Sent under the lock: a line written before "ponderhit" is read doesn't count as after it.)
+            Send($"info depth {info.Depth} score {score} nodes {info.Nodes} nps {info.Nodes * 1000 / ms} " +
+                 $"time {ms} hashfull {_table.Usage()} pv {pv}");
+            _lastInfo = info;
+            _infoSinceHit = _ponderHit;
+        }
+    }
+
+    /// <summary>
+    /// python-chess keeps only the "info" lines that come after "ponderhit",
+    /// and a ponder hit that answers with no new depth finished (at once, or
+    /// when the hard limit cuts the depth in progress) sends none, so the move
+    /// would go without its stats.  Then the last line goes out again: the
+    /// same depth, score and line, with the nodes and time (counted from "go
+    /// ponder") as they are at the answer.
+    /// </summary>
+    private void ReportInfoAfterHit(long nodes, TimeSpan elapsed)
+    {
+        lock (_infoLock)
+        {
+            if (_ponderHit && !_infoSinceHit && _lastInfo is SearchInfo last)
+                ReportInfo(last with { Nodes = nodes, Elapsed = elapsed });
+        }
     }
 
     private void Send(string text)

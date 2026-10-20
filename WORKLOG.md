@@ -3742,10 +3742,9 @@ has the tables; this is the story.
 
 - Matthew asked how long a 2048 net on September (nnue1-h512's recipe, 20
   passes) would take, and whether the laptop's 3070 beats the 1660. His (a):
-  a speed race on the laptop with the bot off (it had gone down at 21:23:
-  "i stopped it", he said; the TypeError on the way out is what a held
-  Ctrl+C does, as a side session found on 2026-10-20, not memory running
-  out as the 23:20-00:45 entry first thought). On the charger, 4.1 GB
+  a speed race on the laptop with the bot off (it had gone down at 21:23;
+  I took its TypeError for his stopping it, but memory had run out: the
+  23:20-00:45 entry). On the charger, 4.1 GB
   of commit free, the book learner beside it.
 - `train speed-<H> --hidden <H> --buckets 16 --passes 1 --held-back-max
   200000 --out <scratchpad>`, a quarter of September each:
@@ -4526,6 +4525,71 @@ has the tables; this is the story.
   then compression fast-forwarded to it. Not pushed (Matthew's). The bot takes
   the Ctrl+C fix and quit.soon at his next `bot\start-bot.cmd`.
 
+## 2026-10-21 (00:00-01:30): pondering scoped: what the engine keeps after a ponder (a side session)
+
+Matthew's question (through the session that started this one): when the bot
+moves from a ponder, does the engine keep the branch of the tree it was
+using? The write-up is [PONDER.md](PONDER.md). Nothing in src changed. The
+branch (claude/ponder-tree-scope-5945b6) began at main, which has no
+pondering, and was moved to compression's 81173f8 before any commit.
+
+- **It keeps everything.** A hit is the same search going on: 495 of 495
+  depths a lab ponder search finished had exactly the nodes of a plain
+  `go`'s same depth. In the bot's log, 745 of 745 hits that reported after
+  the hit went on at the next depth. The table survives `stop`, `position`
+  and the move. Each `go` clears only the history and killers. Only
+  `ucinewgame` (once a game: python-chess sends it once an engine, and
+  lichess-bot makes one a game), `Hash` and `EvalFile` clear the table.
+- **But a hit plays what a plain search on our clock would**, only sooner.
+  The budget counts from `go ponder`. Pondered for a quarter of the budget,
+  the hit gave the identical search (12 of 12, node for node), 1.2 s
+  sooner. Pondered past the budget, a deeper move in 5 of 12.
+- **The bot's log of 2026-10-20** (DEBUG, every UCI line timed): 2,416
+  ponders, a 56.5% hit rate. Of 1,364 hits: 36.9% stopped at once, dropping
+  a depth that had run a median 1.2 s, with the move's whole budget (median
+  4.4 s) unspent; 54.6% went on and finished a depth; 8.5% ran a median
+  10.4 s after the hit on a depth the hard limit then cut. 37% of all the
+  clock spent after hits went on depths that never finished (14% for
+  ordinary searches). 45% of hits reported nothing after the hit (23% of
+  engine moves).
+- **The bank**: 3+2 games end with 80 s (41%) of the clock, against 40 s
+  (22%) on 10-14/15 with no pondering (other builds then, so mostly but
+  not all pondering).
+- **Misses**: with the ponder on one thread, pondering the wrong reply
+  neither helps nor hurts the next search (0.98-1.11x the nodes to a fixed
+  depth, against 1.13x from scratch). **On 8 threads, as the bot ponders,
+  it hurts**: the table fills to 27-48%, and the next search does 1.08x
+  (3/4 of the budget), 1.24x (1.5x) and 1.33x (3x) the work, against 1.18x
+  from scratch. Its early depths are no faster than from scratch. The
+  table's always-replace rule lets shallow ponder entries push out our own
+  search's deep ones. Bot misses ponder a median 3.9 s, so that's 8-24%
+  more work after a typical miss.
+- **The table from the move before** makes the next search's first ~11
+  depths nearly free. At the deepest depth: 0.90x the nodes of a fresh
+  search when the position was our own line, 1.11x when it wasn't.
+- **A replay of other hit rules** on long one-thread ponder traces:
+  letting a dropped depth finish within the move's planned time gains a
+  ply on 5-9 of 12 hits for 2-4 s of real clock, about 30 s of the ~40 s
+  a 3+2 game banks.
+- **Proposals** P1 (a final `info` after ponderhit: the task_16a444a7
+  card), P2 (finish the dropped depth, and cap a hit's run-on at the
+  planned time), P3 (Stockfish's +25% planned time), P4 (play an
+  unfinished depth's better move), P5 (keep the history between moves),
+  P6 (a table that keeps its deep entries: buckets and an age).
+  Each has its effort, the gain measured here, a guessed Elo, and how to
+  measure it. **Decision M**, options (a)-(e), is at the end of PONDER.md.
+  My pick is (b), P1 + P2 with an A/B mode for ponder-match.py, after the
+  src work in flight lands.
+- Lab setup: a Release build of 81173f8 over raw UCI, one thread, Hash
+  256, h1024-3m, no tables, a 100 s + 2 s clock (4.8 s budget, the bot's
+  median), 12 + 12 positions from the 10-20 log (and 8 of the misses again
+  with an 8-thread ponder). Before each arm,
+  `ucinewgame` and our own search on the position before, to a fixed
+  depth, so every arm starts from the same table. Scripts, samples and
+  results are in scripts/ponder-scope/. The bot wasn't running (no
+  lichess-bot or engine process from 00:05). There was 4.0 GB of commit
+  free before the build and 5.9 GB during the runs.
+
 ## 2026-10-21 (00:15-00:40): one last training test, a deeper net
 
 - Matthew: "call up the chain ... we're unfinished here: one last training
@@ -4545,3 +4609,46 @@ has the tables; this is the story.
   (desktop clock): 196-200 k positions a second, 1,920 MHz, 85 W, 70 C;
   ~9.5 h each, done ~10:10 and ~19:50. The yardstick: h1024-3m's float
   held-back error, 0.012394.
+
+## 2026-10-21 (00:48-01:10): P1, a final info line after ponderhit (a side session)
+
+Decision M: Matthew chose all six proposals, P1 to P6, a session each, in
+turn. This is P1 (the card task_16a444a7), on branch
+claude/p1-final-info-a1e9a9, cut from claude/ponder-tree-scope-5945b6
+(1d56571). compression (6975e96) was already inside it, so no rebase was
+needed. P2 builds on this branch. Not merged.
+
+- **The change** (UciEngine, plus `Search.Elapsed`): when a ponder search
+  that got `ponderhit` answers with no `info` line sent since the hit, the
+  engine sends its last line again just before `bestmove`. The depth, score
+  and pv are the same; nodes, time (from `go ponder`) and hashfull are as of
+  the answer. No new depth, the same move. A miss sends nothing again.
+  python-chess keeps only the lines after `ponderhit`, so 45% of the bot's
+  hits on 10-20 (23% of its engine moves) had no stats. One lock covers
+  sending every `info` line, the last line and the two flags, and
+  `ponderhit` calls `Search.PonderHit` under it, so an answer at once can't
+  miss the hit.
+- **Through python-chess** (the bot venv's 1.11.2, `play(..., info=INFO_ALL,
+  ponder=True)` as lichess-bot calls it; 4 threads, 6 s + 0.5 s, the
+  opponent waiting 0-2x the planned time): hits with no depth or score in
+  the result went from 14 of 27 (the build before) to 0 of 33.
+- **Tests**: PonderTests 13 → 20. A hit answered at once sends its last
+  line again (1, L4, R4, two rounds in one engine); a hit that finishes a
+  depth after the hit sends nothing again (1, L4, R4); a table move found at
+  depth 1 while pondering is sent again; a miss sends nothing again (an
+  assertion in the stop test). **Mutations: 12, 11 caught.** The survivor
+  noted the hit only after `Search.PonderHit` released the search, a race
+  the UCI thread nearly always wins. The code now does both under the lock,
+  so their order doesn't matter. Full suite: 484 passed, 2 skipped.
+  bot/test-ponder-note.py passed, run on a copy of lichess-bot.
+- **scripts/ponder-scope**: ponderlog.py has `new_infos_after_hit`, the
+  lines after a hit not counting the one sent again, and prints how many
+  hits had only that one. ponderlog2.py uses it, so its rows keep their
+  meaning on logs from after P1. On the 10-20 log both print what they
+  printed before (plus the new line, at 0).
+- **For Matthew, after the bot's next restart** (with this merged):
+  ponderlog.py on that day's DEBUG log should say "hits with no info after
+  ponderhit: 0", and bot/logs/bot-<date>.log should have no "no depth
+  finished after the hit to report" (183 on 10-20).
+- No Elo match (none needed: the moves don't change). 10.8-12.2 GB of
+  commit free throughout; the bot wasn't running.
