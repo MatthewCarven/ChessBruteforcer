@@ -1426,7 +1426,9 @@ the full test suite green; the mutation battery for the new generator.
   (a), one session, and (b)'s first step.
 
 **L. Bitboards** (measured 2026-10-20 noon in the probe's prototype,
-"Bitboards, measured" above; put ~13:00; **chosen: b**, ~16:25; session 1
+"Bitboards, measured" above; put ~13:00; **chosen: b**, ~16:25: "L(b):
+build sessions 1 and 2: sets + attack tables, then generation from the
+sets in today's order. A/B each one and merge it on its own." Session 1
 built the same afternoon: +13.2% to +14.1% `bench 9`, "Bitboards session
 1, built" above). Whichever is built is A/B'd with
 bench.ps1 against the build before it (identical nodes), needs the full
