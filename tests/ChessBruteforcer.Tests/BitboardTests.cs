@@ -9,8 +9,9 @@ namespace ChessBruteforcer.Tests;
 /// The sets beside the squares and attacks by table (NNUE.md "Bitboards, measured", session 1). The sets must equal
 /// the squares after every make, unmake and null move, and IsAttacked from the sets must equal IsAttacked by walking
 /// rays, for every square and both colours, at every node of perft walks (illegal positions included: the search
-/// makes a move before it looks). Every path runs under the same tests: the table paths (PEXT where the CPU has it,
-/// magic multiplication always) against the ray walk here, and the whole suite under CB_ATTACKS=magic or rays.
+/// makes a move before it looks). Generation from the sets (session 2) must give the walk's lists move for move.
+/// Every path runs under the same tests: the table paths (PEXT where the CPU has it, magic multiplication always)
+/// against the ray walk here, and the whole suite under CB_ATTACKS=magic or rays.
 /// </summary>
 public class BitboardTests
 {
@@ -120,8 +121,73 @@ public class BitboardTests
     }
 
     /// <summary>
-    /// Perft with the legality test on each path in turn (castling's own tests take the engine's path; the walk above
-    /// checks every path against the rays there).
+    /// Generation from the sets gives the walk's lists move for move, in the walk's order (the order is part of the
+    /// search: PickNext breaks ties by place in the list, and LMR reduces by it), every move and quiescence's captures
+    /// alike, on each table path, at every node of perft walks and after a null move at each.
+    /// </summary>
+    [Theory]
+    [InlineData(Fen.StartPosition, 3)]
+    [InlineData(MoveGeneratorTests.Kiwipete, 3)]
+    [InlineData(MoveGeneratorTests.EnPassantPins, 4)]
+    [InlineData(MoveGeneratorTests.Promotions, 3)]
+    [InlineData(MoveGeneratorTests.CastlingDiscovery, 3)]
+    [InlineData(MoveGeneratorTests.Middlegame, 3)]
+    [InlineData("r1n1k3/1P4P1/8/8/8/8/1p4p1/R1N1K2N w - - 0 1", 3)]      // both sides promote, pushing and capturing
+    [InlineData("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", 3)]           // capture-promotions, black first
+    [InlineData("8/8/8/KPp4r/8/8/8/7k w - c6 0 2", 4)]                   // en passant, and a pinned one
+    [InlineData("r3k2r/8/8/8/3pP3/8/8/R3K2R b KQkq e3 0 1", 3)]          // en passant and castling, both sides
+    public void GenerationFromTheSetsGivesTheWalksListsMoveForMove(string fen, int depth)
+    {
+        var expected = new List<Move>(256);
+        var actual = new List<Move>(256);
+        long lists = 0;
+
+        void Check(Position position)
+        {
+            foreach (bool quiet in new[] { true, false })
+            {
+                Generate(AttackPath.Rays, position, expected, quiet);
+                foreach (var path in TablePathsHere)
+                {
+                    Generate(path, position, actual, quiet);
+                    if (!actual.SequenceEqual(expected))
+                        Assert.True(false, $"{position.ToFen()}: {path}'s {(quiet ? "moves" : "captures")} {string.Join(' ', actual)}, the walk's {string.Join(' ', expected)}");
+                    lists++;
+                }
+            }
+        }
+
+        void Walk(Position position, int plies)
+        {
+            Check(position);
+            if (plies == 0)
+                return;
+            var nullUndo = position.MakeNullMove();
+            Check(position);
+            position.UnmakeNullMove(nullUndo);
+            foreach (var move in MoveGenerator.Legal(position))
+            {
+                var undo = position.MakeMove(move);
+                Walk(position, plies - 1);
+                position.UnmakeMove(move, undo);
+            }
+        }
+
+        Walk(Position.FromFen(fen), depth);
+        Assert.True(lists > 100, $"{lists} lists");
+    }
+
+    private static void Generate(AttackPath path, Position position, List<Move> moves, bool quiet)
+    {
+        if (quiet)
+            MoveGenerator.Pseudo(path, position, moves);
+        else
+            MoveGenerator.Captures(path, position, moves);
+    }
+
+    /// <summary>
+    /// Perft with generation and the legality test on each path in turn: the sets by PEXT or by magic, or the walk
+    /// throughout (castling's own tests take the engine's path; the walk above checks every path against the rays there).
     /// </summary>
     [Theory]
     [MemberData(nameof(AllPaths))]
@@ -144,7 +210,7 @@ public class BitboardTests
     private static long Perft(Position position, int depth, AttackPath path)
     {
         var moves = new List<Move>(64);
-        MoveGenerator.Pseudo(position, moves);
+        MoveGenerator.Pseudo(path, position, moves);
         Colour us = position.SideToMove, them = Position.Opponent(us);
         long nodes = 0;
         foreach (var move in moves)

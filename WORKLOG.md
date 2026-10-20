@@ -4187,3 +4187,49 @@ has the tables; this is the story.
   showed a fifth from a kind of mutant I'd ruled out. Read the log before
   reassuring, and warn before a battery whose mutants break what the solver
   leans on.
+
+## 2026-10-20 (21:10-21:50): bitboards session 2, generation from the sets (Matthew's L(b))
+
+- **Asked**: Matthew's "L(b): build sessions 1 and 2 ... A/B each one and
+  merge it on its own". Session 1 was built in its own session (branch
+  `claude/busy-newton-fc0a07`, above); this one builds session 2 on it.
+  On Matthew's "Yes: fast-forward this branch to
+  refs/heads/claude/busy-newton-fc0a07 (73028d8)", this branch
+  (`claude/affectionate-hugle-66968f`, at 9e22fb7) was fast-forwarded to
+  73028d8 first. The bot was off and nothing else heavy ran (3.9 GB of
+  commit free, on AC).
+- **Session 1 checked here first**: the full suite on 73028d8, 467 passed
+  and 2 skipped, as its report said.
+- **The change** (MoveGenerator): moves from the sets in today's order.
+  The side to move's pieces come from its set, a1 up, with each one's kind
+  read from the squares. A pawn's pushes are tested on the occupied set,
+  and its captures and en passant come from the pawn table, lowest square
+  first (towards the a-file, either colour). Knights and kings get their
+  squares from tables, put in Attacks' list order. Sliders get theirs from
+  the PEXT or magic table, ray by ray in Attacks' order, nearest first
+  (TZCNT up the board, LZCNT down). A piece with one square skips the
+  ordering. The walk stays as `AttackPath.Rays` (`CB_ATTACKS=rays`), the
+  tests' reference and the A/B's old arm; internal `Pseudo` and `Captures`
+  overloads take a path for the tests.
+- **Tests**, 10 new: at every node of perft walks over 10 positions, and
+  after a null move at each, both table paths give the walk's lists move
+  for move, every move and quiescence's captures. Perft on each path
+  generates on that path too. Full suite 477 passed, 2 skipped, on each
+  path (`CB_ATTACKS` unset, magic, rays). CLI perft past the tests'
+  depths: 21 of 21 published counts across PEXT, magic and rays. Small
+  tables re-solved by session 1's build and this one: 14 of 14 files
+  byte-identical.
+- **Mutation battery** (`scripts/bitboards/battery.py` 41-61, on
+  BitboardTests and MoveGeneratorTests): 21 of 21 as expected, 20 red, 1
+  equivalent (the sets on every path). Mutant 47's text first matched both
+  pawn generators, so the battery's own check stopped it before it ran;
+  with more context it ran red.
+- **`bench 9` A/B** (h1024-3m, bench.ps1, alternated, 8 rounds a run, the
+  identical tree 3,775,600): over session 1 **+9.5% and +9.8%** (16 of 16
+  rounds), magic +9.4%; over 180fe25's engine +24.7% paired (+25.9% median
+  to median), session 1 there +13.9%. The probe's +26% for both sessions
+  together, reached in fresh processes.
+- **To take effect**: Matthew merges session 1's branch, then this one,
+  into compression (each a real merge; WORKLOG.md conflicts at its end,
+  keep both), and restarts the bot between games; its Speed lines then
+  give the 8-thread figure.

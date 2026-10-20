@@ -186,8 +186,22 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     22-25% sooner; battery 41 of 41 as expected. **To take
     effect**: Matthew merges the branch (it lacks compression's 0173e3a,
     the ponder note) and restarts the bot between games; then its Speed
-    lines for the 8-thread figure. **Next**: session 2, generation from the
-    sets in today's order (+26% in all in the probe), its own session.
+    lines for the 8-thread figure.
+  - **Bitboards session 2, built** (2026-10-20 evening, branch
+    `claude/affectionate-hugle-66968f` = session 1's 73028d8 plus one
+    commit; NNUE.md "Bitboards session 2, built"): generation from the sets
+    in today's move order, so the identical tree. **+9.5% to +9.8% `bench 9`
+    over session 1, +24.7% to +25.9% over 180fe25's engine** (16 of 16
+    rounds); full suite 477 + 2 skipped; deep perft 21 of 21 on each path;
+    small tables byte-identical; battery as expected. **To take effect**:
+    Matthew merges session 1's branch, then this one (each a real merge:
+    compression has 0173e3a; WORKLOG.md conflicts at its end, keep both),
+    and restarts the bot between games. Then its Speed lines. Not chosen:
+    the sets' own move order (+9% more in the probe, the tree 9% smaller:
+    a match would judge it).
+  - **The split probe is behind the engine**: split-patch.py targets
+    180fe25, and session 1 rewrote Position.IsAttacked, so its Position
+    edits stop the script. Bring them up to date before the next split.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 
@@ -544,7 +558,7 @@ Sessions, in order:
         probe (+16% attack tables, +26% with generation from the sets) and
         **chosen, L(b)**: session 1 (sets and attack tables) built, +13.2%
         to +14.1% `bench 9`; session 2 (generation from the sets in today's
-        order) next, in its own session.
+        order) built, +9.5% to +9.8% on top: +25% over 180fe25 in all.
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by

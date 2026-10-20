@@ -1275,6 +1275,73 @@ Next: session 2, generation from the sets in today's order (+26% in all in
 the probe), a separate step; and once this is in the bot, its Speed lines,
 for the 8-thread figure.
 
+### Bitboards session 2, built (2026-10-20, evening): +9.5-9.8% `bench 9`, +25% with session 1
+
+The second step of Matthew's L(b), on branch
+`claude/affectionate-hugle-66968f`: session 1's branch (73028d8,
+fast-forwarded there on his word) plus one commit.
+
+- **Generation from the sets, in today's order.** MoveGenerator takes the
+  side to move's pieces from its set, a1 up, and each one's kind from the
+  squares. A pawn's pushes come from the occupied set, and its captures (en
+  passant's square among them) from the pawn table, lowest square first,
+  which is towards the a-file for either colour. A knight's and a king's
+  squares come from their tables and go into the list in Attacks' order. A
+  slider's come from the PEXT (or magic) table and go in ray by ray in
+  Attacks' order, each ray nearest first (lowest bit up the board, highest
+  down). A piece with only one square to go to skips the ordering. Castling
+  is as before (its tests are by table since session 1).
+- **The lists are today's move for move, so the tree is identical.** The
+  order is part of the search: PickNext breaks ties by place in the list,
+  and LMR reduces by it. The sets' own order (by piece kind), worth +9%
+  more in the probe, changed the tree by 9%: that is decision L's (c), not
+  chosen.
+- **The walk stays** as `AttackPath.Rays`: `CB_ATTACKS=rays` now gives the
+  old generator as well as the old attack test, for A/Bs and as the tests'
+  reference.
+
+`bench 9` on h1024-3m, the bot off, one thread, below normal, alternated
+rounds, the engine's clock, two runs of 8 rounds (the second with
+180fe25's engine as a third arm), paired medians:
+
+| build | nodes | knps (median) | against session 1 | against 180fe25's engine | rounds faster |
+|---|---|---|---|---|---|
+| 180fe25's engine (9e22fb7) | 3,775,600 | 2,167 | | | |
+| session 1 (73028d8) | 3,775,600 | 2,475-2,484 | | +13.9% | 8 of 8 |
+| **session 2, PEXT** | 3,775,600 | 2,713-2,728 | **+9.5% to +9.8%** | **+24.7%** (+25.9% median to median) | 16 of 16 |
+| session 2, `CB_ATTACKS=magic` | 3,775,600 | 2,713 | +9.4% | | 8 of 8 |
+
+More than the probe's +8% on top of session 1: its prototype had neither
+the one-square shortcut nor the pawn's capture set. The two sessions
+together come to the probe's +26%.
+
+Tests: `BitboardTests` gains 10. Generation from the sets gives the walk's
+lists move for move, both every move and quiescence's captures, on each
+table path, at every node of perft walks over 10 positions and after a null
+move at each. Perft on each path now generates on that path too. Full suite
+477 passed, 2 skipped, on each path (`CB_ATTACKS` unset, magic, rays). The
+CLI's perft past the tests' depths (the start
+d5, Kiwipete d4, positions 3 to 6, the promotion position d5): 21 of 21
+published counts across PEXT, magic and rays, the sets 1.4-1.7x faster than
+the walk there. Small tables re-solved by session 1's build and this one
+(KQvK, KRvK, KPvK, KRvKN, KBNvK with what they need, and the 3-piece ones'
+DTZ): 14 of 14 files byte-identical, in about the same time. The solver's
+work isn't mostly generation.
+
+Mutation battery (`scripts/bitboards/battery.py`, mutants 41-61, on
+`BitboardTests` and `MoveGeneratorTests`, which solve no tables): **21 of
+21 as expected**. 20 were red: quiet moves among the captures, their own
+pieces taken, a pawn pushed through its own men, double pushes from any
+rank or onto a piece, the queen push missing from the captures, en passant
+missing or flagged as a plain capture, a pawn's captures from the other
+colour's set, a knight stepped through the king's list, a single square
+added as a quiet move, steps in square order, rays farthest first or the
+directions backwards, two squares taken for one, a queen without
+diagonals, a bishop along the rook's rays, ray sets a square short,
+castling dropped, every move quiet. The one equivalent mutant stayed
+green: the sets on every path, the same lists, only the walk's reference
+gone.
+
 ## Risks
 
 | risk | what it would look like | what limits it |
@@ -1430,7 +1497,8 @@ the full test suite green; the mutation battery for the new generator.
 build sessions 1 and 2: sets + attack tables, then generation from the
 sets in today's order. A/B each one and merge it on its own." Session 1
 built the same afternoon: +13.2% to +14.1% `bench 9`, "Bitboards session
-1, built" above). Whichever is built is A/B'd with
+1, built" above; session 2 the same evening: +9.5% to +9.8% on top,
++24.7% to +25.9% over 180fe25's engine, "Bitboards session 2, built"). Whichever is built is A/B'd with
 bench.ps1 against the build before it (identical nodes), needs the full
 suite and a mutation battery green, and is merged on its own.
 - (a) Session 1 only: sets and attack tables beside today's board: **+16%
