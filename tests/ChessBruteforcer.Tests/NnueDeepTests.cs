@@ -42,13 +42,20 @@ public class NnueDeepTests
 
     private static int[] Sizes(string shape) => shape.Split('-').Select(int.Parse).ToArray();
 
-    /// <summary>Every width against the definition, for the side to move either way round.</summary>
+    /// <summary>
+    /// Every width against the definition. The pass's per-thread scratch is filled with junk before each, so a width that
+    /// read numbers it hadn't written would show (with the scratch as the last width left it, it could pass on them).
+    /// </summary>
     private static void AssertWidthsAgree(Network network, short[] us, short[] them)
     {
         int expected = network.ForwardDeepScalar(us, them);
         foreach (int width in Widths)
-            if (network.ForwardDeep(width, us, them) != expected)
-                Assert.Fail($"{width} bits: {network.ForwardDeep(width, us, them)}, the definition {expected} ({network})");
+        {
+            Network.FillScratch(0x5A5A);
+            int score = network.ForwardDeep(width, us, them);
+            if (score != expected)
+                Assert.Fail($"{width} bits: {score}, the definition {expected} ({network})");
+        }
     }
 
     // ---- against the numpy reference ----
@@ -96,7 +103,8 @@ public class NnueDeepTests
     [Theory]
     [InlineData(16, "32")]
     [InlineData(48, "16-32")]
-    [InlineData(48, "48-8")]          // 48 inputs to the second layer: 32 at 512 bits, then 16 at 256
+    [InlineData(48, "48-8")]          // 48 inputs to the second layer
+    [InlineData(32, "16-48")]         // 48 into the output's dot product: 32 at 512 bits, then 16 at 256
     [InlineData(64, "256-3-17-5")]    // the most layers, the largest and odd sizes: every tail
     [InlineData(256, "1")]
     [InlineData(1024, "32")]

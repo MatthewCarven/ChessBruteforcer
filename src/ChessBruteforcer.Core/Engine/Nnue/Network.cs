@@ -806,6 +806,13 @@ public sealed class Network
     [ThreadStatic] private static short[]? t_numbers;
     [ThreadStatic] private static ushort[]? t_pairs;
 
+    /// <summary>Fills this thread's scratch with <paramref name="value"/>: the tests' way to show no pass leans on what the last one left.</summary>
+    internal static void FillScratch(short value)
+    {
+        (t_numbers ??= new short[2 * MaxHidden + 2 * MaxLayerSize]).AsSpan().Fill(value);
+        (t_pairs ??= new ushort[MaxHidden + 16]).AsSpan().Fill(unchecked((ushort)value));
+    }
+
     /// <summary>
     /// A small layer of at most 32 outputs at 256 or 512 bits: the non-zero pairs listed first (<see cref="NonZeroPairs"/>),
     /// then each listed pair broadcast and added to every output's sum, two pairs at a time into separate registers;
