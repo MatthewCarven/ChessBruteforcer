@@ -278,7 +278,8 @@ bot\lichess-bot-ponder-note.patch (lib\engine_wrapper.py) marks them
 (bot\test-ponder-note.py). It goes in at the bot's next `bot\start-bot.cmd`.
 Later, maybe: the engine could send one last `info` line (depth, score, pv)
 before `bestmove` after a ponderhit, so those moves get their stats too; that's
-in src, so after the optimisation work there lands.
+in src, so after the optimisation work there lands. (Now P1 of decision M,
+[PONDER.md](PONDER.md), 2026-10-21.)
 
 **Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
 on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now
@@ -690,9 +691,40 @@ Sessions, in order:
             fixed), or longer (~400 games, ~1 h), once no index run is going.
       - [ ] Spend the banked clock: the pondering side ended games with 4.8 s
             of 10 left, the other 2.1. Stockfish plans 25% more time a move
-            when Ponder is on; try that, measured the same way.
+            when Ponder is on; try that, measured the same way. (2026-10-21:
+            on Lichess too, 3+2 games end with 41% of the clock left v 22%
+            before pondering; PONDER.md P3.)
       - [ ] A Lichess-like hit rate: ponder on and off each against a third
-            engine (Stockfish, as book-match.py does), not each other.
+            engine (Stockfish, as book-match.py does), not each other. (The
+            bot's own rate on 2026-10-20: 56.5%, from its log.)
+      - [ ] **Decision M: what pondering should do with what it keeps**
+            ([PONDER.md](PONDER.md), scoped 2026-10-21, nothing in src yet).
+            It keeps everything (a hit is the same search; the table survives
+            a miss and the move), but a hit plays exactly what a plain search
+            on our clock would, only sooner, and the clock it saves mostly
+            goes unspent. Lost, from the bot's log of 2026-10-20: 37% of hits
+            stop at once and drop a half-searched depth with the move's whole
+            budget unspent; 8.5% run a median 10.4 s after the hit on a depth
+            the hard limit then cuts (37% of all the clock spent after hits
+            buys nothing, 14% for ordinary searches); 45% of hits report no
+            stats. Proposals, each with effort, expected gain and the
+            measurement, in PONDER.md:
+            - [ ] P1: a final `info` after ponderhit (task_16a444a7): stats on
+                  every move. UciEngine, ~1 h. No Elo.
+            - [ ] P2: a hit may finish the depth it would drop, within the
+                  move's planned time, and stops by then. Search.PonderHit,
+                  ~2 h.
+            - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
+                  Search.TimeBudget and the Ponder option, ~1 h.
+            - [ ] P4: play an unfinished depth's better move instead of
+                  throwing it away (all searches, not only pondering).
+                  Search.IterativeDeepening, about half a day.
+            - [ ] P5: keep the history table between moves (halve it, not
+                  clear it). Search.Prepare, ~30 min, a bench first.
+            - [ ] An A/B mode for scripts/ponder-match.py (both sides
+                  ponder, the arms differ by a UCI option), which P2-P4 need.
+            After the src work in flight lands (AVX-512 and the lazy update,
+            the bitboard sessions).
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);
@@ -731,12 +763,14 @@ Sessions, in order:
 - [x] Push `compression` (GitHub matched d13b55c at 00:47 on 2026-10-15).
 - [ ] A second pull request from `compression` into `main` (PR #1 took only
       the first commit).
-- [ ] Pondering for the bot, if wanted (section 2): merge
+- [x] Pondering for the bot, if wanted (section 2): merge
       claude/vigilant-murdock-d223f5 (it carries the threads branch too), build
       the engine into bot/lichess-bot/engines/bruteforcer, and set `ponder:
       true` in bot/lichess-bot/config.yml; restart the bot between games. The
       ponder search takes a core for the whole game, from the learner and any
-      index run.
+      index run. (Done 2026-10-16: merged, and on in bot/make-config.py.)
+- [ ] Decision M (pondering, [PONDER.md](PONDER.md)): pick an option, (a) to
+      (e), at the end of PONDER.md.
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;

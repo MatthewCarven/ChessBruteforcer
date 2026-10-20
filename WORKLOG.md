@@ -4460,3 +4460,60 @@ has the tables; this is the story.
 - **Done**: this entry and the TODO's "In compression" committed on the branch,
   then compression fast-forwarded to it. Not pushed (Matthew's). The bot takes
   the Ctrl+C fix and quit.soon at his next `bot\start-bot.cmd`.
+
+## 2026-10-21 (00:00-01:30): pondering scoped: what the engine keeps after a ponder (a side session)
+
+Matthew's question (through the session that started this one): when the bot
+moves from a ponder, does the engine keep the branch of the tree it was
+using? The write-up is [PONDER.md](PONDER.md). Nothing in src changed. The
+branch (claude/ponder-tree-scope-5945b6) began at main, which has no
+pondering, and was moved to compression's 81173f8 before any commit.
+
+- **It keeps everything.** A hit is the same search going on: 495 of 495
+  depths a lab ponder search finished had exactly the nodes of a plain
+  `go`'s same depth. In the bot's log, 745 of 745 hits that reported after
+  the hit went on at the next depth. The table survives `stop`, `position`
+  and the move. Each `go` clears only the history and killers. Only
+  `ucinewgame` (once a game: python-chess sends it once an engine, and
+  lichess-bot makes one a game), `Hash` and `EvalFile` clear the table.
+- **But a hit plays what a plain search on our clock would**, only sooner.
+  The budget counts from `go ponder`. Pondered for a quarter of the budget,
+  the hit gave the identical search (12 of 12, node for node), 1.2 s
+  sooner. Pondered past the budget, a deeper move in 5 of 12.
+- **The bot's log of 2026-10-20** (DEBUG, every UCI line timed): 2,416
+  ponders, a 56.5% hit rate. Of 1,364 hits: 36.9% stopped at once, dropping
+  a depth that had run a median 1.2 s, with the move's whole budget (median
+  4.4 s) unspent; 54.6% went on and finished a depth; 8.5% ran a median
+  10.4 s after the hit on a depth the hard limit then cut. 37% of all the
+  clock spent after hits went on depths that never finished (14% for
+  ordinary searches). 45% of hits reported nothing after the hit (23% of
+  engine moves).
+- **The bank**: 3+2 games end with 80 s (41%) of the clock, against 40 s
+  (22%) on 10-14/15 with no pondering (other builds then, so mostly but
+  not all pondering).
+- **Misses**: pondering the wrong reply neither helps nor hurts the next
+  search (0.98-1.11x the nodes to a fixed depth, against 1.13x from
+  scratch).
+- **The table from the move before** makes the next search's first ~11
+  depths nearly free. At the deepest depth: 0.90x the nodes of a fresh
+  search when the position was our own line, 1.11x when it wasn't.
+- **A replay of other hit rules** on long one-thread ponder traces:
+  letting a dropped depth finish within the move's planned time gains a
+  ply on 5-9 of 12 hits for 2-4 s of real clock, about 30 s of the ~40 s
+  a 3+2 game banks.
+- **Proposals** P1 (a final `info` after ponderhit: the task_16a444a7
+  card), P2 (finish the dropped depth, and cap a hit's run-on at the
+  planned time), P3 (Stockfish's +25% planned time), P4 (play an
+  unfinished depth's better move), P5 (keep the history between moves).
+  Each has its effort, the gain measured here, a guessed Elo, and how to
+  measure it. **Decision M**, options (a)-(e), is at the end of PONDER.md.
+  My pick is (b), P1 + P2 with an A/B mode for ponder-match.py, after the
+  src work in flight lands.
+- Lab setup: a Release build of 81173f8 over raw UCI, one thread, Hash
+  256, h1024-3m, no tables, a 100 s + 2 s clock (4.8 s budget, the bot's
+  median), 12 + 12 positions from the 10-20 log. Before each arm,
+  `ucinewgame` and our own search on the position before, to a fixed
+  depth, so every arm starts from the same table. Scripts, samples and
+  results are in scripts/ponder-scope/. The bot wasn't running (no
+  lichess-bot or engine process from 00:05). There was 4.0 GB of commit
+  free before the build and 5.9 GB during the runs.
