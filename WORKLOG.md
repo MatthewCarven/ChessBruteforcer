@@ -3879,6 +3879,153 @@ has the tables; this is the story.
   (sha256 510a8d0e6c43). Takes effect when he closes the match window,
   fast-forwards compression and runs `bot\start-bot.cmd`.
 
+## 2026-10-20 (04:45-05:40): speed at 1024, measured (a side session)
+
+- The brief: where a node's time goes with h1024-3m against h512-3m, then
+  the TODO's three speed steps with estimates, for Matthew to pick. No C#
+  changed (his word first). Branch `claude/stoic-goodall-ecc132`.
+- **Conditions**: the bot playing on h1024-3m and h768-3m's match running (5
+  games at a time), commit free 2.5-4.9 GB. Matthew asked whether to stop the
+  bot for this; no: every run was one thread at below-normal priority with
+  the arms alternated. `bench 9` read about half its quiet speed, with the
+  same gap: h512-3m 890 knps, h1024-3m 744 (-16.3%; -15.8% with the bot off).
+  costs.cs with the trained nets: an update 117 / 228 ns a move, an
+  evaluation 102 / 198 ns (both double with H).
+- **The probe** (a scratchpad copy of the engine with hooks): a counting run
+  records every evaluation's value, and replaying them searches the identical
+  tree, so arms without the forward pass, or without the updates too, give
+  the split directly. **Its first timed run was noise**: one arm read 0.7 to
+  2.1 µs a node from round to round, a below-normal thread waiting for a CPU
+  whenever the bot thought. Timed by the thread's own CPU time
+  (QueryThreadCycleTime) and rotated search by search, the rounds agreed to
+  ~10%. Two runs: **at 1024 the forward pass is 12-13% of a node, the
+  accumulator updates 27-28%, the rest of the search 61%**; at 512, 8%, 19%
+  and 71-73%.
+- **28% of the pushes are illegal moves** (made, found to leave the king in
+  check, taken back: mostly at nodes in check, where every pseudo-legal move
+  is tried), and 29% of all pushes are never read by any evaluation. An
+  ideal lazy update (skipping exactly those, every evaluation checked exact)
+  saved 80 ns a node at 1024 (6.4%), 40 at 512.
+- **The kernel lab** replayed 465 k pushes and 285 k evaluations logged from
+  a real h1024 search, kernel by kernel, all variants agreeing on a
+  checksum: AVX-512 on 64-byte-aligned memory -49% a push and -37% an
+  evaluation; on the engine's own arrays only -20% and -36%; alignment alone
+  -13% a push. The engine's feature weights land 24 bytes past a 64-byte
+  boundary on every load (by reflection), so half of today's 32-byte column
+  loads already cross a cache line.
+- **Estimates at 1024** (NNUE.md "Speed at 1024"): AVX-512 with alignment
+  +18-22% nodes a second, the lazy update +5-7%, both +22-27%. Put to
+  Matthew as decision J. Numbers and every round in
+  `scripts/nnue-bench/results-2026-10-20.txt`. The measuring scripts
+  (costs-nets.cs, the probe's hooks as a patch, probe.cs, probelog.cs,
+  lab.cs, align.cs) are in the session-notes folder for now
+  (`%APPDATA%\Claude\side-session-notes\local_93425b6c-...\speed-1024-scripts`)
+  and go into scripts/nnue-bench/ with whatever is built, as they are C#.
+
+## 2026-10-20 (07:55-09:40): AVX-512, alignment and the lazy update built (Matthew's J(c))
+
+- **Matthew chose (c)**: both, AVX-512 with 64-byte alignment first, each
+  A/B'd and committed apart. The bot played on h1024-3m throughout: every run
+  below normal priority, commit headroom checked first (2.5-5.6 GB free).
+- **(a) AVX-512 + alignment** (commit c75f3ce): `Aligned` keeps the feature
+  and output weights and every accumulator stack in pinned arrays from a
+  64-byte boundary, growth included. The kernels run 32 lanes with AVX-512
+  (and a last 16), 16 with AVX2, or one at a time; the forward pass the same
+  (Forward512, Forward256, scalar). `Kernels.Width` is the widest the CPU
+  has; `CB_NNUE_SIMD=256` or `0` holds it narrower.
+- **(b) the lazy update** (commit a8dd037): a push only notes its move; the
+  slot is computed at an evaluation, a read, or a child's push, so its parent
+  always has its numbers and no chain is longer than one. An illegal move or
+  a leaf that returns early never pays.
+- **Tests**: NnueTests 38 to 49. The SIMD pass and every kernel at every
+  width (H = 48 for the 16-lane tail; operands at four offsets from a cache
+  line); weights and slots aligned through growth; the width setting; a walk
+  that moves as a search does (every pseudo-legal move made, the illegal
+  ones taken back unseen, only some nodes looked at, by a read or an
+  evaluation, against a refresh); SetPiece on a slot still waiting; a move
+  from an empty square now throws when its slot is computed, not at the
+  push. All green at 512, 256 and 0 bits. Full suite: 421 passed, 2 skipped
+  (415 after (a)).
+- **Mutation battery** (session 3's script brought up to date, with a guard
+  that waits for 2.6 GB of commit before each build; it waited a few times
+  while the bot played two games): (a) 43 of 43 red; (b) 54 of 54 red. One
+  lazy mutant survived the first run, "reading Black doesn't compute":
+  every test read White first, which computes the slot. The search-like walk
+  now reads Black first in half its looks, and the mutant goes red. The
+  256-bit mutations are caught only by the new width tests, since the walks
+  run at 512 bits here, which is what those tests are for. No crash events
+  in the Application or System logs. (After a battery, `bin` holds the last
+  mutant's build: a `--no-build` test run then read 6 failures, gone after a
+  rebuild.)
+- **`bench 9` on h1024-3m**, one thread, identical trees, alternated rounds,
+  the engine's clock: old build 1,024-1,072 knps; the alignment alone +3.8%
+  (8 of 8 rounds faster, paired); AVX-512 +16.7% (16 of 16); with the lazy
+  update +23.7% over the old build (8 of 8), +2.6% over AVX-512 alone (17 of
+  24 rounds). h512-3m: AVX-512 +8.5%. So h1024-3m now searches a node about
+  as fast as h512-3m did on the old build (1,262-1,322 knps against 1,206,
+  25 minutes apart).
+- Against the estimates: (a) at the bottom of +18-22%; (b) under +5-7%,
+  because a push now costs half what it did, so skipping 29% of them saves
+  about half as much as the ideal lazy arm measured on the old kernels.
+- bench.ps1 takes an engine and environment per arm now, and prints a
+  CPU-time column. Beside the bot that column was noisier than the wall
+  clock (one old-build run read 2,491 knps by CPU against 892 by the clock),
+  so the wall clock leads, rounds paired for the small gain.
+- **The bot** gets both at its next start once this branch is in compression
+  (Matthew's merge; start-bot.cmd builds the engine). Unmeasured: whether
+  AVX-512 lowers the clock with 8 threads busy. The bot's Speed lines will
+  show it, and `CB_NNUE_SIMD=256` is the fallback.
+- The morning's measuring scripts are in `scripts/nnue-bench/speed-1024/`
+  now (the probe, its hooks as a patch against 619c703, the kernel lab,
+  costs-nets.cs, align.cs; README there).
+
+## 2026-10-20 (09:40-10:30): the rest of a node, measured (a side session)
+
+- **Asked** (by the session that built the speed steps): where the 61% of a
+  node outside the network goes, and speed levers with estimates for
+  Matthew to pick from. No engine change. This branch
+  (`claude/friendly-cray-e85e18`) was fast-forwarded to
+  `claude/stoic-goodall-ecc132` (4ecea62) first.
+- **Conditions**: at 09:41 the bot was playing with 2.17 GB of commit free,
+  at the 2 GB floor; Matthew stopped the bot and the learner shortly before
+  09:52 ("should have more memory now"), and every run below was made with
+  them off (5.9 GB free, no engine running, checked before each run): the
+  quiet laptop's figures. Still off at 10:21.
+- **The probe** (`scripts/nnue-bench/search-split/`): a scratchpad copy of
+  the engine with hooks. A recording run notes every answer a node's pieces
+  give; removal arms replay one piece's answers instead of doing the work,
+  on the identical tree (checked every run: the same nodes, every replayed
+  stream read to its end); doubling arms do one piece twice. Thread time,
+  six rounds, rotated. Three runs (all arms; the quiescence levers; the
+  bot's 256 MB table) and a bitboard lab.
+- **The split** (NNUE.md "The rest of a node"): a `bench 9` node 515-522
+  ns, the network 125-135 (24-26%), the rest 386-389 (74-76%): move ordering
+  141 (PickNext's scan 92, ScoreMoves 50), generation 96 (460 ns a list),
+  InCheck 77 (39 ns a call, ~2 a node), make + unmake 25, the table 20 (26
+  at 256 MB), tablebase 5, repetition 2, the rest 21.
+- **Quiescence wastes most of the ordering**: it generates all ~34 moves,
+  scores them, and selection-sorts through 2.6 quiet moves a node that it
+  then skips. Stopping at the first quiet move is exact (quiet moves sort
+  last) and saves 11-12% of a node. A captures-only generator for it
+  (checked equal to the full list filtered, 2.7 M lists) with the check
+  status passed from Negamax: **the search 23.3% sooner, +30% nodes a
+  second** (+29% at 256 MB), the tree +494 nodes in 3.78 M (PickNext's tie
+  order). PawnMoves' `new[] { -1, 1 }` allocates 46 bytes a node (9 ns).
+- **The bitboard lab** (positions sampled from the searches, every answer
+  checked equal): a list -71%, quiescence's captures -83%, InCheck -67%.
+  Estimates on top of the quiescence fix: bitboards +25% to +39%; attack
+  tables beside today's board +6% to +15%; legality before make +7-8%.
+  **Decision K is Matthew's** (NNUE.md).
+- **To keep**: (1) the JIT must see every arm before timing: a depth-5 trial
+  without a warm-up had InCheck at twice its cost (tier-0 code in short
+  runs). Every arm runs twice at depth 6 first now. (2) A doubling arm reads
+  0.7-0.9x the removal arm's cost: the second call finds warm caches and
+  trained branch predictors. (3) Replayed evaluations can't follow a changed
+  tree (the captures-only arm's 0.013% tie-order change sent it 8% off), so
+  such arms run with the network on, on their own tree. (4) The hooks cost
+  nothing visible: the unhooked engine's `bench 9` read 1,731-1,756 knps
+  (570-578 ns a node, fresh processes) against the probe's 515-522 warmed up.
+
 ## 2026-10-20 (~10:00-10:40): the bot's log says when a move came from a ponder hit
 
 - **Matthew asked** (game 5goydEra v ProsperoBot): move 65 logged "Source:
@@ -3907,3 +4054,165 @@ has the tables; this is the story.
   after a ponderhit, so those moves get stats too. Left for after the
   optimisation session's work in src lands (Matthew is in it now).
 - Goes live at the bot's next `bot\start-bot.cmd`.
+
+## 2026-10-20 (10:35-11:55): quiescence generates only what it searches (Matthew's K(a))
+
+- **Matthew chose (a)**: "A/B it with bench.ps1 against today's build,
+  tests and mutation battery green". The bot stayed off throughout (his,
+  from ~09:50); 5.8 GB of commit free.
+- **The change**: `MoveGenerator.Captures` is what quiescence searches when
+  not in check (captures with every promotion piece, en passant, pushes that
+  promote to a queen), in Pseudo's order. One generator serves both lists
+  through a `quiet` flag, so they can't drift apart. Quiescence uses it when
+  not in check and Pseudo (every evasion) in check; the line that skipped
+  the quiet moves is gone. Negamax hands quiescence the check status it has
+  just found (`knownCheck`). PawnMoves loops over its two capture sides
+  instead of allocating `new[] { -1, 1 }` per pawn. `Search.QuiescenceScore`
+  (internal) runs quiescence alone, for the tests.
+- **Tests**, 5 new: CapturesAreWhatQuiescenceSearches (8 positions, perft
+  walks to depth 3-4, Captures equal to Pseudo filtered, in order, at every
+  position); GeneratingMovesAllocatesNothing; QuiescenceInCheckSearchesQuiet
+  Evasions; QuiescenceSeesACaptureThatMates; AStalemateAtTheHorizonIsNotMate.
+  Full suite: 434 passed, 2 skipped. A Debug-build trap on the way: castling's
+  Enum.HasFlag boxes there whenever a king stands at home (96 bytes a
+  list), so the allocation test moves the kings off e1/e8; optimized code
+  doesn't box.
+- **Mutation battery**, 14 mutants: 13 red, and the one equivalent mutant
+  green as it should be (the hand-off told "not in check", which at depth 0
+  a node never is: check extends the depth, and no reduction takes it below
+  0). The first run left three quiescence mutants alive, because its filter
+  named `EngineTests`, which matches no class: EngineTests.cs holds
+  SearchTests, UciTests and four others, so the search's own tests never
+  ran. With the classes named (175 tests, 17 s) and the three quiescence
+  tests added, all red. Three mutants (quiet moves let into quiescence)
+  timed out at 300 s, red. One, knights and kings capturing their own
+  pieces, overflowed a test host's stack and put a System Error dialog on
+  Matthew's screen; the run waited on it until he clicked OK (749 s).
+- **`bench 9` A/B** on h1024-3m, one thread, alternated rounds, the engine's
+  clock: today's 1,744-1,748 knps; the new build 2,180-2,188, **+24.6% to
+  +25.5%** (two runs, 16 of 16 rounds faster, paired), 3,775,600 nodes
+  against 3,775,106 (PickNext's tie order). A variant with Captures as
+  separate functions, as the probe had it, ran +23.9% beside the flag's
+  +24.6%, so the shared generator stays. Under the probe's +30% because
+  each bench run is a fresh process and pays the JIT's warm-up, the same
+  for both builds.
+- **The bot** gets it at its next start once this branch is in compression
+  (Matthew's merge; it sits on the speed branch, `claude/stoic-goodall-ecc132`).
+
+## 2026-10-20 (12:00-12:40): the rest of a node again, and bitboards measured (a side session)
+
+- **Asked** (by the session that built K(a)): re-measure where a node's time
+  goes with K(a) in, then turn decision K's (b) bitboards and (c) attack
+  tables into a multi-session plan with estimates and options. No engine
+  change. This branch (`claude/affectionate-hugle-66968f`) started at
+  compression's tip, which lacks 180fe25 (compression has the ponder-note
+  commit 0173e3a that K(a)'s line doesn't), so it was moved to 180fe25
+  first; it had no commits of its own.
+- **Conditions**: the bot off (since ~09:50), nothing else heavy running,
+  4.8-5.0 GB of commit free, on AC: the quiet laptop's figures.
+- **The probe brought up to 180fe25** (`scripts/nnue-bench/search-split/`):
+  the hand-off and quiescence edits rewritten for K(a)'s code, the arms for
+  levers now built dropped (they live at 4dce15e), generation removable by
+  kind (Negamax's lists, quiescence's captures, its evasions) and castling's
+  attack tests removable.
+- **The split** (NNUE.md "Bitboards, measured"): a `bench 9` node 391-393
+  ns (515-522 this morning), the network 123; generation 76-79 (Negamax's 33,
+  quiescence's captures 35, its evasions 11), InCheck 69-72 (44 ns a call,
+  1.6 a node), ordering 56, make + unmake 27, the table 17. Quiescence's
+  2.7-move captures list costs 340 ns, nearly a whole list's 413: it still
+  scans 64 squares and walks every ray. Lab on 180fe25: a list -66%,
+  quiescence's captures -84%, InCheck -68%.
+- **A prototype instead of estimates**: the probe's copy got a set per
+  colour and piece type beside the squares, IsAttacked by PEXT tables (64-
+  and 16-bit entries), the tablebase's count by popcount, and generation
+  from the sets in today's order and in the lab's (checked against today's
+  generator at every generation: 5.56 M lists, 0 different). With the
+  network on: attack tables **+16%** nodes a second (+14.6% at 256 MB),
+  identical tree; with generation in today's order **+26%**, identical
+  tree; in the lab's order +38% (+35% at 256 MB) but the tree 9% smaller
+  (11% at 256 MB): the order decides which quiet moves LMR reduces, so
+  that one needs a match. The L2 worry (840 KB of tables beside the net's
+  1.5 MB) measured nothing: 16-bit tables within 1-2 ns either way.
+- **The plan**: session 1 sets + attack tables (+16%), session 2
+  generation from the sets in today's order (+26% in all), each A/B'd on
+  identical nodes and merged on its own; then optionally the sets' order
+  behind a match (+38%) and legality before make (est. +5-9%). Gates: the
+  sets equal the squares and IsAttacked by table equals by rays at every
+  node of the perft walks, perft, the battery, a few small tables
+  re-solved byte-identical (the solver shares Position). **Decision L is
+  Matthew's** (NNUE.md): (a) session 1, (b) sessions 1 and 2
+  (recommended), (c) all of it.
+- **To keep**: (1) a measured prototype beat both estimates ((c) +6-15% ->
+  +16%, (b) +25-39% -> +26% or +38%) and found what they couldn't: the
+  move order changes the tree by 9%. (2) split.cs printed an own-tree
+  arm's wall clock against the recorded tree's nodes (fullbb ~9% low);
+  thread time was right, and it divides by each arm's own nodes now.
+
+## 2026-10-20 (15:10-18:00): bitboards session 1, sets and attack tables (Matthew's L(b))
+
+- **Asked** (by a side session, on the condition that Matthew had picked
+  decision L): build session 1 in the engine. No pick was written anywhere
+  (the only NNUE.md with decision L, 9e22fb7's, had none), so I asked him
+  here; **he chose (b)** at ~16:25: sessions 1 and 2, each merged on its
+  own. This branch (`claude/busy-newton-fc0a07`) had started at
+  compression's tip (0173e3a, which 180fe25's line lacks) with no commits of
+  its own, so it was moved to 9e22fb7 (180fe25 plus the bitboard write-up)
+  first. Whoever merges: compression's 0173e3a isn't in it.
+- **Conditions**: the bot off (nothing of ours running but Matthew's
+  Syncplay), 3.1-3.5 GB of commit free, on AC.
+- **The change** (NNUE.md "Bitboards session 1, built"): Position keeps a
+  set per colour and piece type and one per colour beside the squares,
+  kept in make and unmake by XOR of from and to (one routine for both),
+  built in FromFen and SetPiece; `Bitboards` holds knight, king and pawn
+  sets and the rook and bishop tables, by PEXT or, where PEXT is slow or
+  missing, magic multiplication over the same layout (the magic numbers
+  from `scripts/bitboards/magics.cs`); IsAttacked from the sets, the ray
+  walk kept behind `CB_ATTACKS=rays`; the tablebase's count and
+  Material.FromPosition by popcount.
+- **`bench 9` A/B** on h1024-3m (bench.ps1, two builds, alternated): the
+  identical tree (3,775,600 nodes, the same moves and scores), **+13.2% to
+  +14.1%** on PEXT (paired medians of three runs, 30 of 30 rounds faster),
+  +13.6% to +14.3% on magic, -1.1% to -1.2% on rays (the upkeep alone,
+  ~5 ns a node, half the prototype's). Inlining
+  IsAttacked into InCheck was worth +1.2-1.5%: the first version, with a
+  call more a test, read +12.5-13.3%. Reading a slider's table only when
+  one of theirs is on a line through the square added +0.2-0.3% (12 of 20
+  rounds), kept since it can only skip work.
+- **Tests**: `BitboardTests` (33): the sets against the squares and every
+  table path against the rays at every node of perft walks over 10
+  positions, illegal positions and null moves included; every blocker
+  subset of both slider tables; perft on each path; Material; the
+  tablebase's count; the path's choice. Full suite 467 passed, 2 skipped,
+  under each of `CB_ATTACKS` unset, magic and rays. The CLI's perft past the
+  tests' depths, 21 of 21 published counts on each path. Small tables
+  re-solved by both builds: 14 of 14 files byte-identical, and the solver
+  22-25% sooner on 4-piece tables (KRvKN 8.8 -> 6.8 s, KBNvK 11.4 -> 8.6 s,
+  alternated; a first timing beside the suite read 2x, the old arm slowed
+  more by the load).
+- **Mutation battery** (`scripts/bitboards/battery.py`), 41 mutants: **41
+  of 41 as expected**, 40 red and the equivalent one green (rays on every
+  path: the same answers, only slower). Mutants 0-18 ran on ten classes
+  (216 of 469 tests); five of them overflowed a test host's stack, and each
+  put a "testhost.exe - System Error" box on Matthew's screen (he sent a
+  screenshot at ~17:27). With an attack answer wrong, the endgame solver in
+  the table fixtures takes a hanging king, finds the same material (kings
+  aren't counted) and starts its own table again. The SetErrorMode call
+  meant to stop such boxes didn't. I stopped the run with a Ctrl+C into its
+  console (its `finally` restored the source: every mutant's original text
+  checked present once, the diff the same size as before), cleared the
+  orphaned test tree, and re-ran 19-40 on `BitboardTests` alone (33 tests;
+  `MoveGeneratorTests` was meant too, but cmd splits arguments at commas):
+  no more boxes. One mutant (FromFen without the sets) timed out at 420 s
+  and its tree was killed: red.
+- **To keep**: (1) a gate that asks the bench for the probe's number reads
+  it ~0.85 low (K(a): +25 against +30; here +14 against +16): fresh
+  processes pay the JIT's warm-up. Inlining the public IsAttacked closed
+  most of the rest. (2) A battery mutant can hide behind a helper that
+  exists only for the tests: the first `RookMask` recomputed the mask
+  instead of reading the one the table was built with, so a mask mutant in
+  the build would have passed its check. The tables now take their masks
+  from the arrays `RookMask` reads. (3) I told Matthew no more boxes would
+  come after the first four, on a cause I hadn't checked; the System log
+  showed a fifth from a kind of mutant I'd ruled out. Read the log before
+  reassuring, and warn before a battery whose mutants break what the solver
+  leans on.

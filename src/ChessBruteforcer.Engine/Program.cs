@@ -71,6 +71,7 @@ static int Bench(int depth, Network? network)
         "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
         "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
     };
+    Console.WriteLine($"attacks: {Bitboards.Path.ToString().ToLowerInvariant()}");   // (CB_ATTACKS: pext, magic or rays)
     long total = 0;
     var clock = Stopwatch.StartNew();
     foreach (string fen in positions)

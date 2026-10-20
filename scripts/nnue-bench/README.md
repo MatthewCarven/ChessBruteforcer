@@ -28,3 +28,32 @@ dotnet run -c Release costs.cs ../../bot/eval/eval-sf1.txt 7
 Results: `results-2026-10-16.txt`. With session 2's trained net, the same
 `bench.ps1` line with its file in place of the piece-square net gives the
 speed on its own tree.
+
+`results-2026-10-20.txt`: the trained nets h512-3m and h1024-3m, and where a
+node's time goes at 1024 (forward pass, accumulator updates, the rest),
+from a probe that replays a search's evaluations on the identical tree, plus
+a kernel lab for AVX-512 and 64-byte alignment (NNUE.md "Speed at 1024").
+Beside the bot, time a below-normal thread by its own CPU time
+(QueryThreadCycleTime): wall-clock time includes its waits for a CPU.
+
+`results-2026-10-20-split.txt`: where the rest of a node goes at 1024 once
+the network's speed steps were in (ordering, generation, InCheck, make and
+unmake, the table, the repetition and tablebase checks), two quiescence
+levers measured, and a bitboard lab (NNUE.md "The rest of a node"). The
+scripts are in `search-split/` (README there): hooks into a scratch copy of
+the engine, removal arms that replay one piece's answers on the identical
+tree.
+
+Two builds, or two settings of one, on one net (2026-10-20, the AVX-512 and
+lazy-update A/Bs): an arm can name its own engine and environment, e.g.
+`-Arms "old=<net>;engine=<old dll>,new256=<net>;engine=<new dll>;env:CB_NNUE_SIMD=256,new=<net>;engine=<new dll>"`.
+`CB_NNUE_SIMD` (256 or 0) holds the engine to 256 bits or to one number at a
+time; unset, it uses the widest the CPU has. bench.ps1 also prints speed by
+the process's CPU time, less its start-up; beside the bot that column was
+noisier than the wall clock, so read both, and pair rounds for a small gain.
+
+`CB_ATTACKS` (pext, magic or rays; bitboards session 1, NNUE.md) picks how
+the engine finds attacks: unset, PEXT tables where the CPU does PEXT in
+hardware and magic multiplication elsewhere; `rays` is the ray walk from
+before the sets, which leaves the sets' upkeep alone in an A/B. `bench`
+prints the path it ran on (`attacks: pext`).
