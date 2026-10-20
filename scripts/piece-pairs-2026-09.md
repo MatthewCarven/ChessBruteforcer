@@ -106,6 +106,9 @@ pawns, rooks and queens).
 
 ## Decision for Matthew: piece pairs
 
+**Matthew's choice (2026-10-21): (b) and (c) go on the long-term TODO**, to try should the other levers run out
+("the closer we fit to real life"). Nothing is built now.
+
 - **(a) Nothing to do (recommended).** h1024-3m has learned the bishop pair, the knight pair's near-nothing and the
   second rook's discount, at every stage: lean -1, 0 and +2 cp. Its squashed hidden units do what the per-square sum
   in sf1 couldn't. Cost: nothing.

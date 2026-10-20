@@ -4479,7 +4479,9 @@ has the tables; this is the story.
   overvalues the second rook by 26 cp (it has no such term).
 - **Decision for Matthew** (in the report): (a) nothing to do (recommended);
   (b) a bonus or pair inputs for the net, worth at most ~2 cp; (c) a rook-pair
-  term in sf1, only if sf1 plays again.
+  term in sf1, only if sf1 plays again. **Matthew chose b and c for the
+  long-term list** ("should we run out of options ... the closer we fit to
+  real life"): TODO section 2, nothing built now.
 - **New**: scripts/nnue/piece-pairs.py (features, net, report: like-for-like
   means and squashed-scale regressions, intervals by game, sandwich checked
   against 20 bootstrap refits); scripts/piece-pairs-2026-09-full.md its output.
