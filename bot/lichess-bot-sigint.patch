@@ -1,0 +1,22 @@
+diff --git a/lib/lichess_bot.py b/lib/lichess_bot.py
+index 0795e30..02cca6c 100644
+--- a/lib/lichess_bot.py
++++ b/lib/lichess_bot.py
+@@ -90,11 +90,15 @@ def disable_restart() -> None:
+ 
+ def signal_handler(signal: int, frame: FrameType | None) -> None:  # noqa: ARG001
+     """Terminate lichess-bot."""
++    # BruteForceBot (2026-10-20): set the flags and log nothing. A log line here goes through the logging queue, a
++    # Manager proxy sharing one connection with the main loop's own calls. While the main loop waited in
++    # control_queue.get() the line couldn't get through, so each repeat of a held Ctrl+C stacked another handler on the
++    # stuck one; at 82 deep the recursion limit broke them off before their replies came, and the replies then went to
++    # the wrong calls: challenge_queue's length came back None ("Quitting lichess-bot due to an error: TypeError", 4 of
++    # the bot's 26 Ctrl+C stops, 2026-10-16 to 20). Now a Ctrl+C ends that wait at once.
+     if not stop.terminated:
+-        logger.debug("Received SIGINT. Terminating client.")
+         stop.terminated = True
+     else:
+-        logger.debug("Received second SIGINT. Quitting now.")
+         stop.force_quit = True
+ 
+ 

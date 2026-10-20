@@ -3742,9 +3742,10 @@ has the tables; this is the story.
 
 - Matthew asked how long a 2048 net on September (nnue1-h512's recipe, 20
   passes) would take, and whether the laptop's 3070 beats the 1660. His (a):
-  a speed race on the laptop with the bot off (it had gone down at 21:23;
-  I took its TypeError for his stopping it, but memory had run out: the
-  23:20-00:45 entry). On the charger, 4.1 GB
+  a speed race on the laptop with the bot off (it had gone down at 21:23:
+  "i stopped it", he said; the TypeError on the way out is what a held
+  Ctrl+C does, as a side session found on 2026-10-20, not memory running
+  out as the 23:20-00:45 entry first thought). On the charger, 4.1 GB
   of commit free, the book learner beside it.
 - `train speed-<H> --hidden <H> --buckets 16 --passes 1 --held-back-max
   200000 --out <scratchpad>`, a quarter of September each:
@@ -4353,3 +4354,174 @@ has the tables; this is the story.
 - This branch was then fast-forwarded to compression (31dcbb8) for this
   entry and the TODO's handoff ("In compression" where it said "Matthew
   merges"), and compression fast-forwarded to it.
+
+## 2026-10-20 (22:40-23:15): lichess-bot's TypeError is a held Ctrl+C (a side session)
+
+- **Asked**: why lichess-bot quits on a TypeError in accept_challenges (2026-10-19
+  00:32 and 21:23, 2026-10-20 22:27, the last with memory to spare), why
+  run-bot.ps1 goes with it, and a fix for Matthew to pick; nothing changed in
+  the running bot. Mid-way, Matthew: "It might have been me terminating the
+  bot with ctrl-c."
+- **It was.** lichess-bot's own DEBUG log (bot\lichess-bot\lichess_bot_auto_logs,
+  7 days kept; bot\logs has only INFO) has "Received SIGINT" lines 33 ms
+  apart, a held key's repeat, before each TypeError: 22:27:20.189 to 23.511,
+  then the TypeError (logged 22:27:24.922, after the shutdown's 1 s pause).
+  Every Ctrl+C stop since 2026-10-13:
+
+  | how a Ctrl+C stop ended | stops | "Received SIGINT" lines |
+  |---|---|---|
+  | clean ("Termination requested") | 21 | 3 to 72 |
+  | TypeError in accept_challenges | 4: 10-16 03:32, 10-19 00:32 and 21:23, 10-20 22:27 | 93 to 116 |
+  | AssertionError in the pool's shutdown | 1: 10-19 08:32 | 7 |
+
+  The one on 10-16 came before the busy and one-player patches; none of the
+  five patches touches the signal handler or the main process's logging.
+- **Why** (lib/lichess_bot.py): the SIGINT handler logs a line, then sets the
+  stop flag. In the main process the root logger is a QueueHandler on a
+  Manager queue (thread_logging_configurer), and one manager's proxies share
+  one connection per thread. The main loop waits in control_queue.get() for
+  Lichess's next event or keep-alive (6 s apart), so the handler's line can't
+  get through till then, and each key repeat starts another handler on top of
+  the stuck one (the main process's "Received SIGINT" lines reach the log in
+  one block when the keep-alive frees them). About 12 Python frames a handler:
+  at 82 deep the recursion limit (1000) breaks the stack off, each level's
+  read is dropped with its reply still to come, and those replies then go to
+  the wrong calls: `challenge_queue`'s length comes back as a log line's
+  reply, None. So `while ... and challenge_queue:` raises "'NoneType' object
+  cannot be interpreted as an integer" (the caret is under challenge_queue,
+  not len(active_games)).
+- **run-bot.ps1 didn't die on its own**: Ctrl+C reaches every process in the
+  window, pwsh included, and the loop stops on it (its header says so). A copy
+  of its loop with a fake bot, in a hidden console of its own, given one real
+  console Ctrl+C (AttachConsole + GenerateConsoleCtrlEvent from a helper):
+  stopped, with only "starting lichess-bot" in its log, as restarts.log shows
+  after each of the four. It does restart lichess-bot after a real crash
+  (2026-10-15 14:15: exit 0 after "Quitting lichess-bot due to an error").
+- **Corrections**: the 10-19/20 entries above put the 21:23 stop down to memory
+  (a screenshot tipping it over); the auto log has a 7 s Ctrl+C burst at
+  21:23:20-27. And 01:16 on 10-19 wasn't run-bot.ps1 bringing it back:
+  restarts.log has no stop line before it, so it was a fresh start-bot.cmd.
+  Memory was tight on 10-19 all the same.
+- **Reproduced** in one process, nothing of the bot's touched (a copy of its
+  lib, the venv's Python 3.14.4): a Manager, the QueueHandler, lichess-bot's
+  next_event and accept_challenges, and SIGINTs raised every 33 ms for 4 s by
+  a helper thread (signal.raise_signal: the C handler runs in that thread and
+  wakes the main thread's wait, as the console's Ctrl+C thread does),
+  starting anywhere in a 6 s keep-alive cycle:
+
+  | handler | trials | stacked to 82 | TypeError | the loop stopped |
+  |---|---|---|---|---|
+  | lichess-bot's (logs) | 10 | 7 | **5** | 0.7-4.0 s after the first SIGINT |
+  | flags only | 6 | 0 | **0** | at the first SIGINT (0.0 s) |
+
+- **Made, not wired in** (Matthew picks first). **bot\lichess-bot-sigint.patch**:
+  the handler sets the stop flags and logs nothing (the INFO "Termination
+  requested" stays; the DEBUG "Received SIGINT" lines go). Made on a fresh
+  clone of lichess-bot 2026.10.11.1 with the five patches applied in
+  start-bot.cmd's order, its lib\lichess_bot.py byte-identical to the running
+  bot's: it applies on top, and start-bot.cmd's `--reverse --check` sees it as
+  in. **bot\test-sigint.py** (test-busy.py's style; LICHESS_BOT for a copy):
+  two checks, each with the handler as patched and, as a control, the
+  original, which must fail: one SIGINT between a Manager call and its reply,
+  and a held Ctrl+C (200 SIGINTs 10 ms apart, the first keep-alive 1.6 s in).
+  On the patched clone: passed 3 of 3 (the control's TypeError 6 of 6, the
+  held one 1.65-2.48 s in, with RecursionError). On today's lichess-bot:
+  FAILED 2 cases, the TypeError both times. 13 s a run.
+- **Options for Matthew**: (a) the patch into start-bot.cmd after the ponder
+  note, plus a try/finally in run-bot.ps1 that notes "stopped by Ctrl+C after
+  N min" in restarts.log (tested on the copy above); (b) the patch only;
+  (c) nothing, and tap Ctrl+C once rather than hold it. (a) or (b) go live at
+  his next start-bot.cmd, between games.
+- **Left as is**: the 10-19 08:32 AssertionError ("Cannot have cache with
+  result_handler not alive", from Pool.__exit__ during a short Ctrl+C), 1 of
+  26. With the patch, a Ctrl+C that lands during one of the loop's calls to
+  the Manager, rather than in its wait, can still drop one reply: by the
+  loop's timing (~1 ms of such calls per 6 s), about 1 stop in 5,000, not
+  measured. Upstream lichess-bot master has the same handler today; reporting
+  it is Matthew's call.
+
+## 2026-10-20 (23:15-23:30): Matthew's (a), the Ctrl+C fix wired in
+
+- **Asked**: "(a): wire the sigint patch into start-bot.cmd and add the
+  'stopped by Ctrl+C' line to run-bot.ps1."
+- **start-bot.cmd**: applies bot\lichess-bot-sigint.patch after the ponder
+  note, the same way as the other five (only if `--reverse --check` says it
+  isn't in). Tested verbatim: the block copied byte for byte and run twice on a
+  fresh clone carrying the five patches: the first run applied it (+6/-2 in
+  lib\lichess_bot.py, the result byte-identical to the file test-sigint.py
+  passed on), the second changed nothing, neither printed an error.
+- **run-bot.ps1**: the loop sits in a try/finally; a Ctrl+C (which stops the
+  script, as before) now writes "lichess-bot stopped by Ctrl+C after N min:
+  not starting it again (bot\start-bot.cmd does)", or "stopped by Ctrl+C
+  between runs of lichess-bot: ..." in the 20 s pause or the network wait.
+  Giving up after 5 quick stops writes no such line. Tested on a copy with
+  three swaps for the test only (system Python, a fake lichess-bot, no network
+  check, the pause from a variable), each case in its own hidden console with
+  a real console Ctrl+C: Ctrl+C mid-run, the line once the fake bot had
+  stopped; Ctrl+C in the pause, "stopped by itself" then the between-runs
+  line; no Ctrl+C and 5 quick exits, "giving up", exit 1, no Ctrl+C line. The
+  real file parses clean.
+- **Takes effect** when this branch is merged into compression and the bot is
+  restarted between games with `bot\start-bot.cmd` (Matthew's, both). Not
+  pushed. **Stop the bot before merging**: cmd.exe reads start-bot.cmd line by
+  line as it runs, so if the file changes under a running window and its pwsh
+  then exits without a Ctrl+C (the loop giving up), cmd carries on at its old
+  byte position in the new file: mid-block, then the line that starts the bot.
+
+## 2026-10-20 (23:30-23:55): bot\quit.soon stops the bot once its games are over (Matthew asked)
+
+- **Asked** (waiting on the bot to finish a game): "a flag or something we can
+  drop in the folder bot called quit.soon and if the file exists gracefully
+  refuse any challenges and exit when all existing games are finished", the
+  bot saying something like "Sorry cannot accept any new challenges at this
+  time! We're going to go to sleep and when we wake up we will be even
+  better!" ("it makes it look like we can just reach in and remote control
+  the entire system, which we cannot, but the appearance!")
+- **The words**: a decline carries only one of lichess.org's own reasons, so a
+  challenger sees "later" ("This is not the right time for me, please ask
+  again later."); before a game there's no chat. His line is the goodbye in
+  the games the bot finishes: "Good game! Sorry, no new challenges at this
+  time: we're going to sleep, and when we wake up we'll be even better!"
+- **bot\lichess-bot-quit-soon.patch** (lib\lichess_bot.py, on top of the other
+  six): at each event lichess-bot looks for the file run-bot.ps1 names in
+  BRUTEFORCER_QUIT_SOON (bot\quit.soon, or quit.soon.txt as Explorer makes
+  it). While it's there: queued challenges declined "later", its own
+  matchmaking challenge cancelled, new challenges declined "later", nothing
+  accepted, no matchmaking; games already on (and a gameStart for one) are
+  played, ending with his goodbye; when none is left, lichess-bot stops
+  ("quit.soon: no game in play, so lichess-bot stops here"). Deleting the file
+  sooner goes back to taking challenges.
+- **run-bot.ps1**: after lichess-bot stops, if the file is there, it notes
+  "lichess-bot stopped for bot\quit.soon after N min: not starting it again
+  (bot\start-bot.cmd does)", deletes it and ends. **start-bot.cmd** applies the
+  patch after the Ctrl+C fix and clears an old quit.soon first thing (one
+  dropped during its build still counts). **bot\quit-soon.cmd** makes the file
+  (double-click).
+- **Tests**: **bot\test-quit-soon.py** (lichess-bot's pretend lichess.org at
+  concurrency 2; a human's challenge comes mid-game, the game held till then;
+  each run in its own process): with the file, the game played, the challenge
+  declined "later", his goodbye, lichess-bot stopped by itself 1.1 s after the
+  game; without it (control), the challenge accepted, "Good game!", lichess-bot
+  carrying on; the file and no game, stopped in 1.8 s. Passed twice; on
+  lichess-bot without the patch FAILED 2 runs (never stopped, accepted the
+  challenge). All six bot tests pass on lichess-bot with the seven patches.
+  start-bot.cmd's new lines run byte for byte on a clone: both stale names
+  deleted, the patch applied once then left alone, the result identical to the
+  tested file. run-bot.ps1 on a copy in a hidden console: quit.soon and
+  quit.soon.txt each stopped the loop with the line above and the file gone
+  (exit 0); Ctrl+C still noted as before. quit-soon.cmd made the file.
+- **From the bot's first start after the merge** (this branch, with the Ctrl+C
+  fix): the bot running now has the old code, so this once it's a Ctrl+C
+  between games, then the merge, then `bot\start-bot.cmd`.
+
+## 2026-10-21 (00:05-00:10): the Ctrl+C fix and quit.soon fast-forwarded into compression
+
+- **Asked**: Matthew's "The bot is stopped: fast-forward compression to
+  refs/heads/claude/cranky-rhodes-c9f479."
+- **Checked first**: no start-bot.cmd window, run-bot.ps1, lichess-bot or
+  engine process running (so no window could read the new start-bot.cmd from
+  an old offset); the main checkout clean on compression at 81173f8, an
+  ancestor of the branch.
+- **Done**: this entry and the TODO's "In compression" committed on the branch,
+  then compression fast-forwarded to it. Not pushed (Matthew's). The bot takes
+  the Ctrl+C fix and quit.soon at his next `bot\start-bot.cmd`.
