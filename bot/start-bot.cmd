@@ -66,7 +66,16 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-ponder-note.patch"
     if errorlevel 1 echo The ponder note didn't go in ^(lichess-bot changed?^): ponder hits log no source note, as before.
 )
+rem A Ctrl+C, even held down, stops lichess-bot cleanly: its handler only sets the stop flags. It used to log a line
+rem through the Manager the main loop waits on, and a held Ctrl+C then ended in a TypeError in accept_challenges (4 of
+rem 26 stops): bot\lichess-bot-sigint.patch, 2026-10-20; bot\test-sigint.py tests it. Unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-sigint.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-sigint.patch"
+    if errorlevel 1 echo The Ctrl+C fix didn't go in ^(lichess-bot changed?^): a held Ctrl+C can end in a TypeError again.
+)
 set BRUTEFORCER_TABLES=%CD%\tables
-rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers.
+rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers;
+rem Ctrl+C stops both, and restarts.log says so.
 pwsh -NoProfile -ExecutionPolicy Bypass -File "%~dp0run-bot.ps1"
 pause

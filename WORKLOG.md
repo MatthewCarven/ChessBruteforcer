@@ -4374,3 +4374,28 @@ has the tables; this is the story.
   loop's timing (~1 ms of such calls per 6 s), about 1 stop in 5,000, not
   measured. Upstream lichess-bot master has the same handler today; reporting
   it is Matthew's call.
+
+## 2026-10-20 (23:15-23:30): Matthew's (a), the Ctrl+C fix wired in
+
+- **Asked**: "(a): wire the sigint patch into start-bot.cmd and add the
+  'stopped by Ctrl+C' line to run-bot.ps1."
+- **start-bot.cmd**: applies bot\lichess-bot-sigint.patch after the ponder
+  note, the same way as the other five (only if `--reverse --check` says it
+  isn't in). Tested verbatim: the block copied byte for byte and run twice on a
+  fresh clone carrying the five patches: the first run applied it (+6/-2 in
+  lib\lichess_bot.py, the result byte-identical to the file test-sigint.py
+  passed on), the second changed nothing, neither printed an error.
+- **run-bot.ps1**: the loop sits in a try/finally; a Ctrl+C (which stops the
+  script, as before) now writes "lichess-bot stopped by Ctrl+C after N min:
+  not starting it again (bot\start-bot.cmd does)", or "stopped by Ctrl+C
+  between runs of lichess-bot: ..." in the 20 s pause or the network wait.
+  Giving up after 5 quick stops writes no such line. Tested on a copy with
+  three swaps for the test only (system Python, a fake lichess-bot, no network
+  check, the pause from a variable), each case in its own hidden console with
+  a real console Ctrl+C: Ctrl+C mid-run, the line once the fake bot had
+  stopped; Ctrl+C in the pause, "stopped by itself" then the between-runs
+  line; no Ctrl+C and 5 quick exits, "giving up", exit 1, no Ctrl+C line. The
+  real file parses clean.
+- **Takes effect** when this branch is merged into compression and the bot is
+  restarted between games with `bot\start-bot.cmd` (Matthew's, both). Not
+  pushed.

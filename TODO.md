@@ -22,7 +22,9 @@ that could go wrong does.
 
 - **The bot, the book learner and the month queue**: `start.cmd` starts all
   three, each in its own window, and skips any already running. Logs:
-  bot/logs/bot-<date>.log, bot/logs/restarts.log (the network guard),
+  bot/logs/bot-<date>.log, bot/logs/restarts.log (the network guard; from
+  its next start, Ctrl+C stops too), bot/lichess-bot/lichess_bot_auto_logs
+  (lichess-bot's DEBUG log, 7 days: signals, events),
   bot/logs/learn-<date>.log, games/month-queue.log. Restart the bot only
   between games. The laptop must stay awake (plugged in).
 - **The month queue** (`scripts\month-queue.cmd`; Matthew 2026-10-13: "queue
@@ -244,12 +246,15 @@ Of the 26 Ctrl+C stops since 10-13, 21 ended clean, 4 in the TypeError
 (10-19 08:32). run-bot.ps1 didn't die: the same Ctrl+C stops it, by design
 (a copy tested with a real console Ctrl+C), and it does restart lichess-bot
 after a real crash (2026-10-15 14:15). Keep ~2 GB of commit free anyway.
-**For Matthew to pick** (made, not wired in): (a) bot\lichess-bot-sigint.patch
-(the handler only sets the stop flags; bot\test-sigint.py; a held Ctrl+C
-failed 0 of 6 trials, 5 of 10 before) into start-bot.cmd, and run-bot.ps1
-notes "stopped by Ctrl+C" in restarts.log; (b) the patch only; (c) nothing,
-and tap Ctrl+C once rather than hold it. Upstream lichess-bot (master,
-2026-10-20) has the same handler: reporting it is his call.
+**Matthew picked (a)** (2026-10-20, ~23:15), now in start-bot.cmd and
+run-bot.ps1: bot\lichess-bot-sigint.patch (the handler only sets the stop
+flags; bot\test-sigint.py; a held Ctrl+C failed 0 of 6 trials, 5 of 10
+before) goes in after the ponder note, and run-bot.ps1 writes "lichess-bot
+stopped by Ctrl+C after N min" (or "between runs") to restarts.log. **Takes
+effect** when branch `claude/cranky-rhodes-c9f479` is merged into compression
+and the bot restarted between games with `bot\start-bot.cmd`. Upstream
+lichess-bot (master, 2026-10-20) has the same handler: reporting it is his
+call.
 
 **The ponder note** (2026-10-20, Matthew asked; WORKLOG): 23% of the bot's
 engine moves logged "Source: Engine" and no stats, every one a ponder hit
