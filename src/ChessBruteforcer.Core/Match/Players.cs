@@ -6,10 +6,11 @@ using ChessBruteforcer.Core.Game;
 
 namespace ChessBruteforcer.Core.Match;
 
-/// <summary>What a player is told before choosing a move.</summary>
+/// <summary>What a player is told before choosing a move.  A <paramref name="Depth"/> means search to it, whatever the clock.</summary>
 public sealed record MoveRequest(
     string StartFen, IReadOnlyList<string> Moves, Position Position,
-    int WhiteTimeMs, int BlackTimeMs, int WhiteIncrementMs, int BlackIncrementMs, int? MoveTimeMs);
+    int WhiteTimeMs, int BlackTimeMs, int WhiteIncrementMs, int BlackIncrementMs, int? MoveTimeMs,
+    int? Depth = null);
 
 /// <summary>Anything that can play: an engine process, or a scripted player in tests.</summary>
 public interface IPlayer : IDisposable
@@ -25,10 +26,14 @@ public interface IPlayer : IDisposable
 /// <summary>How to start one engine: a command line plus UCI options to set.</summary>
 public sealed record EngineSpec(string Name, string Command, IReadOnlyDictionary<string, string> Options)
 {
-    /// <summary>Parse "name=X cmd=... option.Hash=64" style settings.</summary>
+    /// <summary>This engine's own time control (time odds, or a fixed depth), in place of the match's.</summary>
+    public TimeControl? Clock { get; init; }
+
+    /// <summary>Parse "name=X cmd=... option.Hash=64 tc=20+0.2" style settings.</summary>
     public static EngineSpec Parse(IEnumerable<string> settings)
     {
         string? name = null, command = null;
+        TimeControl? clock = null;
         var options = new Dictionary<string, string>();
         foreach (string setting in settings)
         {
@@ -38,12 +43,16 @@ public sealed record EngineSpec(string Name, string Command, IReadOnlyDictionary
             string key = setting[..eq], value = setting[(eq + 1)..];
             if (key == "name") name = value;
             else if (key == "cmd") command = value;
+            else if (key == "tc") clock = TimeControl.Parse(value);
             else if (key.StartsWith("option.")) options[key["option.".Length..]] = value;
             else throw new FormatException($"Unknown engine setting '{key}'.");
         }
         if (command is null)
             throw new FormatException("Each engine needs cmd=<command>.");
-        return new EngineSpec(name ?? Path.GetFileNameWithoutExtension(command.Split(' ')[0]), command, options);
+        return new EngineSpec(name ?? Path.GetFileNameWithoutExtension(command.Split(' ')[0]), command, options)
+        {
+            Clock = clock,
+        };
     }
 }
 
@@ -77,8 +86,8 @@ public sealed class SearchPlayer : IPlayer
             earlier.Add(position.Hash);
             position.MakeMove(position.ParseUciMove(uci) ?? throw new ArgumentException($"Illegal move {uci}."));
         }
-        var limits = request.MoveTimeMs is int moveTime
-            ? new SearchLimits { MoveTimeMs = moveTime }
+        var limits = request.Depth is int depth ? new SearchLimits { Depth = depth }
+            : request.MoveTimeMs is int moveTime ? new SearchLimits { MoveTimeMs = moveTime }
             : new SearchLimits
             {
                 WhiteTimeMs = request.WhiteTimeMs, BlackTimeMs = request.BlackTimeMs,
@@ -146,8 +155,8 @@ public sealed class UciPlayer : IPlayer
         string position = request.StartFen == Fen.StartPosition ? "startpos" : $"fen {request.StartFen}";
         string moves = request.Moves.Count > 0 ? " moves " + string.Join(' ', request.Moves) : "";
         Send($"position {position}{moves}");
-        Send(request.MoveTimeMs is int moveTime
-            ? $"go movetime {moveTime}"
+        Send(request.Depth is int depth ? $"go depth {depth}"
+            : request.MoveTimeMs is int moveTime ? $"go movetime {moveTime}"
             : $"go wtime {request.WhiteTimeMs} btime {request.BlackTimeMs} " +
               $"winc {request.WhiteIncrementMs} binc {request.BlackIncrementMs}");
         string? info = null;
