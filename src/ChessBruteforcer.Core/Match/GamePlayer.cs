@@ -4,14 +4,16 @@ using ChessBruteforcer.Core.Game;
 
 namespace ChessBruteforcer.Core.Match;
 
-/// <summary>A time control: base time plus increment per move, or a fixed time per move.</summary>
-public sealed record TimeControl(int BaseMs, int IncrementMs, int? MoveTimeMs = null)
+/// <summary>A time control: base time plus increment per move, a fixed time per move, or a fixed depth (no clock).</summary>
+public sealed record TimeControl(int BaseMs, int IncrementMs, int? MoveTimeMs = null, int? Depth = null)
 {
-    /// <summary>"10+0.1" (seconds + seconds), or "movetime=200" (milliseconds).</summary>
+    /// <summary>"10+0.1" (seconds + seconds), "movetime=200" (milliseconds), or "depth=9" (plies).</summary>
     public static TimeControl Parse(string text)
     {
         if (text.StartsWith("movetime="))
             return new TimeControl(0, 0, int.Parse(text["movetime=".Length..]));
+        if (text.StartsWith("depth="))
+            return new TimeControl(0, 0, Depth: int.Parse(text["depth=".Length..]));
         string[] parts = text.Split('+');
         int baseMs = (int)(double.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture) * 1000);
         int incMs = parts.Length > 1
@@ -22,7 +24,8 @@ public sealed record TimeControl(int BaseMs, int IncrementMs, int? MoveTimeMs = 
 
     /// <summary>PGN TimeControl tag: seconds+seconds, or "-" for fixed move time.</summary>
     public override string ToString() =>
-        MoveTimeMs is int ms ? $"movetime {ms}ms" : $"{BaseMs / 1000.0:0.###}+{IncrementMs / 1000.0:0.###}";
+        Depth is int depth ? $"depth {depth}"
+        : MoveTimeMs is int ms ? $"movetime {ms}ms" : $"{BaseMs / 1000.0:0.###}+{IncrementMs / 1000.0:0.###}";
 }
 
 /// <summary>
@@ -38,9 +41,19 @@ public static class GamePlayer
 
     public const int MaxPlies = 600;
 
+    /// <summary>How long a fixed-depth search may take before it counts as no answer.</summary>
+    public const int FixedDepthTimeoutMs = 600_000;
+
+    /// <summary>
+    /// <paramref name="clock"/> is White's time control, and Black's too unless
+    /// <paramref name="blackClock"/> gives Black one of its own (time odds, or depth against depth).
+    /// </summary>
     public static GameRecord Play(IPlayer white, IPlayer black, IReadOnlyList<string> opening, TimeControl clock,
-                                  int round, Tablebase? adjudicator = null, string startFen = Fen.StartPosition)
+                                  int round, Tablebase? adjudicator = null, string startFen = Fen.StartPosition,
+                                  TimeControl? blackClock = null)
     {
+        var whiteClock = clock;
+        blackClock ??= clock;
         var position = Position.FromFen(startFen);
         var moves = new List<string>();
         var seen = new Dictionary<ulong, int> { [position.Hash] = 1 };
@@ -55,10 +68,11 @@ public static class GamePlayer
 
         white.NewGame();
         black.NewGame();
-        int whiteTime = clock.BaseMs, blackTime = clock.BaseMs;
+        int whiteTime = whiteClock.BaseMs, blackTime = blackClock.BaseMs;
+        string timeControl = whiteClock == blackClock ? whiteClock.ToString() : $"{whiteClock} v {blackClock}";
 
         GameRecord Finish(GameResult result, string termination) =>
-            new(white.Name, black.Name, startFen, moves.ToList(), result, termination, round, clock.ToString());
+            new(white.Name, black.Name, startFen, moves.ToList(), result, termination, round, timeControl);
 
         while (true)
         {
@@ -71,21 +85,24 @@ public static class GamePlayer
             var mover = whiteToMove ? white : black;
             var loss = whiteToMove ? GameResult.BlackWins : GameResult.WhiteWins;
             int remaining = whiteToMove ? whiteTime : blackTime;
+            var moverClock = whiteToMove ? whiteClock : blackClock;
 
             var request = new MoveRequest(startFen, moves, position, whiteTime, blackTime,
-                                          clock.IncrementMs, clock.IncrementMs, clock.MoveTimeMs);
-            var timeout = TimeSpan.FromMilliseconds((clock.MoveTimeMs ?? remaining) + 5_000);
+                                          whiteClock.IncrementMs, blackClock.IncrementMs, moverClock.MoveTimeMs,
+                                          moverClock.Depth);
+            var timeout = TimeSpan.FromMilliseconds(moverClock.Depth is not null
+                ? FixedDepthTimeoutMs : (moverClock.MoveTimeMs ?? remaining) + 5_000);
             var stopwatch = Stopwatch.StartNew();
             string? answer = mover.ChooseMove(request, timeout);
             long elapsed = stopwatch.ElapsedMilliseconds;
 
             if (answer is null)
                 return Finish(loss, $"{mover.Name} did not answer");
-            if (clock.MoveTimeMs is null)
+            if (moverClock.MoveTimeMs is null && moverClock.Depth is null)
             {
                 if (elapsed > remaining + TimeMarginMs)
                     return Finish(loss, $"{mover.Name} lost on time (used {elapsed} ms with {remaining} ms left)");
-                remaining = (int)(remaining - elapsed + clock.IncrementMs);
+                remaining = (int)(remaining - elapsed + moverClock.IncrementMs);
                 if (whiteToMove) whiteTime = remaining; else blackTime = remaining;
             }
 

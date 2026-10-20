@@ -13,10 +13,11 @@ const string Usage = """
     usage: match --engine <settings...> --engine <settings...> [options]
 
     engine settings:  name=<label>  cmd="<command line>"  option.<UCI option>=<value> ...
+                      tc=<time control>  this engine's own, in place of --tc (time odds, or depth=<n> against depth=<m>)
 
     options:
       --games <n>            games to play (default 20; openings are played in colour-reversed pairs)
-      --tc <base+inc>        time control in seconds, e.g. 10+0.1 (default), or movetime=<ms>
+      --tc <base+inc>        time control in seconds, e.g. 10+0.1 (default), or movetime=<ms>, or depth=<plies> (no clock)
       --concurrency <n>      games played at once (default 1)
       --pgn <file>           append every game to this PGN file
       --tables <dir>         adjudicate with our endgame tables when they cover a position
@@ -85,7 +86,9 @@ var runner = new MatchRunner(engines[0], engines[1], new MatchSettings
     EventName = $"{engines[0].Name} vs {engines[1].Name}",
 });
 
-Console.WriteLine($"{engines[0].Name} vs {engines[1].Name}: {games} games at {clock}, {concurrency} at a time");
+var (clockA, clockB) = (engines[0].Clock ?? clock, engines[1].Clock ?? clock);
+Console.WriteLine($"{engines[0].Name} vs {engines[1].Name}: {games} games at " +
+                  $"{(clockA == clockB ? clockA : $"{clockA} v {clockB}")}, {concurrency} at a time");
 var stats = runner.Run(Console.WriteLine);
 Console.WriteLine();
 Console.WriteLine($"final: {engines[0].Name} vs {engines[1].Name}: {stats}");
