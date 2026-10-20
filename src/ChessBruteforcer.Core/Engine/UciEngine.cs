@@ -27,6 +27,7 @@ public sealed class UciEngine
     private int _moveOverheadMs = 50;
     private int _threads = 1;
     private ParallelMode _split = ParallelMode.LazySmp;
+    private bool _ponderFinish = true;
     private bool _tablesLoaded;
     private int _tableCacheMegabytes = BlockCache.DefaultMegabytes;
     private List<ulong> _previousHashes = new();
@@ -80,6 +81,7 @@ public sealed class UciEngine
                     Send("option name Threads type spin default 1 min 1 max 64");
                     Send("option name ThreadSplit type combo default LazySMP var LazySMP var Ranges");
                     Send("option name Ponder type check default false");
+                    Send("option name PonderFinish type check default true");
                     Send("uciok");
                     break;
                 case "isready":
@@ -174,6 +176,16 @@ public sealed class UciEngine
             case "ponder":
                 // Only tells us the GUI may send "go ponder", which works either way.  (UCI lets an
                 // engine plan its time differently when it may ponder; this one doesn't, yet.)
+                break;
+            case "ponderfinish":
+                // A ponder hit lets a depth begun past half the planned time finish, within that time from the
+                // hit, and stops by then (Search.PonderFinish; off: the depth is dropped, as before).
+                _ponderFinish = value.ToLowerInvariant() switch
+                {
+                    "true" => true,
+                    "false" => false,
+                    _ => throw new ArgumentException($"PonderFinish is true or false, not {value}."),
+                };
                 break;
             case "evalfile":
                 // A network (.nnue, told apart by its magic), this engine's own; or tuned evaluation numbers
@@ -300,6 +312,7 @@ public sealed class UciEngine
         var search = _search;
         search.Threads = _threads;
         search.Split = _split;
+        search.PonderFinish = _ponderFinish;
         lock (_infoLock)
             (_lastInfo, _ponderHit, _infoSinceHit) = (null, false, false);
         // "go" returns once the search is ready, so a "stop" or "ponderhit" straight after it isn't lost.

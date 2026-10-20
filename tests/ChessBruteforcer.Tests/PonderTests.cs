@@ -34,6 +34,24 @@ public class PonderTests
             return round.Skip(start).Where(l => l.StartsWith("info depth")).Select(Info.Parse).ToArray();
         }
 
+        /// <summary>
+        /// The "info depth" lines so far in the <paramref name="round"/>th search, once one of them matches
+        /// <paramref name="found"/>, waiting up to <paramref name="ms"/> for it; null if none came.
+        /// </summary>
+        public Info[]? WaitForInfo(int round, Func<Info, bool> found, int ms)
+        {
+            var clock = Stopwatch.StartNew();
+            while (true)
+            {
+                var infos = InfosBefore(round);
+                if (infos.Any(found))
+                    return infos;
+                if (clock.ElapsedMilliseconds > ms)
+                    return null;
+                Thread.Sleep(1);
+            }
+        }
+
         /// <summary>The <paramref name="count"/>th "bestmove" line, waiting up to <paramref name="ms"/> for it; null if it never came.</summary>
         public string? WaitForBestMove(int count, int ms)
         {
@@ -70,12 +88,13 @@ public class PonderTests
         Assert.Equal(infos.Length, infos.Select(i => i.Depth).Distinct().Count());
     }
 
-    private static (UciEngine Engine, Output Output) Start(int threads = 1, string split = "LazySMP")
+    private static (UciEngine Engine, Output Output) Start(int threads = 1, string split = "LazySMP", bool ponderFinish = true)
     {
         var output = new Output();
         var engine = new UciEngine(output);
         engine.Handle($"setoption name Threads value {threads}");
         engine.Handle($"setoption name ThreadSplit value {split}");
+        engine.Handle($"setoption name PonderFinish value {(ponderFinish ? "true" : "false")}");
         return (engine, output);
     }
 
@@ -85,7 +104,14 @@ public class PonderTests
     // 3 s on our clock: about 100 ms planned for the move and 294 ms at most (Search's TimeBudget, less
     // the 50 ms Move Overhead: 2,950 / 30 = 98, the most three times that).
     private const string Clock = "wtime 3000 btime 3000";
+    private const int PlannedMs = 98;
     private const int HardLimitMs = 294;
+
+    /// <summary>A clock on which the move's planned time is <paramref name="plannedMs"/> (and its most three times that).</summary>
+    private static string ClockPlanning(int plannedMs) => $"wtime {30 * plannedMs + 50} btime {30 * plannedMs + 50}";
+
+    // What a search may take beyond its limit to notice it, stop its threads and answer, on a busy machine.
+    private const int Margin = 200;
 
     private static void AssertLegal(Position position, string bestLine)
     {
@@ -108,9 +134,14 @@ public class PonderTests
         var (engine, output) = Start();
         engine.Handle("uci");
         Assert.Contains("option name Ponder type check default false", output.Lines());
+        Assert.Contains("option name PonderFinish type check default true", output.Lines());
         engine.Handle("setoption name Ponder value true");
         engine.Handle("setoption name Ponder value false");
+        engine.Handle("setoption name PonderFinish value false");
+        engine.Handle("setoption name PonderFinish value true");
         Assert.DoesNotContain(output.Lines(), l => l.StartsWith("info string"));
+        engine.Handle("setoption name PonderFinish value sometimes");
+        Assert.Contains("info string error: PonderFinish is true or false, not sometimes.", output.Lines());
     }
 
     [Theory]
@@ -150,14 +181,15 @@ public class PonderTests
         Assert.InRange(clock.ElapsedMilliseconds, 0, HardLimitMs + 300);
         AssertLegal(engine.Position, best!);
 
-        // The opponent took longer than our whole budget: what pondering found is the answer, at once.
+        // The opponent took longer than our whole budget: what pondering found is the answer, at once, or
+        // within the move's planned time if the depth in progress finishes by then (PonderFinish).
         engine.Handle($"go ponder {Clock}");
         Thread.Sleep(HardLimitMs + 300);
         clock.Restart();
         engine.Handle("ponderhit");
         best = output.WaitForBestMove(2, 5000);
         Assert.NotNull(best);
-        Assert.InRange(clock.ElapsedMilliseconds, 0, 200);
+        Assert.InRange(clock.ElapsedMilliseconds, 0, PlannedMs + Margin);
         AssertLegal(engine.Position, best!);
     }
 
@@ -170,14 +202,19 @@ public class PonderTests
     [InlineData(4, "Ranges")]
     public void APonderHitAnsweredAtOnceSendsItsLastInfoAgain(int threads, string split)
     {
-        var (engine, output) = Start(threads, split);
+        // PonderFinish off, so the depth in progress is dropped and the hit answers at once, as before P2.  (With it
+        // on, that depth may finish after the hit and send its own line; APonderHitLetsTheDepthItWouldDropFinish
+        // checks the line sent again when it doesn't.)
+        var (engine, output) = Start(threads, split, ponderFinish: false);
         for (int round = 1; round <= 2; round++)   // (twice: one search's hit mustn't count for the next)
         {
             engine.Handle(Pondered);
             engine.Handle($"go ponder {Clock}");
             Thread.Sleep(HardLimitMs + 300);   // past the whole budget, so the hit answers at once, with no new depth
+            var clock = Stopwatch.StartNew();
             engine.Handle("ponderhit");
             Assert.NotNull(output.WaitForBestMove(round, 5000));
+            Assert.InRange(clock.ElapsedMilliseconds, 0, 200);
 
             var infos = output.InfosBefore(round);
             Assert.True(infos.Length >= 2, $"{infos.Length} info lines");
@@ -301,7 +338,146 @@ public class PonderTests
         if (!answered)
             search.Stop();
         Assert.True(answered, "no answer after ponderhit");
-        Assert.InRange(clock.ElapsedMilliseconds, 0, 200);
+        // Not at once, as before P2: pondering is past the hard limit, so the depth in progress has the move's
+        // planned time (98 ms here) from the hit to finish (PonderFinish), and then the answer is that depth.
+        Assert.InRange(clock.ElapsedMilliseconds, 0, PlannedMs + Margin);
         Assert.True(pondered!.Depth > ownTime, $"depth {pondered.Depth} pondering, {ownTime} on our own time");
+    }
+
+    // P2 (PONDER.md): a hit lets the depth in progress finish, if it began past half the planned time S (or the hit
+    // comes past the hard limit) and finishes within S of the hit; no new depth starts after it.  Anything else that
+    // runs on after a hit stops by the hit + S, not at the hard limit, 3S from "go ponder".
+
+    [Theory]
+    // PonderFinish off: today's rule.  The hard limit stays; a depth begun past S/2 is stopped at once.
+    [InlineData(500, 100, 1000, 3000, false, 3000, false)]
+    [InlineData(600, 501, 1000, 3000, false, 3000, true)]
+    [InlineData(600, 500, 1000, 3000, false, 3000, false)]   // (begun at S/2 exactly is not past it)
+    [InlineData(3500, 400, 1000, 3000, false, 3000, false)]   // (past the hard limit: the clock check stops it)
+    // On: a depth begun past S/2 has S from the hit.
+    [InlineData(600, 501, 1000, 3000, true, 1600, false)]
+    [InlineData(4000, 3900, 1000, 3000, true, 5000, false)]
+    // On: a hit past the hard limit gives the depth in progress S from the hit, however early it began.
+    [InlineData(3500, 400, 1000, 3000, true, 4500, false)]
+    [InlineData(3000, 400, 1000, 3000, true, 4000, false)]
+    // On, a depth begun before S/2: it goes on, as in a plain search, but stops by the hit + S or the hard limit.
+    [InlineData(100, 50, 1000, 3000, true, 1100, false)]
+    [InlineData(600, 500, 1000, 3000, true, 1600, false)]
+    [InlineData(2500, 400, 1000, 3000, true, 3000, false)]
+    // No soft time (movetime): today's rule, on or off.
+    [InlineData(500, 400, 0, 2000, true, 2000, false)]
+    [InlineData(2500, 1400, 0, 2000, true, 2000, false)]
+    public void APonderHitSetsTheLimitsP2Describes(long hitMs, long iterationStartMs, long softMs, long hardMs, bool finish,
+                                                   long expectedHardMs, bool expectedStop)
+    {
+        Assert.Equal((expectedHardMs, expectedStop), Search.AfterPonderHit(hitMs, iterationStartMs, softMs, hardMs, finish));
+    }
+
+    [Theory]
+    [InlineData(1, "LazySMP")]
+    [InlineData(4, "LazySMP")]
+    [InlineData(4, "Ranges")]
+    public void APonderHitLetsTheDepthItWouldDropFinish(int threads, string split)
+    {
+        var (engine, output) = Start(threads, split);
+        int finished = 0, rounds = 0;
+        var log = new List<string>();
+        for (int attempt = 1; finished == 0 && attempt <= 4; attempt++)   // (whether a depth can finish within S depends on the depth)
+        {
+            // First the depths' finish times from an empty table, pondering on a clock that limits nothing for 1.5 s.
+            int profiled = ++rounds;
+            engine.Handle("ucinewgame");
+            engine.Handle(Pondered);
+            engine.Handle($"go ponder {ClockPlanning(100_000)}");
+            output.WaitForInfo(profiled, i => i.TimeMs > 1500, 30_000);
+            engine.Handle("stop");
+            var profile = output.InfosBefore(profiled);
+            // S just under twice the time of a depth k whose next depth is quick for its time: depth k finishes past
+            // S/2, so depth k + 1 begins past it, which the clock alone would never do, and has S from the hit.
+            var quickest = profile.Zip(profile.Skip(1))
+                                  .Where(p => p.First.TimeMs is >= 40 and <= 1500 && p.Second.Depth == p.First.Depth + 1)
+                                  .OrderBy(p => (double)(p.Second.TimeMs - p.First.TimeMs) / p.First.TimeMs)
+                                  .FirstOrDefault();
+            int planned = quickest.First is null ? 400 : (int)(1.7 * quickest.First.TimeMs);
+
+            int round = ++rounds;
+            engine.Handle("ucinewgame");
+            engine.Handle(Pondered);
+            engine.Handle($"go ponder {ClockPlanning(planned)}");
+            var sinceGo = Stopwatch.StartNew();
+            // Once a depth finishes past S/2, the one after it (which the clock would never have begun) is in progress.
+            string Lines() => $"round {round}, S {planned} ms: " + string.Join(" | ", output.InfosBefore(round).Select(i => $"{i.Depth} at {i.TimeMs}"));
+            Assert.True(output.WaitForInfo(round, i => i.TimeMs > planned / 2, 30_000) is not null, $"no depth past S/2: {Lines()}");
+            var before = output.InfosBefore(round);
+            long hitMs = sinceGo.ElapsedMilliseconds;
+            var clock = Stopwatch.StartNew();
+            engine.Handle("ponderhit");
+            string? best = output.WaitForBestMove(round, planned + 5000);
+            Assert.True(best is not null, $"no answer, hit at {hitMs}: {Lines()}");
+            Assert.True(clock.ElapsedMilliseconds <= planned + Margin, $"answered {clock.ElapsedMilliseconds} ms after the hit at {hitMs}: {Lines()}");
+
+            var after = output.InfosBefore(round)[before.Length..];
+            var lastBefore = before[^1];
+            log.Add($"{Lines()}, hit at {hitMs} after {before.Length}");
+            var line = Assert.Single(after);   // one depth at most, and the line sent again (P1) only if none
+            if (line.Depth == lastBefore.Depth + 1)
+            {
+                // It finished within S of the hit, and it's the move played.
+                finished++;
+                Assert.InRange(line.TimeMs, 0, hitMs + planned + Margin);
+                Assert.Equal(line.Pv.Split(' ')[0], best!.Split(' ')[1]);
+            }
+            else
+            {
+                // It didn't: stopped by the hit + S, and the depth before is played, its line sent again.
+                Assert.Equal((lastBefore.Depth, lastBefore.Score, lastBefore.Pv), (line.Depth, line.Score, line.Pv));
+                Assert.Equal(lastBefore.Pv.Split(' ')[0], best!.Split(' ')[1]);
+            }
+        }
+        Assert.True(finished > 0, $"no depth finished after the hit in {rounds} rounds: {string.Join("\n", log)}");
+    }
+
+    [Theory]
+    [InlineData(1, "LazySMP")]
+    [InlineData(4, "LazySMP")]
+    [InlineData(4, "Ranges")]
+    public void APonderHitAnswersWithinThePlannedTime(int threads, string split)
+    {
+        const int planned = 400;   // the hard limit 1,200 ms from "go ponder"
+        var (engine, output) = Start(threads, split);
+        int round = 0;
+        foreach (int ponderMs in new[] { 0, 360, 1400 })   // at once (a plain search could run to 1,200), at 0.9 S, past the hard limit
+        {
+            round++;
+            engine.Handle(Pondered);
+            engine.Handle($"go ponder {ClockPlanning(planned)}");
+            Thread.Sleep(ponderMs);
+            var clock = Stopwatch.StartNew();
+            engine.Handle("ponderhit");
+            string? best = output.WaitForBestMove(round, 5000);
+            Assert.NotNull(best);
+            Assert.InRange(clock.ElapsedMilliseconds, 0, planned + Margin);
+            AssertLegal(engine.Position, best!);
+        }
+    }
+
+    [Fact]
+    public void PonderFinishLeavesTheSearchItselfAlone()
+    {
+        // One thread: the same depths, node for node, and the same move, on or off, when no limit cuts the search.
+        string[] Play(bool ponderFinish)
+        {
+            var (engine, output) = Start(ponderFinish: ponderFinish);
+            engine.Handle(Pondered);
+            engine.Handle("go ponder depth 8 wtime 100000 btime 100000");
+            engine.Handle("ponderhit");
+            string? best = output.WaitForBestMove(1, 10_000);
+            Assert.NotNull(best);
+            return output.InfosBefore(1).DistinctBy(i => i.Depth)   // (not a line sent again, if the hit came after depth 8)
+                         .Select(i => $"{i.Depth} {i.Score} {i.Nodes} {i.Pv}").Append(best!).ToArray();
+        }
+        var on = Play(true);
+        Assert.Equal(9, on.Length);
+        Assert.Equal(Play(false), on);
     }
 }
