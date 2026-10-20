@@ -61,6 +61,29 @@ MUTANTS = [
      ".Append((Output!, \"the output\", 0))", "", "red"),
     ("writer: the sizes written as inputs", net,
      "            U32((uint)layer.Outputs);\n", "            U32((uint)layer.Inputs);\n", "red"),
+    # The pass by pairs (e794b8e).
+    ("pairs: the 512-bit zero test inverted", net,
+     "                ulong mask = (~Vector512.Equals(chunk, Vector512<int>.Zero)).ExtractMostSignificantBits();\n"
+     "                for (; mask != 0; mask &= mask - 1)\n                {\n",
+     "                ulong mask = Vector512.Equals(chunk, Vector512<int>.Zero).ExtractMostSignificantBits();\n"
+     "                for (; mask != 0; mask &= mask - 1)\n                {\n", "red"),
+    ("pairs: the 512-bit second register never added", net,
+     "                    if (two)\n                        s1 += Avx512BW.MultiplyAddAdjacent(both, Vector512.LoadUnsafe(ref weights, at + 32));\n"
+     "                }\n            }\n            for (; p < pairs; p++)\n",
+     "                }\n            }\n            for (; p < pairs; p++)\n", "red"),
+    ("pairs: the 256-bit pass skips the tail pairs", net,
+     "            for (; p < pairs; p++)\n            {\n                int value = Pair(ref xs, p);\n                if (value == 0)\n"
+     "                    continue;\n                var both = Vector256.Create(value).AsInt16();\n",
+     "            for (; p < pairs && false; p++)\n            {\n                int value = Pair(ref xs, p);\n                if (value == 0)\n"
+     "                    continue;\n                var both = Vector256.Create(value).AsInt16();\n", "red"),
+    ("pairs: a weight laid out at the wrong input of its pair", net,
+     "                    pairs[(i / 2 * PaddedOutputs + j) * 2 + (i & 1)] = weights[j * inputs + i];\n",
+     "                    pairs[(i / 2 * PaddedOutputs + j) * 2 + (1 - (i & 1))] = weights[j * inputs + i];\n", "red"),
+    ("pairs: the starting sums without the half step", net,
+     "                StartingSums[j] = biases[j] + q / 2;\n", "                StartingSums[j] = biases[j];\n", "red"),
+    ("pairs: more than 32 outputs through memory, at 512 bits, reads 16 too few", net,
+     "            int vectors = n / 16;\n            for (int v = 0; v < vectors; v++)\n                sums[v] = Vector512.LoadUnsafe",
+     "            int vectors = n / 16 - 1;\n            for (int v = 0; v < vectors; v++)\n                sums[v] = Vector512.LoadUnsafe", "red"),
 ]
 
 
