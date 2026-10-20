@@ -3742,9 +3742,10 @@ has the tables; this is the story.
 
 - Matthew asked how long a 2048 net on September (nnue1-h512's recipe, 20
   passes) would take, and whether the laptop's 3070 beats the 1660. His (a):
-  a speed race on the laptop with the bot off (it had gone down at 21:23;
-  I took its TypeError for his stopping it, but memory had run out: the
-  23:20-00:45 entry). On the charger, 4.1 GB
+  a speed race on the laptop with the bot off (it had gone down at 21:23:
+  "i stopped it", he said; the TypeError on the way out is what a held
+  Ctrl+C does, as a side session found on 2026-10-20, not memory running
+  out as the 23:20-00:45 entry first thought). On the charger, 4.1 GB
   of commit free, the book learner beside it.
 - `train speed-<H> --hidden <H> --buckets 16 --passes 1 --held-back-max
   200000 --out <scratchpad>`, a quarter of September each:
