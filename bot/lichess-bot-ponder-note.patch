@@ -1,0 +1,34 @@
+diff --git a/lib/engine_wrapper.py b/lib/engine_wrapper.py
+index 38c13f9..e045ea6 100644
+--- a/lib/engine_wrapper.py
++++ b/lib/engine_wrapper.py
+@@ -262,12 +262,29 @@ class EngineWrapper:
+         :return: The move to play.
+         """
+         time_limit = self.add_go_commands(time_limit)
++        # BruteForceBot (2026-10-20): was this a ponder hit? python-chess sends "ponderhit" when the opponent played
++        # the reply the engine was pondering, and then keeps only what the engine reports after it: if no new depth
++        # finishes before the move is played, the log had "Source: Engine" and nothing else (23% of the bot's
++        # engine moves on 2026-10-20, every one of them a ponder hit). The same test as python-chess's own, on the
++        # position the last search left the engine pondering.
++        pondered = getattr(self, "pondering_on", None)
++        ponder_hit = (ponder and pondered is not None and board.move_stack == pondered.move_stack
++                      and board == pondered)
+         result = self.engine.play(board,
+                                   time_limit,
+                                   info=chess.engine.INFO_ALL,
+                                   ponder=ponder,
+                                   draw_offered=draw_offered,
+                                   root_moves=root_moves if isinstance(root_moves, list) else None)
++        self.pondering_on = None
++        if ponder and result.move and result.ponder:
++            self.pondering_on = board.copy()
++            self.pondering_on.push(result.move)
++            self.pondering_on.push(result.ponder)
++        if ponder_hit and result.info is not None:
++            result.info["string"] = ("lichess-bot-source:Engine, ponder hit" if "score" in result.info else
++                                     "lichess-bot-source:Engine, ponder hit (thought in the opponent's time; "
++                                     "no depth finished after the hit to report)")
+         # Use null_score to have no effect on draw/resign decisions
+         null_score = chess.engine.PovScore(chess.engine.Mate(1), board.turn)
+         self.scores.append(result.info.get("score", null_score))

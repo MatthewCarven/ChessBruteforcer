@@ -188,6 +188,16 @@ holds ~0.8 GB of tables plus its hash). The second 16 GB stick (section 4)
 fixes it for good; until then, a bigger page file would raise the limit
 (Matthew's setting). If it ever happens with headroom, look closer.
 
+**The ponder note** (2026-10-20, Matthew asked; WORKLOG): 23% of the bot's
+engine moves logged "Source: Engine" and no stats, every one a ponder hit
+(python-chess keeps only what the engine reports after "ponderhit").
+bot\lichess-bot-ponder-note.patch (lib\engine_wrapper.py) marks them
+"Source: Engine, ponder hit", and says why when the stats are missing
+(bot\test-ponder-note.py). It goes in at the bot's next `bot\start-bot.cmd`.
+Later, maybe: the engine could send one last `info` line (depth, score, pv)
+before `bestmove` after a ponderhit, so those moves get their stats too; that's
+in src, so after the optimisation work there lands.
+
 **Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
 on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now
 on, listed in `delete me\WHAT-THIS-IS.txt`. The index lives in `indexes\`
