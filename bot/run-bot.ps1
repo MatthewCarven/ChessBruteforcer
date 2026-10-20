@@ -9,11 +9,17 @@
 # stops 5 times running within 2 minutes of starting, something isn't network (the token, say): this gives up and
 # says so. Every start and stop also goes to bot\logs\restarts.log, a Ctrl+C included (2026-10-20: four stops by a
 # held Ctrl+C, with no line here, were taken for crashes).
+#
+# To stop once the games are over (Matthew, 2026-10-20), drop bot\quit.soon (bot\quit-soon.cmd makes it):
+# lichess-bot takes no new games and stops when the last one ends (bot\lichess-bot-quit-soon.patch), and this
+# loop, finding the file there, deletes it and starts nothing. Deleting it before then cancels.
 $ErrorActionPreference = 'Continue'
 $here = $PSScriptRoot
 $py = Join-Path $here 'lichess-bot\.venv\Scripts\python.exe'
 $logs = Join-Path $here 'logs'
 $restarts = Join-Path $logs 'restarts.log'
+$quitSoon = Join-Path $here 'quit.soon'
+$env:BRUTEFORCER_QUIT_SOON = $quitSoon  # lichess-bot looks for it there (and for quit.soon.txt)
 New-Item -ItemType Directory -Force $logs | Out-Null
 
 function Note([string] $text) {
@@ -34,7 +40,7 @@ function Lichess-Answers {
 Set-Location (Join-Path $here 'lichess-bot')
 $quick = 0
 $running = $null  # when the lichess-bot running now started, if one is
-$byCtrlC = $true  # the loop only ends by Ctrl+C, unless it gives up
+$byCtrlC = $true  # the loop only ends by Ctrl+C, unless it gives up or quit.soon ends it
 try {
     while ($true) {
         if (-not (Lichess-Answers)) {
@@ -51,6 +57,13 @@ try {
         $code = $LASTEXITCODE
         $running = $null
         $ran = (Get-Date) - $started
+        $flags = @($quitSoon, "$quitSoon.txt") | Where-Object { Test-Path -LiteralPath $_ }
+        if ($flags) {
+            Note ('lichess-bot stopped for bot\quit.soon after {0:N0} min: not starting it again (bot\start-bot.cmd does)' -f $ran.TotalMinutes)
+            $flags | ForEach-Object { Remove-Item -LiteralPath $_ }
+            $byCtrlC = $false
+            break
+        }
         if ($ran.TotalMinutes -lt 2) { $quick++ } else { $quick = 0 }
         if ($quick -ge 5) {
             Note "lichess-bot stopped 5 times within 2 minutes of starting (exit $code): giving up. Its log: $logFile"

@@ -1,0 +1,110 @@
+diff --git a/lib/lichess_bot.py b/lib/lichess_bot.py
+index 02cca6c..67d5e89 100644
+--- a/lib/lichess_bot.py
++++ b/lib/lichess_bot.py
+@@ -324,6 +324,47 @@ def log_proc_count(change: str, active_games: dict[str, str]) -> None:
+     logger.info(f"{symbol} Process {change}. Count: {len(active_games)}. IDs: {game_ids}")
+ 
+ 
++# BruteForceBot (2026-10-20): stopping once the games are over. Matthew drops bot\quit.soon (bot\quit-soon.cmd makes
++# it; a "quit.soon.txt" from Explorer counts too): lichess-bot declines new challenges with "later" (lichess.org tells
++# the challenger "This is not the right time for me, please ask again later."; a decline can't carry words of its
++# own), withdraws its own, makes no new ones, says QUIT_SOON_GOODBYE at the end of the games still on, and stops when
++# none is left. run-bot.ps1 names the file in BRUTEFORCER_QUIT_SOON, deletes it after that stop and starts nothing;
++# deleting it sooner cancels the stop.
++QUIT_SOON_GOODBYE = ("Good game! Sorry, no new challenges at this time: we're going to sleep, and when we wake up "
++                     "we'll be even better!")
++
++
++def quit_soon() -> bool:
++    """Whether the quit.soon file is there (named by BRUTEFORCER_QUIT_SOON; without that, never)."""
++    path = os.environ.get("BRUTEFORCER_QUIT_SOON")
++    return bool(path) and (os.path.exists(path) or os.path.exists(path + ".txt"))
++
++
++def start_quitting(li: lichess.Lichess, challenge_queue: MULTIPROCESSING_LIST_TYPE,
++                   matchmaker: matchmaking.Matchmaking, active_games: dict[str, str]) -> None:
++    """quit.soon has appeared: decline the challenges waiting for a slot, and withdraw the bot's own."""
++    logger.info(f"quit.soon is there: no new challenges; lichess-bot stops once no game is in play "
++                f"({len(active_games)} now)")
++    while challenge_queue:
++        chlng = challenge_queue.pop(0)
++        logger.info(f"Decline {chlng} (later): quit.soon")
++        li.decline_challenge(chlng.id, reason="later")
++    if matchmaker.challenge_id:
++        logger.info(f"Cancel challenge {matchmaker.challenge_id}: quit.soon")
++        with contextlib.suppress(Exception):
++            li.cancel(matchmaker.challenge_id)
++        matchmaker.discard_challenge(matchmaker.challenge_id)
++
++
++def decline_while_quitting(event: EventType, li: lichess.Lichess, user_profile: UserProfileType) -> None:
++    """A challenge that comes while quit.soon is there: declined with "later"."""
++    chlng = model.Challenge(event["challenge"], user_profile)
++    if chlng.from_self:
++        return
++    logger.info(f"Decline {chlng} (later): quit.soon")
++    li.decline_challenge(chlng.id, reason="later")
++
++
+ def lichess_bot_main(li: lichess.Lichess,
+                      user_profile: UserProfileType,
+                      config: Configuration,
+@@ -379,6 +420,7 @@ def lichess_bot_main(li: lichess.Lichess,
+         logger.info("When quitting, lichess-bot will first wait for all running games to finish.")
+         logger.info("Press Ctrl-C twice to quit immediately.")
+ 
++    quitting = False  # BruteForceBot: quit.soon is there (above)
+     with multiprocessing.pool.Pool(max_games + 1) as pool:
+         games_playing.clear()  # a restart's new pool: none of the old games' play_game survive it
+         while not (stop.terminated or (one_game and one_game_completed) or stop.restart):
+@@ -386,6 +428,13 @@ def lichess_bot_main(li: lichess.Lichess,
+             if not event:
+                 continue
+ 
++            if quit_soon() != quitting:
++                quitting = not quitting
++                if quitting:
++                    start_quitting(li, challenge_queue, matchmaker, active_games)
++                else:
++                    logger.info("quit.soon is gone: taking challenges again")
++
+             if event["type"] == "terminated":
+                 stop.restart = True
+                 control_queue.task_done()
+@@ -397,6 +446,8 @@ def lichess_bot_main(li: lichess.Lichess,
+                 matchmaker.game_done()
+                 log_proc_count("Freed", active_games)
+                 one_game_completed = True
++            elif event["type"] == "challenge" and quitting:
++                decline_while_quitting(event, li, user_profile)
+             elif event["type"] == "challenge":
+                 handle_challenge(event,
+                                  li,
+@@ -429,11 +480,15 @@ def lichess_bot_main(li: lichess.Lichess,
+                                              play_game_args,
+                                              active_games,
+                                              max_games)
+-            accept_challenges(li, challenge_queue, active_games, max_games, max_bot_games)
+-            matchmaker.challenge(active_games, challenge_queue, max_bot_games)
++            if not quitting:
++                accept_challenges(li, challenge_queue, active_games, max_games, max_bot_games)
++                matchmaker.challenge(active_games, challenge_queue, max_bot_games)
+             check_online_status(li, user_profile, last_check_online_time)
+ 
+             control_queue.task_done()
++            if quitting and not active_games:
++                logger.info("quit.soon: no game in play, so lichess-bot stops here")
++                break
+ 
+         close_pool(pool, active_games, config)
+ 
+@@ -812,7 +867,7 @@ def play_game(li: lichess.Lichess,
+                         elif is_game_over(game):
+                             tell_user_game_result(game, board)
+                             engine.send_game_result(game, board)
+-                            conversation.send_message("player", goodbye)
++                            conversation.send_message("player", QUIT_SOON_GOODBYE if quit_soon() else goodbye)
+                             conversation.send_message("spectator", goodbye_spectators)
+                         elif (takeback_field
+                                 and not bot_to_move(game, board)

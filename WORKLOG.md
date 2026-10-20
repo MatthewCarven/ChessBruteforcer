@@ -4402,3 +4402,49 @@ has the tables; this is the story.
   line as it runs, so if the file changes under a running window and its pwsh
   then exits without a Ctrl+C (the loop giving up), cmd carries on at its old
   byte position in the new file: mid-block, then the line that starts the bot.
+
+## 2026-10-20 (23:30-23:55): bot\quit.soon stops the bot once its games are over (Matthew asked)
+
+- **Asked** (waiting on the bot to finish a game): "a flag or something we can
+  drop in the folder bot called quit.soon and if the file exists gracefully
+  refuse any challenges and exit when all existing games are finished", the
+  bot saying something like "Sorry cannot accept any new challenges at this
+  time! We're going to go to sleep and when we wake up we will be even
+  better!" ("it makes it look like we can just reach in and remote control
+  the entire system, which we cannot, but the appearance!")
+- **The words**: a decline carries only one of lichess.org's own reasons, so a
+  challenger sees "later" ("This is not the right time for me, please ask
+  again later."); before a game there's no chat. His line is the goodbye in
+  the games the bot finishes: "Good game! Sorry, no new challenges at this
+  time: we're going to sleep, and when we wake up we'll be even better!"
+- **bot\lichess-bot-quit-soon.patch** (lib\lichess_bot.py, on top of the other
+  six): at each event lichess-bot looks for the file run-bot.ps1 names in
+  BRUTEFORCER_QUIT_SOON (bot\quit.soon, or quit.soon.txt as Explorer makes
+  it). While it's there: queued challenges declined "later", its own
+  matchmaking challenge cancelled, new challenges declined "later", nothing
+  accepted, no matchmaking; games already on (and a gameStart for one) are
+  played, ending with his goodbye; when none is left, lichess-bot stops
+  ("quit.soon: no game in play, so lichess-bot stops here"). Deleting the file
+  sooner goes back to taking challenges.
+- **run-bot.ps1**: after lichess-bot stops, if the file is there, it notes
+  "lichess-bot stopped for bot\quit.soon after N min: not starting it again
+  (bot\start-bot.cmd does)", deletes it and ends. **start-bot.cmd** applies the
+  patch after the Ctrl+C fix and clears an old quit.soon first thing (one
+  dropped during its build still counts). **bot\quit-soon.cmd** makes the file
+  (double-click).
+- **Tests**: **bot\test-quit-soon.py** (lichess-bot's pretend lichess.org at
+  concurrency 2; a human's challenge comes mid-game, the game held till then;
+  each run in its own process): with the file, the game played, the challenge
+  declined "later", his goodbye, lichess-bot stopped by itself 1.1 s after the
+  game; without it (control), the challenge accepted, "Good game!", lichess-bot
+  carrying on; the file and no game, stopped in 1.8 s. Passed twice; on
+  lichess-bot without the patch FAILED 2 runs (never stopped, accepted the
+  challenge). All six bot tests pass on lichess-bot with the seven patches.
+  start-bot.cmd's new lines run byte for byte on a clone: both stale names
+  deleted, the patch applied once then left alone, the result identical to the
+  tested file. run-bot.ps1 on a copy in a hidden console: quit.soon and
+  quit.soon.txt each stopped the loop with the line above and the file gone
+  (exit 0); Ctrl+C still noted as before. quit-soon.cmd made the file.
+- **From the bot's first start after the merge** (this branch, with the Ctrl+C
+  fix): the bot running now has the old code, so this once it's a Ctrl+C
+  between games, then the merge, then `bot\start-bot.cmd`.

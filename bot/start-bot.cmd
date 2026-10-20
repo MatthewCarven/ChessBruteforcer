@@ -2,10 +2,14 @@
 rem Run BruteForceBot on Lichess (lichess-bot with our engine and tables).  Ctrl+C, or close the window, stops it;
 rem if lichess-bot stops by itself (a network fault it didn't ride out), run-bot.ps1 starts it again.
 rem   bot\start-bot.cmd
+rem To stop it once its games are over instead, bot\quit-soon.cmd (it makes bot\quit.soon).
 rem Runs from a copy of the engine build (bot\lichess-bot\engines\bruteforcer) so the repo stays buildable;
 rem the copy is refreshed from the latest build each start.  Its log goes to bot\logs, its games to bot\games.
 setlocal
 cd /d "%~dp0.."
+rem A fresh start plays: a quit.soon left from before goes (one dropped during the build below still counts).
+if exist bot\quit.soon del bot\quit.soon
+if exist bot\quit.soon.txt del bot\quit.soon.txt
 dotnet build src\ChessBruteforcer.Engine -c Release --nologo -v q
 if errorlevel 1 (
     rem Another window may have been building the same project at that moment: once more, after a pause.
@@ -73,6 +77,14 @@ git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-sigint.patch" >
 if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-sigint.patch"
     if errorlevel 1 echo The Ctrl+C fix didn't go in ^(lichess-bot changed?^): a held Ctrl+C can end in a TypeError again.
+)
+rem bot\quit.soon (bot\quit-soon.cmd) stops the bot once its games are over: no new games, Matthew's goodbye at the end
+rem of the ones still on, then lichess-bot stops and run-bot.ps1 starts nothing: bot\lichess-bot-quit-soon.patch,
+rem 2026-10-20; bot\test-quit-soon.py tests it. Unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-quit-soon.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-quit-soon.patch"
+    if errorlevel 1 echo The quit.soon stop didn't go in ^(lichess-bot changed?^): bot\quit.soon will do nothing.
 )
 set BRUTEFORCER_TABLES=%CD%\tables
 rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers;

@@ -26,7 +26,8 @@ that could go wrong does.
   its next start, Ctrl+C stops too), bot/lichess-bot/lichess_bot_auto_logs
   (lichess-bot's DEBUG log, 7 days: signals, events),
   bot/logs/learn-<date>.log, games/month-queue.log. Restart the bot only
-  between games. The laptop must stay awake (plugged in).
+  between games: `bot\quit-soon.cmd` stops it once its games are over (from
+  its next start). The laptop must stay awake (plugged in).
 - **The month queue** (`scripts\month-queue.cmd`; Matthew 2026-10-13: "queue
   the lot up"): newest first, 2026-09 back to 2022-12 (46 months, ~1.4 TB,
   ~4.3 B games, ~16 days at ~1 MB/s) onto the desktop share (Z:\lichess,
@@ -256,6 +257,19 @@ and the bot restarted between games with `bot\start-bot.cmd`; stop the bot
 before the merge (its window reads start-bot.cmd as it goes). Upstream
 lichess-bot (master, 2026-10-20) has the same handler: reporting it is his
 call.
+
+**bot\quit.soon stops the bot once its games are over** (2026-10-20, Matthew
+asked; WORKLOG). Double-click `bot\quit-soon.cmd` (or make bot\quit.soon; a
+quit.soon.txt from Explorer counts): lichess-bot declines new challenges
+("later": a decline can't carry words of its own), makes and accepts none,
+ends the games still on with "Good game! Sorry, no new challenges at this
+time: we're going to sleep, and when we wake up we'll be even better!", and
+stops when none is left; run-bot.ps1 notes it in restarts.log, deletes the
+file and starts nothing. Delete the file before then to cancel. A fresh
+`bot\start-bot.cmd` clears an old one. bot\lichess-bot-quit-soon.patch,
+bot\test-quit-soon.py. **Works from the bot's first start after the merge**
+(same branch); the bot running now doesn't know the file, so this once it's
+Ctrl+C between games, then the merge, then `bot\start-bot.cmd`.
 
 **The ponder note** (2026-10-20, Matthew asked; WORKLOG): 23% of the bot's
 engine moves logged "Source: Engine" and no stats, every one a ponder hit
