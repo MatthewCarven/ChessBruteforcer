@@ -588,7 +588,8 @@ public class NnueTests
     public void TheLoaderRefusesWhatItCannotRun()
     {
         Func<int, short> zero = _ => 0;
-        Assert.Contains("version", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, version: 2))).Message);
+        // (Version 2 is the deeper nets' now, which NnueDeepTests covers; 3 is no version at all.)
+        Assert.Contains("version", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, version: 3))).Message);
         Assert.Contains("inputs", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, inputs: 640))).Message);
         Assert.Contains("hidden size", Assert.Throws<FormatException>(() => Network.Read(Craft(24, zero, zero, zero, 0))).Message);
         Assert.Contains("QA", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, qa: 256))).Message);

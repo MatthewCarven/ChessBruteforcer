@@ -30,12 +30,34 @@ namespace ChessBruteforcer.Core.Engine.Nnue;
 /// </code>
 /// Score for the side to move, in centipawns: (sum / QA + output bias) x scale / (QA x QB), each
 /// division truncating towards zero (C#'s), clamped to +-<see cref="MaxScore"/>.
+///
+/// Version 2 (2026-10-21, NNUE.md session 6: the deeper nets) keeps the feature layer and puts 1-4 small
+/// layers between it and the score:
+/// <code>
+///   8 bytes   "CBNNUE01"
+///   u32       version (2), inputs (768), hidden H
+///   i32       QA (255), scale (400)
+///   u32       L, the number of small layers (1-4), then L sizes (1-256 each)
+///   int16     feature weights [768][H], feature biases [H]     (as version 1)
+///   per layer: i32 Q (a power of two), int16 weights [size][inputs] (one output's inputs contiguous), i32 biases [size]
+///   the output: i32 Q, int16 weights [the last layer's size], i32 bias
+///   32 bytes  SHA-256 of everything above
+/// </code>
+/// The first layer's 2H inputs are x = (v x v + QA / 2) / QA, v each accumulator number clamped to [0, QA]
+/// (the side to move's H first); each layer's outputs are clamp((bias + sum x w + Q / 2) / Q, 0, QA); the
+/// score is (bias + sum x w) x scale / (QA x Q) of the output's. Divisions truncate towards zero, sums
+/// fit in int32 (the loader checks every row at the largest inputs), and the score is clamped as version 1's.
+/// scripts/nnue-reference/nnue_reference.py is the reference these must equal exactly.
 /// </summary>
 public sealed class Network
 {
     public const int Version = 1;
+    public const int DeepVersion = 2;
     public const int Inputs = 768;
     public const int MaxHidden = 1024;
+    public const int MaxLayers = 4;
+    public const int MaxLayerSize = 256;
+    public const int MaxLayerQ = 1 << 24;
 
     /// <summary>No network score may read as a mate.</summary>
     public const int MaxScore = Search.MateBound - 1;
@@ -66,6 +88,44 @@ public sealed class Network
     private readonly short[] _featureWeights, _outputWeights;
     private readonly int _featureWeightsAt, _outputWeightsAt;
 
+    /// <summary>The file's version: 1, or 2 for a net with small layers.</summary>
+    public int FileVersion => Layers.Length == 0 ? Version : DeepVersion;
+
+    /// <summary>Version 2's small layers, in order (none in version 1).</summary>
+    internal Layer[] Layers { get; } = [];
+
+    /// <summary>Version 2's output: one row over the last layer's outputs (null in version 1).</summary>
+    internal Layer? Output { get; }
+
+    /// <summary>
+    /// A small layer of a version 2 net, or its output (one row): int16 weights, one row of inputs per output,
+    /// each row from a 64-byte boundary when its length allows; int32 biases; the power-of-two scale Q.
+    /// </summary>
+    internal sealed class Layer
+    {
+        public int Inputs { get; }
+        public int Outputs { get; }
+        public int Q { get; }
+        public int Shift { get; }
+        public int[] Biases { get; }
+        private readonly short[] _weights;
+        private readonly int _weightsAt;
+
+        public Layer(int inputs, int outputs, int q, ReadOnlySpan<short> weights, int[] biases)
+        {
+            Inputs = inputs;
+            Outputs = outputs;
+            Q = q;
+            Shift = System.Numerics.BitOperations.Log2((uint)q);
+            _weights = Aligned.Allocate(inputs * outputs, out _weightsAt);
+            weights.CopyTo(_weights.AsSpan(_weightsAt));
+            Biases = biases;
+        }
+
+        public ReadOnlySpan<short> Weights => _weights.AsSpan(_weightsAt, Inputs * Outputs);
+        public ReadOnlySpan<short> Row(int output) => _weights.AsSpan(_weightsAt + output * Inputs, Inputs);
+    }
+
     private Network(int hidden, int qa, int qb, int scale, ReadOnlySpan<short> featureWeights, short[] featureBiases,
                     ReadOnlySpan<short> outputWeights, int outputBias, string sha256)
     {
@@ -82,7 +142,18 @@ public sealed class Network
         Sha256 = sha256;
     }
 
-    public override string ToString() => $"768 -> {Hidden} x2 -> 1, sha256 {Sha256[..12]}";
+    /// <summary>Version 2: the feature layer, then small layers and the output (QB and the output weights unused).</summary>
+    private Network(int hidden, int qa, int scale, ReadOnlySpan<short> featureWeights, short[] featureBiases,
+                    Layer[] layers, Layer output, string sha256)
+        : this(hidden, qa, 0, scale, featureWeights, featureBiases, ReadOnlySpan<short>.Empty, 0, sha256)
+    {
+        Layers = layers;
+        Output = output;
+    }
+
+    public override string ToString() => Layers.Length == 0
+        ? $"768 -> {Hidden} x2 -> 1, sha256 {Sha256[..12]}"
+        : $"768 -> {Hidden} x2 -> {string.Join(" -> ", Layers.Select(l => l.Outputs))} -> 1, sha256 {Sha256[..12]}";
 
     /// <summary>
     /// The input for <paramref name="piece"/> on <paramref name="square"/> (a1 = 0) as
@@ -118,13 +189,15 @@ public sealed class Network
         if (bytes.Length < HeaderBytes + HashBytes)
             throw new FormatException($"{name}: {bytes.Length} bytes is too short for a .nnue file.");
         uint version = BinaryPrimitives.ReadUInt32LittleEndian(bytes[8..]);
+        if (version == DeepVersion)
+            return ReadDeep(bytes, name);
         uint inputs = BinaryPrimitives.ReadUInt32LittleEndian(bytes[12..]);
         uint hidden = BinaryPrimitives.ReadUInt32LittleEndian(bytes[16..]);
         int qa = BinaryPrimitives.ReadInt32LittleEndian(bytes[20..]);
         int qb = BinaryPrimitives.ReadInt32LittleEndian(bytes[24..]);
         int scale = BinaryPrimitives.ReadInt32LittleEndian(bytes[28..]);
         if (version != Version)
-            throw new FormatException($"{name}: version {version}; this engine reads version {Version}.");
+            throw new FormatException($"{name}: version {version}; this engine reads versions {Version} and {DeepVersion}.");
         if (inputs != Inputs)
             throw new FormatException($"{name}: {inputs} inputs; this engine's are the {Inputs} piece-square ones.");
         if (hidden is < 16 or > MaxHidden || hidden % 16 != 0)
@@ -160,6 +233,100 @@ public sealed class Network
         return network;
     }
 
+    /// <summary>Version 2 (the class's summary has the layout), with every check <see cref="Read"/> makes and the layers' own.</summary>
+    private static Network ReadDeep(ReadOnlySpan<byte> bytes, string name)
+    {
+        uint inputs = BinaryPrimitives.ReadUInt32LittleEndian(bytes[12..]);
+        uint hidden = BinaryPrimitives.ReadUInt32LittleEndian(bytes[16..]);
+        int qa = BinaryPrimitives.ReadInt32LittleEndian(bytes[20..]);
+        int scale = BinaryPrimitives.ReadInt32LittleEndian(bytes[24..]);
+        uint count = BinaryPrimitives.ReadUInt32LittleEndian(bytes[28..]);
+        if (inputs != Inputs)
+            throw new FormatException($"{name}: {inputs} inputs; this engine's are the {Inputs} piece-square ones.");
+        if (hidden is < 16 or > MaxHidden || hidden % 16 != 0)
+            throw new FormatException($"{name}: hidden size {hidden}; it must be a multiple of 16 from 16 to {MaxHidden}.");
+        if (qa is < 1 or > 255 || scale < 1)
+            throw new FormatException($"{name}: QA {qa}, scale {scale}; QA must be 1-255, the scale positive.");
+        if (count is < 1 or > MaxLayers)
+            throw new FormatException($"{name}: {count} small layers; version {DeepVersion} has 1 to {MaxLayers}.");
+        int layerCount = (int)count;
+        if (bytes.Length < HeaderBytes + 4 * layerCount + HashBytes)
+            throw new FormatException($"{name}: {bytes.Length} bytes is too short for a .nnue file.");
+        var sizes = new int[layerCount];
+        for (int k = 0; k < layerCount; k++)
+        {
+            uint size = BinaryPrimitives.ReadUInt32LittleEndian(bytes[(HeaderBytes + 4 * k)..]);
+            if (size is < 1 or > MaxLayerSize)
+                throw new FormatException($"{name}: layer {k + 1} has {size} numbers; a layer has 1 to {MaxLayerSize}.");
+            sizes[k] = (int)size;
+        }
+        int h = (int)hidden;
+        long expected = HeaderBytes + 4L * layerCount + 2L * (Inputs * h + h) + HashBytes;
+        for (int k = 0, from = 2 * h; k < layerCount; from = sizes[k], k++)
+            expected += 4 + 2L * sizes[k] * from + 4L * sizes[k];
+        expected += 4 + 2L * sizes[^1] + 4;
+        if (bytes.Length != expected)
+            throw new FormatException($"{name}: {bytes.Length:N0} bytes; hidden {h} and layers {string.Join("/", sizes)} make {expected:N0}.");
+        byte[] hash = SHA256.HashData(bytes[..^HashBytes]);
+        if (!bytes[^HashBytes..].SequenceEqual(hash))
+            throw new FormatException($"{name}: the SHA-256 at the end doesn't match the contents (damaged or cut).");
+
+        int at = HeaderBytes + 4 * layerCount;
+        short[] ReadShorts(ReadOnlySpan<byte> source, int n)
+        {
+            var values = new short[n];
+            for (int i = 0; i < n; i++)
+                values[i] = BinaryPrimitives.ReadInt16LittleEndian(source[(at + 2 * i)..]);
+            at += 2 * n;
+            return values;
+        }
+        int[] ReadInts(ReadOnlySpan<byte> source, int n)
+        {
+            var values = new int[n];
+            for (int i = 0; i < n; i++)
+                values[i] = BinaryPrimitives.ReadInt32LittleEndian(source[(at + 4 * i)..]);
+            at += 4 * n;
+            return values;
+        }
+        Layer ReadLayer(ReadOnlySpan<byte> source, int from, int to, string what)
+        {
+            int q = ReadInts(source, 1)[0];
+            if (q < 1 || q > MaxLayerQ || (q & (q - 1)) != 0)
+                throw new FormatException($"{name}: {what}'s Q is {q}; it must be a power of two from 1 to {MaxLayerQ}.");
+            var weights = ReadShorts(source, from * to);
+            return new Layer(from, to, q, weights, ReadInts(source, to));
+        }
+        var featureWeights = ReadShorts(bytes, Inputs * h);
+        var featureBiases = ReadShorts(bytes, h);
+        var layers = new Layer[layerCount];
+        for (int k = 0, from = 2 * h; k < layerCount; from = sizes[k], k++)
+            layers[k] = ReadLayer(bytes, from, sizes[k], $"layer {k + 1}");
+        var output = ReadLayer(bytes, sizes[^1], 1, "the output");
+
+        var network = new Network(h, qa, scale, featureWeights, featureBiases, layers, output,
+                                  Convert.ToHexString(hash).ToLowerInvariant());
+        network.CheckFeatureRanges(name);
+        network.CheckLayerRanges(name);
+        return network;
+    }
+
+    /// <summary>
+    /// Version 2's sums stay in int32 at any inputs: for every row, QA x the sum of |weight| plus |bias|, plus Q / 2 for a
+    /// small layer (its rounding), at most int.MaxValue. The trainer's layer_q picks each Q to keep it so.
+    /// </summary>
+    private void CheckLayerRanges(string name)
+    {
+        foreach (var (layer, what, half) in Layers.Select((l, k) => (l, $"layer {k + 1}", l.Q / 2)).Append((Output!, "the output", 0)))
+            for (int j = 0; j < layer.Outputs; j++)
+            {
+                long most = Math.Abs((long)layer.Biases[j]) + half;
+                foreach (short w in layer.Row(j))
+                    most += (long)QA * Math.Abs((int)w);
+                if (most > int.MaxValue)
+                    throw new FormatException($"{name}: {what}'s row {j} can reach {most:N0}, past 32 bits.");
+            }
+    }
+
     /// <summary>
     /// What the int16 arithmetic needs: an output weight times QA fits in 16 bits (the SIMD pass's
     /// (v x w) step), and no accumulator can overflow on a real board (bias plus the 32 largest weights
@@ -170,6 +337,12 @@ public sealed class Network
         foreach (short w in OutputWeights)
             if (Math.Abs(w) * QA > short.MaxValue)
                 throw new FormatException($"{name}: output weight {w} times QA {QA} doesn't fit in 16 bits.");
+        CheckFeatureRanges(name);
+    }
+
+    /// <summary>No accumulator can overflow on a real board (both versions).</summary>
+    private void CheckFeatureRanges(string name)
+    {
         var weights = FeatureWeights;
         var column = new int[Inputs];
         for (int j = 0; j < Hidden; j++)
@@ -191,6 +364,8 @@ public sealed class Network
     /// <summary>The .nnue file's bytes, checksum included.</summary>
     public byte[] ToBytes()
     {
+        if (Layers.Length > 0)
+            return ToBytesDeep();
         int h = Hidden;
         var bytes = new byte[HeaderBytes + 2 * (Inputs * h + h + 2 * h) + 4 + HashBytes];
         var span = bytes.AsSpan();
@@ -219,6 +394,42 @@ public sealed class Network
         }
     }
 
+    /// <summary>Version 2's bytes.</summary>
+    private byte[] ToBytesDeep()
+    {
+        var bytes = new List<byte>(Magic.ToArray());
+        void U32(uint v) { Span<byte> x = stackalloc byte[4]; BinaryPrimitives.WriteUInt32LittleEndian(x, v); bytes.AddRange(x); }
+        void I32(int v) { Span<byte> x = stackalloc byte[4]; BinaryPrimitives.WriteInt32LittleEndian(x, v); bytes.AddRange(x); }
+        void I16s(ReadOnlySpan<short> values)
+        {
+            Span<byte> x = stackalloc byte[2];
+            foreach (short v in values)
+            {
+                BinaryPrimitives.WriteInt16LittleEndian(x, v);
+                bytes.AddRange(x);
+            }
+        }
+        U32(DeepVersion);
+        U32(Inputs);
+        U32((uint)Hidden);
+        I32(QA);
+        I32(Scale);
+        U32((uint)Layers.Length);
+        foreach (var layer in Layers)
+            U32((uint)layer.Outputs);
+        I16s(FeatureWeights);
+        I16s(FeatureBiases);
+        foreach (var layer in Layers.Append(Output!))
+        {
+            I32(layer.Q);
+            I16s(layer.Weights);
+            foreach (int b in layer.Biases)
+                I32(b);
+        }
+        bytes.AddRange(SHA256.HashData(bytes.ToArray()));
+        return bytes.ToArray();
+    }
+
     public void Save(string path) => File.WriteAllBytes(path, ToBytes());
 
     /// <summary>
@@ -240,6 +451,37 @@ public sealed class Network
             outputWeights[i] = (short)rng.Next(-outputRange, outputRange + 1);
         var draft = new Network(hidden, 255, 64, 400, featureWeights, featureBiases, outputWeights, 0, "");
         return Read(draft.ToBytes(), $"random net {hidden}/{seed}");   // the same checks as a file, and its checksum
+    }
+
+    /// <summary>
+    /// A random version 2 net: <see cref="Random"/>'s feature layer, then layers of <paramref name="sizes"/> and the
+    /// output, weights in +-<paramref name="weightRange"/> at scale <paramref name="q"/>, biases spread so that every
+    /// layer's numbers land on both sides of its clamp. The same seed gives the same net.
+    /// </summary>
+    public static Network RandomDeep(int hidden, int[] sizes, int seed, int featureRange = 64, int weightRange = 64, int q = 64)
+    {
+        var rng = new Random(seed);
+        var featureWeights = new short[Inputs * hidden];
+        for (int i = 0; i < featureWeights.Length; i++)
+            featureWeights[i] = (short)rng.Next(-featureRange, featureRange + 1);
+        var featureBiases = new short[hidden];
+        for (int i = 0; i < hidden; i++)
+            featureBiases[i] = (short)rng.Next(0, 2 * featureRange);
+        Layer Random(int from, int to)
+        {
+            var weights = new short[from * to];
+            for (int i = 0; i < weights.Length; i++)
+                weights[i] = (short)rng.Next(-weightRange, weightRange + 1);
+            var biases = new int[to];
+            for (int j = 0; j < to; j++)
+                biases[j] = rng.Next(-255 * q, 255 * q);
+            return new Layer(from, to, q, weights, biases);
+        }
+        var layers = new Layer[sizes.Length];
+        for (int k = 0, from = 2 * hidden; k < sizes.Length; from = sizes[k], k++)
+            layers[k] = Random(from, sizes[k]);
+        var draft = new Network(hidden, 255, 400, featureWeights, featureBiases, layers, Random(sizes[^1], 1), "");
+        return Read(draft.ToBytes(), $"random deep net {hidden}/{string.Join("-", sizes)}/{seed}");
     }
 
     /// <summary>
@@ -328,12 +570,143 @@ public sealed class Network
 
     /// <summary>The score for the side to move from its accumulator and the other side's, at <see cref="Kernels.Width"/>.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal int Forward(ReadOnlySpan<short> us, ReadOnlySpan<short> them) => Kernels.Width switch
+    internal int Forward(ReadOnlySpan<short> us, ReadOnlySpan<short> them) => Layers.Length != 0
+        ? ForwardDeep(Kernels.Width, us, them)
+        : Kernels.Width switch
+        {
+            512 => Forward512(us, them),
+            256 => Forward256(us, them),
+            _ => ForwardScalar(us, them),
+        };
+
+    // ---- version 2's pass ----
+
+    /// <summary>
+    /// Version 2's pass at <paramref name="width"/> bits (0: one number at a time): the activations as int16 (0 to QA),
+    /// each row a dot product by MultiplyAddAdjacent in int32 (the loader's row check keeps every sum there), then
+    /// a shift for Q, which equals the truncating division once clamped (a negative sum clamps to 0 either way).
+    /// <see cref="ForwardDeepScalar"/> is the definition it must equal.
+    /// </summary>
+    internal int ForwardDeep(int width, ReadOnlySpan<short> us, ReadOnlySpan<short> them)
     {
-        512 => Forward512(us, them),
-        256 => Forward256(us, them),
-        _ => ForwardScalar(us, them),
-    };
+        CheckAccumulators(us, them);
+        int h = Hidden;
+        Span<short> x = stackalloc short[2 * h];
+        Span<short> a = stackalloc short[MaxLayerSize];
+        Span<short> b = stackalloc short[MaxLayerSize];
+        Activate(width, us[..h], x[..h]);
+        Activate(width, them[..h], x[h..]);
+        ReadOnlySpan<short> input = x;
+        for (int k = 0; k < Layers.Length; k++)
+        {
+            var layer = Layers[k];
+            var outputs = (k % 2 == 0 ? a : b)[..layer.Outputs];
+            int half = layer.Q >> 1;
+            for (int j = 0; j < outputs.Length; j++)
+            {
+                int s = layer.Biases[j] + half + Dot(width, input, layer.Row(j));
+                outputs[j] = (short)Math.Clamp(s >> layer.Shift, 0, QA);
+            }
+            input = outputs;
+        }
+        return FinishDeep(Output!.Biases[0] + Dot(width, input, Output.Row(0)));
+    }
+
+    /// <summary>
+    /// x = (v x v + QA / 2) / QA for each accumulator number v clamped to [0, QA]. With QA 255, 16 at a time: v x v + 127
+    /// stays below 65,536 as unsigned 16 bits, and (n x 32,897) >> 23 is n / 255 for every such n (checked for all of them).
+    /// </summary>
+    private void Activate(int width, ReadOnlySpan<short> accumulator, Span<short> x)
+    {
+        int n = accumulator.Length, i = 0;
+        if (width >= 256 && QA == 255)
+        {
+            ref short from = ref MemoryMarshal.GetReference(accumulator);
+            ref short to = ref MemoryMarshal.GetReference(x);
+            var zero = Vector256<short>.Zero;
+            var qa = Vector256.Create((short)255);
+            var half = Vector256.Create((ushort)127);
+            var magic = Vector256.Create((ushort)32897);
+            for (; i + 16 <= n; i += 16)
+            {
+                var v = Vector256.Min(Vector256.Max(Vector256.LoadUnsafe(ref from, (nuint)i), zero), qa).AsUInt16();
+                var quotient = Vector256.ShiftRightLogical(Avx2.MultiplyHigh(v * v + half, magic), 7);
+                quotient.AsInt16().StoreUnsafe(ref to, (nuint)i);
+            }
+        }
+        for (; i < n; i++)
+        {
+            int v = Math.Clamp((int)accumulator[i], 0, QA);
+            x[i] = (short)((v * v + QA / 2) / QA);
+        }
+    }
+
+    /// <summary>The sum of x x w over two equal-length int16 rows, in int32, at <paramref name="width"/> bits then one at a time.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int Dot(int width, ReadOnlySpan<short> x, ReadOnlySpan<short> w)
+    {
+        int n = x.Length, i = 0, sum = 0;
+        if (w.Length != n)
+            throw new ArgumentException($"a row of {w.Length} against {n} inputs");
+        ref short xs = ref MemoryMarshal.GetReference(x);
+        ref short ws = ref MemoryMarshal.GetReference(w);
+        if (width == 512 && n >= 32)
+        {
+            var lanes = Vector512<int>.Zero;
+            for (; i + 32 <= n; i += 32)
+                lanes += Avx512BW.MultiplyAddAdjacent(Vector512.LoadUnsafe(ref xs, (nuint)i), Vector512.LoadUnsafe(ref ws, (nuint)i));
+            sum = Vector512.Sum(lanes);
+        }
+        if (width >= 256 && i + 16 <= n)
+        {
+            var lanes = Vector256<int>.Zero;
+            for (; i + 16 <= n; i += 16)
+                lanes += Avx2.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref xs, (nuint)i), Vector256.LoadUnsafe(ref ws, (nuint)i));
+            sum += Vector256.Sum(lanes);
+        }
+        for (; i < n; i++)
+            sum += x[i] * w[i];
+        return sum;
+    }
+
+    /// <summary>Version 2's pass by its definition, one number at a time in 64 bits with truncating divisions: the reference.</summary>
+    internal int ForwardDeepScalar(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
+    {
+        CheckAccumulators(us, them);
+        int h = Hidden;
+        var x = new long[2 * h];
+        for (int i = 0; i < h; i++)
+        {
+            long v = Math.Clamp((int)us[i], 0, QA), u = Math.Clamp((int)them[i], 0, QA);
+            x[i] = (v * v + QA / 2) / QA;
+            x[h + i] = (u * u + QA / 2) / QA;
+        }
+        foreach (var layer in Layers)
+        {
+            var next = new long[layer.Outputs];
+            for (int j = 0; j < layer.Outputs; j++)
+            {
+                long s = layer.Biases[j];
+                var row = layer.Row(j);
+                for (int i = 0; i < layer.Inputs; i++)
+                    s += x[i] * row[i];
+                next[j] = Math.Clamp((s + layer.Q / 2) / layer.Q, 0, QA);
+            }
+            x = next;
+        }
+        long total = Output!.Biases[0];
+        var last = Output.Row(0);
+        for (int i = 0; i < Output.Inputs; i++)
+            total += x[i] * last[i];
+        return FinishDeep(total);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int FinishDeep(long total)
+    {
+        long score = total * Scale / ((long)QA * Output!.Q);
+        return (int)Math.Clamp(score, -MaxScore, MaxScore);
+    }
 
     /// <summary>
     /// SCReLU 16 lanes at a time: v = clamp(a, 0, QA); (v x w) in 16 bits (|w| x QA fits, checked on
