@@ -1,5 +1,6 @@
-"""Mutation battery for bitboards session 1 (NNUE.md "Bitboards, measured"): the sets beside the squares, attacks by
-table, the tablebase's count and Material by popcount. Each mutant is one text change in the engine's sources; the
+"""Mutation battery for bitboards sessions 1 and 2 (NNUE.md "Bitboards, measured"): the sets beside the squares, attacks
+by table, the tablebase's count and Material by popcount (mutants 0-40); generation from the sets in the walk's order
+(41 on: `python -u battery.py <repo> 41 999 BitboardTests,MoveGeneratorTests`). Each mutant is one text change in the engine's sources; the
 tests run (dotnet test, a filter naming classes); red = some test failed or the run timed out. The source is restored
 after each mutant, whatever happens, and checked byte for byte at the end, when the tests run once more on it.
 
@@ -26,6 +27,7 @@ pos = os.path.join("src", "ChessBruteforcer.Core", "Game", "Position.cs")
 bb = os.path.join("src", "ChessBruteforcer.Core", "Game", "Bitboards.cs")
 mat = os.path.join("src", "ChessBruteforcer.Core", "Endgame", "Material.cs")
 tb = os.path.join("src", "ChessBruteforcer.Core", "Endgame", "Tablebase.cs")
+gen = os.path.join("src", "ChessBruteforcer.Core", "Game", "MoveGenerator.cs")
 
 # Classes, not files (EngineTests.cs holds SearchTests, UciTests and four more): everything that makes moves, asks
 # for attacks, solves or probes tables. The count each run reports is printed beside the full suite's.
@@ -144,6 +146,66 @@ MUTANTS = [
     ("tablebase: six pieces let through", tb,
      "        if (System.Numerics.BitOperations.PopCount(position.Occupied) > MaxPieces)\n",
      "        if (System.Numerics.BitOperations.PopCount(position.Occupied) > MaxPieces + 1)\n", "red"),
+
+    # Session 2 (41 on): generation from the sets, in the walk's order. Run them on BitboardTests,MoveGeneratorTests.
+    ("generation: the sets whatever the path (the walk's reference gone; the same lists)", gen,
+     "        if (path == AttackPath.Rays)\n        {\n            GenerateByRays(position, moves, quiet);\n",
+     "        if (false)\n        {\n            GenerateByRays(position, moves, quiet);\n", "equivalent"),
+    ("generation: quiet moves in quiescence's captures", gen,
+     "        ulong targets = quiet ? ~own : enemy;\n", "        ulong targets = ~own;\n", "red"),
+    ("generation: their own pieces captured", gen,
+     "        ulong targets = quiet ? ~own : enemy;\n", "        ulong targets = quiet ? ~0UL : enemy;\n", "red"),
+    ("pawn: pushed through its own pieces", gen,
+     "        if (one is >= 0 and < 64 && (occupied >> one & 1) == 0)\n",
+     "        if (one is >= 0 and < 64 && (enemy >> one & 1) == 0)\n", "red"),
+    ("pawn: a double push from any rank", gen,
+     "                if (from / 8 == (us == Colour.White ? 1 : 6) && (occupied >> two & 1) == 0)\n",
+     "                if (two is >= 0 and < 64 && (occupied >> two & 1) == 0)\n", "red"),
+    ("pawn: a double push onto a piece", gen,
+     "                if (from / 8 == (us == Colour.White ? 1 : 6) && (occupied >> two & 1) == 0)\n",
+     "                if (from / 8 == (us == Colour.White ? 1 : 6))\n", "red"),
+    ("pawn: quiescence's push to a queen missing", gen,
+     "            else if (one / 8 == lastRank)\n            {\n                moves.Add(new Move((byte)from, (byte)one, PieceType.Queen));\n            }\n        }\n\n        // Its captures",
+     "            else if (false)\n            {\n                moves.Add(new Move((byte)from, (byte)one, PieceType.Queen));\n            }\n        }\n\n        // Its captures", "red"),
+    ("pawn: no en passant", gen,
+     "        ulong passing = enPassant >= 0 ? 1UL << enPassant : 0;\n", "        ulong passing = 0;\n", "red"),
+    ("pawn: en passant as a plain capture", gen,
+     "                moves.Add(new Move((byte)from, (byte)to, PieceType.None, MoveFlags.Capture | MoveFlags.EnPassant));\n        }\n    }\n\n    /// <summary>A knight's",
+     "                moves.Add(new Move((byte)from, (byte)to, PieceType.None, MoveFlags.Capture));\n        }\n    }\n\n    /// <summary>A knight's", "red"),
+    ("pawn: captures from the other colour's set", gen,
+     "Bitboards.Pawn(us, from) & (enemy | passing)", "Bitboards.Pawn(Position.Opponent(us), from) & (enemy | passing)", "red"),
+    ("knight: stepped through the king's list", gen,
+     "StepMoves(from, Attacks.Knight[from], Bitboards.Knight(from) & targets, enemy, moves);",
+     "StepMoves(from, Attacks.King[from], Bitboards.Knight(from) & targets, enemy, moves);", "red"),
+    ("steps: one square added as a quiet move", gen,
+     "        if ((reach & (reach - 1)) == 0)   // one square: no order to keep\n        {\n            AddMove(from, BitOperations.TrailingZeroCount(reach), enemy, moves);\n            return;\n        }\n        foreach",
+     "        if ((reach & (reach - 1)) == 0)   // one square: no order to keep\n        {\n            moves.Add(new Move((byte)from, (byte)BitOperations.TrailingZeroCount(reach)));\n            return;\n        }\n        foreach", "red"),
+    ("steps: in square order, not Attacks'", gen,
+     "        foreach (int to in steps)\n        {\n            if ((reach >> to & 1) != 0)\n                AddMove(from, to, enemy, moves);\n        }\n",
+     "        for (; reach != 0; reach &= reach - 1)\n            AddMove(from, BitOperations.TrailingZeroCount(reach), enemy, moves);\n", "red"),
+    ("rays: every ray farthest first", gen,
+     "            if (RayRunsUp[d])\n", "            if (!RayRunsUp[d])\n", "red"),
+    ("rays: the directions backwards", gen,
+     "        for (int d = firstDirection; d < endDirection; d++)\n        {\n            ulong ray = reach & RaySets[from * Attacks.DirectionCount + d];\n",
+     "        for (int d = endDirection - 1; d >= firstDirection; d--)\n        {\n            ulong ray = reach & RaySets[from * Attacks.DirectionCount + d];\n", "red"),
+    ("rays: two squares taken for one", gen,
+     "        if ((reach & (reach - 1)) == 0)   // one square: no order to keep\n        {\n            AddMove(from, BitOperations.TrailingZeroCount(reach), enemy, moves);\n            return;\n        }\n        for (int d",
+     "        if (BitOperations.PopCount(reach) <= 2)\n        {\n            AddMove(from, BitOperations.TrailingZeroCount(reach), enemy, moves);\n            return;\n        }\n        for (int d", "red"),
+    ("queen: only the rook's lines", gen,
+     "(Bitboards.Rook(path, from, occupied) | Bitboards.Bishop(path, from, occupied)) & targets",
+     "Bitboards.Rook(path, from, occupied) & targets", "red"),
+    ("bishop: read along the rook's rays", gen,
+     "                    RayMoves(from, Bitboards.Bishop(path, from, occupied) & targets, enemy,\n                             Attacks.FirstBishopDirection, Attacks.DirectionCount, moves);\n",
+     "                    RayMoves(from, Bitboards.Bishop(path, from, occupied) & targets, enemy,\n                             Attacks.FirstRookDirection, Attacks.FirstBishopDirection, moves);\n", "red"),
+    ("ray sets: each ray one square short", gen,
+     "                foreach (int to in Attacks.Rays[square][d])\n                    sets[square * Attacks.DirectionCount + d] |= 1UL << to;\n",
+     "                foreach (int to in Attacks.Rays[square][d].SkipLast(1))\n                    sets[square * Attacks.DirectionCount + d] |= 1UL << to;\n", "red"),
+    ("castling: missing from the sets' lists", gen,
+     "                    StepMoves(from, Attacks.King[from], Bitboards.King(from) & targets, enemy, moves);\n                    if (quiet)\n                        CastlingMoves(position, from, us, moves);\n",
+     "                    StepMoves(from, Attacks.King[from], Bitboards.King(from) & targets, enemy, moves);\n", "red"),
+    ("moves: every one quiet", gen,
+     "        moves.Add((enemy >> to & 1) != 0\n            ? new Move((byte)from, (byte)to, PieceType.None, MoveFlags.Capture)\n            : new Move((byte)from, (byte)to));\n",
+     "        moves.Add(new Move((byte)from, (byte)to));\n", "red"),
 ]
 
 # No "System Error" box for a crashing test host (SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX |
