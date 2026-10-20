@@ -4289,3 +4289,88 @@ has the tables; this is the story.
 - This branch was then fast-forwarded to compression (31dcbb8) for this
   entry and the TODO's handoff ("In compression" where it said "Matthew
   merges"), and compression fast-forwarded to it.
+
+## 2026-10-20 (22:40-23:15): lichess-bot's TypeError is a held Ctrl+C (a side session)
+
+- **Asked**: why lichess-bot quits on a TypeError in accept_challenges (2026-10-19
+  00:32 and 21:23, 2026-10-20 22:27, the last with memory to spare), why
+  run-bot.ps1 goes with it, and a fix for Matthew to pick; nothing changed in
+  the running bot. Mid-way, Matthew: "It might have been me terminating the
+  bot with ctrl-c."
+- **It was.** lichess-bot's own DEBUG log (bot\lichess-bot\lichess_bot_auto_logs,
+  7 days kept; bot\logs has only INFO) has "Received SIGINT" lines 33 ms
+  apart, a held key's repeat, before each TypeError: 22:27:20.189 to 23.511,
+  then the TypeError (logged 22:27:24.922, after the shutdown's 1 s pause).
+  Every Ctrl+C stop since 2026-10-13:
+
+  | how a Ctrl+C stop ended | stops | "Received SIGINT" lines |
+  |---|---|---|
+  | clean ("Termination requested") | 21 | 3 to 72 |
+  | TypeError in accept_challenges | 4: 10-16 03:32, 10-19 00:32 and 21:23, 10-20 22:27 | 93 to 116 |
+  | AssertionError in the pool's shutdown | 1: 10-19 08:32 | 7 |
+
+  The one on 10-16 came before the busy and one-player patches; none of the
+  five patches touches the signal handler or the main process's logging.
+- **Why** (lib/lichess_bot.py): the SIGINT handler logs a line, then sets the
+  stop flag. In the main process the root logger is a QueueHandler on a
+  Manager queue (thread_logging_configurer), and one manager's proxies share
+  one connection per thread. The main loop waits in control_queue.get() for
+  Lichess's next event or keep-alive (6 s apart), so the handler's line can't
+  get through till then, and each key repeat starts another handler on top of
+  the stuck one (the main process's "Received SIGINT" lines reach the log in
+  one block when the keep-alive frees them). About 12 Python frames a handler:
+  at 82 deep the recursion limit (1000) breaks the stack off, each level's
+  read is dropped with its reply still to come, and those replies then go to
+  the wrong calls: `challenge_queue`'s length comes back as a log line's
+  reply, None. So `while ... and challenge_queue:` raises "'NoneType' object
+  cannot be interpreted as an integer" (the caret is under challenge_queue,
+  not len(active_games)).
+- **run-bot.ps1 didn't die on its own**: Ctrl+C reaches every process in the
+  window, pwsh included, and the loop stops on it (its header says so). A copy
+  of its loop with a fake bot, in a hidden console of its own, given one real
+  console Ctrl+C (AttachConsole + GenerateConsoleCtrlEvent from a helper):
+  stopped, with only "starting lichess-bot" in its log, as restarts.log shows
+  after each of the four. It does restart lichess-bot after a real crash
+  (2026-10-15 14:15: exit 0 after "Quitting lichess-bot due to an error").
+- **Corrections**: the 10-19/20 entries above put the 21:23 stop down to memory
+  (a screenshot tipping it over); the auto log has a 7 s Ctrl+C burst at
+  21:23:20-27. And 01:16 on 10-19 wasn't run-bot.ps1 bringing it back:
+  restarts.log has no stop line before it, so it was a fresh start-bot.cmd.
+  Memory was tight on 10-19 all the same.
+- **Reproduced** in one process, nothing of the bot's touched (a copy of its
+  lib, the venv's Python 3.14.4): a Manager, the QueueHandler, lichess-bot's
+  next_event and accept_challenges, and SIGINTs raised every 33 ms for 4 s by
+  a helper thread (signal.raise_signal: the C handler runs in that thread and
+  wakes the main thread's wait, as the console's Ctrl+C thread does),
+  starting anywhere in a 6 s keep-alive cycle:
+
+  | handler | trials | stacked to 82 | TypeError | the loop stopped |
+  |---|---|---|---|---|
+  | lichess-bot's (logs) | 10 | 7 | **5** | 0.7-4.0 s after the first SIGINT |
+  | flags only | 6 | 0 | **0** | at the first SIGINT (0.0 s) |
+
+- **Made, not wired in** (Matthew picks first). **bot\lichess-bot-sigint.patch**:
+  the handler sets the stop flags and logs nothing (the INFO "Termination
+  requested" stays; the DEBUG "Received SIGINT" lines go). Made on a fresh
+  clone of lichess-bot 2026.10.11.1 with the five patches applied in
+  start-bot.cmd's order, its lib\lichess_bot.py byte-identical to the running
+  bot's: it applies on top, and start-bot.cmd's `--reverse --check` sees it as
+  in. **bot\test-sigint.py** (test-busy.py's style; LICHESS_BOT for a copy):
+  two checks, each with the handler as patched and, as a control, the
+  original, which must fail: one SIGINT between a Manager call and its reply,
+  and a held Ctrl+C (200 SIGINTs 10 ms apart, the first keep-alive 1.6 s in).
+  On the patched clone: passed 3 of 3 (the control's TypeError 6 of 6, the
+  held one 1.65-2.48 s in, with RecursionError). On today's lichess-bot:
+  FAILED 2 cases, the TypeError both times. 13 s a run.
+- **Options for Matthew**: (a) the patch into start-bot.cmd after the ponder
+  note, plus a try/finally in run-bot.ps1 that notes "stopped by Ctrl+C after
+  N min" in restarts.log (tested on the copy above); (b) the patch only;
+  (c) nothing, and tap Ctrl+C once rather than hold it. (a) or (b) go live at
+  his next start-bot.cmd, between games.
+- **Left as is**: the 10-19 08:32 AssertionError ("Cannot have cache with
+  result_handler not alive", from Pool.__exit__ during a short Ctrl+C), 1 of
+  26. With the patch, a Ctrl+C that lands during one of the loop's calls to
+  the Manager, rather than in its wait, can still drop one reply: by the
+  loop's timing (~1 ms of such calls per 6 s), about 1 stop in 5,000, not
+  measured. Upstream lichess-bot master has the same handler today; reporting
+  it is Matthew's call.

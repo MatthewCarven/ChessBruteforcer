@@ -50,9 +50,10 @@ call at game 188 of its match: +52 [+14, +91] over h512-3m, LOS 99.6%;
 "battle testing 1024", the statistics later, which he does want for clean
 footing next time). bot\eval\h1024-3m.nnue, which make-config.py tries
 first (delete it to go back to h512-3m). It went down at 21:23 on
-2026-10-19 when memory ran out (lichess-bot's TypeError, below; its restart
-loop died too; 0.45 GB of commit free at 23:22: the Cowork VM 4.0 GB,
-h768-3m's training 3.5 GB, eight Claude sessions ~0.5 GB each). **Back on**:
+2026-10-19 to a Ctrl+C held in its window, not memory as first thought
+(lichess-bot's TypeError, below; commit was tight that evening all the same,
+0.45 GB free at 23:22: the Cowork VM 4.0 GB, h768-3m's training 3.5 GB,
+eight Claude sessions ~0.5 GB each). **Back on**:
 close the match window (h1024-3m's match, then h768-3m's, queued in one
 window), fast-forward compression to branch `claude/nnue-desktop-8d5f2a`,
 reboot (the only way to close the Cowork VM), then `bot\start-bot.cmd`, then
@@ -228,14 +229,27 @@ make-config.py (the patch still helps at 1).
 had two players on one game; bot\lichess-bot-one-player.patch stops that
 (bot\test-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
 between games (not `start.cmd`: that starts the month queue, which is off).
-Still open: lichess-bot quit on a TypeError in accept_challenges, twice
-(2026-10-19 00:32 and 21:23: `challenge_queue`, the manager's list, gave its
-length as None). **Cause: memory ran out** (Matthew: a screenshot at 21:23
-tipped it over; commit was nearly gone, and run-bot.ps1 died too). So keep
-commit headroom while the bot plays: ~2 GB free at least (the engine alone
-holds ~0.8 GB of tables plus its hash). The second 16 GB stick (section 4)
-fixes it for good; until then, a bigger page file would raise the limit
-(Matthew's setting). If it ever happens with headroom, look closer.
+**lichess-bot's "TypeError in accept_challenges" is a held Ctrl+C, not a
+crash** (2026-10-20, a side session; WORKLOG). All four (2026-10-16 03:32,
+10-19 00:32 and 21:23, 10-20 22:27) came straight after a burst of SIGINTs
+33 ms apart, a Ctrl+C held down in the bot's window (lichess-bot's DEBUG log,
+bot\lichess-bot\lichess_bot_auto_logs, has every one); not memory. The
+Ctrl+C handler logs a line, and in lichess-bot's main process logging goes
+through the Manager on the main loop's own connection: while the loop waits
+for Lichess's next keep-alive (6 s apart), each repeat stacks a handler on
+the stuck one, at 82 deep Python's recursion limit breaks them off, and
+their replies go to the wrong calls (the challenge list's length: None).
+Of the 26 Ctrl+C stops since 10-13, 21 ended clean, 4 in the TypeError
+(93-116 SIGINTs each), 1 in an AssertionError from Python's pool shutdown
+(10-19 08:32). run-bot.ps1 didn't die: the same Ctrl+C stops it, by design
+(a copy tested with a real console Ctrl+C), and it does restart lichess-bot
+after a real crash (2026-10-15 14:15). Keep ~2 GB of commit free anyway.
+**For Matthew to pick** (made, not wired in): (a) bot\lichess-bot-sigint.patch
+(the handler only sets the stop flags; bot\test-sigint.py; a held Ctrl+C
+failed 0 of 6 trials, 5 of 10 before) into start-bot.cmd, and run-bot.ps1
+notes "stopped by Ctrl+C" in restarts.log; (b) the patch only; (c) nothing,
+and tap Ctrl+C once rather than hold it. Upstream lichess-bot (master,
+2026-10-20) has the same handler: reporting it is his call.
 
 **The ponder note** (2026-10-20, Matthew asked; WORKLOG): 23% of the bot's
 engine moves logged "Source: Engine" and no stats, every one a ponder hit
