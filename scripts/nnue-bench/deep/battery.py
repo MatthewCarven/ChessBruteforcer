@@ -61,21 +61,31 @@ MUTANTS = [
      ".Append((Output!, \"the output\", 0))", "", "red"),
     ("writer: the sizes written as inputs", net,
      "            U32((uint)layer.Outputs);\n", "            U32((uint)layer.Inputs);\n", "red"),
-    # The pass by pairs (e794b8e).
-    ("pairs: the 512-bit zero test inverted", net,
-     "                ulong mask = (~Vector512.Equals(chunk, Vector512<int>.Zero)).ExtractMostSignificantBits();\n"
-     "                for (; mask != 0; mask &= mask - 1)\n                {\n",
-     "                ulong mask = Vector512.Equals(chunk, Vector512<int>.Zero).ExtractMostSignificantBits();\n"
-     "                for (; mask != 0; mask &= mask - 1)\n                {\n", "red"),
-    ("pairs: the 512-bit second register never added", net,
-     "                    if (two)\n                        s1 += Avx512BW.MultiplyAddAdjacent(both, Vector512.LoadUnsafe(ref weights, at + 32));\n"
-     "                }\n            }\n            for (; p < pairs; p++)\n",
-     "                }\n            }\n            for (; p < pairs; p++)\n", "red"),
-    ("pairs: the 256-bit pass skips the tail pairs", net,
-     "            for (; p < pairs; p++)\n            {\n                int value = Pair(ref xs, p);\n                if (value == 0)\n"
-     "                    continue;\n                var both = Vector256.Create(value).AsInt16();\n",
-     "            for (; p < pairs && false; p++)\n            {\n                int value = Pair(ref xs, p);\n                if (value == 0)\n"
-     "                    continue;\n                var both = Vector256.Create(value).AsInt16();\n", "red"),
+    # The pass by listed pairs (the non-zero pairs listed first, then added two at a time).
+    ("list: a bit's position one too far", net,
+     "                    table[bits * 8 + k++] = (ushort)bit;\n", "                    table[bits * 8 + k++] = (ushort)(bit + 1);\n", "red"),
+    ("list: each byte's count one short", net,
+     "        return count + BitOperations.PopCount(bits);\n",
+     "        return count + BitOperations.PopCount(bits) - (bits == 0 ? 0 : 1);\n", "red"),
+    ("list: the high byte of a 512-bit mask dropped", net,
+     "                count = Append(ref into, count, ref table, mask >> 8, p + 8);\n", "", "red"),
+    ("list: the 512-bit zero test inverted", net,
+     "uint mask = ~(uint)Vector512.Equals(", "uint mask = (uint)Vector512.Equals(", "red"),
+    ("listed pairs, 32 at 512 bits: the second pair's sums thrown away", net,
+     "                Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s0 + t0, shift), zero), qa)).StoreUnsafe(ref to);\n"
+     "                Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s1 + t1, shift), zero), qa)).StoreUnsafe(ref to, 16);\n",
+     "                Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s0, shift), zero), qa)).StoreUnsafe(ref to);\n"
+     "                Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s1, shift), zero), qa)).StoreUnsafe(ref to, 16);\n", "red"),
+    ("listed pairs, 32 at 512 bits: an odd count's last pair left out", net,
+     "                if (i < count)\n                {\n                    int p = Unsafe.Add(ref at, i);\n                    var bp = ",
+     "                if (false)\n                {\n                    int p = Unsafe.Add(ref at, i);\n                    var bp = ", "red"),
+    ("listed pairs, 16 at 512 bits: an odd count's last pair left out", net,
+     "                if (i < count)\n                {\n                    int p = Unsafe.Add(ref at, i);\n                    s0 += ",
+     "                if (false)\n                {\n                    int p = Unsafe.Add(ref at, i);\n                    s0 += ", "red"),
+    ("listed pairs at 256 bits: outputs 16-31 never added", net,
+     "                if (two)\n                {\n                    s2 += ", "                if (false)\n                {\n                    s2 += ", "red"),
+    ("activation at 512 bits: no rounding", net,
+     "Avx512BW.MultiplyHigh(v * v + half, magic)", "Avx512BW.MultiplyHigh(v * v, magic)", "red"),
     ("pairs: a weight laid out at the wrong input of its pair", net,
      "                    pairs[(i / 2 * PaddedOutputs + j) * 2 + (i & 1)] = weights[j * inputs + i];\n",
      "                    pairs[(i / 2 * PaddedOutputs + j) * 2 + (1 - (i & 1))] = weights[j * inputs + i];\n", "red"),

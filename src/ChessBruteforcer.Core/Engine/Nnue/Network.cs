@@ -620,9 +620,10 @@ public sealed class Network
     {
         CheckAccumulators(us, them);
         int h = Hidden;
-        Span<short> x = stackalloc short[2 * h];
-        Span<short> a = stackalloc short[MaxLayerSize];
-        Span<short> b = stackalloc short[MaxLayerSize];
+        var numbers = t_numbers ??= new short[2 * MaxHidden + 2 * MaxLayerSize];
+        var x = numbers.AsSpan(0, 2 * h);
+        var a = numbers.AsSpan(2 * MaxHidden, MaxLayerSize);
+        var b = numbers.AsSpan(2 * MaxHidden + MaxLayerSize, MaxLayerSize);
         Activate(width, us[..h], x[..h]);
         Activate(width, them[..h], x[h..]);
         ReadOnlySpan<short> input = x;
@@ -665,93 +666,9 @@ public sealed class Network
         ref short to = ref MemoryMarshal.GetReference(outputs);
         if (outputs.Length < n)
             throw new ArgumentException($"room for {outputs.Length} outputs, {n} needed");
-        if (width == 512 && n <= 32)
+        if (n <= 32)
         {
-            // Up to 32 outputs (every layer of the nets trained so far): the sums in two registers, not in memory.
-            bool two = n == 32;
-            var s0 = Vector512.LoadUnsafe(ref starts);
-            var s1 = two ? Vector512.LoadUnsafe(ref starts, 16) : Vector512<int>.Zero;
-            int p = 0;
-            for (; p + 16 <= pairs; p += 16)
-            {
-                var chunk = Vector512.LoadUnsafe(ref xs, (nuint)(2 * p)).AsInt32();
-                ulong mask = (~Vector512.Equals(chunk, Vector512<int>.Zero)).ExtractMostSignificantBits();
-                for (; mask != 0; mask &= mask - 1)
-                {
-                    int pair = p + BitOperations.TrailingZeroCount(mask);
-                    var both = Vector512.Create(Pair(ref xs, pair)).AsInt16();
-                    nuint at = (nuint)(pair * n * 2);
-                    s0 += Avx512BW.MultiplyAddAdjacent(both, Vector512.LoadUnsafe(ref weights, at));
-                    if (two)
-                        s1 += Avx512BW.MultiplyAddAdjacent(both, Vector512.LoadUnsafe(ref weights, at + 32));
-                }
-            }
-            for (; p < pairs; p++)
-            {
-                int value = Pair(ref xs, p);
-                if (value == 0)
-                    continue;
-                var both = Vector512.Create(value).AsInt16();
-                nuint at = (nuint)(p * n * 2);
-                s0 += Avx512BW.MultiplyAddAdjacent(both, Vector512.LoadUnsafe(ref weights, at));
-                if (two)
-                    s1 += Avx512BW.MultiplyAddAdjacent(both, Vector512.LoadUnsafe(ref weights, at + 32));
-            }
-            var zero = Vector512<int>.Zero;
-            var qa = Vector512.Create(QA);
-            Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s0, layer.Shift), zero), qa)).StoreUnsafe(ref to);
-            if (two)
-                Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s1, layer.Shift), zero), qa)).StoreUnsafe(ref to, 16);
-            return;
-        }
-        if (width == 256 && n <= 32)
-        {
-            // The same in four 8-lane registers.
-            bool two = n == 32;
-            var s0 = Vector256.LoadUnsafe(ref starts);
-            var s1 = Vector256.LoadUnsafe(ref starts, 8);
-            var s2 = two ? Vector256.LoadUnsafe(ref starts, 16) : Vector256<int>.Zero;
-            var s3 = two ? Vector256.LoadUnsafe(ref starts, 24) : Vector256<int>.Zero;
-            int p = 0;
-            for (; p + 8 <= pairs; p += 8)
-            {
-                var chunk = Vector256.LoadUnsafe(ref xs, (nuint)(2 * p)).AsInt32();
-                uint mask = (~Vector256.Equals(chunk, Vector256<int>.Zero)).ExtractMostSignificantBits();
-                for (; mask != 0; mask &= mask - 1)
-                {
-                    int pair = p + BitOperations.TrailingZeroCount(mask);
-                    var both = Vector256.Create(Pair(ref xs, pair)).AsInt16();
-                    nuint at = (nuint)(pair * n * 2);
-                    s0 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at));
-                    s1 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at + 16));
-                    if (two)
-                    {
-                        s2 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at + 32));
-                        s3 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at + 48));
-                    }
-                }
-            }
-            for (; p < pairs; p++)
-            {
-                int value = Pair(ref xs, p);
-                if (value == 0)
-                    continue;
-                var both = Vector256.Create(value).AsInt16();
-                nuint at = (nuint)(p * n * 2);
-                s0 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at));
-                s1 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at + 16));
-                if (two)
-                {
-                    s2 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at + 32));
-                    s3 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at + 48));
-                }
-            }
-            var zero = Vector256<int>.Zero;
-            var qa = Vector256.Create(QA);
-            Vector256<int> Out(Vector256<int> s) => Vector256.Min(Vector256.Max(Vector256.ShiftRightArithmetic(s, layer.Shift), zero), qa);
-            Vector256.Narrow(Out(s0), Out(s1)).StoreUnsafe(ref to);
-            if (two)
-                Vector256.Narrow(Out(s2), Out(s3)).StoreUnsafe(ref to, 16);
+            ByListedPairs(width, x, layer, outputs);   // every layer of the nets trained so far
             return;
         }
         if (width == 512)
@@ -832,6 +749,153 @@ public sealed class Network
             sums[v] += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at + (nuint)(16 * v)));
     }
 
+    /// <summary>For each byte, the positions of its set bits, 8 to a row (the rest 0): a list 8 at a time with no branch a bit.</summary>
+    private static readonly ushort[] BitPositions = BuildBitPositions();
+
+    private static ushort[] BuildBitPositions()
+    {
+        var table = new ushort[256 * 8];
+        for (int bits = 0; bits < 256; bits++)
+            for (int bit = 0, k = 0; bit < 8; bit++)
+                if ((bits >> bit & 1) != 0)
+                    table[bits * 8 + k++] = (ushort)bit;
+        return table;
+    }
+
+    /// <summary>
+    /// The pairs of <paramref name="x"/> (two int16 as one int32) that aren't zero, in order, into <paramref name="list"/>,
+    /// which needs 8 to spare (each byte of a mask is written as 8 positions, of which its bit count are kept); returns
+    /// how many. Walking a mask bit by bit instead mispredicts the loop's exit about once a chunk, which cost more than
+    /// the pairs' arithmetic (2026-10-21).
+    /// </summary>
+    private static int NonZeroPairs(int width, ReadOnlySpan<short> x, int pairs, Span<ushort> list)
+    {
+        if (list.Length < pairs + 8)
+            throw new ArgumentException($"room for {list.Length} pairs, {pairs + 8} needed");
+        ref short xs = ref MemoryMarshal.GetReference(x);
+        ref ushort into = ref MemoryMarshal.GetReference(list);
+        ref ushort table = ref MemoryMarshal.GetArrayDataReference(BitPositions);
+        int count = 0, p = 0;
+        if (width == 512)
+            for (; p + 16 <= pairs; p += 16)
+            {
+                uint mask = ~(uint)Vector512.Equals(Vector512.LoadUnsafe(ref xs, (nuint)(2 * p)).AsInt32(), Vector512<int>.Zero).ExtractMostSignificantBits() & 0xFFFF;
+                count = Append(ref into, count, ref table, mask & 0xFF, p);
+                count = Append(ref into, count, ref table, mask >> 8, p + 8);
+            }
+        for (; p + 8 <= pairs; p += 8)
+        {
+            uint mask = ~Vector256.Equals(Vector256.LoadUnsafe(ref xs, (nuint)(2 * p)).AsInt32(), Vector256<int>.Zero).ExtractMostSignificantBits() & 0xFF;
+            count = Append(ref into, count, ref table, mask, p);
+        }
+        for (; p < pairs; p++)
+            if (Pair(ref xs, p) != 0)
+                Unsafe.Add(ref into, count++) = (ushort)p;
+        return count;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int Append(ref ushort list, int count, ref ushort table, uint bits, int at)
+    {
+        (Vector128.LoadUnsafe(ref table, (nuint)(bits * 8)) + Vector128.Create((ushort)at)).StoreUnsafe(ref list, (nuint)count);
+        return count + BitOperations.PopCount(bits);
+    }
+
+    // Per-thread room for version 2's pass (a stackalloc would be zeroed on every call): the activations, two layers'
+    // outputs, and the non-zero pairs' list. Nothing in the pass calls back into it on the same thread.
+    [ThreadStatic] private static short[]? t_numbers;
+    [ThreadStatic] private static ushort[]? t_pairs;
+
+    /// <summary>
+    /// A small layer of at most 32 outputs at 256 or 512 bits: the non-zero pairs listed first (<see cref="NonZeroPairs"/>),
+    /// then each listed pair broadcast and added to every output's sum, two pairs at a time into separate registers;
+    /// then the shift and the clamp into <paramref name="outputs"/>[..PaddedOutputs].
+    /// </summary>
+    private void ByListedPairs(int width, ReadOnlySpan<short> x, Layer layer, Span<short> outputs)
+    {
+        var list = t_pairs ??= new ushort[MaxHidden + 16];
+        int count = NonZeroPairs(width, x, layer.PaddedInputs / 2, list);
+        ref short xs = ref MemoryMarshal.GetReference(x);
+        ref short weights = ref MemoryMarshal.GetReference(layer.Pairs);
+        ref ushort at = ref MemoryMarshal.GetArrayDataReference(list);
+        ref int starts = ref MemoryMarshal.GetArrayDataReference(layer.StartingSums);
+        ref short to = ref MemoryMarshal.GetReference(outputs);
+        int shift = layer.Shift;
+        if (width == 512)
+        {
+            var zero = Vector512<int>.Zero;
+            var qa = Vector512.Create(QA);
+            if (layer.PaddedOutputs == 32)
+            {
+                Vector512<int> s0 = Vector512.LoadUnsafe(ref starts), s1 = Vector512.LoadUnsafe(ref starts, 16), t0 = zero, t1 = zero;
+                int i = 0;
+                for (; i + 2 <= count; i += 2)
+                {
+                    int p = Unsafe.Add(ref at, i), q = Unsafe.Add(ref at, i + 1);
+                    var bp = Vector512.Create(Pair(ref xs, p)).AsInt16();
+                    var bq = Vector512.Create(Pair(ref xs, q)).AsInt16();
+                    s0 += Avx512BW.MultiplyAddAdjacent(bp, Vector512.LoadUnsafe(ref weights, (nuint)(p * 64)));
+                    s1 += Avx512BW.MultiplyAddAdjacent(bp, Vector512.LoadUnsafe(ref weights, (nuint)(p * 64 + 32)));
+                    t0 += Avx512BW.MultiplyAddAdjacent(bq, Vector512.LoadUnsafe(ref weights, (nuint)(q * 64)));
+                    t1 += Avx512BW.MultiplyAddAdjacent(bq, Vector512.LoadUnsafe(ref weights, (nuint)(q * 64 + 32)));
+                }
+                if (i < count)
+                {
+                    int p = Unsafe.Add(ref at, i);
+                    var bp = Vector512.Create(Pair(ref xs, p)).AsInt16();
+                    s0 += Avx512BW.MultiplyAddAdjacent(bp, Vector512.LoadUnsafe(ref weights, (nuint)(p * 64)));
+                    s1 += Avx512BW.MultiplyAddAdjacent(bp, Vector512.LoadUnsafe(ref weights, (nuint)(p * 64 + 32)));
+                }
+                Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s0 + t0, shift), zero), qa)).StoreUnsafe(ref to);
+                Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s1 + t1, shift), zero), qa)).StoreUnsafe(ref to, 16);
+            }
+            else
+            {
+                Vector512<int> s0 = Vector512.LoadUnsafe(ref starts), t0 = zero;
+                int i = 0;
+                for (; i + 2 <= count; i += 2)
+                {
+                    int p = Unsafe.Add(ref at, i), q = Unsafe.Add(ref at, i + 1);
+                    s0 += Avx512BW.MultiplyAddAdjacent(Vector512.Create(Pair(ref xs, p)).AsInt16(), Vector512.LoadUnsafe(ref weights, (nuint)(p * 32)));
+                    t0 += Avx512BW.MultiplyAddAdjacent(Vector512.Create(Pair(ref xs, q)).AsInt16(), Vector512.LoadUnsafe(ref weights, (nuint)(q * 32)));
+                }
+                if (i < count)
+                {
+                    int p = Unsafe.Add(ref at, i);
+                    s0 += Avx512BW.MultiplyAddAdjacent(Vector512.Create(Pair(ref xs, p)).AsInt16(), Vector512.LoadUnsafe(ref weights, (nuint)(p * 32)));
+                }
+                Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s0 + t0, shift), zero), qa)).StoreUnsafe(ref to);
+            }
+        }
+        else
+        {
+            var zero = Vector256<int>.Zero;
+            var qa = Vector256.Create(QA);
+            bool two = layer.PaddedOutputs == 32;
+            int stride = layer.PaddedOutputs * 2;
+            Vector256<int> s0 = Vector256.LoadUnsafe(ref starts), s1 = Vector256.LoadUnsafe(ref starts, 8);
+            Vector256<int> s2 = two ? Vector256.LoadUnsafe(ref starts, 16) : zero, s3 = two ? Vector256.LoadUnsafe(ref starts, 24) : zero;
+            for (int i = 0; i < count; i++)
+            {
+                int p = Unsafe.Add(ref at, i);
+                var both = Vector256.Create(Pair(ref xs, p)).AsInt16();
+                nuint w = (nuint)(p * stride);
+                s0 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, w));
+                s1 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, w + 16));
+                if (two)
+                {
+                    s2 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, w + 32));
+                    s3 += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, w + 48));
+                }
+            }
+            Vector256.Narrow(Out(s0), Out(s1)).StoreUnsafe(ref to);
+            if (two)
+                Vector256.Narrow(Out(s2), Out(s3)).StoreUnsafe(ref to, 16);
+
+            Vector256<int> Out(Vector256<int> s) => Vector256.Min(Vector256.Max(Vector256.ShiftRightArithmetic(s, shift), zero), qa);
+        }
+    }
+
     /// <summary>
     /// x = (v x v + QA / 2) / QA for each accumulator number v clamped to [0, QA]. With QA 255, 16 at a time: v x v + 127
     /// stays below 65,536 as unsigned 16 bits, and (n x 32,897) >> 23 is n / 255 for every such n (checked for all of them).
@@ -839,6 +903,21 @@ public sealed class Network
     private void Activate(int width, ReadOnlySpan<short> accumulator, Span<short> x)
     {
         int n = accumulator.Length, i = 0;
+        if (width == 512 && QA == 255)
+        {
+            ref short from = ref MemoryMarshal.GetReference(accumulator);
+            ref short to = ref MemoryMarshal.GetReference(x);
+            var zero = Vector512<short>.Zero;
+            var qa = Vector512.Create((short)255);
+            var half = Vector512.Create((ushort)127);
+            var magic = Vector512.Create((ushort)32897);
+            for (; i + 32 <= n; i += 32)
+            {
+                var v = Vector512.Min(Vector512.Max(Vector512.LoadUnsafe(ref from, (nuint)i), zero), qa).AsUInt16();
+                var quotient = Vector512.ShiftRightLogical(Avx512BW.MultiplyHigh(v * v + half, magic), 7);
+                quotient.AsInt16().StoreUnsafe(ref to, (nuint)i);
+            }
+        }
         if (width >= 256 && QA == 255)
         {
             ref short from = ref MemoryMarshal.GetReference(accumulator);
