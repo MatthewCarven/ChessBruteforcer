@@ -363,8 +363,9 @@ A side session, branch `claude/p2-finish-depth-246981`, on compression with P1 (
 depth begun past half the planned time S is no longer stopped. It has until the hit + S to finish, and no depth
 starts after it. And whatever else runs on after a hit stops by the hit + S, not at the hard limit H (3S from `go
 ponder`).** These are the replay's "finish" and "capped" rules. A hit never spends more than S of real clock, which
-is the move's own planned time: no more than a plain search on our clock would plan to spend. Behind the UCI option
-`PonderFinish` (check, default true). Off, a hit does exactly what it did before.
+is the move's own planned time: no more than a plain search on our clock would plan to spend. Behind two UCI
+options, `PonderFinish` and `PonderCap` (checks; both off by default since the matches below, where neither rule won
+games). Both off, a hit does exactly what it did before.
 
 The rule is `Search.AfterPonderHit`, which `PonderHit` calls. For a hit at h (on the search's clock, from `go
 ponder`), with the depth in progress begun at b:
@@ -427,7 +428,7 @@ early, where the cap applies. And at 10+0.1 a move gets about 0.2 s on one threa
 4.8 s on eight threads (depth 15); deeper, a ply may be worth more against the clock it costs. Self-play also
 overstates hits (69% against the bot's 56.5%).
 
-**The split** (Matthew's choice after that). `PonderCap` became an option of its own (check, default true), so
+**The split** (Matthew's choice after that). `PonderCap` became an option of its own (check), so
 `PonderFinish=false,PonderCap=false` is the rule before P2, and each half can play against it. Same conditions as
 above.
 
@@ -452,7 +453,9 @@ opponent's own hit makes it reply at once), which is where the cap bites.
 | AHitAtOnceStopsAsAPlainSearchWouldNotAtTheCap | 1, L4, R4 | No depth begins past S/2 after a hit, and the answer comes when a depth ends, well before the hit + S in at least one of six tries. |
 | WithPonderFinishOffAHitDropsTheDepthBegunPastHalfThePlannedTime | 1, L4, R4 | Off: a hit as a late depth begins answers at once with the depth before. |
 | PonderFinishLeavesTheSearchItselfAlone | 1 | On and off, the same depths, node for node, and the same move. |
-| UciOffersPonderOffByDefault (extended) | | `option name PonderFinish type check default true`; true and false accepted, anything else an error. |
+| UciOffersPonderOffByDefault (extended) | | `option name PonderFinish type check default false`, and `PonderCap` the same; true and false accepted, anything else an error. |
+| PonderFinishAndPonderCapReachTheSearch | | Each option, set or left at its default, reaches the search a `go` runs. |
+| PonderHitAppliesBothOptions | | The hard limit a hit sets: the cap's hit + S, or H without it; finish's hit + S past H, or H without it. |
 
 Changed: `APonderHitKeepsTheDepthPonderingReached` asserted an answer within 200 ms of a hit after a long ponder. Under
 P2 that depth may finish first, so it now allows S (98 ms there) + 200 ms, and says why. The second half of

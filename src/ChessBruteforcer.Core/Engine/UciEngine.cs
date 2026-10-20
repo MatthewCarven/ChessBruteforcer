@@ -27,7 +27,7 @@ public sealed class UciEngine
     private int _moveOverheadMs = 50;
     private int _threads = 1;
     private ParallelMode _split = ParallelMode.LazySmp;
-    private bool _ponderFinish = true, _ponderCap = true;
+    private bool _ponderFinish, _ponderCap;   // (P2's two rules, off: neither won games; PONDER.md)
     private bool _tablesLoaded;
     private int _tableCacheMegabytes = BlockCache.DefaultMegabytes;
     private List<ulong> _previousHashes = new();
@@ -84,8 +84,8 @@ public sealed class UciEngine
                     Send("option name Threads type spin default 1 min 1 max 64");
                     Send("option name ThreadSplit type combo default LazySMP var LazySMP var Ranges");
                     Send("option name Ponder type check default false");
-                    Send("option name PonderFinish type check default true");
-                    Send("option name PonderCap type check default true");
+                    Send("option name PonderFinish type check default false");
+                    Send("option name PonderCap type check default false");
                     Send("uciok");
                     break;
                 case "isready":

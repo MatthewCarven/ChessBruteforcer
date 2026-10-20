@@ -154,19 +154,20 @@ public sealed class Search
 
     /// <summary>
     /// What a ponder hit does with a depth begun past half the planned time S
-    /// (PONDER.md, P2, "finish").  On (the default): the depth may finish if
-    /// it does so within S of the hit, and no depth starts after it.  Off: the
-    /// depth is dropped at once, as before.  Set between searches.
+    /// (PONDER.md, P2, "finish").  On: the depth may finish if it does so
+    /// within S of the hit, and no depth starts after it.  Off (the default,
+    /// since it didn't win games at 10+0.1): the depth is dropped at once.
+    /// Set between searches.
     /// </summary>
-    public bool PonderFinish { get; set; } = true;
+    public bool PonderFinish { get; set; }
 
     /// <summary>
     /// After a ponder hit, whether a depth that goes on as in a plain search
-    /// (begun before S/2) stops by the hit + S (PONDER.md, P2, the "cap"; on by
-    /// default), or may run to the hard limit, 3S from "go ponder" (off, as
-    /// before).  Set between searches.
+    /// (begun before S/2) stops by the hit + S (PONDER.md, P2, the "cap"), or
+    /// may run to the hard limit, 3S from "go ponder" (off, the default: the
+    /// cap lost games at 10+0.1).  Set between searches.
     /// </summary>
-    public bool PonderCap { get; set; } = true;
+    public bool PonderCap { get; set; }
 
     /// <summary>
     /// The opponent played the move a <see cref="SearchLimits.Ponder"/> search

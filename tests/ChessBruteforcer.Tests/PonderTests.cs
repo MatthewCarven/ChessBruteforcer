@@ -95,7 +95,7 @@ public class PonderTests
         var engine = new UciEngine(output);
         engine.Handle($"setoption name Threads value {threads}");
         engine.Handle($"setoption name ThreadSplit value {split}");
-        if (ponderFinish is bool finish)   // (otherwise the engine's default, on)
+        if (ponderFinish is bool finish)   // (otherwise the engine's default, off)
             engine.Handle($"setoption name PonderFinish value {(finish ? "true" : "false")}");
         if (ponderCap is bool cap)
             engine.Handle($"setoption name PonderCap value {(cap ? "true" : "false")}");
@@ -138,8 +138,8 @@ public class PonderTests
         var (engine, output) = Start();
         engine.Handle("uci");
         Assert.Contains("option name Ponder type check default false", output.Lines());
-        Assert.Contains("option name PonderFinish type check default true", output.Lines());
-        Assert.Contains("option name PonderCap type check default true", output.Lines());
+        Assert.Contains("option name PonderFinish type check default false", output.Lines());
+        Assert.Contains("option name PonderCap type check default false", output.Lines());
         engine.Handle("setoption name Ponder value true");
         engine.Handle("setoption name Ponder value false");
         engine.Handle("setoption name PonderFinish value false");
@@ -154,9 +154,9 @@ public class PonderTests
     }
 
     [Theory]
-    [InlineData(null, null, true, true)]
-    [InlineData(false, null, false, true)]
-    [InlineData(null, false, true, false)]
+    [InlineData(null, null, false, false)]
+    [InlineData(true, null, true, false)]
+    [InlineData(null, true, false, true)]
     [InlineData(false, false, false, false)]
     [InlineData(true, true, true, true)]
     public void PonderFinishAndPonderCapReachTheSearch(bool? finish, bool? cap, bool expectedFinish, bool expectedCap)
@@ -347,14 +347,17 @@ public class PonderTests
         AssertLegal(engine.Position, best);
     }
 
-    [Fact]
-    public void APonderHitKeepsTheDepthPonderingReached()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void APonderHitKeepsTheDepthPonderingReached(bool ponderFinish)
     {
         var limits = new SearchLimits { WhiteTimeMs = 3000, BlackTimeMs = 3000 };
         int ownTime = new Search(new TranspositionTable(8)).Run(Position.FromFen(MoveGeneratorTests.Kiwipete), limits).Depth;
 
         var search = new Search(new TranspositionTable(8));
-        Assert.True(search.PonderFinish);   // (on by default, as in the UCI engine)
+        Assert.False(search.PonderFinish || search.PonderCap);   // (P2's rules are off by default, as in the UCI engine)
+        search.PonderFinish = ponderFinish;
         using var started = new ManualResetEventSlim();
         SearchResult? pondered = null;
         var thread = new Thread(() => pondered = search.Run(Position.FromFen(MoveGeneratorTests.Kiwipete),
@@ -371,9 +374,9 @@ public class PonderTests
         if (!answered)
             search.Stop();
         Assert.True(answered, "no answer after ponderhit");
-        // Not at once, as before P2: pondering is past the hard limit, so the depth in progress has the move's
-        // planned time (98 ms here) from the hit to finish (PonderFinish), and then the answer is that depth.
-        Assert.InRange(clock.ElapsedMilliseconds, 0, PlannedMs + Margin);
+        // Off, at once.  With PonderFinish, not quite: pondering is past the hard limit, so the depth in progress has
+        // the move's planned time (98 ms here) from the hit to finish, and then the answer is that depth.
+        Assert.InRange(clock.ElapsedMilliseconds, 0, (ponderFinish ? PlannedMs : 0) + Margin);
         Assert.True(pondered!.Depth > ownTime, $"depth {pondered.Depth} pondering, {ownTime} on our own time");
     }
 
@@ -465,7 +468,7 @@ public class PonderTests
     [InlineData(1, "LazySMP", true)]
     public void APonderHitLetsTheDepthItWouldDropFinish(int threads, string split, bool switchedOffAndOn)
     {
-        var (engine, output) = Start(threads, split);   // (on by default)
+        var (engine, output) = Start(threads, split, ponderFinish: true, ponderCap: true);
         if (switchedOffAndOn)
         {
             engine.Handle("setoption name PonderFinish value false");
@@ -535,7 +538,7 @@ public class PonderTests
     public void APonderHitAnswersWithinThePlannedTime(int threads, string split)
     {
         const int planned = 400;   // the hard limit 1,200 ms from "go ponder"
-        var (engine, output) = Start(threads, split);
+        var (engine, output) = Start(threads, split, ponderFinish: true, ponderCap: true);
         int round = 0;
         foreach (int ponderMs in new[] { 0, 360, 1400 })   // at once (a plain search could run to 1,200), at 0.9 S, past the hard limit
         {
@@ -560,7 +563,7 @@ public class PonderTests
     {
         // No depth begins past S/2, so the answer comes when the depth begun before it finishes: often well before
         // the hit + S, which only cuts a depth still running then.
-        var (engine, output) = Start(threads, split);
+        var (engine, output) = Start(threads, split, ponderFinish: true, ponderCap: true);
         var log = new List<string>();
         bool early = false;
         for (int round = 1; !early && round <= 6; round++)
