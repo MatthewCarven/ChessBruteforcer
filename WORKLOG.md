@@ -4448,3 +4448,15 @@ has the tables; this is the story.
 - **From the bot's first start after the merge** (this branch, with the Ctrl+C
   fix): the bot running now has the old code, so this once it's a Ctrl+C
   between games, then the merge, then `bot\start-bot.cmd`.
+
+## 2026-10-21 (00:05-00:10): the Ctrl+C fix and quit.soon fast-forwarded into compression
+
+- **Asked**: Matthew's "The bot is stopped: fast-forward compression to
+  refs/heads/claude/cranky-rhodes-c9f479."
+- **Checked first**: no start-bot.cmd window, run-bot.ps1, lichess-bot or
+  engine process running (so no window could read the new start-bot.cmd from
+  an old offset); the main checkout clean on compression at 81173f8, an
+  ancestor of the branch.
+- **Done**: this entry and the TODO's "In compression" committed on the branch,
+  then compression fast-forwarded to it. Not pushed (Matthew's). The bot takes
+  the Ctrl+C fix and quit.soon at his next `bot\start-bot.cmd`.
