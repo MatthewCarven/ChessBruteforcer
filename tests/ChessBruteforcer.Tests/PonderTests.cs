@@ -88,7 +88,8 @@ public class PonderTests
         Assert.Equal(infos.Length, infos.Select(i => i.Depth).Distinct().Count());
     }
 
-    private static (UciEngine Engine, Output Output) Start(int threads = 1, string split = "LazySMP", bool? ponderFinish = null)
+    private static (UciEngine Engine, Output Output) Start(int threads = 1, string split = "LazySMP", bool? ponderFinish = null,
+                                                           bool? ponderCap = null)
     {
         var output = new Output();
         var engine = new UciEngine(output);
@@ -96,6 +97,8 @@ public class PonderTests
         engine.Handle($"setoption name ThreadSplit value {split}");
         if (ponderFinish is bool finish)   // (otherwise the engine's default, on)
             engine.Handle($"setoption name PonderFinish value {(finish ? "true" : "false")}");
+        if (ponderCap is bool cap)
+            engine.Handle($"setoption name PonderCap value {(cap ? "true" : "false")}");
         return (engine, output);
     }
 
@@ -136,13 +139,41 @@ public class PonderTests
         engine.Handle("uci");
         Assert.Contains("option name Ponder type check default false", output.Lines());
         Assert.Contains("option name PonderFinish type check default true", output.Lines());
+        Assert.Contains("option name PonderCap type check default true", output.Lines());
         engine.Handle("setoption name Ponder value true");
         engine.Handle("setoption name Ponder value false");
         engine.Handle("setoption name PonderFinish value false");
         engine.Handle("setoption name PonderFinish value true");
+        engine.Handle("setoption name PonderCap value false");
+        engine.Handle("setoption name PonderCap value true");
         Assert.DoesNotContain(output.Lines(), l => l.StartsWith("info string"));
         engine.Handle("setoption name PonderFinish value sometimes");
         Assert.Contains("info string error: PonderFinish is true or false, not sometimes.", output.Lines());
+        engine.Handle("setoption name PonderCap value 2");
+        Assert.Contains("info string error: PonderCap is true or false, not 2.", output.Lines());
+    }
+
+    [Theory]
+    [InlineData(null, null, true, true)]
+    [InlineData(false, null, false, true)]
+    [InlineData(null, false, true, false)]
+    [InlineData(false, false, false, false)]
+    [InlineData(true, true, true, true)]
+    public void PonderFinishAndPonderCapReachTheSearch(bool? finish, bool? cap, bool expectedFinish, bool expectedCap)
+    {
+        var (engine, _) = Start(ponderFinish: finish, ponderCap: cap);
+        if (finish is not null || cap is not null)
+        {
+            // (each option set the other way first: the last value counts)
+            engine.Handle($"setoption name PonderFinish value {(expectedFinish ? "false" : "true")}");
+            engine.Handle($"setoption name PonderCap value {(expectedCap ? "false" : "true")}");
+            engine.Handle($"setoption name PonderFinish value {(expectedFinish ? "true" : "false")}");
+            engine.Handle($"setoption name PonderCap value {(expectedCap ? "true" : "false")}");
+        }
+        engine.Handle("position startpos");
+        engine.Handle("go depth 1");
+        engine.WaitForSearch();
+        Assert.Equal((expectedFinish, expectedCap), (engine.Search.PonderFinish, engine.Search.PonderCap));
     }
 
     [Theory]
@@ -351,29 +382,80 @@ public class PonderTests
     // runs on after a hit stops by the hit + S, not at the hard limit, 3S from "go ponder".
 
     [Theory]
-    // PonderFinish off: today's rule.  The hard limit stays; a depth begun past S/2 is stopped at once.
-    [InlineData(500, 100, 1000, 3000, false, 3000, false)]
-    [InlineData(600, 501, 1000, 3000, false, 3000, true)]
-    [InlineData(600, 500, 1000, 3000, false, 3000, false)]   // (begun at S/2 exactly is not past it)
-    [InlineData(3500, 400, 1000, 3000, false, 3000, false)]   // (past the hard limit: the clock check stops it)
-    // On: a depth begun past S/2 has S from the hit.
-    [InlineData(600, 501, 1000, 3000, true, 1600, false)]
-    [InlineData(2500, 2400, 1000, 3000, true, 3500, false)]   // (past the hard limit, if it must)
-    [InlineData(4000, 3900, 1000, 3000, true, 5000, false)]
-    // On: a hit past the hard limit gives the depth in progress S from the hit, however early it began.
-    [InlineData(3500, 400, 1000, 3000, true, 4500, false)]
-    [InlineData(3000, 400, 1000, 3000, true, 4000, false)]
-    // On, a depth begun before S/2: it goes on, as in a plain search, but stops by the hit + S or the hard limit.
-    [InlineData(100, 50, 1000, 3000, true, 1100, false)]
-    [InlineData(600, 500, 1000, 3000, true, 1600, false)]
-    [InlineData(2500, 400, 1000, 3000, true, 3000, false)]
-    // No soft time (movetime): today's rule, on or off.
-    [InlineData(500, 400, 0, 2000, true, 2000, false)]
-    [InlineData(2500, 1400, 0, 2000, true, 2000, false)]
+    // Both off: the rule before P2.  The hard limit stays; a depth begun past S/2 is stopped at once.
+    [InlineData(500, 100, 1000, 3000, false, false, 3000, false)]
+    [InlineData(600, 501, 1000, 3000, false, false, 3000, true)]
+    [InlineData(600, 500, 1000, 3000, false, false, 3000, false)]   // (begun at S/2 exactly is not past it)
+    [InlineData(3500, 400, 1000, 3000, false, false, 3000, false)]   // (past the hard limit: the clock check stops it)
+    // Both on (P2 as first measured).  A depth begun past S/2 has S from the hit.
+    [InlineData(600, 501, 1000, 3000, true, true, 1600, false)]
+    [InlineData(2500, 2400, 1000, 3000, true, true, 3500, false)]   // (past the hard limit, if it must)
+    [InlineData(4000, 3900, 1000, 3000, true, true, 5000, false)]
+    // A hit past the hard limit gives the depth in progress S from the hit, however early it began.
+    [InlineData(3500, 400, 1000, 3000, true, true, 4500, false)]
+    [InlineData(3000, 400, 1000, 3000, true, true, 4000, false)]
+    // A depth begun before S/2 goes on, as in a plain search, but stops by the hit + S or the hard limit.
+    [InlineData(100, 50, 1000, 3000, true, true, 1100, false)]
+    [InlineData(600, 500, 1000, 3000, true, true, 1600, false)]
+    [InlineData(2500, 400, 1000, 3000, true, true, 3000, false)]
+    // Finish only: the late depth as with both on; any other depth to the hard limit.
+    [InlineData(600, 501, 1000, 3000, true, false, 1600, false)]
+    [InlineData(3500, 400, 1000, 3000, true, false, 4500, false)]
+    [InlineData(100, 50, 1000, 3000, true, false, 3000, false)]
+    // Cap only: a late depth stopped at once; any other by the hit + S or the hard limit.
+    [InlineData(600, 501, 1000, 3000, false, true, 1600, true)]
+    [InlineData(100, 50, 1000, 3000, false, true, 1100, false)]
+    [InlineData(3500, 400, 1000, 3000, false, true, 3000, false)]
+    // No soft time (movetime): the hard limit, whatever the options.
+    [InlineData(500, 400, 0, 2000, true, true, 2000, false)]
+    [InlineData(2500, 1400, 0, 2000, true, true, 2000, false)]
+    [InlineData(2500, 1400, 0, 2000, false, false, 2000, false)]
     public void APonderHitSetsTheLimitsP2Describes(long hitMs, long iterationStartMs, long softMs, long hardMs, bool finish,
-                                                   long expectedHardMs, bool expectedStop)
+                                                   bool cap, long expectedHardMs, bool expectedStop)
     {
-        Assert.Equal((expectedHardMs, expectedStop), Search.AfterPonderHit(hitMs, iterationStartMs, softMs, hardMs, finish));
+        Assert.Equal((expectedHardMs, expectedStop),
+                     Search.AfterPonderHit(hitMs, iterationStartMs, softMs, hardMs, finish, cap));
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void PonderHitAppliesBothOptions(bool finish, bool cap)
+    {
+        long HardAfterHit(int clockMs, int ponderMs, out long hitFrom, out long hitTo)
+        {
+            var search = new Search(new TranspositionTable(8)) { PonderFinish = finish, PonderCap = cap };
+            using var started = new ManualResetEventSlim();
+            var thread = new Thread(() => search.Run(Position.FromFen(MoveGeneratorTests.Kiwipete),
+                                                     new SearchLimits { WhiteTimeMs = clockMs, BlackTimeMs = clockMs, Ponder = true },
+                                                     onStarted: started.Set)) { IsBackground = true };
+            thread.Start();
+            Assert.True(started.Wait(5000));
+            Thread.Sleep(ponderMs);
+            hitFrom = (long)search.Elapsed.TotalMilliseconds;
+            search.PonderHit();
+            hitTo = (long)Math.Ceiling(search.Elapsed.TotalMilliseconds);
+            long hard = search.HardLimitMs;
+            search.Stop();
+            Assert.True(thread.Join(5000));
+            return hard;
+        }
+
+        // A hit at once on 60 s (S 1,998 ms, H 5,994): the depth in progress began before S/2; the cap stops it by hit + S.
+        long hard = HardAfterHit(60_000, 0, out long from, out long to);
+        if (cap)
+            Assert.InRange(hard, from + 1998, to + 1998);
+        else
+            Assert.Equal(5994, hard);
+
+        // A hit past the hard limit on 3 s (S 98 ms, H 294): finish gives the depth in progress S from the hit.
+        hard = HardAfterHit(3000, 400, out from, out to);
+        if (finish)
+            Assert.InRange(hard, from + 98, to + 98);
+        else
+            Assert.Equal(294, hard);
     }
 
     [Theory]
@@ -525,9 +607,9 @@ public class PonderTests
     public void PonderFinishLeavesTheSearchItselfAlone()
     {
         // One thread: the same depths, node for node, and the same move, on or off, when no limit cuts the search.
-        string[] Play(bool ponderFinish)
+        string[] Play(bool ponderFinish, bool ponderCap = true)
         {
-            var (engine, output) = Start(ponderFinish: ponderFinish);
+            var (engine, output) = Start(ponderFinish: ponderFinish, ponderCap: ponderCap);
             engine.Handle(Pondered);
             engine.Handle("go ponder depth 8 wtime 100000 btime 100000");
             engine.Handle("ponderhit");
@@ -538,6 +620,8 @@ public class PonderTests
         }
         var on = Play(true);
         Assert.Equal(9, on.Length);
+        Assert.Equal(Play(false, ponderCap: false), on);
+        Assert.Equal(Play(true, ponderCap: false), on);
         Assert.Equal(Play(false), on);
     }
 }

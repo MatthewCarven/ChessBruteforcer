@@ -154,13 +154,19 @@ public sealed class Search
 
     /// <summary>
     /// What a ponder hit does with a depth begun past half the planned time S
-    /// (PONDER.md, P2).  On (the default): the depth may finish if it does so
-    /// within S of the hit, and no depth starts after it; and whatever runs on
-    /// after a hit stops by the hit + S, not at the hard limit (3S from "go
-    /// ponder").  Off: the depth is dropped at once, as before.  Set between
-    /// searches.
+    /// (PONDER.md, P2, "finish").  On (the default): the depth may finish if
+    /// it does so within S of the hit, and no depth starts after it.  Off: the
+    /// depth is dropped at once, as before.  Set between searches.
     /// </summary>
     public bool PonderFinish { get; set; } = true;
+
+    /// <summary>
+    /// After a ponder hit, whether a depth that goes on as in a plain search
+    /// (begun before S/2) stops by the hit + S (PONDER.md, P2, the "cap"; on by
+    /// default), or may run to the hard limit, 3S from "go ponder" (off, as
+    /// before).  Set between searches.
+    /// </summary>
+    public bool PonderCap { get; set; } = true;
 
     /// <summary>
     /// The opponent played the move a <see cref="SearchLimits.Ponder"/> search
@@ -171,7 +177,8 @@ public sealed class Search
     /// planned time, and none at all if pondering is already past it.  A depth
     /// begun past it (which the clock would never have started) is given the
     /// planned time from the hit to finish (<see cref="PonderFinish"/>; off, it
-    /// is dropped).  So a ponder hit plays at least as deep as our own time
+    /// is dropped), and anything else stops by then too (<see cref="PonderCap"/>;
+    /// off, at the hard limit).  So a ponder hit plays at least as deep as our own time
     /// would have taken us, and often at once, banking the clock for the moves
     /// we didn't foresee.
     /// </summary>
@@ -182,7 +189,7 @@ public sealed class Search
         long hitMs = _clock.ElapsedMilliseconds;
         Interlocked.Exchange(ref _softLimitMs, _plannedSoftMs);
         var (hardMs, stopNow) = AfterPonderHit(hitMs, Interlocked.Read(ref _iterationStartMs),
-                                               _plannedSoftMs, _plannedHardMs, PonderFinish);
+                                               _plannedSoftMs, _plannedHardMs, PonderFinish, PonderCap);
         Interlocked.Exchange(ref _hardLimitMs, hardMs);
         _pondering = false;
         if (stopNow)
@@ -195,25 +202,26 @@ public sealed class Search
     /// ponder hit at <paramref name="hitMs"/> sets, and whether it stops the
     /// search at once, for a depth in progress begun at
     /// <paramref name="iterationStartMs"/> and a planned soft and hard time
-    /// of <paramref name="softMs"/> and <paramref name="hardMs"/>.  Without
-    /// <paramref name="finish"/>, or with no soft time (movetime), the hard
-    /// limit stays and a depth begun past half the soft time is stopped.
-    /// With it, nothing is stopped: a depth begun past half the soft time, or
+    /// of <paramref name="softMs"/> and <paramref name="hardMs"/>.  With no
+    /// soft time (movetime), the hard limit stays.  With
+    /// <paramref name="finish"/>, a depth begun past half the soft time, or
     /// one still running when the hit comes past the hard limit, has the soft
     /// time from the hit to finish (no new depth starts after it, since one
-    /// would begin past half the soft time); otherwise the hard limit, or the
-    /// hit plus the soft time if that comes first.  Either way the hit spends
-    /// at most the soft time of real clock.
+    /// would begin past half the soft time); without it, a depth begun past
+    /// half the soft time is stopped.  Any other depth goes on to the hard
+    /// limit, or with <paramref name="cap"/> to the hit plus the soft time if
+    /// that comes first.  With both, the hit spends at most the soft time of
+    /// real clock.
     /// </summary>
     internal static (long HardMs, bool StopNow) AfterPonderHit(long hitMs, long iterationStartMs, long softMs, long hardMs,
-                                                              bool finish)
+                                                              bool finish, bool cap)
     {
         bool lateDepth = softMs > 0 && iterationStartMs > softMs / 2;
-        if (!finish || softMs <= 0)
-            return (hardMs, lateDepth);
-        if (lateDepth || hitMs >= hardMs)
+        if (softMs <= 0)
+            return (hardMs, false);
+        if (finish && (lateDepth || hitMs >= hardMs))
             return (hitMs + softMs, false);
-        return (Math.Min(hardMs, hitMs + softMs), false);
+        return (cap ? Math.Min(hardMs, hitMs + softMs) : hardMs, lateDepth);
     }
 
     /// <summary>
@@ -312,6 +320,9 @@ public sealed class Search
 
     /// <summary>Time since the current or last search began ("go", or "go ponder" for a ponder search).</summary>
     public TimeSpan Elapsed => _clock.Elapsed;
+
+    /// <summary>The hard limit in force now, ms on the search's clock (0: none; for tests).</summary>
+    internal long HardLimitMs => Interlocked.Read(ref _hardLimitMs);
 
     /// <summary>The positions the current or last search's helpers searched from (each thread's own copy of the root).</summary>
     internal IEnumerable<Position?> HelperRoots => _helpers.Take(_activeHelpers).Select(helper => helper._root);
