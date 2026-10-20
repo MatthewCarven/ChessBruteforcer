@@ -1102,6 +1102,86 @@ it: **the rest of the search is now 74-76% of a node**, up from 61%.
   capture that mates, a stalemate at the horizon); mutation battery 14 of
   14 as expected (13 red, the one equivalent mutant green).
 
+### Bitboards, measured (2026-10-20, noon): the plan
+
+Measured 12:08-12:25 with the bot off, as "The rest of a node" was (one
+thread, below normal, thread time, removal arms on the identical tree), on
+180fe25 (K(a) in). All of it is in
+`scripts/nnue-bench/results-2026-10-20-bitboards.txt`; the probe, brought
+up to 180fe25, in `scripts/nnue-bench/search-split/`. No engine change.
+
+| a node, `bench 9`, 16 MB table | this morning (4ecea62) | now (180fe25) | in place now |
+|---|---|---|---|
+| all of it | 515-522 ns | 391-393 | |
+| the network | 125-135 | 123 | 219 ns an evaluation |
+| move generation | 96 | 76-79 | Negamax's lists 33, quiescence's captures 35, its evasions 11 |
+| InCheck | 77 | 69-72 | 44 ns a call, 1.6 a node |
+| move ordering | 141 | 56 | PickNext's scan 27, ScoreMoves 29 |
+| make + unmake | 25 | 27 | |
+| the table | 20 (26 at 256 MB) | 17 (21) | |
+| tablebase, repetition, the rest | 28 | 18 | |
+
+Generation and InCheck are the two biggest pieces now. Quiescence's
+captures-only list costs nearly a whole list (340 ns for 2.7 moves against
+413 for 38): it still visits all 64 squares and walks every ray.
+
+**Instead of estimating (b) and (c) from the lab, the probe's copy got a
+prototype of both** (`AttackTables` in the probe's Hooks.cs): a set per
+colour and piece type kept beside the squares, IsAttacked by PEXT attack
+tables (InCheck, castling's tests), the tablebase's piece count by
+popcount, and generation from the sets, in today's move order or in the
+lab's. Its lists were checked against today's generator at every
+generation, 5.56 M lists, 0 different, so every arm but the lab's order
+searches the identical tree:
+
+| with the network on, `bench 9` | a node | nodes a second | the tree |
+|---|---|---|---|
+| today (180fe25) | 391-393 ns | | |
+| (c) sets and attack tables | 337 | **+16%** (+14.6% at 256 MB) | identical |
+| (b) and generation from the sets, today's order | 312 | **+26%** | identical |
+| (b) in the lab's order | 284-286 | +38% (+35% at 256 MB) | -9% nodes |
+
+- **More than estimated** (+6-15% and +25-39%): an attack test by table
+  costs ~8 ns in the search, where its entries stay warm, against the lab's
+  21 and today's 36-47.
+- **The L2 question has its answer: no cost.** 840 KB of tables beside the
+  net's 1.5 MB cost nothing measurable; 16-bit entries (210 KB, a PDEP more)
+  were within 1-2 ns either way, at 16 MB and 256 MB of table.
+- **The move order matters to the search.** Generating in the sets' order
+  is worth 9% more, but it changes which quiet moves come first among
+  equal scores, and LMR reduces by place in the list: the tree shrank 9%
+  at `bench 9` (11% at 256 MB). Neither better nor worse by itself; a match
+  would say. Today's order keeps the trees identical, so every A/B stays
+  exact.
+
+**The plan**, a session a step, each A/B'd with bench.ps1 against the
+build before it, its tests and a mutation battery green, merged on its own:
+
+| session | what | touches | gate | nodes a second |
+|---|---|---|---|---|
+| 1 | sets + attack tables | Position (12 + 2 sets, kept in make/unmake by one XOR of from and to); a Bitboards class (PEXT tables; magic multiplication where PEXT is slow; today's ray walk kept for the tests and A/Bs); IsAttacked by table (the search, castling, the solver); the tablebase's count and Material by popcount | identical nodes; the sets equal the squares, and IsAttacked by table equals by rays, at every node of the perft walks; perft; a few small tables re-solved byte-identical | **+16%** |
+| 2 | generation from the sets, today's order | MoveGenerator (Pseudo, Captures; Legal and HasLegalMove through them); today's generator kept as the tests' reference | identical nodes; the lists equal move for move at every node of the perft walks; the CLI's `perft` past the tests' depths | **+26%** in all |
+| 3a | the sets' order | MoveGenerator | a match against session 2's build | +38% in all, if it holds |
+| 3b | legality before make | pins and evasions from the sets; the search's after-make test goes | nodes within a hair (dropping illegal moves shifts PickNext's swaps, as K(a)'s list did); perft | est. +5-9% more |
+
+Untouched: the NNUE refresh (once a search, not per node), the hand-made
+evaluation, and everything else that reads `position[square]`: the squares
+stay, the sets sit beside them. The tablebase's index (IndexOf, at five
+pieces or fewer) could take its squares from the sets too: nothing in
+`bench` (806 probes in 1.57 M), more in the bot's endgames.
+
+Risks: **a set out of step** after castling, en passant or a promotion
+gives a wrong InCheck (an illegal move, a missed mate) and no crash; the
+invariant checks at every node of the perft walks, perft and the battery
+are the gates. **PEXT is microcoded on AMD before Zen 3** (tens to
+hundreds of cycles, by the mask): magic multiplication there (this laptop's
+Tiger Lake does PEXT in 3 cycles). **The
+endgame solver shares Position**: a bug would corrupt a table silently,
+hence the re-solve. **8 threads**: these are one thread's figures; the
+bot's Speed lines after the switch, as for J. After session 2 the network
+is 40% of a node again and move ordering (56 ns) the largest piece outside
+it. Matthew's pick: decision L.
+
 ## Risks
 
 | risk | what it would look like | what limits it |
@@ -1251,3 +1331,19 @@ the full test suite green; the mutation battery for the new generator.
 - (c) Attack tables only: the sets kept beside today's board, InCheck and
   castling's tests by table, generation as it is: +6% to +15% on top of
   (a), one session, and (b)'s first step.
+
+**L. Bitboards** (measured 2026-10-20 noon in the probe's prototype,
+"Bitboards, measured" above; put ~13:00). Whichever is built is A/B'd with
+bench.ps1 against the build before it (identical nodes), needs the full
+suite and a mutation battery green, and is merged on its own.
+- (a) Session 1 only: sets and attack tables beside today's board: **+16%
+  measured** (+14.6% at the bot's 256 MB), the identical tree; one session.
+  Then the bot's Speed lines before anything more.
+- **(b) Sessions 1 and 2** (recommended): and generation from the sets in
+  today's move order: **+26% measured**, the identical tree; two sessions,
+  each merged on its own, so stopping after the first stays open.
+- (c) As (b), then session 3: the sets' own move order (+38% measured, the
+  tree 9% smaller at `bench 9`: a match against (b)'s build decides, ~1-3 h
+  with the bot off) and legality before make (est. +5-9% more, the hardest
+  piece: pins, double check, en passant's discovered check; prototype
+  first). Three to four sessions.

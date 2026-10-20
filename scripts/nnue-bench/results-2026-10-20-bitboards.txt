@@ -1,0 +1,161 @@
+The rest of a node again, and bitboards measured: where a search node's time goes with quiescence generating only
+what it searches, and what attack tables and bitboards save on it, h1024-3m, the engine at 180fe25 (Matthew's K(a)),
+2026-10-20 12:08-12:25. The laptop (i9-11900H, .NET 8.0.32), on AC, the bot OFF (since ~09:50; no engine, match,
+build or test host running, checked 12:02 and 12:20; 4.8-5.0 GB of commit free): quiet-laptop figures, the rounds
+agreeing to 1-3 ns. One thread at below-normal priority, timed by the thread's own CPU time (QueryThreadCycleTime at
+the 2.496 GHz TSC). The engine itself was not changed: a scratchpad copy with hooks (search-split/split-patch.py,
+brought up to 180fe25), and in that copy a prototype of decision K's (b) and (c) (Hooks.cs's AttackTables).
+
+Method. As results-2026-10-20-split.txt: bench's six positions at depth 9, a fresh 16 MB table each search, the bot's
+tables object over an empty folder; a recording run, a check run, then 6 rounds (+1 dropped) of arms, rotated, every
+arm run twice at depth 6 first so the JIT compiles tier 1 from all of them. Removal arms replay one piece's answers on
+the identical tree (checked every run: the same nodes, every replayed stream read exactly to its end). New since the
+morning: generation removed by kind (Negamax's lists, quiescence's captures, its evasions), castling's attack tests
+removed, and the prototype's arms:
+  sets         a set per colour and piece type kept in Position.Put (12 + 2 bitboards), nothing reading them
+  tables       and IsAttacked from them by table (InCheck, castling's tests): knights, kings and pawns a set per
+               square, rooks and bishops by PEXT into a table per square (64-bit entries, ~840 KB); the tablebase's
+               piece count by popcount. Today's answers, so the identical tree.
+  tables16     the same with 16-bit entries expanded by PDEP (~210 KB): the L2 question
+  bbo          and generation from the sets in today's order (from-square up, per piece as MoveGenerator has it):
+               today's lists move for move, so the identical tree
+  bb           generation from the sets in the lab's order (pawns set-wise, then knights ... king, castling): the
+               same moves in another order, so PickNext breaks ties another way: its own tree
+  full...      the same with the network on; vbb / vbbo check the sets' lists against today's at every generation
+
+=== Counts, a node (3,775,600 nodes: bench 9's tree) ===
+Negamax 0.415, quiescence 0.585 (hand-offs 0.319: both count)
+generations 0.209: Negamax 0.079 (37.7 moves), quiescence's captures 0.103 (2.7 moves), its evasions 0.027 (40.6 moves)
+makes 0.936; illegal 0.259 = 27.7% of makes: 0.249 at nodes in check (82% of the makes there), 0.006 king moves
+  elsewhere (14% of those), 0.0038 others (pins, en passant)
+InCheck 1.645: node entry 0.681 (Negamax 0.415, quiescence 0.266: no longer asked at a hand-off), after make 0.936,
+  LMR's gives-check 0.028; and castling's 0.106 attack tests inside generation (0.226 this morning: quiescence's
+  full lists had castling in them)
+picks 0.936: Negamax 0.593 (scanning 20.2 scores each), quiescence 0.343 (9.9) (3.55 this morning)
+table probes 0.096 (hits 27.6%), stores 0.079; repetition checks 0.415; tablebase probes 0.415 (66.5% stopped at
+  castling rights, 806 with 5 pieces or fewer, no hits); evaluations 0.563; allocated 0.27 bytes a node (45.9 this morning)
+
+=== Run 1 (12:08-12:10): every removal and doubling arm, ns a node, medians of 6 rounds (and every round) ===
+  full        391.9   393 391 391 392 394 390      -gen        190.7   191 189 191 191 188 191
+  none        268.9   269 268 271 269 268 271      -genneg     236.9   236 240 238 236 237 237
+  -chk        197.1   198 197 198 195 197 199      -gencap     233.9   236 234 234 234 233 235
+  -chkL       230.4   233 229 230 233 230 230      -genevade   257.8   258 257 258 257 259 258
+  -illegal    255.8   256 254 256 256 256 256      -castle     264.9   265 265 264 266 264 265
+  -tt         251.6   252 251 252 251 251 252      +gen        322.3   323 321 328 325 321 322
+  -rep        268.8   269 269 270 269 268 267      +genqs      297.8   300 298 297 299 297 298
+  -tb         264.0   264 264 266 264 264 263      +genneg     294.7   296 294 294 296 294 295
+  -pick       242.3   242 242 244 242 243 243      +make       295.6   296 297 294 295 295 297
+  -order      213.1   213 215 213 212 213 213      +chk        331.7   332 330 330 334 332 332
+                                                   +score      294.4   295 293 295 294 294 296
+
+The split (medians of per-round differences), ns a node, % of the rest (none, 268.9) and of a node (full, 391.9):
+piece                                     ns a node   rest   node   in place                   rounds
+the network (full - none)                     123.3  45.9%  31.5%   219 ns an evaluation       124 123 121 124 126 120
+move generation (none - -gen)                  79.3  29.5%  20.2%   379 ns a list              78 79 80 78 80 80
+  Negamax's lists (none - -genneg)             32.8  12.2%   8.4%   413 ns a list (37.7 moves) 33 28 33 33 31 34
+  quiescence's captures (none - -gencap)       34.9  13.0%   8.9%   340 ns a list (2.7 moves)  33 34 37 35 35 36
+  quiescence's evasions (none - -genevade)     11.3   4.2%   2.9%   414 ns a list (40.6 moves) 11 11 13 12 9 13
+  castling's attack tests, inside (-castle)     3.9   1.4%   1.0%   36 ns a test               4 3 7 2 4 5
+  (doubled: 53.4, 255 ns a list; Negamax's 26.3, quiescence's 29.5)
+InCheck, every call (none - -chk)              71.6  26.6%  18.3%   44 ns a call               71 71 73 73 71 72
+  after make, the legality test (-chkL)        38.6  14.4%   9.9%   41 ns a call               36 39 40 35 38 40
+  node entry and LMR (-chkL - -chk)            33.2  12.3%   8.5%   47 ns a call               35 32 33 38 33 31
+  (doubled: 62.4, 38 ns a call)
+move ordering (none - -order)                  56.3  20.9%  14.4%   60 ns a pick               56 53 57 56 55 57
+  PickNext's scan (none - -pick)               26.9  10.0%   6.9%   29 ns a pick               27 26 27 27 26 28
+  ScoreMoves (-pick - -order)                  29.4  10.9%   7.5%   6.7 ns a move scored       29 26 30 30 30 29
+make + unmake, the board (doubled)             26.6   9.9%   6.8%   28 ns a pair               27 29 24 26 27 26
+table probe + store (none - -tt)               17.3   6.4%   4.4%   181 ns a probe             17 17 19 17 17 19
+tablebase probe (none - -tb)                    4.6   1.7%   1.2%   11 ns a probe              5 4 4 5 4 8
+repetition check + hash list (none - -rep)      0.3   0.1%   0.1%   1 ns a check               0 -1 0 0 1 3
+everything else (none less the pieces above)   12.9   4.8%   3.3%
+cross-cut: illegal moves, make + test + unmake (none - -illegal): 13.3 ns a node (4.9% of the rest), 51 ns each
+
+Quiescence's captures-only list costs nearly a whole list (340 ns for 2.7 moves against 413 for 37.7): it still visits
+all 64 squares and walks every ray to the first piece. That is now the biggest single generation cost, and the one
+bitboards cut hardest (the lab: 408 -> 66 ns).
+
+=== Against this morning (4ecea62, results-2026-10-20-split.txt), ns a node ===
+                     4ecea62    180fe25
+a node               515-522    391-393   (-25%: K(a))
+the network          125-135    123-124
+the rest             386-389    268-270   (74-76% of a node -> 68-69%)
+move ordering            141         56
+move generation           96      76-79
+InCheck                   77      69-72   (1.96 calls -> 1.645; 39 ns a call -> 42-44)
+make + unmake             25         27
+the table                 20         17   (26 -> 21 at 256 MB)
+tablebase, repetition      7          5
+everything else           21         13
+
+=== The bitboard lab (12:14), lab/lab.cs on the 180fe25 copy ===
+Every 32nd sample of bench's six searches at depth 9: 24,707 of 790,599 generations (9,420 Negamax, 12,071
+quiescence, 3,216 quiescence in check) and 193,976 of 6,207,226 InCheck calls (110,464 after make), every answer
+checked equal on both boards. ns a call, medians of 10 rounds:
+  generation, today            456.7   bitboards  154.7   (-66%)   (510.6 -> 149.7 this morning: no allocation now)
+  quiescence captures, today   408.4   bitboards   65.7   (-84%)   (today's full list there: 478.1)
+  InCheck, today                65.0   bitboards   20.5   (-68%)
+
+=== Run 2 (12:18-12:20): the prototype, ns a node ===
+  full        391.5   401 391 391 392 390 392      tables      213.1   212 212 215 213 213 213
+  none        267.8   270 269 268 267 268 267      tables16    214.5   216 215 215 215 213 214
+  -chk        198.9   202 200 195 200 197 198      vbb         433.1   (a check: 5,559,503 lists, 0 differ as sets)
+  -gen        192.4   192 192 192 193 196 192      fulltables  337.5   336 338 339 337 338 336
+  sets        276.8   277 277 278 278 276 277      fulltables16 339.6  340 339 339 340 342 339
+  fullbb      284.3   285 283 290 283 285 283   on its own tree: 3,437,335 nodes against 3,775,600 (-8.96%)
+  fullbb16    284.6   285 283 286 286 284 283   the same tree as fullbb
+  the sets' upkeep (sets - none): +8.7 ns a node (9.3 a make + unmake)            rounds 7 8 10 11 8 9
+  attack tables, upkeep in (none - tables): 54.7 ns a node; 16-bit 53.7           rounds 58 57 53 54 55 54
+  attack tables, network on (full - fulltables): 53.9 ns a node, 13.8% of a node = +16.0% nodes a second;
+    16-bit 51.8 (+15.2%)                                                          rounds 65 53 52 55 52 56 / 61 52 52 51 49 54
+  bitboards, the lab's order (full - fullbb): 108.3 ns a node cheaper, 27.7% = +38.3% nodes a second (rounds 116 109
+    101 108 105 110); the six searches 34.2% sooner on the smaller tree; generation's part (fulltables - fullbb) 53.2
+  16-bit (full - fullbb16): 107.1 cheaper, +37.7%; generation's part 55.0
+
+=== Run 3 (12:20-12:21): the bot's table size, Hash 256 (3,733,133 nodes; another tree) ===
+  full 391.6; none 268.0; -tt 246.3 (the table 21.4 ns a node, 223 a probe); fulltables 342.0; fulltables16 343.2;
+  fullbb 290.4 and fullbb16 290.2 (3,334,377 nodes, -10.68%)
+  attack tables, network on: 49.9 ns a node = +14.6% nodes a second; 16-bit 48.9 (+14.3%)
+  bitboards, the lab's order: 100.7 ns a node cheaper = +34.6% nodes a second (16-bit +34.7%); the six searches 33.6%
+    sooner on the smaller tree
+
+=== Run 4 (12:23-12:25): generation from the sets in today's order, ns a node ===
+  full 392.8; none 269.6; sets 278.8 (+9.3); tables 215.8; fulltables 337.4; bbo 188.7; fullbbo 312.0 (312 315 311 309
+  313 312); fullbb 286.3 (3,437,335 nodes again); vbbo: 5,559,503 lists, 0 differ, move for move
+  attack tables, network on (full - fulltables): 55.1 ns a node = +16.3% nodes a second   rounds 58 55 54 55 56 52
+  generation from the sets in today's order (tables - bbo): 27.1 ns a node, 129 ns a list  rounds 27 27 28 26 26 29
+  bitboards in today's order, network on (full - fullbbo): 81.2 ns a node, 20.7% = +26.1% nodes a second, the
+    identical tree (rounds 82 78 84 83 80 80); generation's part (fulltables - fullbbo) 26.1
+  the lab's order (full - fullbb): 107.1 ns a node = +37.5%; generation's part 52.0
+
+Wall clock agrees with thread time to 1 ns in every arm (by each arm's own nodes: the noon runs' printed wall column
+divided fullbb's time by the recorded tree's nodes and read ~9% low; split.cs is fixed).
+
+What the prototype says:
+- Attack tables beside today's board are worth +16% (+14.6% at 256 MB), the identical tree. An attack test by table
+  costs ~8 ns in place against 36-47 by walking rays (the 54 ns a node is InCheck's and castling's tests, ~60, and the
+  tablebase's count, ~4, less the sets' upkeep, 9). More than the lab's -68%: in the search the tables stay warm.
+- The L2 question has an answer: 840 KB of tables beside the network's 1.5 MB cost nothing measurable at one thread,
+  at 16 MB or 256 MB of table (64-bit and 16-bit entries within 1-2 ns of each other, either way round). The bot's 8
+  threads each have their own core's 1.25 MB L2, so the same should hold there; 16-bit entries are the fallback.
+- Generation from the sets is worth 26 ns a node in today's order and 52-53 in the lab's: keeping today's order (a type
+  switch per piece, pawns one at a time, sliders ray by ray) gives back half the gain. The lab's order changes which
+  quiet moves come first among equal scores, and LMR reduces by place in the list, so the tree changes: -9.0% nodes
+  at bench 9 (-10.7% at 256 MB). Smaller is not better or worse by itself: a match would say.
+- The prototype's upkeep is the plain one (both arrays updated in every Put, 9 ns a node); one XOR of the from and to
+  squares per set in MakeMove should be about half that: a little more than measured, not counted below.
+
+=== Estimates on top of 180fe25 (a node 392 ns), nodes a second ===
+step                                                  measured (prototype, 16 MB)          tree
+1. sets + attack tables (InCheck, castling's tests,   +16.0% to +16.3% (+14.6% at 256 MB)   identical
+   the tablebase's count)
+2. and generation from the sets, today's order        +26.1% in all (+8% on top of 1)       identical
+3. and the bitboard order                             +37.5% to +38.3% in all (+9% on top    -9% to -11%: a
+                                                      of 2; +34.6% at 256 MB)               match decides
+4. and legality before make (pins, check evasions     est. +5% to +9% on top of 2 or 3: the  within a hair
+   from the sets: no after-make test, no illegal       after-make test (~10 ns a node by     (PickNext's
+   makes)                                              table), illegal makes (~10), in-check  swaps)
+                                                       nodes' 33 illegal moves a list scored
+                                                       and sorted (~6), less pins (~3)
+After step 2 a node is ~312 ns: the network 123 (40%), move ordering 56 (the largest piece left outside it), make +
+unmake with the upkeep ~32, generation ~50, InCheck ~13, the table 17.

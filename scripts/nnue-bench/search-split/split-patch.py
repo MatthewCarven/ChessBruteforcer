@@ -2,10 +2,13 @@
 
     python split-patch.py <scratch>/probe-src
 
-<scratch>/probe-src holds `git archive <commit> src` (the probe was made from 4ecea62). Hooks.cs, beside this
-script, goes into the copy's Engine folder; the edits below add the hooks to Search, Position, Evaluation,
-TranspositionTable and MoveGenerator. Every edit must match exactly as often as stated, or the script stops (a
-newer engine needs the edits brought up to date first)."""
+<scratch>/probe-src holds `git archive <commit> src`: 180fe25 (quiescence generates only what it searches) or a
+commit whose Search, MoveGenerator, Position, Evaluation and TranspositionTable read the same. The version for
+4ecea62, with the quiescence levers' arms, is this script at commit 4dce15e. Hooks.cs, beside this script, goes
+into the copy's Engine folder; the edits below add the hooks to Search, Position, Evaluation, TranspositionTable,
+MoveGenerator and Tablebase, and the prototype of decision K's (b) and (c) (sets beside the squares, attacks by
+table, generation from the sets). Every edit must match exactly as often as stated, or the script stops (a newer
+engine needs the edits brought up to date first)."""
 import os
 import shutil
 import sys
@@ -57,13 +60,13 @@ search = [
      "        if (inCheck)\n"
      "            depth++;\n", 1),
 
-    # (The hand-off to quiescence can pass the check status, which at depth 0 is always "not in check".)
+    # The hand-off to quiescence, which is told the check status (at depth 0 always "not in check").
     ("        if (depth <= 0)\n"
-     "            return Quiescence(position, alpha, beta, ply);\n",
+     "            return Quiescence(position, alpha, beta, ply, inCheck);\n",
      "        if (depth <= 0)\n"
      "        {\n"
      "            if (Hooks.Rec) Hooks.Handoffs++;\n"
-     "            return Quiescence(position, alpha, beta, ply, Hooks.PassCheck ? (inCheck ? 1 : 0) : -1);\n"
+     "            return Quiescence(position, alpha, beta, ply, inCheck);\n"
      "        }\n", 1),
 
     ("        if (_table.TryGet(position.Hash, out var entry))\n",
@@ -85,7 +88,7 @@ search = [
      "        ScoreMoves(position, moves, scores, ttMove, ply);\n",
      "        var moves = _moveLists[ply];\n"
      "        if (Hooks.GenX2 is 1 or 3) { MoveGenerator.Pseudo(position, _scratchMoves); Hooks.Sink += _scratchMoves.Count; }\n"
-     "        GenH(position, moves, false);\n"
+     "        GenH(position, moves, 0);\n"
      "        Hooks.OnGen?.Invoke(position, 0);\n"
      "        var scores = _moveScores[ply];\n"
      "        if (Hooks.ScoreX2) ScoreMoves(position, moves, _scratchScores, ttMove, ply);\n"
@@ -143,74 +146,53 @@ search = [
      "            _table.Store(position.Hash, bestMove, ToTable(best, ply), depth, bound);\n", 1),
 
     # Quiescence.
-    ("    private int Quiescence(Position position, int alpha, int beta, int ply)\n"
+    ("    private int Quiescence(Position position, int alpha, int beta, int ply, bool? knownCheck = null)\n"
      "    {\n"
      "        _pvLength[ply] = ply;\n",
-     "    private int Quiescence(Position position, int alpha, int beta, int ply, int knownCheck = -1)\n"
+     "    private int Quiescence(Position position, int alpha, int beta, int ply, bool? knownCheck = null)\n"
      "    {\n"
      "        _pvLength[ply] = ply;\n"
      "        if (Hooks.Rec) Hooks.QsNodes++;\n", 1),
 
-    ("        bool inCheck = position.InCheck();\n"
+    ("        bool inCheck = knownCheck ?? position.InCheck();\n"
      "        int best;\n",
-     "        bool inCheck = knownCheck >= 0 ? knownCheck != 0 : ChkE(position, 1);\n"
+     "        bool inCheck = knownCheck ?? ChkE(position, 1);\n"
      "        int best;\n", 1),
 
+    # (Not in check, quiescence generates only captures and queen promotions: kind 1; in check, every move: kind 2.)
     ("        var moves = _moveLists[ply];\n"
-     "        MoveGenerator.Pseudo(position, moves);\n"
+     "        if (inCheck)\n"
+     "            MoveGenerator.Pseudo(position, moves);\n"
+     "        else\n"
+     "            MoveGenerator.Captures(position, moves);\n"
      "        var scores = _moveScores[ply];\n"
      "        ScoreMoves(position, moves, scores, default, ply);\n",
      "        var moves = _moveLists[ply];\n"
-     "        if (Hooks.GenX2 is 1 or 2) { MoveGenerator.Pseudo(position, _scratchMoves); Hooks.Sink += _scratchMoves.Count; }\n"
-     "        Hooks.OnGen?.Invoke(position, inCheck ? 2 : 1);\n"
-     "        if (Hooks.QsCaptures && !inCheck)\n"
-     "            MoveGenerator.Captures(position, moves);\n"
-     "        else\n"
-     "            GenH(position, moves, true);\n"
-     "        if (Hooks.VerifyCaptures && !inCheck)\n"
+     "        if (Hooks.GenX2 is 1 or 2)\n"
      "        {\n"
-     "            MoveGenerator.Captures(position, _scratchMoves);\n"
-     "            int k = 0;\n"
-     "            bool same = true;\n"
-     "            foreach (var m in moves)\n"
-     "            {\n"
-     "                if (!m.IsCapture && m.Promotion != PieceType.Queen)\n"
-     "                    continue;\n"
-     "                if (k >= _scratchMoves.Count || _scratchMoves[k] != m)\n"
-     "                    same = false;\n"
-     "                k++;\n"
-     "            }\n"
-     "            if (k != _scratchMoves.Count)\n"
-     "                same = false;\n"
-     "            Hooks.CaptureLists++;\n"
-     "            if (!same)\n"
-     "                Hooks.CaptureMismatches++;\n"
+     "            if (inCheck) MoveGenerator.Pseudo(position, _scratchMoves); else MoveGenerator.Captures(position, _scratchMoves);\n"
+     "            Hooks.Sink += _scratchMoves.Count;\n"
      "        }\n"
+     "        Hooks.OnGen?.Invoke(position, inCheck ? 2 : 1);\n"
+     "        GenH(position, moves, inCheck ? 2 : 1);\n"
      "        var scores = _moveScores[ply];\n"
      "        if (Hooks.ScoreX2) ScoreMoves(position, moves, _scratchScores, default, ply);\n"
      "        if (!Hooks.NoScore) ScoreMoves(position, moves, scores, default, ply);\n", 1),
 
+    # (Its first lines read as Negamax's loop; the edit above has changed that one already.)
     ("        for (int i = 0; i < moves.Count; i++)\n"
      "        {\n"
      "            var move = PickNext(moves, scores, i);\n"
-     "            if (!inCheck && !move.IsCapture && move.Promotion != PieceType.Queen)\n"
-     "                continue;\n"
      "            var undo = position.MakeMove(move);\n"
      "            if (position.InCheck(us))\n"
      "            {\n"
      "                position.UnmakeMove(move, undo);\n"
      "                continue;\n"
-     "            }\n",
+     "            }\n"
+     "            int score = -Quiescence(position, -beta, -alpha, ply + 1);\n",
      "        for (int i = 0; i < moves.Count; i++)\n"
      "        {\n"
      "            var move = Hooks.PickReplay ? PickR(moves, scores, i) : PickNext(moves, scores, i, true);\n"
-     "            if (!inCheck && !move.IsCapture && move.Promotion != PieceType.Queen)\n"
-     "            {\n"
-     "                if (Hooks.Rec) Hooks.QsSkipped++;\n"
-     "                if (Hooks.QsBreak)\n"
-     "                    break;\n"
-     "                continue;\n"
-     "            }\n"
      "            if (Hooks.NoIllegal && Hooks.ChkL[Hooks.ChkLN] != 0)\n"
      "            {\n"
      "                Hooks.ChkLN++;\n"
@@ -222,7 +204,8 @@ search = [
      "            {\n"
      "                position.UnmakeMove(move, undo);\n"
      "                continue;\n"
-     "            }\n", 1),
+     "            }\n"
+     "            int score = -Quiescence(position, -beta, -alpha, ply + 1);\n", 1),
 
     ("    private static Move PickNext(List<Move> moves, int[] scores, int start)\n"
      "    {\n"
@@ -253,16 +236,28 @@ search = [
         return moves[start];
     }
 
-    private static void GenH(Position position, List<Move> moves, bool qs)
+    // kind: 0 Negamax (every move), 1 quiescence (captures and queen promotions), 2 quiescence in check (every move)
+    private static void GenH(Position position, List<Move> moves, int kind)
     {
-        if (Hooks.NoGen)
+        if ((Hooks.NoGen >> kind & 1) != 0)
         {
-            Hooks.ReplayGen(moves);
+            Hooks.ReplayGen(moves, kind);
             return;
         }
-        MoveGenerator.Pseudo(position, moves);
+        if (Hooks.BbGen)
+            AttackTables.Generate(position, moves, kind != 1);
+        else if (Hooks.BbOrdered)
+            AttackTables.GenerateOrdered(position, moves, kind != 1);
+        else if (kind == 1)
+            MoveGenerator.Captures(position, moves);
+        else
+            MoveGenerator.Pseudo(position, moves);
+        if (Hooks.VerifyBb)
+            Hooks.CheckBb(position, moves, kind != 1);
+        if (Hooks.VerifyBbo)
+            Hooks.CheckBbo(position, moves, kind != 1);
         if (Hooks.Rec)
-            Hooks.RecordGen(moves, qs);
+            Hooks.RecordGen(moves, kind);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
@@ -335,6 +330,35 @@ search = [
 ]
 
 position = [
+    # The prototype's sets (decision K's (b) and (c)): kept in Put while Hooks.KeepSets, read by AttackTables.
+    ("    private readonly Piece[] _squares = new Piece[64];\n",
+     "    private readonly Piece[] _squares = new Piece[64];\n"
+     "    internal readonly ulong[] Sets = new ulong[16];      // the split probe's prototype: [colour * 8 + type]\n"
+     "    internal readonly ulong[] ColourSets = new ulong[2];\n", 1),
+    ("        var old = _squares[square];\n"
+     "        Hash ^= Zobrist.Piece(old, square) ^ Zobrist.Piece(piece, square);\n",
+     "        var old = _squares[square];\n"
+     "        Hash ^= Zobrist.Piece(old, square) ^ Zobrist.Piece(piece, square);\n"
+     "        if (ChessBruteforcer.Core.Engine.Hooks.KeepSets)\n"
+     "        {\n"
+     "            ulong bit = 1UL << square;\n"
+     "            if (!old.IsEmpty)\n"
+     "            {\n"
+     "                Sets[(int)old.Colour * 8 + (int)old.Type] &= ~bit;\n"
+     "                ColourSets[(int)old.Colour] &= ~bit;\n"
+     "            }\n"
+     "            if (!piece.IsEmpty)\n"
+     "            {\n"
+     "                Sets[(int)piece.Colour * 8 + (int)piece.Type] |= bit;\n"
+     "                ColourSets[(int)piece.Colour] |= bit;\n"
+     "            }\n"
+     "        }\n", 1),
+    ("    public bool IsAttacked(int square, Colour by)\n"
+     "    {\n",
+     "    public bool IsAttacked(int square, Colour by)\n"
+     "    {\n"
+     "        if (ChessBruteforcer.Core.Engine.Hooks.TableAttacks)\n"
+     "            return ChessBruteforcer.Core.Engine.AttackTables.IsAttacked(this, square, by);\n", 1),
     ("            _nnue?.PushCastle(mover, move.From, move.To, rook, rookFrom, rookTo);\n",
      "            if (!ChessBruteforcer.Core.Engine.Hooks.SkipUpdates)\n"
      "                _nnue?.PushCastle(mover, move.From, move.To, rook, rookFrom, rookTo);\n", 1),
@@ -376,6 +400,19 @@ evaluation = [
 """, 1),
 ]
 
+tablebase = [
+    # The prototype's piece count by popcount (with Hooks.TableAttacks).
+    ("        int pieces = 0;\n"
+     "        for (int square = 0; square < 64 && pieces <= MaxPieces; square++)\n"
+     "            if (!position[square].IsEmpty) pieces++;\n",
+     "        int pieces = 0;\n"
+     "        if (ChessBruteforcer.Core.Engine.Hooks.TableAttacks)\n"
+     "            pieces = System.Numerics.BitOperations.PopCount(position.ColourSets[0] | position.ColourSets[1]);\n"
+     "        else\n"
+     "            for (int square = 0; square < 64 && pieces <= MaxPieces; square++)\n"
+     "                if (!position[square].IsEmpty) pieces++;\n", 1),
+]
+
 table = [
     ("    /// <summary>Per-mille of slots in use, for UCI \"hashfull\".</summary>\n",
      "    internal static ulong PackEntry(TableEntry entry) => Pack(entry.Move, entry.Score, entry.Depth, entry.Bound);\n"
@@ -386,114 +423,20 @@ table = [
 ]
 
 generator = [
-    ("        { PieceType.Queen, PieceType.Rook, PieceType.Bishop, PieceType.Knight };\n",
-     "        { PieceType.Queen, PieceType.Rook, PieceType.Bishop, PieceType.Knight };\n"
-     "\n"
-     "    private static readonly int[] Sides = { -1, 1 };   // the split probe's no-allocation arm\n", 1),
-    ("        foreach (int side in new[] { -1, 1 })\n",
-     "        foreach (int side in ChessBruteforcer.Core.Engine.Hooks.NoAlloc ? Sides : new[] { -1, 1 })\n", 1),
+    # Castling's attack tests through a hook (counted, and replayed by the -castle arm).
     ("            && !position.IsAttacked(", "            && !Attacked(position, ", 6),
     ("    private static void CastlingMoves(Position position, int from, Colour us, List<Move> moves)\n",
      "    private static bool Attacked(Position position, int square, Colour by)\n"
      "    {\n"
+     "        if (ChessBruteforcer.Core.Engine.Hooks.NoCastle)\n"
+     "            return ChessBruteforcer.Core.Engine.Hooks.ReplayCastle();\n"
+     "        bool attacked = position.IsAttacked(square, by);\n"
      "        if (ChessBruteforcer.Core.Engine.Hooks.Rec)\n"
-     "            ChessBruteforcer.Core.Engine.Hooks.CastleAttackChecks++;\n"
-     "        return position.IsAttacked(square, by);\n"
+     "            ChessBruteforcer.Core.Engine.Hooks.RecordCastle(attacked);\n"
+     "        return attacked;\n"
      "    }\n"
      "\n"
      "    private static void CastlingMoves(Position position, int from, Colour us, List<Move> moves)\n", 1),
-    # The captures-only generator for quiescence (the qscap lever's prototype).
-    ("    private static bool IsLegal(Position position, Move move, Colour mover)\n",
-     """    /// <summary>
-    /// The split probe's quiescence generator: only what quiescence searches when not in check (captures with
-    /// every promotion piece, en passant, pushes that promote to a queen), in <see cref="Pseudo"/>'s own order.
-    /// </summary>
-    public static void Captures(Position position, List<Move> moves)
-    {
-        moves.Clear();
-        Colour us = position.SideToMove;
-        for (int from = 0; from < 64; from++)
-        {
-            var piece = position[from];
-            if (piece.IsEmpty || piece.Colour != us)
-                continue;
-            switch (piece.Type)
-            {
-                case PieceType.Pawn:
-                    PawnCaptures(position, from, us, moves);
-                    break;
-                case PieceType.Knight:
-                    StepCaptures(position, from, us, Attacks.Knight[from], moves);
-                    break;
-                case PieceType.King:
-                    StepCaptures(position, from, us, Attacks.King[from], moves);
-                    break;
-                case PieceType.Bishop:
-                    SlideCaptures(position, from, us, Attacks.FirstBishopDirection, Attacks.DirectionCount, moves);
-                    break;
-                case PieceType.Rook:
-                    SlideCaptures(position, from, us, Attacks.FirstRookDirection, Attacks.FirstBishopDirection, moves);
-                    break;
-                case PieceType.Queen:
-                    SlideCaptures(position, from, us, 0, Attacks.DirectionCount, moves);
-                    break;
-            }
-        }
-    }
-
-    private static void PawnCaptures(Position position, int from, Colour us, List<Move> moves)
-    {
-        int forward = us == Colour.White ? 8 : -8;
-        int file = from % 8;
-        int lastRank = us == Colour.White ? 7 : 0;
-        int one = from + forward;
-        if (one is >= 0 and < 64 && one / 8 == lastRank && position[one].IsEmpty)
-            moves.Add(new Move((byte)from, (byte)one, PieceType.Queen, MoveFlags.None));
-        for (int side = -1; side <= 1; side += 2)
-        {
-            int targetFile = file + side;
-            if (targetFile is < 0 or > 7)
-                continue;
-            int to = one + side;
-            if (to is < 0 or >= 64)
-                continue;
-            var target = position[to];
-            if (!target.IsEmpty && target.Colour != us)
-                AddPawnMove(from, to, MoveFlags.Capture, lastRank, moves);
-            else if (to == position.EnPassantSquare)
-                moves.Add(new Move((byte)from, (byte)to, PieceType.None, MoveFlags.Capture | MoveFlags.EnPassant));
-        }
-    }
-
-    private static void StepCaptures(Position position, int from, Colour us, int[] targets, List<Move> moves)
-    {
-        foreach (int to in targets)
-        {
-            var target = position[to];
-            if (!target.IsEmpty && target.Colour != us)
-                moves.Add(new Move((byte)from, (byte)to, PieceType.None, MoveFlags.Capture));
-        }
-    }
-
-    private static void SlideCaptures(Position position, int from, Colour us, int firstDirection, int endDirection,
-                                      List<Move> moves)
-    {
-        for (int d = firstDirection; d < endDirection; d++)
-        {
-            foreach (int to in Attacks.Rays[from][d])
-            {
-                var target = position[to];
-                if (target.IsEmpty)
-                    continue;
-                if (target.Colour != us)
-                    moves.Add(new Move((byte)from, (byte)to, PieceType.None, MoveFlags.Capture));
-                break;
-            }
-        }
-    }
-
-    private static bool IsLegal(Position position, Move move, Colour mover)
-""", 1),
 ]
 
 patch(os.path.join("Engine", "Search.cs"), search)
@@ -501,5 +444,6 @@ patch(os.path.join("Game", "Position.cs"), position)
 patch(os.path.join("Engine", "Evaluation.cs"), evaluation)
 patch(os.path.join("Engine", "TranspositionTable.cs"), table)
 patch(os.path.join("Game", "MoveGenerator.cs"), generator)
+patch(os.path.join("Endgame", "Tablebase.cs"), tablebase)
 shutil.copyfile(os.path.join(here, "Hooks.cs"), os.path.join(core, "Engine", "Hooks.cs"))
 print("copied Hooks.cs")

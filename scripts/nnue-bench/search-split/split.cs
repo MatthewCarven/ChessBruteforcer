@@ -65,24 +65,36 @@ var allArms = new (string Name, Action Set, string Streams)[]
     ("-tb", () => { None(); Hooks.NoTb = true; }, "e tb"),
     ("-pick", () => { None(); Hooks.PickReplay = true; }, "e pick"),
     ("-order", () => { None(); Hooks.PickReplay = true; Hooks.NoScore = true; }, "e pick"),
-    ("-gen", () => { None(); Hooks.NoGen = true; }, "e gen"),
-    ("qsbreak", () => { None(); Hooks.QsBreak = true; }, "e"),
-    ("noalloc", () => { None(); Hooks.NoAlloc = true; }, "e"),
+    ("-gen", () => { None(); Hooks.NoGen = 7; }, "e gen0 gen1 gen2"),
+    ("-genneg", () => { None(); Hooks.NoGen = 1; }, "e gen0"),      // Negamax's lists (every move)
+    ("-gencap", () => { None(); Hooks.NoGen = 2; }, "e gen1"),      // quiescence's (captures, queen promotions)
+    ("-genevade", () => { None(); Hooks.NoGen = 4; }, "e gen2"),    // quiescence's in check (every move)
+    ("-castle", () => { None(); Hooks.NoCastle = true; }, "e ca"),  // castling's attack tests, inside generation
     ("+gen", () => { None(); Hooks.GenX2 = 1; }, "e"),
     ("+genqs", () => { None(); Hooks.GenX2 = 2; }, "e"),
+    ("+genneg", () => { None(); Hooks.GenX2 = 3; }, "e"),
     ("+make", () => { None(); Hooks.MakeX2 = true; }, "e"),
     ("+chk", () => { None(); Hooks.ChkX2 = true; }, "e"),
     ("+score", () => { None(); Hooks.ScoreX2 = true; }, "e"),
-    ("passchk", () => { None(); Hooks.PassCheck = true; }, "e"),
-    ("vcap", () => { None(); Hooks.VerifyCaptures = true; }, "e"),
-    // On their own trees (captures-only quiescence changes PickNext's order among equal scores), with the network:
-    ("fullcap", () => { Hooks.QsCaptures = true; }, "free"),
-    ("fullqs", () => { Hooks.QsCaptures = true; Hooks.PassCheck = true; }, "free"),
+    // The prototype of decision K's (b) and (c): today's answers from a set per colour and piece type (Hooks.cs).
+    ("sets", () => { None(); Hooks.KeepSets = true; }, "e"),                                    // kept in make/unmake, not read
+    ("tables", () => { None(); Hooks.KeepSets = Hooks.TableAttacks = true; }, "e"),             // InCheck, castling, the tablebase's count
+    ("tables16", () => { None(); Hooks.KeepSets = Hooks.TableAttacks = Hooks.Compressed = true; }, "e"),
+    ("vbb", () => { None(); Hooks.KeepSets = Hooks.VerifyBb = true; }, "e"),                    // a check, not a lever
+    ("fulltables", () => { Hooks.KeepSets = Hooks.TableAttacks = true; }, ""),                  // the network on, the identical tree
+    ("fulltables16", () => { Hooks.KeepSets = Hooks.TableAttacks = Hooks.Compressed = true; }, ""),
+    // And generation from the sets in today's order: still the identical tree.
+    ("bbo", () => { None(); Hooks.KeepSets = Hooks.TableAttacks = Hooks.BbOrdered = true; }, "e"),
+    ("vbbo", () => { None(); Hooks.KeepSets = Hooks.VerifyBbo = true; }, "e"),                  // a check, not a lever
+    ("fullbbo", () => { Hooks.KeepSets = Hooks.TableAttacks = Hooks.BbOrdered = true; }, ""),
+    // And generation from the sets: another move order, so PickNext breaks ties another way: its own tree.
+    ("fullbb", () => { Hooks.KeepSets = Hooks.TableAttacks = Hooks.BbGen = true; }, "free"),
+    ("fullbb16", () => { Hooks.KeepSets = Hooks.TableAttacks = Hooks.BbGen = Hooks.Compressed = true; }, "free"),
 };
 var arms = only is null ? allArms : allArms.Where(a => only.Contains(a.Name)).ToArray();
 if (only is not null && arms.Length != only.Length)
     throw new ArgumentException("an arm named in --arms doesn't exist");
-bool wantGens = arms.Any(a => a.Name == "-gen");
+bool wantGens = arms.Any(a => a.Name.StartsWith("-gen"));
 
 (long Nodes, double ThreadNs, double WallNs, long Alloc, int Gcs) RunOne(int index, int searchDepth)
 {
@@ -115,7 +127,9 @@ bool wantGens = arms.Any(a => a.Name == "-gen");
     var length = new Dictionary<string, int>
     {
         ["e"] = Hooks.EvalN, ["ce"] = Hooks.ChkEN, ["cl"] = Hooks.ChkLN, ["pick"] = Hooks.PickN, ["tt"] = Hooks.TtN,
-        ["rep"] = Hooks.RepN, ["tb"] = Hooks.TbN, ["tbout"] = Hooks.TbOutN, ["genc"] = Hooks.GenCN, ["genm"] = Hooks.GenMN,
+        ["rep"] = Hooks.RepN, ["tb"] = Hooks.TbN, ["tbout"] = Hooks.TbOutN, ["ca"] = Hooks.CaN,
+        ["gen0"] = Hooks.GenCN[0] + Hooks.GenMN[0], ["gen1"] = Hooks.GenCN[1] + Hooks.GenMN[1],
+        ["gen2"] = Hooks.GenCN[2] + Hooks.GenMN[2], ["genm"] = Hooks.GenMN.Sum(),
     };
     Hooks.ResetStreams();
     Hooks.EvalMode = 3;
@@ -150,7 +164,10 @@ bool wantGens = arms.Any(a => a.Name == "-gen");
             "tt" => (Hooks.TtN, length["tt"]),
             "rep" => (Hooks.RepN, length["rep"]),
             "tb" => (Hooks.TbN + Hooks.TbOutN, length["tb"] + length["tbout"]),
-            "gen" => (Hooks.GenCN + Hooks.GenMN, length["genc"] + length["genm"]),
+            "ca" => (Hooks.CaN, length["ca"]),
+            "gen0" => (Hooks.GenCN[0] + Hooks.GenMN[0], length["gen0"]),
+            "gen1" => (Hooks.GenCN[1] + Hooks.GenMN[1], length["gen1"]),
+            "gen2" => (Hooks.GenCN[2] + Hooks.GenMN[2], length["gen2"]),
             _ => throw new Exception(stream),
         };
         if (read != of)
@@ -180,8 +197,8 @@ var lines = new List<string> { "position\tround\tarm\tnodes\tthread_ns\twall_ns\
 long totalNodes = 0;
 // The counts come from the six real recordings only.
 Hooks.NegamaxNodes = Hooks.QsNodes = Hooks.ChkEntryNeg = Hooks.ChkEntryQs = Hooks.ChkLmr = Hooks.Makes = Hooks.MakesInCheck =
-    Hooks.Illegal = Hooks.IllegalInCheck = Hooks.GensNeg = Hooks.GensQs = Hooks.MovesNeg = Hooks.MovesQs = Hooks.PicksNeg =
-    Hooks.PicksQs = Hooks.ScanNeg = Hooks.ScanQs = Hooks.QsSkipped = Hooks.TtProbes = Hooks.TtHits = Hooks.TtStores =
+    Hooks.Illegal = Hooks.IllegalInCheck = Hooks.GensNeg = Hooks.GensQs = Hooks.GensQsChk = Hooks.MovesNeg = Hooks.MovesQs =
+    Hooks.MovesQsChk = Hooks.PicksNeg = Hooks.PicksQs = Hooks.ScanNeg = Hooks.ScanQs = Hooks.TtProbes = Hooks.TtHits = Hooks.TtStores =
     Hooks.RepCalls = Hooks.RepYes = Hooks.RepWindow = Hooks.TbCalls = Hooks.TbCastling = Hooks.TbSmall = Hooks.TbHits =
     Hooks.NullMoves = Hooks.EvalCount = Hooks.CastleAttackChecks = Hooks.MakesKing = Hooks.IllegalKing =
     Hooks.IllegalOther = Hooks.ChkEYes = Hooks.Handoffs = Hooks.TtMoveCuts = 0;
@@ -219,9 +236,11 @@ Console.WriteLine($"  InCheck: node entry {Hooks.ChkEntryNeg / n:0.000} Negamax 
 Console.WriteLine($"  makes {Hooks.Makes / n:0.000} ({Hooks.MakesInCheck / n:0.000} at nodes in check; elsewhere {Hooks.MakesKing / n:0.000} king moves); illegal {Hooks.Illegal / n:0.000} = {100.0 * Hooks.Illegal / Hooks.Makes:0.0}% of makes: " +
                   $"{Hooks.IllegalInCheck / n:0.000} at nodes in check ({100.0 * Hooks.IllegalInCheck / Math.Max(1, Hooks.MakesInCheck):0}% of the makes there), " +
                   $"elsewhere {Hooks.IllegalKing / n:0.000} king moves ({100.0 * Hooks.IllegalKing / Math.Max(1, Hooks.MakesKing):0}% of them) and {Hooks.IllegalOther / n:0.0000} others (pins, en passant)");
-Console.WriteLine($"  generations: Negamax {Hooks.GensNeg / n:0.000} ({(double)Hooks.MovesNeg / Math.Max(1, Hooks.GensNeg):0.0} moves), quiescence {Hooks.GensQs / n:0.000} ({(double)Hooks.MovesQs / Math.Max(1, Hooks.GensQs):0.0} moves)");
-Console.WriteLine($"  picks: Negamax {Hooks.PicksNeg / n:0.000} (scan {(double)Hooks.ScanNeg / Math.Max(1, Hooks.PicksNeg):0.0} compares), quiescence {Hooks.PicksQs / n:0.000} (scan {(double)Hooks.ScanQs / Math.Max(1, Hooks.PicksQs):0.0}), " +
-                  $"quiescence's quiet picks skipped {Hooks.QsSkipped / n:0.000}");
+long gensCap = Hooks.GensQs - Hooks.GensQsChk, movesCap = Hooks.MovesQs - Hooks.MovesQsChk;
+Console.WriteLine($"  generations: Negamax {Hooks.GensNeg / n:0.000} ({(double)Hooks.MovesNeg / Math.Max(1, Hooks.GensNeg):0.0} moves), " +
+                  $"quiescence's captures {gensCap / n:0.000} ({(double)movesCap / Math.Max(1, gensCap):0.0} moves), " +
+                  $"quiescence's evasions {Hooks.GensQsChk / n:0.000} ({(double)Hooks.MovesQsChk / Math.Max(1, Hooks.GensQsChk):0.0} moves)");
+Console.WriteLine($"  picks: Negamax {Hooks.PicksNeg / n:0.000} (scan {(double)Hooks.ScanNeg / Math.Max(1, Hooks.PicksNeg):0.0} compares), quiescence {Hooks.PicksQs / n:0.000} (scan {(double)Hooks.ScanQs / Math.Max(1, Hooks.PicksQs):0.0})");
 Console.WriteLine($"  table: probes {Hooks.TtProbes / n:0.000} (hits {100.0 * Hooks.TtHits / Math.Max(1, Hooks.TtProbes):0.0}%), stores {Hooks.TtStores / n:0.000}");
 Console.WriteLine($"  repetition: {Hooks.RepCalls / n:0.000} checks ({Hooks.RepYes} found; window {(double)Hooks.RepWindow / Math.Max(1, Hooks.RepCalls):0.0} plies, half of them compared)");
 Console.WriteLine($"  tablebase: {Hooks.TbCalls / n:0.000} probes ({100.0 * Hooks.TbCastling / Math.Max(1, Hooks.TbCalls):0.0}% stopped by castling rights; {Hooks.TbSmall} with 5 pieces or fewer; {Hooks.TbHits} hits)");
@@ -241,9 +260,9 @@ Console.WriteLine($"thread time, ns a node, medians of {rounds} rounds (and ever
 foreach (var arm in arms)
 {
     var t = PerNode(arm.Name);
-    var w = wallNs[arm.Name].Skip(1).Select(x => x / n);
+    var w = wallNs[arm.Name].Zip(nodesRun[arm.Name], (t, k) => t / k).Skip(1);   // (an arm on its own tree by its own nodes)
     Console.WriteLine($"  {arm.Name,-9} {Median(t),7:0.0}   {string.Join(' ', t.Select(x => x.ToString("0")))}   wall {Median(w),6:0.0}   " +
-                      $"{allocs[arm.Name].Skip(1).Average() / n:0.00} B, {gcCounts[arm.Name].Skip(1).Average():0.0} GCs");
+                      $"{allocs[arm.Name].Zip(nodesRun[arm.Name], (b, k) => (double)b / k).Skip(1).Average():0.00} B, {gcCounts[arm.Name].Skip(1).Average():0.0} GCs");
 }
 
 double fullNs = Has("full") ? Median(PerNode("full")) : double.NaN, noneNs = Has("none") ? Median(PerNode("none")) : double.NaN;
@@ -261,9 +280,13 @@ Console.WriteLine();
 Console.WriteLine($"the split, ns a node (medians of per-round differences), % of none ({noneNs:0.0}) and of full ({fullNs:0.0}):");
 Diff("the network (full - none)", "full", "none", Hooks.EvalCount / n, "an evaluation");
 Diff("generation, replayed (none - -gen)", "none", "-gen", (Hooks.GensNeg + Hooks.GensQs) / n, "a generation");
+Diff("  Negamax's lists (none - -genneg)", "none", "-genneg", Hooks.GensNeg / n, "a generation");
+Diff("  quiescence's captures (none - -gencap)", "none", "-gencap", gensCap / n, "a generation");
+Diff("  quiescence's evasions (none - -genevade)", "none", "-genevade", Hooks.GensQsChk / n, "a generation");
+Diff("  castling's attack tests in it (none - -castle)", "none", "-castle", Hooks.CastleAttackChecks / n, "a test");
 Diff("generation, doubled (+gen - none)", "+gen", "none", (Hooks.GensNeg + Hooks.GensQs) / n, "a generation");
+Diff("generation, Negamax's, doubled (+genneg - none)", "+genneg", "none", Hooks.GensNeg / n, "a generation");
 Diff("generation, quiescence's, doubled (+genqs - none)", "+genqs", "none", Hooks.GensQs / n, "a generation");
-Diff("PawnMoves' allocation (none - noalloc)", "none", "noalloc", (Hooks.GensNeg + Hooks.GensQs) / n, "a generation");
 Diff("ScoreMoves (-pick - -order)", "-pick", "-order", (Hooks.MovesNeg + Hooks.MovesQs) / n, "a move scored");
 Diff("ScoreMoves, doubled (+score - none)", "+score", "none", (Hooks.MovesNeg + Hooks.MovesQs) / n, "a move scored");
 Diff("PickNext's scan (none - -pick)", "none", "-pick", (Hooks.PicksNeg + Hooks.PicksQs) / n, "a pick");
@@ -277,20 +300,34 @@ Diff("illegal moves: make, test, unmake (none - -illegal)", "none", "-illegal", 
 Diff("table probe + store (none - -tt)", "none", "-tt", Hooks.TtProbes / n, "a probe (+ store)");
 Diff("repetition check + hash list (none - -rep)", "none", "-rep", Hooks.RepCalls / n, "a check");
 Diff("tablebase probe (none - -tb)", "none", "-tb", Hooks.TbCalls / n, "a probe");
-Diff("quiescence stops at its first quiet move (none - qsbreak)", "none", "qsbreak", Hooks.QsSkipped / n, "a quiet pick saved");
-Diff("quiescence told the check status (none - passchk)", "none", "passchk", Hooks.Handoffs / n, "a hand-off");
-if (Has("vcap"))
-    Console.WriteLine($"  captures-only generator checked against the full list, filtered: {Hooks.CaptureLists:N0} lists, {Hooks.CaptureMismatches} differ");
-// Arms on their own trees: a node's cost, and the time to finish the depth (what play feels).
-foreach (string own in new[] { "fullcap", "fullqs" })
+double attackTests = chkCalls + Hooks.CastleAttackChecks / n;
+Diff("prototype: the sets' upkeep in Put (sets - none)", "sets", "none", Hooks.Makes / n, "a make + unmake");
+Diff("prototype: attack tables, upkeep in (none - tables)", "none", "tables", attackTests, "an attack test");
+Diff("  in 16 bits (none - tables16)", "none", "tables16", attackTests, "an attack test");
+Diff("prototype: attack tables, network on (full - fulltables)", "full", "fulltables", attackTests, "an attack test");
+Diff("  in 16 bits (full - fulltables16)", "full", "fulltables16", attackTests, "an attack test");
+Diff("prototype: generation from the sets, today's order (tables - bbo)", "tables", "bbo", (Hooks.GensNeg + Hooks.GensQs) / n, "a generation");
+Diff("prototype: bitboards in today's order, network on (full - fullbbo)", "full", "fullbbo", 0, "");
+Diff("  of which generation (fulltables - fullbbo)", "fulltables", "fullbbo", (Hooks.GensNeg + Hooks.GensQs) / n, "a generation");
+if (Has("vbb") || Has("vbbo"))
+    Console.WriteLine($"  generation from the sets checked against today's ({(Has("vbbo") ? "in order" : "as sets")}{(Has("vbb") && Has("vbbo") ? ", and as sets" : "")}): " +
+                      $"{Hooks.BbLists:N0} lists, {Hooks.BbMismatches} differ");
+// Arms on their own trees (generation from the sets, another move order): a node's cost, and the time to finish the depth.
+foreach (var (own, tables) in new[] { ("fullbb", "fulltables"), ("fullbb16", "fulltables16") })
 {
     if (!Has(own) || !Has("full"))
         continue;
     var perNode = PerNode("full").Zip(PerNode(own), (a, b) => a - b).ToList();
     var time = threadNs["full"].Zip(threadNs[own], (a, b) => 1 - b / a).Skip(1).ToList();
-    Console.WriteLine($"  {own}: {nodesRun[own][1]:N0} nodes against {nodesRun["full"][1]:N0} ({100.0 * nodesRun[own][1] / nodesRun["full"][1] - 100:+0.0;-0.0}%); " +
-                      $"a node {Median(perNode):0.0} ns cheaper ({100 * Median(perNode) / fullNs:0.0}% of full; rounds {string.Join(' ', perNode.Select(x => x.ToString("0")))}); " +
-                      $"the six searches {100 * Median(time):0.0}% sooner (rounds {string.Join(' ', time.Select(x => (100 * x).ToString("0.0")))})");
+    Console.WriteLine($"  {own}: {nodesRun[own][1]:N0} nodes against {nodesRun["full"][1]:N0} ({100.0 * nodesRun[own][1] / nodesRun["full"][1] - 100:+0.00;-0.00}%); " +
+                      $"a node {Median(perNode):0.0} ns cheaper than full ({100 * Median(perNode) / fullNs:0.0}%, +{100 * fullNs / (fullNs - Median(perNode)) - 100:0.0}% nodes a second; " +
+                      $"rounds {string.Join(' ', perNode.Select(x => x.ToString("0")))}); the six searches {100 * Median(time):0.0}% sooner " +
+                      $"(rounds {string.Join(' ', time.Select(x => (100 * x).ToString("0.0")))})");
+    if (Has(tables))
+    {
+        var gen = PerNode(tables).Zip(PerNode(own), (a, b) => a - b).ToList();
+        Console.WriteLine($"    of which generation from the sets ({tables} - {own}): {Median(gen):0.0} ns a node (rounds {string.Join(' ', gen.Select(x => x.ToString("0")))})");
+    }
 }
 
 static class Native

@@ -163,9 +163,21 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     quiescence generates only what it searches, +24.6% to +25.5% `bench 9`
     (A/B, 16 of 16 rounds; tests and mutation battery green). **To take
     effect**: Matthew merges the branch (it sits on the speed branch) into
-    compression and restarts the bot between games. Next on offer: (b)
-    bitboards, est. +25-39% on top; (c) attack tables only, +6-15% on top.
-    The bot was off from ~09:50 (Matthew, for memory).
+    compression and restarts the bot between games. The bot was off from
+    ~09:50 (Matthew, for memory).
+  - **Bitboards, measured** (2026-10-20 noon, a side session, branch
+    `claude/affectionate-hugle-66968f`, which is K(a)'s branch plus write-up
+    and scripts; NNUE.md "Bitboards, measured"): with K(a) in, a node is 392
+    ns; generation 76-79 and InCheck 69-72 are the biggest pieces outside
+    the network. A prototype in the probe (no engine change), every answer
+    checked against today's: attack tables beside today's board **+16%**,
+    and generation from the sets in today's order **+26%** (both on the
+    identical tree); in the sets' own order +38%, but the tree changes 9%
+    (LMR reduces by place in the list), so that needs a match. The 840 KB
+    tables cost nothing beside the net's 1.5 MB (the L2 worry). **Decision
+    L is Matthew's**: (a) session 1 only, (b) sessions 1 and 2
+    (recommended), (c) both, then the order behind a match and legality
+    before make.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 

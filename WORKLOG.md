@@ -4069,3 +4069,52 @@ has the tables; this is the story.
   for both builds.
 - **The bot** gets it at its next start once this branch is in compression
   (Matthew's merge; it sits on the speed branch, `claude/stoic-goodall-ecc132`).
+
+## 2026-10-20 (12:00-12:40): the rest of a node again, and bitboards measured (a side session)
+
+- **Asked** (by the session that built K(a)): re-measure where a node's time
+  goes with K(a) in, then turn decision K's (b) bitboards and (c) attack
+  tables into a multi-session plan with estimates and options. No engine
+  change. This branch (`claude/affectionate-hugle-66968f`) started at
+  compression's tip, which lacks 180fe25 (compression has the ponder-note
+  commit 0173e3a that K(a)'s line doesn't), so it was moved to 180fe25
+  first; it had no commits of its own.
+- **Conditions**: the bot off (since ~09:50), nothing else heavy running,
+  4.8-5.0 GB of commit free, on AC: the quiet laptop's figures.
+- **The probe brought up to 180fe25** (`scripts/nnue-bench/search-split/`):
+  the hand-off and quiescence edits rewritten for K(a)'s code, the arms for
+  levers now built dropped (they live at 4dce15e), generation removable by
+  kind (Negamax's lists, quiescence's captures, its evasions) and castling's
+  attack tests removable.
+- **The split** (NNUE.md "Bitboards, measured"): a `bench 9` node 391-393
+  ns (515-522 this morning), the network 123; generation 76-79 (Negamax's 33,
+  quiescence's captures 35, its evasions 11), InCheck 69-72 (44 ns a call,
+  1.6 a node), ordering 56, make + unmake 27, the table 17. Quiescence's
+  2.7-move captures list costs 340 ns, nearly a whole list's 413: it still
+  scans 64 squares and walks every ray. Lab on 180fe25: a list -66%,
+  quiescence's captures -84%, InCheck -68%.
+- **A prototype instead of estimates**: the probe's copy got a set per
+  colour and piece type beside the squares, IsAttacked by PEXT tables (64-
+  and 16-bit entries), the tablebase's count by popcount, and generation
+  from the sets in today's order and in the lab's (checked against today's
+  generator at every generation: 5.56 M lists, 0 different). With the
+  network on: attack tables **+16%** nodes a second (+14.6% at 256 MB),
+  identical tree; with generation in today's order **+26%**, identical
+  tree; in the lab's order +38% (+35% at 256 MB) but the tree 9% smaller
+  (11% at 256 MB): the order decides which quiet moves LMR reduces, so
+  that one needs a match. The L2 worry (840 KB of tables beside the net's
+  1.5 MB) measured nothing: 16-bit tables within 1-2 ns either way.
+- **The plan**: session 1 sets + attack tables (+16%), session 2
+  generation from the sets in today's order (+26% in all), each A/B'd on
+  identical nodes and merged on its own; then optionally the sets' order
+  behind a match (+38%) and legality before make (est. +5-9%). Gates: the
+  sets equal the squares and IsAttacked by table equals by rays at every
+  node of the perft walks, perft, the battery, a few small tables
+  re-solved byte-identical (the solver shares Position). **Decision L is
+  Matthew's** (NNUE.md): (a) session 1, (b) sessions 1 and 2
+  (recommended), (c) all of it.
+- **To keep**: (1) a measured prototype beat both estimates ((c) +6-15% ->
+  +16%, (b) +25-39% -> +26% or +38%) and found what they couldn't: the
+  move order changes the tree by 9%. (2) split.cs printed an own-tree
+  arm's wall clock against the recorded tree's nodes (fullbb ~9% low);
+  thread time was right, and it divides by each arm's own nodes now.
