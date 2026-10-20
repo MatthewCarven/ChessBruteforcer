@@ -143,7 +143,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     h1024-3m**. In games\nnue\nets\. Before its match against h1024-3m
     (the bot off) the engine's MaxHidden must rise from 1024 (a C# change:
     Matthew's word; best on top of the engine-speed chain, which changes
-    Network.cs).
+    Network.cs). **On hold** (Matthew, 2026-10-20 ~18:50): he tests the
+    engine speed upgrade first, before the next upgrade.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
