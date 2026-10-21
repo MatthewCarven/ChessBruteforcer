@@ -252,6 +252,19 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   - **The split probe is behind the engine**: split-patch.py targets
     180fe25, and session 1 rewrote Position.IsAttacked, so its Position
     edits stop the script. Bring them up to date before the next split.
+  - **Output buckets** (Matthew's B, 2026-10-22; NNUE.md session 7): K
+    output rows picked by the piece count, .nnue version 3. **The engine
+    half is built** (branch `claude/ob-engine-e75e9e`: the loader, the
+    passes, 31 tests, C# equals the numpy reference on ob-trainer's fixture,
+    29 of 29 mutants red, the full suite 628 + 2 skipped; `bench 9` with
+    h1024-3m within noise of 662a810). The trainer half is ob-trainer's
+    (`claude/ob-trainer-56e1a8`). Both to merge into compression: Matthew's.
+    NNUE.md takes both sides' sections, the trainer's first.
+    - [ ] Once the laptop is quiet (no match, no lab): `bench 9` again, old
+      and new on h1024-3m and the 8-bucket copy, 24+ rounds, to narrow
+      today's -0.6% +-0.75% (WORKLOG 2026-10-22, 07:03).
+    - [ ] The first trained version 3 net: held-back error, `bench 9`, then
+      its match against h1024-3m (the bot off).
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 

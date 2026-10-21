@@ -5333,3 +5333,42 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   (output buckets) isn't written yet, so stopping it now gains little.
 - The laptop holds July-September's records (games\nnue\2026-07..09), 53 GB
   free on C:, an RTX 3070 Laptop GPU (8 GB).
+
+## 2026-10-22 (07:03-08:15): the engine plays .nnue version 3, output buckets (the ob-engine session)
+
+- Matthew's B, the C# half (NNUE.md session 7, "the engine half"; ob-trainer
+  did the trainer, the export and the numpy reference from the same spec).
+  Branch `claude/ob-engine-e75e9e` from 662a810: 91c8bbf (the loader, the
+  checks, the writer, the bucket through every evaluation path, the tests,
+  the battery), 60e7d0a (ob-trainer's fixture commit 7e5f283 merged, nothing
+  else of its branch), 0597dd0 (C# against the numpy reference), and this
+  write-up.
+- **The bucket**: (n - 1) x K / 32 from a popcount of the board's
+  occupancy, n kings included; a 65-entry table in the network, so versions
+  1 and 2 take bucket 0 for free. The passes at every width read the
+  bucket's row and bias, and a bucket past the last throws.
+- **Tests**: NnueBucketTests 31, the network tests 106 of 106, **the full
+  suite 628 passed, 2 skipped**. C# equals the numpy reference on all 1,000
+  of the fixture's boards, at every width. "No such version" in NnueTests
+  and NnueDeepTests moved from 3 to 4.
+- **Mutation battery 29 of 29 red** (scripts/nnue-bench/buckets/battery.py,
+  each run counting the clean run's 106 tests). Its first run had 27: on
+  this AVX-512 laptop the dispatch's 256-bit and one-at-a-time branches
+  were never reached in-process, so a bucket dropped there lived. The
+  dispatch now takes a width (as version 2's pass does) and the tests go
+  through it. A search test on a random net also ran one mutant out to the
+  420 s timeout (its capture search exploded on the mutant's scores); the
+  search and UCI tests use a piece-square net with buckets now, and every
+  mutant ends in 8-25 s.
+- **Speed: within noise.** `bench 9`, one thread, old build against new on
+  h1024-3m, and the new on a version 3 copy of h1024-3m with its row in all
+  8 buckets (the identical tree, 3,775,600 nodes): 16 rounds alternated
+  after a warm-up, the first 12 alone on the laptop. Paired by round, new
+  -0.6% (+-~0.75%) and the 8-bucket copy -0.4% by the clock; by CPU time
+  +0.6% and +1.2%. Rounds 13-16 ran beside the p6-tt-buckets session's
+  ponder lab (8 threads from 07:54:05, ~4 h), so a longer rerun on a quiet
+  laptop is left for later. The rescore job of another session (two
+  engines, one core each) ran beside the tests and the battery until ~07:52,
+  not beside the bench.
+- No trained version 3 net yet: ob-trainer's run follows. A version 3 net
+  loads through EvalFile as any other (UCI prints "8 output buckets").
