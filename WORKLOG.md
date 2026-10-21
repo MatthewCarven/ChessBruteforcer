@@ -4897,3 +4897,27 @@ first; it had no commits of its own.
 - Once more a stray `python -` at the head of a Bash call (the notebook's
   warning), in a timing experiment; stopped, nothing written. The variants
   went through a script file after that.
+
+## 2026-10-21 (17:05-17:40): the deep nets' matches, set up (the nnue-deep-layers session)
+
+- Matthew's word: this session runs the deep nets' matches, and NNUE
+  session 2b leaves them to it. 2b had already merged compression into
+  `claude/nnue-deep-layers` (30a2888, 11:06, then 81baf54's NNUE_TC) and
+  handed the matches over (272b4fa). This session's branch,
+  `claude/competent-brahmagupta-d2a23b`, fast-forwarded to 272b4fa.
+- **Full suite on the merged tree** (Release): **551 passed, 2 skipped**, 89
+  s. It waited for P4's 8-thread run to end (17:32). Another worktree's
+  Debug suite (heuristic-poincare) and P4's next run, one thread, started
+  alongside it at 17:33.
+- **h1024-3m-l16-32 on the desktop**: pass 8 of 10 at 17:08 by its clock,
+  ~55.6 min a pass, so done ~19:05 by its clock, then its own export.
+  Held back at its fitted K, by pass, against h1024-3m-l32 at the same pass:
+
+  | pass | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+  |---|---|---|---|---|---|---|---|
+  | l16-32 | 0.013204 | 0.012812 | 0.012649 | 0.012535 | 0.011937 | 0.011841 | 0.011837 |
+  | l32 | 0.013128 | 0.012607 | 0.012379 | 0.012284 | 0.011722 | 0.011608 | 0.011589 |
+  | l16-32 behind by | 0.6% | 1.6% | 2.2% | 2.0% | 1.8% | 2.0% | 2.1% |
+
+  A steady ~2% behind l32, so about -6% against h1024-3m at the end (l32:
+  -8.4%), on a first layer of 16 instead of 32 (half the pairs' arithmetic).
