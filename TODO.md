@@ -853,9 +853,25 @@ Sessions, in order:
                   19 mutations caught, suite 541 passed. The slower control
                   was skipped, as for P2. Measure again after P4 and P6.
                   PONDER.md, "P3".)
-            - [ ] P4: play an unfinished depth's better move instead of
+            - [x] P4: play an unfinished depth's better move instead of
                   throwing it away (all searches, not only pondering).
-                  Search.IterativeDeepening, about half a day.
+                  Search.IterativeDeepening, about half a day. (Done
+                  2026-10-21 on claude/p4-partial-depth-081e28, on P3's
+                  branch, not merged yet. A cut depth that searched the
+                  last best to the end and then saw another move's full
+                  search end above it plays that move, its line sent with
+                  `lowerbound`; an unconfirmed fail-high never counts.
+                  Always on. **It almost never fires**: 1 changed move in
+                  1,044 lab searches of the bot's positions (163 cut
+                  depths), since most cuts come before the last best's own
+                  search has ended. Against P3 at 10+0.1, no pondering:
+                  +7 [-3, +17] over 2,000 games (SPRT undecided at the
+                  cap), so no loss and likely no gain; P2's A/B not run
+                  again. Uncut searches node for node as before (60
+                  positions, depth 11). CutDepthTests 17, 31 of 32
+                  mutations caught, suite 558 passed. **Decision P4,
+                  Matthew's**: (a) merge as it is (my pick), (b) behind an
+                  option, off, (c) leave it. PONDER.md, "P4".)
             - [ ] P5: keep the history table between moves (halve it, not
                   clear it). Search.Prepare, ~30 min, a bench first.
             - [ ] P6: a table that keeps its deep entries (buckets of 2-4

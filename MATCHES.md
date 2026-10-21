@@ -221,6 +221,18 @@ the same intervals to within 2 Elo. Ends over the 2,400 games: 733
 repetitions, 705 by the tables, 491 checkmates, 418 table draws, 50 by the
 50-move rule, 3 stalemates; no time losses, crashes or illegal moves.
 
+## Builds against builds (2026-10-21 on)
+
+Our engine against an earlier commit's build, for a change to the search itself (no option to switch it, so both
+sides are builds): `scripts/build-match.py`, played as the evaluation matches above were. 10+0.1, the bot's network
+(h1024-3m) on both sides, one thread and Hash 64 each, no tables in the engines (ours adjudicate), the 300 openings
+of games/tune/openings-300.txt in colour-reversed pairs, 5 at a time, below-normal priority, SPRT [0, 10] (at most
+2,000 games), no pondering. Logs in games\builds\. Results from the new build's point of view.
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-21 | P4 (a cut depth plays the move it proved better), 477d0f8 | P3's tip, 08a4118 | 2,000 | +442 -404 =1154 | 50.9% | +7 [-3, +17] | 5 at a time, the bot stopped; SPRT [0, 10] undecided at the cap (LLR 0.63), LOS 90.4%; halves +14 and -0; equal depth (10.9) and speed; no time losses. The lab saw P4 change no move at this clock, so most likely noise (PONDER.md, "P4") |
+
 ## Versions
 
 - **v0.1**: first engine (alpha-beta + PVS, TT, null move, LMR, quiescence,

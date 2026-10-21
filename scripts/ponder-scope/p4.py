@@ -14,9 +14,17 @@ it sends that depth's line with "lowerbound" and plays the move.  The build befo
 finished depth's move, which is the move of the last line without "lowerbound", so one run gives both answers.  A
 search ended with a depth in progress (cut) when its answer came 20 ms or more after its last finished depth.
 
+same:   the first <count> samples searched to a fixed depth on one thread by two builds (the one before P4, and P4),
+        from an empty table: every depth's line must be the same, node for node (P4 changes only a search that is
+        cut, and a fixed depth isn't).
+
 usage: python p4.py sample <out.json> <every go> <every hit> <log>...
-       python p4.py run <samples.json> <first> <last> <out.jsonl> [threads] [--referee]
+       python p4.py run <samples.json> <first> <last> <out.jsonl> [threads] [--referee] [--clock "<go args>"]
+           [--overhead <ms>] [--warm]   (--clock: every sample a plain go on that clock, e.g. "wtime 10000 btime
+           10000 winc 100 binc 100" as at 10+0.1; --overhead: Move Overhead, 100 as the bot's; --warm: first our own
+           search two plies earlier on the same clock, so the table is warm as in a game)
        python p4.py summary <out.jsonl>...
+       python p4.py same <samples.json> <count> <depth> <old engine.exe> <new engine.exe>
 Set PONDER_SCOPE_ENGINE to the build and PONDER_SCOPE_NET to the network, as for experiment.py.
 """
 import json
@@ -55,10 +63,25 @@ def sample(out, every_go, every_hit, logs):
           f"{sum(r['kind'] == 'hit' for r in rows)} hits of {n_hit})")
 
 
-def answer(e, row):
-    """Search a sample as the bot did: lines, the answer and when (seconds from the go)."""
+def before(position):
+    """The position line two plies earlier (our own move before), or None if the line has fewer moves."""
+    words = position.split()
+    if "moves" not in words or len(words) - words.index("moves") - 1 < 2:
+        return None
+    return " ".join(words[:-2]) if len(words) - words.index("moves") - 1 > 2 else " ".join(words[:-3])
+
+
+def answer(e, row, warm=False):
+    """
+    Search a sample as the bot did: lines, the answer and when (seconds from the go).  Warm: first our own search
+    two plies earlier, on the same clock, with no ucinewgame between, as in a game (the table carries over).
+    """
     e.send("ucinewgame")
     e.ready()
+    if warm and before(row["position"]):
+        e.send(before(row["position"]))
+        e.send("go " + " ".join(w for w in row["go"].split()[1:] if w != "ponder"))
+        e.wait("bestmove")
     e.send(row["position"])
     if row["kind"] == "go":
         t0 = e.send(row["go"])
@@ -71,18 +94,25 @@ def answer(e, row):
     return lines, t0, tb, move
 
 
-def run(samples, first, last, out, threads, referee):
+def run(samples, first, last, out, threads, referee, clock=None, overhead=100, warm=False):
     rows = json.load(open(samples, encoding="utf-8"))
-    e = Low(EXE, {"Threads": threads, "Hash": 256, "Move Overhead": 100, "EvalFile": NET, "Ponder": "true"})
+    e = Low(EXE, {"Threads": threads, "Hash": 256, "Move Overhead": overhead, "EvalFile": NET, "Ponder": "true"})
     with open(out, "a", encoding="utf-8", newline="\n") as f:
         for k in range(first, min(last, len(rows) - 1) + 1):
             row = rows[k]
-            lines, t0, tb, move = answer(e, row)
+            if clock:   # every sample a plain go on this clock instead (e.g. the matches' 10+0.1)
+                words = clock.split()
+                row = {"kind": "go", "position": row["position"], "go": "go " + clock,
+                       "rem": int(words[words.index("wtime") + 1]), "inc": int(words[words.index("winc") + 1])}
+            lines, t0, tb, move = answer(e, row, warm)
             lines_all = infos(lines)
             partial = [i for i in lines_all if i.get("partial")]
-            finished = [i for i in lines_all if not i.get("partial")]
+            finished = []   # (not a cut depth's line, nor P1's line sent again after a hit: the same depth again)
+            for i in lines_all:
+                if not i.get("partial") and not (finished and i["depth"] == finished[-1]["depth"]):
+                    finished.append(i)
             last_done = finished[-1] if finished else None
-            soft, hard = budget(row["rem"], row["inc"], 100)
+            soft, hard = budget(row["rem"], row["inc"], overhead)
             rec = {"k": k, "kind": row["kind"], "soft": soft, "hard": hard, "ponder_ms": row.get("ponder_ms"),
                    "wall_ms": round(1000 * (tb - t0)), "move": move,
                    "finished_depth": last_done["depth"] if last_done else 0,
@@ -147,12 +177,48 @@ def summary(paths):
     print(f"\ndepth finished: median {st.median(depths):.0f}, p25 {q(depths, 0.25):.0f}, p75 {q(depths, 0.75):.0f}")
 
 
+def same(samples, count, depth, old_exe, new_exe):
+    rows = json.load(open(samples, encoding="utf-8"))[:count]
+    engines = {name: Low(exe, {"Threads": 1, "Hash": 256, "Move Overhead": 100, "EvalFile": NET})
+               for name, exe in (("old", old_exe), ("new", new_exe))}
+    differ, nodes, moves = 0, 0, 0
+    for k, row in enumerate(rows):
+        seen = {}
+        for name, e in engines.items():
+            e.send("ucinewgame")
+            e.ready()
+            e.send(row["position"])
+            e.send(f"go depth {depth}")
+            lines = e.wait("bestmove")
+            seen[name] = ([(i["depth"], i["score"], i["nodes"], " ".join(i["pv"]), i["partial"]) for i in infos(lines)],
+                          bestmove(lines)[1])
+        if seen["old"] != seen["new"]:
+            differ += 1
+            print(k, "DIFFERS", seen, flush=True)
+        nodes += seen["new"][0][-1][2] if seen["new"][0] else 0
+        moves += 1
+    for e in engines.values():
+        e.quit()
+    print(f"{moves} positions to depth {depth} on one thread, {nodes:,} nodes in all: {differ} differ in any line "
+          f"(depth, score, nodes, pv) or the move")
+
+
 def main():
-    if sys.argv[1] == "sample":
+    if sys.argv[1] == "same":
+        same(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5], sys.argv[6])
+    elif sys.argv[1] == "sample":
         sample(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5:])
     elif sys.argv[1] == "run":
-        args = [a for a in sys.argv[2:] if not a.startswith("--")]
-        run(args[0], int(args[1]), int(args[2]), args[3], int(args[4]) if len(args) > 4 else 8, "--referee" in sys.argv)
+        argv = sys.argv[2:]
+        named = {}
+        for name in ("--clock", "--overhead"):
+            if name in argv:
+                i = argv.index(name)
+                named[name] = argv[i + 1]
+                del argv[i:i + 2]
+        args = [a for a in argv if not a.startswith("--")]
+        run(args[0], int(args[1]), int(args[2]), args[3], int(args[4]) if len(args) > 4 else 8, "--referee" in argv,
+            named.get("--clock"), int(named.get("--overhead", 100)), "--warm" in argv)
     else:
         summary(sys.argv[2:])
 

@@ -4906,3 +4906,66 @@ Decision M's third step, on branch claude/p3-ponder-time-254cad. Not merged.
   so the worktree stayed free to edit. 6.7-10.5 GB of commit free
   throughout; the bot wasn't running; p2.2's analysis engine had CPUs 14-15
   from 11:53, so later test runs kept to CPUs 0-13.
+
+## 2026-10-21 (16:00-21:30): P4, a cut depth plays the move it proved better (a side session)
+
+Decision M's fourth step, on branch claude/p4-partial-depth-081e28, on P3's
+branch (08a4118; P3 said when it was safe to start). Not merged.
+
+- **The change.** A depth cut off part way (the hard limit, a node limit,
+  `stop`, a hit that stops at once) used to be thrown away whole
+  (Search.cs, "an unfinished iteration can't be trusted"). Now, if it had
+  searched the last depth's best to the end, and another root move's full
+  search then ended above the best so far, that move is played, with the
+  cut depth's line and score. A fail-high still being searched again never
+  counts. On Lazy SMP the main thread can search a helper's table move
+  before the last best; a cut between the two keeps the last best. Ranges:
+  every window's thread (and the calling thread's full-window search
+  again, when no window held the score) counts, the highest score wins.
+  Always on, no option. Depth 1 as before.
+- **The info line**: sent when the cut changes the move, with `lowerbound`
+  after the score (exact for the move, a lower bound for the depth), so
+  python-chess's stats, lichess-bot's draw and resign scores and the ponder
+  move all belong to the move played, and P1 doesn't send again a line for
+  a different move. Nothing extra when the cut proved nothing.
+- **Uncut searches unchanged**: 60 of the bot's positions to depth 11, one
+  thread, 08a4118 against P4: identical, line by line (148 M nodes).
+- **It almost never fires.** scripts/ponder-scope/p4.py on 297 of the bot's
+  searches (2026-10-19/20; plain go on its clock, hits replayed as ponder +
+  ponderhit at the logged time), from an empty table: 8 threads, 1 thread
+  (the hits), and 10+0.1 on one thread with the table cold and warm.
+  1,044 searches, 163 cut depths, **1 changed move**. 150 of the cuts were
+  hits stopped at once, a quarter of the way into their depth, before the
+  last best's own search (a quarter to three fifths of a depth) had ended;
+  13 ran on to the hard limit, and the one change was among them (a
+  referee search preferred a third move).
+- **The match** (scripts/build-match.py, P4 477d0f8 v P3 08a4118, 10+0.1,
+  no pondering, h1024-3m, 5 at a time, 17:53-21:05): **+7 [-3, +17] over
+  2,000 games**, +442 -404 =1154, LOS 90%; SPRT [0, 10] undecided at the
+  cap (LLR 0.63; 1.63 at its high, game ~1,000). Halves +14 and -0. No
+  time losses; equal depth (10.9) and speed. With P4 changing no move in
+  the lab's 594 searches at that clock, the +7 is most likely noise: the
+  firm part is that it costs nothing. So P2's A/B was not run again (the
+  brief: only if P4 gains), and P2's and P3's "measure again after P4"
+  lapses: P4 rescues about 1 in 13 late cuts, no early ones.
+- **Decision P4 for Matthew** (PONDER.md): (a) merge it as it is, on in
+  the bot (my pick); (b) behind an option, off; (c) leave it. An idea it
+  turned up: on 8 threads, answer from the thread that got deepest
+  (thread voting), which would use far more of a cut's work.
+- **Tests**: CutDepthTests, new, 17 (1, L4, R4; node-limit cuts checked
+  against the uncut search's root trace, stops from the trace on a proved
+  move and on a fail-high, Ranges' fallback, a table move searched before
+  the last best). Three PonderTests accept the cut depth's line in place
+  of P1's line sent again. Mutations: 32; the first battery caught 26, and
+  the gaps were filled (one became a code change: Ranges resets every
+  thread's notes at each depth); the second caught 31. The one that lives
+  plays the last Ranges thread's move instead of the highest score's, which
+  agree unless windows contradict each other. Full suite 558 passed, 2
+  skipped.
+- **Tools**: scripts/build-match.py (new build v an old commit, as the
+  evaluation SPRTs; P6 can use it), p4.py (sample, run, summary, same); the
+  log parsers read the `lowerbound` line and don't count it, nor P1's line
+  sent again, as a finished depth (ponderlog3.py: a P4 column).
+- 9.7-11.5 GB of commit free throughout; the bot wasn't running. Another
+  session's repetition lab (heuristic-poincare-2d9fec, pinned to CPU 14)
+  ran beside the match from 17:57.
