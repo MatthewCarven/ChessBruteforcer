@@ -4,15 +4,20 @@
 
 Five positions in ours.jsonl and a re-score file: A loses 80 cp (re-learnt), B 20 (kept), C 60 but the learner has
 since moved on there (skipped), D exactly 50 (re-learnt), E 70 with castling as the net's move (re-learnt; ours.bin
-must read back e1g1). Checks: a dry run changes nothing; --apply appends 3 rows, writes the record, and ours.bin
-answers each position with its latest move; a second --apply adds nothing; --min-loss 100 picks none. No engine.
+must read back e1g1). Checks: a dry run changes nothing; --apply refuses while a learner runs, or when it can't tell,
+and changes nothing then; --apply with none running backs up ours.jsonl and ours.bin, appends 3 rows, and ours.bin
+answers each position with its latest move; a second --apply adds nothing; --min-loss 100 picks none. And the real
+learner check, against a stand-in process whose command line has bot\\learn.py in it: found while it runs, gone
+after. relearn.main runs in this process, so the learner check is swapped for the --apply cases. No engine.
 """
-import csv, json, os, shutil, subprocess, sys, tempfile
+import contextlib, csv, importlib.util, io, json, os, shutil, subprocess, sys, tempfile, time
 import chess, chess.polyglot
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-RELEARN = os.path.join(HERE, "relearn.py")
+spec = importlib.util.spec_from_file_location("relearn", os.path.join(HERE, "relearn.py"))
+relearn = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(relearn)
 
 POSITIONS = {   # name: (fen, learnt, net's best, loss)
     "A": ("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1", "e7e5", "c7c5", 80),
@@ -43,19 +48,23 @@ def row(fen, move, why="no book"):
             "when": "2026-10-14 12:00"}
 
 
-def run(bot, *args):
-    r = subprocess.run([sys.executable, "-I", RELEARN, bot, os.path.join(bot, "rescore.csv"), *args],
-                       capture_output=True, text=True)
-    if r.returncode:
-        print(r.stdout, r.stderr)
-    return r
+def run(bot, *args, running=lambda: []):
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        code = relearn.main([bot, os.path.join(bot, "rescore.csv"), *args], running=running)
+    return code, out.getvalue()
+
+
+def lines_of(path):
+    return [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
 
 
 with tempfile.TemporaryDirectory() as root:
     bot = os.path.join(root, "bot")
-    os.makedirs(os.path.join(bot, "books"))
+    books = os.path.join(bot, "books")
+    os.makedirs(books)
     shutil.copy(os.path.join(REPO, "bot", "learn.py"), bot)
-    learnt = os.path.join(bot, "books", "ours.jsonl")
+    learnt = os.path.join(books, "ours.jsonl")
     with open(learnt, "w", encoding="utf-8") as f:
         for name, (fen, move, best, loss) in POSITIONS.items():
             f.write(json.dumps(row(fen, move)) + "\n")
@@ -67,41 +76,66 @@ with tempfile.TemporaryDirectory() as root:
         for fen, move, best, loss in POSITIONS.values():
             w.writerow(["net", chess.polyglot.zobrist_hash(chess.Board(fen)), fen, move, "no book", 14, 10, best, 30,
                         30 - loss, loss, 14, 1000, 1.0])
-    before = open(learnt, "rb").read()
+    relearn.load_learn(bot).write_book()   # the book as the learner left it
+    before = {p: open(os.path.join(books, p), "rb").read() for p in ("ours.jsonl", "ours.bin")}
 
-    r = run(bot)
-    check("dry run: 3 to re-learn, 1 skipped", r.returncode == 0 and "3 to re-learn" in r.stdout
-          and "1 of those already changed" in r.stdout, r.stdout.splitlines()[0] if r.stdout else r.stderr[-200:])
-    check("dry run: ours.jsonl unchanged, no ours.bin", open(learnt, "rb").read() == before
-          and not os.path.exists(os.path.join(bot, "books", "ours.bin")))
+    def unchanged():
+        return sorted(os.listdir(books)) == ["ours.bin", "ours.jsonl"] and all(
+            open(os.path.join(books, p), "rb").read() == data for p, data in before.items())
 
-    r = run(bot, "--apply")
-    lines = [json.loads(l) for l in open(learnt, encoding="utf-8") if l.strip()]
-    check("apply: 3 rows appended", r.returncode == 0 and len(lines) == 9, f"{len(lines)} lines")
-    records = [f for f in os.listdir(os.path.join(bot, "books")) if f.startswith("ours-relearnt-")]
-    check("apply: the record holds the 3 rows", len(records) == 1 and
-          sum(1 for l in open(os.path.join(bot, "books", records[0]), encoding="utf-8") if l.strip()) == 3)
+    code, out = run(bot)
+    check("dry run: 3 to re-learn, 1 skipped", code == 0 and "3 to re-learn" in out
+          and "1 of those already changed" in out, out.splitlines()[0])
+    check("dry run: nothing changed", unchanged())
+
+    code, out = run(bot, "--apply", running=lambda: [(4242, r"python.exe -I C:\x\bot\learn.py")])
+    check("apply, a learner running: refused (exit 2), nothing changed", code == 2 and "refused" in out
+          and unchanged(), f"exit {code}")
+    code, out = run(bot, "--apply", running=lambda: None)
+    check("apply, can't tell: refused (exit 3), nothing changed", code == 3 and "refused" in out and unchanged(),
+          f"exit {code}")
+
+    code, out = run(bot, "--apply")
+    rows = lines_of(learnt)
+    check("apply: 3 rows added", code == 0 and len(rows) == 9 and "added 3 rows" in out, f"exit {code}, {len(rows)}")
+    baks = sorted(f for f in os.listdir(books) if ".bak-" in f)
+    check("apply: ours.jsonl and ours.bin backed up as they were", len(baks) == 2 and all(
+        open(os.path.join(books, b), "rb").read() == before[b.split(".bak-")[0]] for b in baks), str(baks))
     latest = {}
-    for l in lines:
+    for l in rows:
         latest[l["key"]] = l
     want = {"A": "c7c5", "B": "d7d5", "C": "c7c5", "D": "g8f6", "E": "e1g1"}
     for name, (fen, move, best, loss) in POSITIONS.items():
         board = chess.Board(fen)
         l = latest[chess.polyglot.zobrist_hash(board)]
-        with chess.polyglot.open_reader(os.path.join(bot, "books", "ours.bin")) as reader:
+        with chess.polyglot.open_reader(os.path.join(books, "ours.bin")) as reader:
             book = [e.move.uci() for e in reader.find_all(board)]
         check(f"apply: {name} plays {want[name]}", l["move"] == want[name] and book == [want[name]],
               f"ours.jsonl {l['move']} ({l['why']}), ours.bin {book}")
     a = latest[chess.polyglot.zobrist_hash(chess.Board(POSITIONS["A"][0]))]
     check("apply: A's row keeps the old move and its loss", a.get("was") == "e7e5" and a.get("was_loss") == 80
-          and a.get("eval") == "h1024-3m" and a.get("why") == "re-learnt", json.dumps(a)[:160])
+          and a.get("eval") == "h1024-3m" and a.get("why") == "re-learnt", json.dumps(a)[:120])
 
-    r = run(bot, "--apply")
-    check("apply again: nothing added", r.returncode == 0 and "nothing to apply" in r.stdout
-          and sum(1 for l in open(learnt, encoding="utf-8") if l.strip()) == 9)
+    code, out = run(bot, "--apply")
+    check("apply again: nothing added", code == 0 and "nothing to apply" in out and len(lines_of(learnt)) == 9)
+    code, out = run(bot, "--min-loss", "100")
+    check("--min-loss 100: none", code == 0 and "0 lose 100 cp or more" in out)
 
-    r = run(bot, "--min-loss", "100")
-    check("--min-loss 100: none", r.returncode == 0 and "0 lose 100 cp or more" in r.stdout)
+    # The real check, against a stand-in: a sleeping Python whose command line names a bot\learn.py.
+    stand_in = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)", os.path.join(bot, "learn.py")])
+    try:
+        time.sleep(1)
+        found = relearn.learner_running()
+        check("learner check: finds a running bot\\learn.py", found is not None and stand_in.pid in {p for p, _ in found},
+              f"{len(found or [])} found")
+        code, out = run(bot, "--apply", "--min-loss", "0", running=relearn.learner_running)
+        check("apply with it running: refused", code == 2 and "refused" in out, f"exit {code}")
+    finally:
+        stand_in.kill()
+        stand_in.wait()
+    time.sleep(1)
+    found = relearn.learner_running()
+    check("learner check: gone once it stops", found is not None and stand_in.pid not in {p for p, _ in found})
 
 print("\nall passed" if not failures else f"\n{len(failures)} FAILED: {', '.join(failures)}")
 sys.exit(1 if failures else 0)

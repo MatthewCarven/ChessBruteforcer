@@ -5730,7 +5730,7 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - No trained version 3 net yet: ob-trainer's run follows. A version 3 net
   loads through EvalFile as any other (UCI prints "8 output buckets").
 
-## 2026-10-22 (08:40-08:50): option (c) for the learner, prepared (the learner side session)
+## 2026-10-22 (08:40-09:00): option (c) for the learner, prepared (the learner side session)
 
 - (b) is in compression (68c0b92), and the learner restarted at 08:39
   "with h1024-3m". Matthew then chose (c) as well, "when the orchestrator
@@ -5740,21 +5740,38 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   whose loss is 50 cp or more, and whose latest ours.jsonl row still has the
   scored move, gets a new row appended: why "re-learnt", the re-score's best
   move (depth 14, h1024-3m), and the old move with its loss ("was",
-  "was_why", "was_loss"). A copy of the rows goes to
-  bot\books\ours-relearnt-<date>.jsonl, and ours.bin is rebuilt with the
-  learner's own write_book. The learner keeps the latest row per position,
-  so nothing is deleted. A second run adds nothing, and removing the copy's
-  lines undoes it. Without --apply it only lists them. The dry run on the
-  real book with the 200-position sample: 20 to re-learn, the largest 239 cp
-  (f4g3 -> Be2).
-- **scripts/learner/test_relearn.py**, 12 checks on a temporary bot folder
+  "was_why", "was_loss"). ours.bin is then rebuilt with the learner's own
+  write_book (a .tmp moved over, tried again while lichess-bot has it open,
+  so the bot can stay on). The learner keeps the latest row per position,
+  so nothing is deleted, and a second run adds nothing. Without --apply it
+  only lists them. The dry run on the real book with the 200-position
+  sample: 20 to re-learn, the largest 239 cp (f4g3 -> Be2).
+- **Safe by hand** (Session context's terms): --apply refuses (exit 2) while
+  any process's command line has bot\learn.py in it (PowerShell's
+  Get-CimInstance list; the pattern matches the learner's real command line
+  and not relearn.py's own). It also refuses (exit 3) if it can't get the
+  list. Before appending it copies ours.jsonl and ours.bin to
+  `.bak-<yyyymmdd-hhmmss>` beside them, and copying those back undoes it.
+  It prints the rows added and the book's new size.
+- **scripts/learner/test_relearn.py**, 17 checks on a temporary bot folder
   (80, 20, exactly 50, a position the learner has moved on from, castling as
-  the new move): green. It goes red on three mutants: > for >=, no moved-on
-  check, and no ours.bin rebuild (that one crashes the test).
+  the new move; refused with a learner running or unknown, nothing changed;
+  the backups equal the old files; the real check finds a stand-in process
+  named bot\learn.py, and not after it stops): green. It goes red on five
+  mutants: > for >=, no moved-on check, no refusal when running, no refusal
+  when unsure, no backups.
+- **The learner stopped at 08:43:34** (its log: "stopped", a clean Ctrl+C or
+  window close). Just before, I killed two depth-1 checks of my own that a
+  `| Select-Object -First 1` had left blocked on their output. The learner
+  was still listed as running after that kill, and taskkill /T took only my
+  two trees, so I don't think it was mine, though the timing is close. It
+  needs `bot\learn.cmd` to start again.
 - rescore.py takes `--learnt-with eval-sf1` (the net's own rows don't need
   it) and `--part i --parts k`, for two processes. learn.py's `--summary`
   counts re-learnt rows.
 - **Waiting**: a slot from the ponder-scope queue for the re-score of the
-  other 1,456 positions (~4.5 core-hours, ~2.3 h on two cores), and Session
-  context's word on applying it to the live ours.jsonl. Applying it is safe
-  with the bot off, since the learner only writes after a game.
+  other 1,456 positions (~4.5 core-hours, ~2.3 h on two cores; the queue
+  has h1536-3m's match, P6's SPRT and h2048-3m's training ahead of it).
+  Then, per Session context: this code merged first, and the apply run from
+  the main checkout with the learner stopped (Matthew closes its window,
+  I run the one command, he starts it again with bot\learn.cmd).
