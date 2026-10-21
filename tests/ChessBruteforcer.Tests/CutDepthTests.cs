@@ -15,9 +15,9 @@ namespace ChessBruteforcer.Tests;
 /// </summary>
 public class CutDepthTests
 {
-    // Positions whose best move changes at some depth, on one thread with the built-in evaluation (as written):
-    // Kiwipete at depths 7 and 8, Late at 4 and 8, Early at 3 and 4, Tactic at 2 and 3.  At the start position a
-    // move fails high on a null window at depth 8, then fails low when searched again.
+    // Positions whose best move changes at some depth, on one thread with the built-in evaluation (as written, with
+    // the table before P6): Kiwipete at depths 7 and 8, Late at 4 and 8, Early at 3 and 4, Tactic at 2 and 3.  At the
+    // start position a move fails high on a null window at depth 8, then fails low when searched again.
     private const string Late = "r1b1k2r/ppppnppp/2n2q2/2b5/3NP3/2P1B3/PP3PPP/RN1QKB1R w KQkq - 0 1";
     private const string Early = "r2q1rk1/pp2ppbp/2p2np1/6B1/3PP1b1/Q1P2N2/P4PPP/3RKB1R b K - 0 13";
     private const string Tactic = "2kr3r/pp1q1ppp/5n2/1Nb5/2Pp1B2/7Q/P4PPP/1R3RK1 w - - 0 1";
@@ -125,10 +125,13 @@ public class CutDepthTests
 
     [Theory]
     [InlineData(MoveGeneratorTests.Kiwipete, 8)]
-    [InlineData(Late, 8)]
+    [InlineData(Tactic, 10)]
     [InlineData(Fen.StartPosition, 8)]
     public void OnOneThreadACutPlaysWhatTheDepthProvedAndNothingElse(string fen, int depth)
     {
+        // (Each position needs a cut that plays a proved move and one during a search again, which depends on the
+        // tree, so on the table.  With P6's buckets, Late at 8 had no proved move to play, nor at 5-10; Tactic at 10
+        // has both, in 4 s.)
         // An uncut search, then the same search cut by a node limit at points through the depths where a move was
         // searched again: one thread repeats the search node for node until the cut.
         var full = Run(fen, new SearchLimits { Depth = depth });
