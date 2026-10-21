@@ -1509,6 +1509,84 @@ code, the trainer and the reference, clear of the ponder sessions' files).
     Measured first, if at all: switch the parts off one at a time, as
     session 6 did.
 
+### Session 7: output buckets (2026-10-22)
+
+Matthew's B, after the deep nets lost on speed: levers that cost no speed.
+Output buckets are Stockfish's: the one output row becomes K rows, and each
+position uses the row picked by how many pieces are on the board. The
+evaluation does the same work as version 1's, from a different row. Two
+sessions from one spec: ob-trainer (branch `claude/ob-trainer-56e1a8`: the
+trainer, the export, the numpy reference, the fixture) and ob-engine (the
+C# loader and its tests).
+
+- **The file, version 3** (version 1 plus buckets), little-endian:
+
+  | bytes | what |
+  |---|---|
+  | 8 | "CBNNUE01" |
+  | u32 x3 | version (3), inputs (768), hidden H (a multiple of 16, 16 to 2048) |
+  | i32 x3 | QA (255), QB, scale (400) |
+  | u32 | K, the number of output buckets (1 to 16) |
+  | int16 | feature weights [768][H], feature biases [H] (as version 1) |
+  | int16 | output weights [K][2H], bucket by bucket; in each, the side to move's H first |
+  | i32 | output biases [K] |
+  | 32 | SHA-256 of everything above |
+
+  The bucket: **b = (n - 1) x K / 32** (integer division), n every piece
+  on the board, kings included (2 to 32); at K = 8 that is Stockfish's
+  (n - 1) / 4. The score is version 1's with bucket b's row and bias. One
+  QB serves every bucket (output_qb over all rows), and every row passes
+  version 1's check (|w| x QA within int16).
+- **The trainer** (`train.py --output-buckets K`, not with `--layers`): the
+  output layer is 2H -> K, each row started as version 1's one, and each
+  position takes its bucket's output. int_scores scores version 3 exactly
+  as the engine computes it, so held-back error "as the engine computes
+  it" means the same thing as before.
+- **A catch in the data, and what the export does about it.** The records
+  hold only positions with more than 5 pieces (the quiet rule; the tables
+  settle the rest). So at K = 8, **bucket 0 (2-4 pieces) never sees a
+  training position**, and bucket 1 (5-8) sees only 6-8. Quiescence doesn't
+  probe the tables, so after captures from 6 pieces it does evaluate 4- and
+  5-piece positions. A row that no position trains gets only AdamW's weight
+  decay, which shrinks it to 12% of its start over h1024-3m's schedule, so
+  it scores every such position about 0, whatever the material. Measured
+  with h768-3m's feature layer, 200 positions each:
+
+  | positions | trained row (median) | untrained row (median) |
+  |---|---|---|
+  | KQvK, the queen's side to move | +1,159 cp | -2 cp |
+  | KRvK, the rook's side to move | +751 | -1 |
+  | KvK | -3 | +1 |
+
+  The trainer counts the
+  training positions in each bucket (logged after each pass and kept in the
+  .pt). **The export gives a bucket with none the row of its nearest
+  trained bucket** (bucket 0 gets bucket 1's; the higher one wins a tie).
+  The file is plain version 3 either way. The checkpoint keeps the raw
+  rows, so another rule is just a `train.py export`.
+- **The checks** (all on the laptop's CPU; its GPU is left alone):
+
+  | check | result |
+  |---|---|
+  | `checks.py buckets`: train's bucket against the reference's, K = 1 to 16, 864 positions of 6-32 pieces | 0 differ |
+  | the same: a random K = 8 net through the export, int_scores against nnue_reference.evaluate | 0 of 864 differ |
+  | the same: each bucket's positions against version 1 with that bucket's row | 0 differ in int16; float within 7e-4 cp |
+  | the same: version 3 with every row alike (K = 1 and 8) against version 1 | 0 differ |
+  | the same: the fill (untrained 0, 2, 3, 4 of 8) | nearest rows taken, the higher on a tie |
+  | without the option: 662a810's export and this one, on nnue1.pt and h768-3m.pt (version 1) and h1024-3m-l32.pt (version 2) | byte for byte |
+  | without the option: a 2-pass training on the CPU, 64 hidden, 200,000 positions (both trainers' CUDA calls swapped for the CPU the same way) | the .nnue and every error figure identical |
+  | a bucketed CPU run, 1 pass then `--resume` to 2; `checks.py quantised` on it (`CHECKS_DEVICE=cpu`, new) | counts carried over, bucket 0 filled; 0 of 1,000 differ |
+
+- **The fixture for the C# tests**:
+  tests/ChessBruteforcer.Tests/Data/nnue-random-ob8.nnue and .tsv
+  (7e5f283). A random K = 8 net at H 256, with version 1's fixture's ranges
+  in every bucket, and 1,000 positions of 2-32 pieces with their scores.
+  Every bucket is used (98-161 positions each). Scores run -12,838 to
+  12,275, none zero and none at the limit. In 999 of the 1,000 positions,
+  every other bucket would give another score. Network sha256
+  a5b712fad416e75c... An independent decoder written from the spec alone
+  (pure Python ints) gets all 1,000 scores.
+
 ## Risks
 
 | risk | what it would look like | what limits it |
