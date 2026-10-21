@@ -1,4 +1,5 @@
 using ChessBruteforcer.Core;
+using ChessBruteforcer.Core.Engine;
 using ChessBruteforcer.Core.Game;
 using ChessBruteforcer.Core.Match;
 
@@ -87,6 +88,16 @@ public class MatchStatsTests
     {
         Assert.Equal(new TimeControl(baseMs, incMs, moveTime), TimeControl.Parse(text));
     }
+
+    [Fact]
+    public void AFixedDepthIsATimeControlAndAnEngineCanHaveItsOwn()
+    {
+        Assert.Equal(new TimeControl(0, 0, Depth: 9), TimeControl.Parse("depth=9"));
+        Assert.Equal("depth 9", TimeControl.Parse("depth=9").ToString());
+        var spec = EngineSpec.Parse(["name=deep", "cmd=engine.exe", "tc=depth=9"]);
+        Assert.Equal(new TimeControl(0, 0, Depth: 9), spec.Clock);
+        Assert.Null(EngineSpec.Parse(["cmd=engine.exe"]).Clock);
+    }
 }
 
 public class GamePlayerTests
@@ -106,11 +117,13 @@ public class GamePlayerTests
 
         public string Name { get; }
         public int Games { get; private set; }
+        public List<MoveRequest> Requests { get; } = new();
 
         public void NewGame() => Games++;
 
         public string? ChooseMove(MoveRequest request, TimeSpan timeout)
         {
+            Requests.Add(request);
             if (_delayMs > 0)
                 Thread.Sleep(_delayMs);
             if (_script.TryDequeue(out string? scripted))
@@ -151,6 +164,23 @@ public class GamePlayerTests
                                      Array.Empty<string>(), new TimeControl(200, 0), 1);
         Assert.Equal(GameResult.WhiteWins, record.Result);
         Assert.Contains("lost on time", record.Termination);
+    }
+
+    [Fact]
+    public void EachSideCanHaveItsOwnClockAndAFixedDepthNeverLosesOnTime()
+    {
+        // White searches to depth 5 and takes 300 ms a move with no time on its clock; Black has 60+0.3.
+        var white = new ScriptedPlayer("W", new[] { "f2f3", "g2g4" }, delayMs: 300);
+        var black = new ScriptedPlayer("B", new[] { "e7e5", "d8h4" });
+        var record = GamePlayer.Play(white, black, Array.Empty<string>(), TimeControl.Parse("depth=5"), 1,
+                                     blackClock: new TimeControl(60_000, 300));
+        Assert.Equal("checkmate", record.Termination);
+        Assert.All(white.Requests, r => Assert.Equal(5, r.Depth));
+        Assert.All(black.Requests, r => Assert.Null(r.Depth));
+        Assert.Equal(300, black.Requests[0].BlackIncrementMs);
+        Assert.Equal(0, black.Requests[0].WhiteIncrementMs);
+        Assert.Contains("[WhiteTimeControl \"depth 5\"]", record.ToPgn("Test", DateTime.Today));
+        Assert.Contains("[BlackTimeControl \"60+0.3\"]", record.ToPgn("Test", DateTime.Today));
     }
 
     [Fact]
@@ -198,5 +228,48 @@ public class GamePlayerTests
                 position.MakeMove(move!.Value);
             }
         }
+    }
+}
+
+public class SearchTallyTests
+{
+    [Fact]
+    public void ReadsTheEnginesOwnInfoLine()
+    {
+        var output = new StringWriter();
+        var engine = new UciEngine(output);
+        engine.Handle("position startpos moves e2e4 e7e5");
+        engine.Handle("go depth 5");
+        engine.WaitForSearch();
+        string info = output.ToString().Split('\n').Last(l => l.StartsWith("info depth")).Trim();
+        string[] words = info.Split(' ');
+        long nodes = long.Parse(words[Array.IndexOf(words, "nodes") + 1]);
+        long ms = long.Parse(words[Array.IndexOf(words, "time") + 1]);
+
+        var tally = SearchTally.Empty.Add(info);
+        Assert.Equal(new SearchTally(1, 5, nodes, ms), tally);
+        Assert.Equal(5.0, tally.MeanDepth);
+    }
+
+    [Fact]
+    public void LinesWithoutDepthNodesOrTimeCountForNothing()
+    {
+        var tally = SearchTally.Empty
+            .Add("info string evaluation: built in")
+            .Add("info depth 7 score cp 20 nodes 1000 pv e2e4")
+            .Add("info nodes 1000 time 5");
+        Assert.Equal(SearchTally.Empty, tally);
+    }
+
+    [Fact]
+    public void DepthIsPerMoveAndSpeedIsNodesOverTime()
+    {
+        var tally = SearchTally.Empty
+            .Add("info depth 8 seldepth 20 score cp 31 nodes 300000 nps 1500000 time 200 hashfull 3 pv e2e4 e7e5")
+            .Add("info depth 11 score mate 4 nodes 900000 nps 900000 time 1000 hashfull 9 pv d2d4");
+        Assert.Equal(new SearchTally(2, 19, 1_200_000, 1_200), tally);
+        Assert.Equal(9.5, tally.MeanDepth);
+        Assert.Equal(1000.0, tally.Knps);
+        Assert.Equal(new SearchTally(4, 38, 2_400_000, 2_400), tally.Add(tally));
     }
 }

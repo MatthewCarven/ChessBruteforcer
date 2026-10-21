@@ -1,0 +1,249 @@
+diff --git a/src/ChessBruteforcer.Core/Engine/Evaluation.cs b/src/ChessBruteforcer.Core/Engine/Evaluation.cs
+index a1c3979..27f82a2 100644
+--- a/src/ChessBruteforcer.Core/Engine/Evaluation.cs
++++ b/src/ChessBruteforcer.Core/Engine/Evaluation.cs
+@@ -148,8 +148,31 @@ public static class Evaluation
+     /// Score for the side to move, in centipawns: the network's when the position carries one
+     /// (<see cref="Position.UseNetwork"/>; the UCI option EvalFile with a .nnue file), the numbers' otherwise.
+     /// </summary>
+-    public static int Evaluate(Position position) =>
+-        position.Accumulators is { } network ? network.Evaluate(position.SideToMove) : Evaluate(position, Parameters);
++    public static int Evaluate(Position position)
++    {
++        if (position.Accumulators is not { } network)
++            return Evaluate(position, Parameters);
++        switch (Nnue.Probe.Mode)
++        {
++            case 1:
++            {
++                int value = network.Evaluate(position.SideToMove);
++                Nnue.Probe.Record(value);
++                return value;
++            }
++            case 2:
++                return Nnue.Probe.Values[Nnue.Probe.Next++];
++            case 3:
++            {
++                int value = network.Evaluate(position.SideToMove), recorded = Nnue.Probe.Values[Nnue.Probe.Next++];
++                if (value != recorded)
++                    Nnue.Probe.Mismatches++;
++                return recorded;
++            }
++            default:
++                return network.Evaluate(position.SideToMove);
++        }
++    }
+ 
+     /// <summary>Score for the side to move, in centipawns, with the given numbers.</summary>
+     public static int Evaluate(Position position, EvalParams p)
+diff --git a/src/ChessBruteforcer.Core/Engine/Search.cs b/src/ChessBruteforcer.Core/Engine/Search.cs
+index fd5f122..0777d6d 100644
+--- a/src/ChessBruteforcer.Core/Engine/Search.cs
++++ b/src/ChessBruteforcer.Core/Engine/Search.cs
+@@ -542,6 +542,8 @@ public sealed class Search
+     private int Negamax(Position position, int depth, int alpha, int beta, int ply, bool allowNull)
+     {
+         _pvLength[ply] = ply;
++        if (Nnue.Probe.Counting)
++            Nnue.Probe.NegamaxNodes++;
+         if ((++_nodes & 2047) == 0)
+             CheckLimits();
+         if (_stop)
+@@ -621,6 +623,8 @@ public sealed class Search
+             var undo = position.MakeMove(move);
+             if (position.InCheck(us))
+             {
++                if (Nnue.Probe.Counting)
++                    Nnue.Probe.Illegal++;
+                 position.UnmakeMove(move, undo);
+                 continue;
+             }
+@@ -691,6 +695,8 @@ public sealed class Search
+     private int Quiescence(Position position, int alpha, int beta, int ply)
+     {
+         _pvLength[ply] = ply;
++        if (Nnue.Probe.Counting)
++            Nnue.Probe.QsNodes++;
+         if ((++_nodes & 2047) == 0)
+             CheckLimits();
+         if (_stop)
+@@ -707,6 +713,8 @@ public sealed class Search
+         else
+         {
+             best = Evaluation.Evaluate(position);
++            if (Nnue.Probe.Counting)
++                Nnue.Probe.QsEvals++;
+             if (best >= beta)
+                 return best;
+             alpha = Math.Max(alpha, best);
+@@ -726,6 +734,8 @@ public sealed class Search
+             var undo = position.MakeMove(move);
+             if (position.InCheck(us))
+             {
++                if (Nnue.Probe.Counting)
++                    Nnue.Probe.Illegal++;
+                 position.UnmakeMove(move, undo);
+                 continue;
+             }
+diff --git a/src/ChessBruteforcer.Core/Engine/Nnue/AccumulatorStack.cs b/src/ChessBruteforcer.Core/Engine/Nnue/AccumulatorStack.cs
+index 6f99dcc..ec063b8 100644
+--- a/src/ChessBruteforcer.Core/Engine/Nnue/AccumulatorStack.cs
++++ b/src/ChessBruteforcer.Core/Engine/Nnue/AccumulatorStack.cs
+@@ -17,6 +17,8 @@ internal sealed class AccumulatorStack
+     private readonly int _stride;
+     private short[] _data;
+     private int _top;
++    private bool[] _used = new bool[32], _child = new bool[32];   // the probe's counting only
++    private int[] _seq = new int[32];
+ 
+     public AccumulatorStack(Network network, int slots = 32)
+     {
+@@ -54,14 +56,46 @@ internal sealed class AccumulatorStack
+     public void Pop(Position position)
+     {
+         if (_top > 0)
++        {
++            if (Probe.Counting)
++            {
++                Probe.Pops++;
++                Probe.NoteUsed(_seq[_top], _used[_top]);
++                if (!_used[_top])
++                {
++                    Probe.Unused++;
++                    if (!_child[_top])
++                        Probe.UnusedLeaf++;
++                }
++            }
+             _top--;
++        }
+         else
++        {
++            if (Probe.Counting)
++                Probe.BottomRefreshes++;
+             Refresh(position);
++        }
+     }
+ 
+     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+     public int Evaluate(Colour sideToMove)
+     {
++        if (Probe.Counting)
++        {
++            Probe.Evals++;
++            int marked = 0;
++            for (int t = _top; t > 0 && !_used[t]; t--)
++            {
++                _used[t] = true;
++                marked++;
++            }
++            Probe.ChainLength += marked;
++            if (marked > 0)
++                Probe.ChainEvals++;
++        }
++        if (Probe.Logging)
++            Probe.LogRecord(_top, 3, sideToMove == Colour.White ? 0 : 1, -1, -1, -1, -1, -1, -1, -1);
+         var slot = _data.AsSpan(_top * _stride, _stride);
+         return sideToMove == Colour.White
+             ? Network.Forward(slot[.._hidden], slot[_hidden..])
+@@ -71,6 +105,15 @@ internal sealed class AccumulatorStack
+     /// <summary>A move with no capture: <paramref name="moved"/> off <paramref name="from"/>, <paramref name="placed"/> (itself, or what it promotes to) on <paramref name="to"/>.</summary>
+     public void PushQuiet(Piece moved, int from, Piece placed, int to)
+     {
++        if (Probe.IdealLazy && !Probe.UsedBits[Probe.PushSeq++])
++        {
++            NextSlots();
++            return;
++        }
++        if (Probe.Counting)
++            Probe.Quiet++;
++        if (Probe.Logging)
++            Probe.LogRecord(_top, 0, F(placed, to, 0), -1, F(moved, from, 0), -1, F(placed, to, 1), -1, F(moved, from, 1), -1);
+         var slots = NextSlots();
+         int h = _hidden;
+         Kernels.AddSub(slots.Slice(_stride, h), slots[..h], Column(placed, to, 0), Column(moved, from, 0));
+@@ -80,6 +123,16 @@ internal sealed class AccumulatorStack
+     /// <summary>A capture, en passant included (<paramref name="capturedSquare"/> is then the pawn's, not <paramref name="to"/>).</summary>
+     public void PushCapture(Piece moved, int from, Piece placed, int to, Piece captured, int capturedSquare)
+     {
++        if (Probe.IdealLazy && !Probe.UsedBits[Probe.PushSeq++])
++        {
++            NextSlots();
++            return;
++        }
++        if (Probe.Counting)
++            Probe.Capture++;
++        if (Probe.Logging)
++            Probe.LogRecord(_top, 1, F(placed, to, 0), -1, F(moved, from, 0), F(captured, capturedSquare, 0),
++                            F(placed, to, 1), -1, F(moved, from, 1), F(captured, capturedSquare, 1));
+         var slots = NextSlots();
+         int h = _hidden;
+         Kernels.AddSubSub(slots.Slice(_stride, h), slots[..h], Column(placed, to, 0), Column(moved, from, 0),
+@@ -91,6 +144,16 @@ internal sealed class AccumulatorStack
+     /// <summary>Castling: the king and the rook both move.</summary>
+     public void PushCastle(Piece king, int kingFrom, int kingTo, Piece rook, int rookFrom, int rookTo)
+     {
++        if (Probe.IdealLazy && !Probe.UsedBits[Probe.PushSeq++])
++        {
++            NextSlots();
++            return;
++        }
++        if (Probe.Counting)
++            Probe.Castle++;
++        if (Probe.Logging)
++            Probe.LogRecord(_top, 2, F(king, kingTo, 0), F(rook, rookTo, 0), F(king, kingFrom, 0), F(rook, rookFrom, 0),
++                            F(king, kingTo, 1), F(rook, rookTo, 1), F(king, kingFrom, 1), F(rook, rookFrom, 1));
+         var slots = NextSlots();
+         int h = _hidden;
+         Kernels.AddAddSubSub(slots.Slice(_stride, h), slots[..h], Column(king, kingTo, 0), Column(rook, rookTo, 0),
+@@ -110,9 +173,24 @@ internal sealed class AccumulatorStack
+         if (parent + 2 * _stride > _data.Length)
+             Array.Resize(ref _data, _data.Length * 2);
+         _top++;
++        if (Probe.Counting)
++        {
++            if (_top >= _used.Length)
++            {
++                Array.Resize(ref _used, _used.Length * 2);
++                Array.Resize(ref _child, _child.Length * 2);
++                Array.Resize(ref _seq, _seq.Length * 2);
++            }
++            _seq[_top] = Probe.PushSeq++;
++            _used[_top] = false;
++            _child[_top] = false;
++            _child[_top - 1] = true;
++        }
+         return _data.AsSpan(parent, 2 * _stride);
+     }
+ 
++    private static int F(Piece piece, int square, int perspective) => Network.Feature(piece, square, perspective);
++
+     /// <summary>The weight column of a piece on a square, for one perspective (bounds-checked: an empty square has none).</summary>
+     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+     private ReadOnlySpan<short> Column(Piece piece, int square, int perspective) =>
+diff --git a/src/ChessBruteforcer.Core/Game/Position.cs b/src/ChessBruteforcer.Core/Game/Position.cs
+index 3a9fdea..e9ab2fd 100644
+--- a/src/ChessBruteforcer.Core/Game/Position.cs
++++ b/src/ChessBruteforcer.Core/Game/Position.cs
+@@ -273,9 +273,10 @@ public sealed class Position
+             var rook = _squares[rookFrom];
+             Put(rookTo, rook);
+             Put(rookFrom, Piece.Empty);
+-            _nnue?.PushCastle(mover, move.From, move.To, rook, rookFrom, rookTo);
++            if (!Probe.SkipUpdates)
++                _nnue?.PushCastle(mover, move.From, move.To, rook, rookFrom, rookTo);
+         }
+-        else if (_nnue is not null)
++        else if (_nnue is not null && !Probe.SkipUpdates)
+         {
+             if (captured.IsEmpty)
+                 _nnue.PushQuiet(mover, move.From, placed, move.To);
+@@ -326,7 +327,8 @@ public sealed class Position
+         EnPassantSquare = undo.EnPassantSquare;
+         HalfmoveClock = undo.HalfmoveClock;
+         Hash = undo.Hash;
+-        _nnue?.Pop(this);
++        if (!Probe.SkipUpdates)
++            _nnue?.Pop(this);
+     }
+ 
+     /// <summary>

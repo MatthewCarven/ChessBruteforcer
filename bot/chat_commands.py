@@ -6,8 +6,10 @@ makes Conversation.command ask reply() first; whatever this doesn't answer goes 
 
 !info: how many tables we have, whether the game is in them now, and where the opening book ran out. In
 the spectators' room (or from the bot's own account) it adds what the tables say about the game; the
-opponent isn't told that, just as lichess-bot's !eval isn't for the opponent (Matthew's pick).
-Lichess chat messages are 140 characters at most.
+opponent isn't told that, just as lichess-bot's !eval isn't for the opponent (Matthew's pick). Then two
+lines about the project (ABOUT, 2026-10-16: the greeting has room for little more than a pointer here).
+Lichess chat messages are 140 characters at most: lichess-bot drops a longer one unsent. Kept to a few
+messages a command, as a burst could trip Lichess's chat flood filter.
 """
 import os
 import chess
@@ -15,8 +17,14 @@ import chess.engine
 
 TABLE_PIECES = 5   # every ending with this many pieces or fewer is solved
 BOOK_SOURCE = "lichess-bot-source:Opening Book"
-HELP = ("Commands: !info (my endgame tables, and whether we're in them), !name, !queue, "
+HELP = ("Commands: !info (about me, and my endgame tables now), !name, !queue, "
         "!eval (spectators), !wait (a minute for my first move)")
+ABOUT = [   # each 140 characters at most; the figures are from WORKLOG (September 2026's games, the bot's config)
+    "About me: a thesis project on how small real chess is, mapping games back from the end. "
+    "Every ending of 5 pieces or fewer solved here.",
+    "Lichess games vs my tables: ~1 in 4 that reach 5 pieces end wrongly. "
+    "I play on 8 threads, Texel-tuned; a neural evaluation is next.",
+]
 
 _tables = None
 
@@ -110,4 +118,4 @@ def reply(conversation, line, cmd):
         said = verdict(conversation.engine, boards)
         if said:
             messages.append(said)
-    return messages
+    return messages + ABOUT

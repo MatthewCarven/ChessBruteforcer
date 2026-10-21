@@ -62,8 +62,8 @@ What it changes in the plan:
 
 ## Where it lives
 
-`games/index/<month>/` on the laptop while it is built and tried (git
-ignores `games/`). The laptop has 68 GB free; the share will be down to the
+`indexes/<month>/` in the project folder on the laptop (Matthew, 2026-10-18;
+git ignores it; `games/index/` until then). The laptop has 68 GB free; the share will be down to the
 last 100 GB the month queue leaves when the queue finishes. So where the
 whole index lives is decided at the end of session 1 with its measured
 size, and before the month queue starts building it (the step after

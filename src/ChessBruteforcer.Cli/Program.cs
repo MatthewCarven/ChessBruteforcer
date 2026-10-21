@@ -78,6 +78,11 @@ static class Cli
           tune positions <out .tsv> <file>... [--min-elo 2000 --per-game 8 [--lambda L]]  quiet positions from strong games,
                                          with results; --lambda: analysed games (Evals tag), target L x result + (1 - L) x Stockfish
           tune fit <positions .tsv> <out params> [--start <params>] [--epochs 1500 --rate 1]  Texel tuning of the evaluation
+          nnue data <out dir> <file>... [--per-game all|N] [--speeds blitz,rapid,classical] [--buckets 64]  the network's
+                                         training data (NNUE.md): every quiet position of the analysed games (Evals tag),
+                                         32-byte records in bucket files chosen at random, games numbered 0 mod 50 held
+                                         back, data.json with the counts
+          nnue show <records file> [count]  records as FEN, white's score, mate (1/0), result for white (0-2), game number
           game reach <file>... [--sample N <tsv>]  how far down games get (5, 6, 7 pieces...), the 6-piece materials
                                          they enter by; --sample writes N first 6-piece positions to check
           game takeover <file>... --moves  and every move the players made inside the tables: the ones that threw
@@ -151,6 +156,9 @@ static class Cli
                     TunePositions(output, files, int.Parse(elo), int.Parse(per)),
                 ["tune", "positions", var output, .. var files, "--min-elo", var elo, "--per-game", var per, "--lambda", var lam] when files.Length > 0 =>
                     TunePositions(output, files, int.Parse(elo), int.Parse(per), double.Parse(lam, CultureInfo.InvariantCulture)),
+                ["nnue", "data", var output, .. var rest] when rest.Length > 0 => NnueData(output, rest),
+                ["nnue", "show", var file] => NnueShow(file, 10),
+                ["nnue", "show", var file, var count] => NnueShow(file, long.Parse(count)),
                 ["tune", "fit", var positions, var output] => TuneFit(positions, output, null, 1500, 1.0),
                 ["tune", "fit", var positions, var output, "--epochs", var e, "--rate", var r] =>
                     TuneFit(positions, output, null, int.Parse(e), double.Parse(r, CultureInfo.InvariantCulture)),
@@ -1404,9 +1412,10 @@ static class Cli
     /// <summary>
     /// Texel tuning's positions (2026-10-14): from rated games with both players at <paramref name="minElo"/>
     /// or more, blitz or slower, ended normally (not on time: the result then says little about the board),
-    /// up to <paramref name="perGame"/> positions a game, chosen at random among the quiet ones: after move 8,
-    /// side to move not in check, the move before and the move played neither a capture nor a promotion, and
-    /// more than 5 pieces (the tables have the rest). Written as "FEN \t white's result \t game number".
+    /// up to <paramref name="perGame"/> positions a game, chosen at random among the quiet ones
+    /// (<see cref="QuietPositions"/>: after move 8, side to move not in check, the move before and the move
+    /// played neither a capture nor a promotion, and more than 5 pieces, the tables having the rest). Written
+    /// as "FEN \t white's result \t game number".
     /// </summary>
     /// <param name="lambda">With an Evals tag (scripts/eval-games.py): the target is lambda x the game's result plus
     /// (1 - lambda) x Stockfish's evaluation of the position as a score, 1 / (1 + 10^(-cp / 400)); positions
@@ -1424,7 +1433,7 @@ static class Cli
             {
                 games++;
                 string[]? evals = lambda is null ? null : game.Tag("Evals")?.Split(' ');
-                if (!(game.Tag("Event") ?? "").Contains("Rated") || game.Tag("FEN") is not null
+                if (!game.IsRated || game.Tag("FEN") is not null
                     || (lambda is null && game.Tag("Termination") != "Normal") || (lambda is not null && evals is null)
                     || Speed(game) is not ("blitz" or "rapid" or "classical")
                     || !int.TryParse(game.Tag("WhiteElo"), out int whiteElo) || !int.TryParse(game.Tag("BlackElo"), out int blackElo)
@@ -1434,24 +1443,14 @@ static class Cli
                 if (result is not { } r)
                     continue;
                 var quiet = new List<(string Fen, double Target)>();
-                var position = game.StartPosition();
-                int pieces = 32;
-                for (int ply = 0; ply < game.Moves.Count; ply++)
+                QuietPositions.Walk(game, (ply, position) =>
                 {
-                    var move = game.Moves[ply];
-                    bool before = ply > 0 && (game.Moves[ply - 1].IsCapture || game.Moves[ply - 1].IsPromotion);
-                    if (ply >= 16 && pieces > 5 && !before && !move.IsCapture && !move.IsPromotion && !position.InCheck())
-                    {
-                        if (lambda is not { } l)
-                            quiet.Add((position.ToFen(), r));
-                        else if (evals is not null && ply - 1 < evals.Length
-                                 && int.TryParse(evals[ply - 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int cp))
-                            quiet.Add((position.ToFen(), l * r + (1 - l) / (1 + Math.Pow(10, -cp / 400.0))));   // the eval after ply - 1 is this position's
-                    }
-                    if (move.IsCapture)
-                        pieces--;
-                    position.MakeMove(move);
-                }
+                    if (lambda is not { } l)
+                        quiet.Add((position.ToFen(), r));
+                    else if (evals is not null && ply - 1 < evals.Length
+                             && int.TryParse(evals[ply - 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int cp))
+                        quiet.Add((position.ToFen(), l * r + (1 - l) / (1 + Math.Pow(10, -cp / 400.0))));   // the eval after ply - 1 is this position's
+                });
                 if (quiet.Count == 0)
                     continue;
                 used++;
@@ -1465,6 +1464,260 @@ static class Cli
         Console.WriteLine($"{games:N0} games read in {watch.Elapsed.TotalSeconds:0}s; {used:N0} used (rated, both {minElo}+, blitz or slower, " +
                           (lambda is { } lam ? $"analysed; target {lam} x result + {1 - lam} x Stockfish" : "ended normally; target the result") +
                           $"); {written:N0} quiet positions written to {output}");
+        return 0;
+    }
+
+    /// <summary>
+    /// The network's training data (NNUE.md, session 1, 2026-10-16): from rated, analysed games (an Evals tag,
+    /// scripts/eval-games.py) from the standard start, with both ratings and a result, of the speeds asked for
+    /// (all by default), every quiet position (<see cref="QuietPositions"/>, the tuner's rule) that has a
+    /// score, or N of them a game chosen at random: one 32-byte record each (<see cref="NnueRecord"/>). Records
+    /// go to bucket files chosen at random, so a trainer can take the buckets in a random order and shuffle
+    /// each in memory. Games whose number is 0 mod 50 are held back whole, in held-back.bin. data.json, written
+    /// last, has the counts, the rule and the sources, and is the sign that the run finished.
+    /// </summary>
+    private static int NnueData(string outDir, string[] args)
+    {
+        const int holdBackEvery = 50, seed = 20261016;
+        int split = Array.FindIndex(args, a => a.StartsWith("--", StringComparison.Ordinal));
+        string[] files = split < 0 ? args : args[..split];
+        int? perGame = null;        // null: every one
+        string[]? speeds = null;    // null: every speed
+        int bucketCount = 64;
+        for (int i = split < 0 ? args.Length : split; i < args.Length; i += 2)
+        {
+            if (i + 1 >= args.Length)
+                throw new ArgumentException($"{args[i]} needs a value.");
+            string value = args[i + 1];
+            switch (args[i])
+            {
+                case "--per-game":
+                    perGame = value == "all" ? null : int.Parse(value, CultureInfo.InvariantCulture);
+                    if (perGame < 1)
+                        throw new ArgumentException("--per-game takes all or a number above 0.");
+                    break;
+                case "--speeds":
+                    speeds = value.Split(',');
+                    if (speeds.FirstOrDefault(s => !Speeds.Contains(s)) is { } bad)
+                        throw new ArgumentException($"'{bad}' is not a speed ({string.Join(", ", Speeds)}).");
+                    break;
+                case "--buckets":
+                    bucketCount = int.Parse(value, CultureInfo.InvariantCulture);
+                    if (bucketCount is < 1 or > 1000)
+                        throw new ArgumentException("--buckets takes 1 to 1000.");
+                    break;
+                default:
+                    throw new ArgumentException($"nnue data has no option {args[i]}.");
+            }
+        }
+        if (files.Length == 0)
+            throw new ArgumentException("nnue data needs at least one game file.");
+        foreach (string file in files)
+            if (!File.Exists(file))
+                throw new FileNotFoundException($"{file} isn't there.");
+
+        Directory.CreateDirectory(outDir);
+        string json = Path.Combine(outDir, "data.json");
+        File.Delete(json);   // its presence says a run finished; none until this one has
+        var names = Enumerable.Range(0, bucketCount).Select(b => $"bucket-{b.ToString(bucketCount > 100 ? "D3" : "D2")}.bin").ToArray();
+        const string heldName = "held-back.bin";
+        static FileStream Create(string path) => new(path, FileMode.Create, FileAccess.Write, FileShare.Read, 1 << 18);
+        var buckets = names.Select(name => Create(Path.Combine(outDir, name))).ToArray();
+        var heldBack = Create(Path.Combine(outDir, heldName));
+
+        var watch = Stopwatch.StartNew();
+        var random = new Random(seed);
+        var bucketCounts = new long[bucketCount];
+        long games = 0, used = 0, positions = 0, numeric = 0, mates = 0, clamped = 0, heldGames = 0, heldPositions = 0, unscored = 0;
+        var skipped = new SortedDictionary<string, long>();
+        var gamesBySpeed = new SortedDictionary<string, long>();
+        var positionsBySpeed = new SortedDictionary<string, long>();
+        var sources = new List<(string Path, long Bytes, long Games)>();
+        byte[] found = new byte[NnueRecord.Size * 256];   // one game's records
+        try
+        {
+            foreach (string file in files)
+            {
+                long gamesBefore = games;
+                foreach (var game in GameFile.Read(file))
+                {
+                    games++;
+                    if (games % 500_000 == 0)
+                        Console.Error.WriteLine($"  {games:N0} games read, {used:N0} used, {positions:N0} positions ({watch.Elapsed.TotalSeconds:0}s)");
+                    string[]? evals = game.Tag("Evals")?.Split(' ');
+                    string speed = Speed(game);
+                    byte? result = NnueRecord.ResultCode(game.Result);
+                    string? why = !game.IsRated ? "not rated"
+                        : game.Tag("FEN") is not null ? "not from the standard start"
+                        : evals is null ? "not analysed"
+                        : speeds is not null && !speeds.Contains(speed) ? "speed left out"
+                        : !int.TryParse(game.Tag("WhiteElo"), out _) || !int.TryParse(game.Tag("BlackElo"), out _) ? "no rating"
+                        : result is null ? "no result"
+                        : null;
+                    if (why is null && games > uint.MaxValue)
+                        throw new InvalidDataException("More games than a record's game number can hold.");
+                    int count = 0;
+                    if (why is null)
+                        QuietPositions.Walk(game, (ply, position) =>
+                        {
+                            if (ply - 1 >= evals!.Length || !NnueRecord.TryParseScore(evals[ply - 1], out short score, out bool mate, out _))
+                            {
+                                unscored++;   // the eval after ply - 1 is this position's
+                                return;
+                            }
+                            if ((count + 1) * NnueRecord.Size > found.Length)
+                                Array.Resize(ref found, found.Length * 2);
+                            NnueRecord.Write(found.AsSpan(count * NnueRecord.Size, NnueRecord.Size), position, score, mate, result!.Value, (uint)games);
+                            count++;
+                        });
+                    if (why is null && count == 0)
+                        why = "no quiet position with a score";
+                    if (why is not null)
+                    {
+                        skipped[why] = skipped.GetValueOrDefault(why) + 1;
+                        continue;
+                    }
+                    var chosen = perGame is { } n && n < count
+                        ? Enumerable.Range(0, count).OrderBy(_ => random.Next()).Take(n).ToArray()
+                        : Enumerable.Range(0, count).ToArray();
+                    bool held = games % holdBackEvery == 0;
+                    used++;
+                    heldGames += held ? 1 : 0;
+                    gamesBySpeed[speed] = gamesBySpeed.GetValueOrDefault(speed) + 1;
+                    positionsBySpeed[speed] = positionsBySpeed.GetValueOrDefault(speed) + chosen.Length;
+                    foreach (int i in chosen)
+                    {
+                        var record = found.AsSpan(i * NnueRecord.Size, NnueRecord.Size);
+                        if (held)
+                        {
+                            heldBack.Write(record);
+                            heldPositions++;
+                        }
+                        else
+                        {
+                            int b = random.Next(bucketCount);
+                            buckets[b].Write(record);
+                            bucketCounts[b]++;
+                        }
+                        positions++;
+                        if ((record[NnueRecord.FlagsOffset] & NnueRecord.MateFlag) != 0)
+                            mates++;
+                        else
+                        {
+                            numeric++;
+                            if (Math.Abs(System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(record[NnueRecord.ScoreOffset..])) == NnueRecord.MaxScore)
+                                clamped++;   // (or truly 31999, which Lichess never gives)
+                        }
+                    }
+                }
+                sources.Add((Path.GetFullPath(file), new FileInfo(file).Length, games - gamesBefore));
+            }
+        }
+        finally
+        {
+            foreach (var stream in buckets.Append(heldBack))
+                stream.Dispose();
+        }
+
+        using (var stream = File.Create(json))
+        using (var w = new System.Text.Json.Utf8JsonWriter(stream, new System.Text.Json.JsonWriterOptions { Indented = true }))
+        {
+            w.WriteStartObject();
+            w.WriteString("format", "ChessBruteforcer NNUE records, version 1: see src/ChessBruteforcer.Core/Records/NnueRecord.cs and scripts/nnue/records.py");
+            w.WriteNumber("record_bytes", NnueRecord.Size);
+            w.WriteString("layout", "occupancy u64 at 0 (a1 = bit 0); 32 pieces as 4-bit codes in square order at 8 (low half first); " +
+                                    "flags u8 at 24 (1 black to move, 2 mate); result u8 at 25 (white: 0 lost, 1 drawn, 2 won); " +
+                                    "white's score i16 at 26 (centipawns, mates +-32000, others held to +-31999); game number u32 at 28");
+            w.WriteString("piece_codes", "colour x 8 + type: white pawn 1, knight 2, bishop 3, rook 4, queen 5, king 6; black 9 to 14");
+            w.WriteString("created", DateTime.Now.ToString("s", CultureInfo.InvariantCulture));
+            w.WriteString("command", string.Join(' ', new[] { "nnue", "data", outDir }.Concat(args)));
+            w.WriteStartArray("sources");
+            foreach (var (path, bytes, count) in sources)
+            {
+                w.WriteStartObject();
+                w.WriteString("path", path);
+                w.WriteNumber("bytes", bytes);
+                w.WriteNumber("games", count);
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+            w.WriteString("games", "rated (Event says Rated, or a Lichess Swiss game), from the standard start, analysed (an Evals tag), both ratings given, a result; numbered from 1 over all the sources in order");
+            w.WriteString("rule", QuietPositions.Rule);
+            w.WriteString("score", "Lichess's Stockfish analysis after the move before, for white; quiet positions without one are left out");
+            if (speeds is null)
+                w.WriteString("speeds", "all");
+            else
+            {
+                w.WriteStartArray("speeds");
+                foreach (string s in speeds)
+                    w.WriteStringValue(s);
+                w.WriteEndArray();
+            }
+            if (perGame is { } p)
+                w.WriteNumber("per_game", p);
+            else
+                w.WriteString("per_game", "all");
+            w.WriteNumber("seed", seed);
+            w.WriteNumber("buckets", bucketCount);
+            w.WriteStartArray("bucket_files");
+            foreach (string name in names)
+                w.WriteStringValue(name);
+            w.WriteEndArray();
+            w.WriteStartArray("bucket_counts");
+            foreach (long c in bucketCounts)
+                w.WriteNumberValue(c);
+            w.WriteEndArray();
+            w.WriteStartObject("held_back");
+            w.WriteString("rule", $"game number % {holdBackEvery} == 0, every position of the game");
+            w.WriteNumber("every", holdBackEvery);
+            w.WriteString("file", heldName);
+            w.WriteNumber("games", heldGames);
+            w.WriteNumber("positions", heldPositions);
+            w.WriteNumber("share", positions == 0 ? 0 : (double)heldPositions / positions);
+            w.WriteEndObject();
+            w.WriteStartObject("counts");
+            w.WriteNumber("games_read", games);
+            w.WriteNumber("games_used", used);
+            w.WriteNumber("positions", positions);
+            w.WriteNumber("training", positions - heldPositions);
+            w.WriteNumber("held_back", heldPositions);
+            w.WriteNumber("numeric", numeric);
+            w.WriteNumber("mate", mates);
+            w.WriteNumber("clamped", clamped);
+            w.WriteNumber("quiet_without_score", unscored);
+            foreach (var (name, table) in new[] { ("games_left_out", skipped), ("games_by_speed", gamesBySpeed), ("positions_by_speed", positionsBySpeed) })
+            {
+                w.WriteStartObject(name);
+                foreach (var (key, value) in table)
+                    w.WriteNumber(key, value);
+                w.WriteEndObject();
+            }
+            w.WriteEndObject();
+            w.WriteNumber("seconds", Math.Round(watch.Elapsed.TotalSeconds, 1));
+            w.WriteEndObject();
+        }
+
+        Console.WriteLine($"{games:N0} games read in {watch.Elapsed.TotalSeconds:0}s; {used:N0} used; {positions:N0} positions " +
+                          $"({numeric:N0} scored in centipawns, {clamped:N0} of them held to +-{NnueRecord.MaxScore}; {mates:N0} mates); " +
+                          $"{positions - heldPositions:N0} in {bucketCount} buckets, {heldPositions:N0} held back ({heldGames:N0} games); " +
+                          $"{(positions * NnueRecord.Size) / 1e9:0.00} GB in {outDir}");
+        foreach (var (why, count) in skipped)
+            Console.WriteLine($"  left out, {why}: {count:N0} games");
+        return 0;
+    }
+
+    /// <summary>The first records of a file `nnue data` wrote: FEN, white's score, mate (1/0), the result for white (0-2), the game number.</summary>
+    private static int NnueShow(string file, long count)
+    {
+        using var stream = new BufferedStream(File.OpenRead(file));
+        if (stream.Length % NnueRecord.Size != 0)
+            throw new InvalidDataException($"{file} is {stream.Length:N0} bytes, not a whole number of {NnueRecord.Size}-byte records.");
+        var record = new byte[NnueRecord.Size];
+        for (long i = 0; i < count && stream.ReadAtLeast(record, NnueRecord.Size, throwOnEndOfStream: false) == NnueRecord.Size; i++)
+        {
+            var r = NnueRecord.Read(record);
+            Console.WriteLine($"{NnueRecord.ToFen(record)}\t{r.WhiteScore}\t{(r.Mate ? 1 : 0)}\t{r.Result}\t{r.Game}");
+        }
         return 0;
     }
 

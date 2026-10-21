@@ -1,0 +1,90 @@
+NNUE cost probe and data counts, 2026-10-16 (for NNUE.md). The laptop (i9-11900H), one thread, the bot
+playing an 8-thread game alongside the whole time; arms interleaved, order rotated each round.
+
+=== bench.cs 7 1 (built-in numbers) ===
+Avx2 True  Avx512BW True  Vector512 accel True  runtime 8.0.31
+depth 7, 1 rounds; nodes 934,689 (same tree every arm: True); evaluations 629,771 = 0.67 a node
+arm                        median s   best s    knps  extra ns/eval  updates/node  refresh/node
+A  today's eval               0.800    0.800    1168            0.0          0.00         0.000
+B  eval twice                 0.843    0.843    1108           68.1          0.00         0.000
+C  +768x128x2                 0.875    0.875    1068          118.8         14.67         0.000
+C  +768x256x2                 0.918    0.918    1018          187.3         14.67         0.000
+C  +768x512x2                 1.192    1.192     784          621.6         14.67         0.000
+D  +HalfKP 256x2-32-32        1.626    1.626     575         1310.6         11.23         0.154
+today's evaluation: 5.4% of search time, 68.1 ns each
++768x128x2             in place of today's:   1123 knps (-4% speed)
++768x256x2             in place of today's:   1068 knps (-9% speed)
++768x512x2             in place of today's:    813 knps (-30% speed)
++HalfKP 256x2-32-32    in place of today's:    590 knps (-49% speed)
+
+=== bench.cs 9 5 bot\eval\eval-sf1.txt ===
+Avx2 True  Avx512BW True  Vector512 accel True  runtime 8.0.31
+round 1 A  today's eval            3.470s
+round 1 B  eval twice              3.844s
+round 1 C  +768x128x2              4.260s
+round 1 C  +768x256x2              4.629s
+round 1 C  +768x512x2              5.853s
+round 1 D  +HalfKP 256x2-32-32     8.317s
+round 2 B  eval twice              3.756s
+round 2 C  +768x128x2              4.329s
+round 2 C  +768x256x2              4.609s
+round 2 C  +768x512x2              5.787s
+round 2 D  +HalfKP 256x2-32-32     8.186s
+round 2 A  today's eval            3.485s
+round 3 C  +768x128x2              4.334s
+round 3 C  +768x256x2              4.613s
+round 3 C  +768x512x2              5.794s
+round 3 D  +HalfKP 256x2-32-32     7.996s
+round 3 A  today's eval            3.428s
+round 3 B  eval twice              3.800s
+round 4 C  +768x256x2              4.771s
+round 4 C  +768x512x2              5.345s
+round 4 D  +HalfKP 256x2-32-32     8.064s
+round 4 A  today's eval            3.474s
+round 4 B  eval twice              3.842s
+round 4 C  +768x128x2              4.122s
+round 5 C  +768x512x2              5.752s
+round 5 D  +HalfKP 256x2-32-32     8.085s
+round 5 A  today's eval            3.326s
+round 5 B  eval twice              3.868s
+round 5 C  +768x128x2              4.303s
+round 5 C  +768x256x2              4.533s
+depth 9, 5 rounds; nodes 4,767,261 (same tree every arm: True); evaluations 3,103,771 = 0.65 a node
+arm                        median s   best s    knps  extra ns/eval  updates/node  refresh/node
+A  today's eval               3.470    3.326    1374            0.0          0.00         0.000
+B  eval twice                 3.842    3.756    1241          119.8          0.00         0.000
+C  +768x128x2                 4.303    4.122    1108          268.4         13.19         0.000
+C  +768x256x2                 4.613    4.533    1034          368.2         13.19         0.000
+C  +768x512x2                 5.787    5.345     824          746.7         13.19         0.000
+D  +HalfKP 256x2-32-32        8.085    7.996     590         1486.8         10.22         0.138
+today's evaluation: 10.7% of search time, 119.8 ns each
++768x128x2             in place of today's:   1213 knps (-12% speed)
++768x256x2             in place of today's:   1124 knps (-18% speed)
++768x512x2             in place of today's:    880 knps (-36% speed)
++HalfKP 256x2-32-32    in place of today's:    618 knps (-55% speed)
+
+Upper bounds: the probe updates accumulators on unmake as well as make (a real engine pops a stack), goes
+through a hook on every board change, and sums HalfKP's 512 -> 32 layer one output at a time.
+
+=== count.cs games\tune\eval-games-2026-09.cbg 100000 (26 s) ===
+100,000 analysed games (77,797 blitz or slower), 6,570,901 plies = 65.7 a game
+positions with a numeric eval        6,133,708    61.3 a game
+  with a mate score instead            337,145     3.4 a game
+  after move 8, not in check         4,286,605    42.9 a game
+  the tuner's quiet rule             2,523,305    25.2 a game
+  quiet rule, blitz or slower        2,010,577    25.8 a slow game
+  5 pieces or fewer (tables)            35,926
+
+=== july.py over games\index\2026-07\parquet (flags bit 0 = has [%eval]) ===
+games                            89,288,421
+analysed                          9,005,321
+analysed plies                  595,554,594
+analysed, blitz or slower         7,065,134
+analysed, both 2000+              1,430,570
+analysed, a BOT playing              15,396
+
+=== PyTorch for this machine (index pages and a HEAD request; nothing downloaded) ===
+download.pytorch.org/whl/cu132/torch-2.14.1%2Bcu132-cp314-cp314-win_amd64.whl
+HTTP/1.1 200 OK, Content-Length: 2001146779, Last-Modified: Wed, 30 Sep 2026 21:16:10 GMT
+(cu128 tops out at 2.11.0 for cp314; cu130 and cu132 at 2.14.1.) nvidia-smi: RTX 3070 Laptop GPU,
+8192 MiB, compute capability 8.6, driver 595.79, CUDA 13.2.

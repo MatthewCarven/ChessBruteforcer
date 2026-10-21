@@ -1,0 +1,246 @@
+{
+ "hits": [
+  {
+   "A": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 c1g5 d5e4 c3e4 b8d7 g1f3 f8e7 e4f6 e7f6 g5f6 d7f6 f1d3 e8g8 e1g1 b7b6 f3e5 c8b7",
+   "P": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 c1g5 d5e4 c3e4 b8d7 g1f3 f8e7 e4f6 e7f6 g5f6 d7f6 f1d3 e8g8 e1g1 b7b6 f3e5 c8b7 f1e1 d8d5",
+   "clockP": "wtime 189148 btime 180800 winc 2000 binc 2000",
+   "bot_ponder_ms": 12232,
+   "bot_depth": 16,
+   "pieces": 26
+  },
+  {
+   "A": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 f8b4 e4e5 c7c5 a2a3 b4c3 b2c3 g8e7 h2h4 d8c7 h4h5 h7h6 a1b1 b7b6 d1g4 c5d4 g4g7 h8g8 g7h6 c7e5 g1e2 d4c3 h6f4",
+   "P": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 f8b4 e4e5 c7c5 a2a3 b4c3 b2c3 g8e7 h2h4 d8c7 h4h5 h7h6 a1b1 b7b6 d1g4 c5d4 g4g7 h8g8 g7h6 c7e5 g1e2 d4c3 h6f4 e5f4 c1f4",
+   "clockP": "wtime 192330 btime 184662 winc 3000 binc 3000",
+   "bot_ponder_ms": 6845,
+   "bot_depth": 15,
+   "pieces": 23
+  },
+  {
+   "A": "position startpos moves d2d4 d7d5 e2e4 d5e4 b1c3 g8f6 c1g5 c8f5 f2f3 b8d7 f1c4 e4f3 d1f3 f5c2 a1c1 c2g6 f3b7 e7e6 c4b5 a8b8 b7a7 f8d6 g5f6 g7f6 a7a4 e8g8 b5d7 b8b4 a4c6 d8e7 g1e2 f8d8 b2b3 e7d7 c6d7 d8d7 h1f1 g8g7 f1f3 c7c5 d4c5 d6c5 c1d1 b4b7 f3f4 d7d1 c3d1 c5b4 e1f2 g6d3 f4g4 g7h8 d1b2 d3a6 b2c4 f6f5 g4f4 b4e7 f2e1 b7a7 a2a4 a7b7 f4f3 b7d7 e2f4 h8g7 f4d3 d7c7 f3f2 c7b7 f2b2 e7f6 d3c5 a6c4 c5b7 c4d5",
+   "P": "position startpos moves d2d4 d7d5 e2e4 d5e4 b1c3 g8f6 c1g5 c8f5 f2f3 b8d7 f1c4 e4f3 d1f3 f5c2 a1c1 c2g6 f3b7 e7e6 c4b5 a8b8 b7a7 f8d6 g5f6 g7f6 a7a4 e8g8 b5d7 b8b4 a4c6 d8e7 g1e2 f8d8 b2b3 e7d7 c6d7 d8d7 h1f1 g8g7 f1f3 c7c5 d4c5 d6c5 c1d1 b4b7 f3f4 d7d1 c3d1 c5b4 e1f2 g6d3 f4g4 g7h8 d1b2 d3a6 b2c4 f6f5 g4f4 b4e7 f2e1 b7a7 a2a4 a7b7 f4f3 b7d7 e2f4 h8g7 f4d3 d7c7 f3f2 c7b7 f2b2 e7f6 d3c5 a6c4 c5b7 c4d5 b2c2 d5b7",
+   "clockP": "wtime 752909 btime 370790 winc 5000 binc 5000",
+   "bot_ponder_ms": 18767,
+   "bot_depth": 17,
+   "pieces": 13
+  },
+  {
+   "A": "position startpos moves e2e4 g7g6 d2d4 f8g7 g1f3 d7d6 f1d3 g8f6 e1g1 e8g8 f1e1 c7c5 c2c3 c5d4 c3d4 b8c6 h2h3 e7e5 d4d5 c6d4 f3d4 e5d4 b1a3 f6d7 d3f1 d7e5 a3b5 d4d3 f1d3 f7f5 d3f1 f5f4 b5d4 d8h4 a2a4 c8g4 d1d2 g4d7 a1a3 a8e8 a4a5 g6g5 d2b4 g5g4 c1f4 f8f4 g2g3 h4f6 g3f4 f6f4 b4b3 g8h8 b3g3 f4h6 f1b5 d7b5 d4b5 e8g8 h3g4 g7f6 g1f1 f6h4 g4g5 h6h5 g3h3 h5g5 h3f5 g5g1 f1e2 g1g7 a3c3 g8f8 c3c8 h4d8 e1g1 g7e7 f5h3 e5f3 g1g4 e7f6 e2d1 f6b2 h3f3 b2b1 d1e2 b1b5 f3d3 b5b2 c8c2 b2f6 d3c3 f6c3 c2c3 d8a5 c3b3",
+   "P": "position startpos moves e2e4 g7g6 d2d4 f8g7 g1f3 d7d6 f1d3 g8f6 e1g1 e8g8 f1e1 c7c5 c2c3 c5d4 c3d4 b8c6 h2h3 e7e5 d4d5 c6d4 f3d4 e5d4 b1a3 f6d7 d3f1 d7e5 a3b5 d4d3 f1d3 f7f5 d3f1 f5f4 b5d4 d8h4 a2a4 c8g4 d1d2 g4d7 a1a3 a8e8 a4a5 g6g5 d2b4 g5g4 c1f4 f8f4 g2g3 h4f6 g3f4 f6f4 b4b3 g8h8 b3g3 f4h6 f1b5 d7b5 d4b5 e8g8 h3g4 g7f6 g1f1 f6h4 g4g5 h6h5 g3h3 h5g5 h3f5 g5g1 f1e2 g1g7 a3c3 g8f8 c3c8 h4d8 e1g1 g7e7 f5h3 e5f3 g1g4 e7f6 e2d1 f6b2 h3f3 b2b1 d1e2 b1b5 f3d3 b5b2 c8c2 b2f6 d3c3 f6c3 c2c3 d8a5 c3b3 a5b6 f2f4",
+   "clockP": "wtime 79830 btime 134048 winc 3000 binc 3000",
+   "bot_ponder_ms": 4664,
+   "bot_depth": 16,
+   "pieces": 13
+  },
+  {
+   "A": "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 d7d6 a2a3 g8f6 d2d3 c8d7 e1g1 g7g6 f1e1 b7b5 a4b3 f8g7 c2c3 h7h6 c1e3 f6g4 e3d2 g4f6 h2h3 e8g8 d2e3 c6e7 b1d2 c7c5 d3d4 d8c7 d4c5 d6c5 c3c4 f8b8 d1c1 b5b4 b3c2 d7e6 a3b4 c5b4 c2a4 e6d7 c4c5 a6a5 c1c2 d7a4 a1a4 e7c6 d2c4 f6d7 c4b6 d7b6 c5b6 c7d6 e3c5 d6d7 e1a1 b8d8 h3h4 a8b8 c2c4 h6h5 g2g3 g7f8 c5e3 d7b7 g1g2 b8c8 c4e2 c6d4 e3d4 e5d4 a4a5 b7b6 e2d3 b6c6 f3e5 c6f6 e5c4 b4b3 a5a6 c8c6 c4d2 f6e6 a1a4 e6c8 a6a7 c6c7 d2f3 c7a7 a4a7 d8d7 a7d7 c8d7 d3b3 d4d3 f3e5 d7e7 b3d5 d3d2 e5f3 d2d1n d5d1",
+   "P": "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 d7d6 a2a3 g8f6 d2d3 c8d7 e1g1 g7g6 f1e1 b7b5 a4b3 f8g7 c2c3 h7h6 c1e3 f6g4 e3d2 g4f6 h2h3 e8g8 d2e3 c6e7 b1d2 c7c5 d3d4 d8c7 d4c5 d6c5 c3c4 f8b8 d1c1 b5b4 b3c2 d7e6 a3b4 c5b4 c2a4 e6d7 c4c5 a6a5 c1c2 d7a4 a1a4 e7c6 d2c4 f6d7 c4b6 d7b6 c5b6 c7d6 e3c5 d6d7 e1a1 b8d8 h3h4 a8b8 c2c4 h6h5 g2g3 g7f8 c5e3 d7b7 g1g2 b8c8 c4e2 c6d4 e3d4 e5d4 a4a5 b7b6 e2d3 b6c6 f3e5 c6f6 e5c4 b4b3 a5a6 c8c6 c4d2 f6e6 a1a4 e6c8 a6a7 c6c7 d2f3 c7a7 a4a7 d8d7 a7d7 c8d7 d3b3 d4d3 f3e5 d7e7 b3d5 d3d2 e5f3 d2d1n d5d1 e7e4 b2b3",
+   "clockP": "wtime 56140 btime 80930 winc 3000 binc 3000",
+   "bot_ponder_ms": 391,
+   "bot_depth": 15,
+   "pieces": 13
+  },
+  {
+   "A": "position startpos moves e2e4 c7c6 d2d4 d7d5 b1d2 d5e4 d2e4 c8f5 e4g3 f5g6 g1f3 e7e6 c2c3 g8f6 f3h4 d8c7 c1g5 f8d6 f1e2 b8d7 e1g1 e8g8 h4g6 h7g6 d1d2 f6h7 g5e3 f7f5 f2f4 h7f6 a1d1 b7b5 d2c1 f6d5 e3d2 a8c8 b2b3 c7b6 c3c4 c6c5 c4d5 c5d4 c1b1 d4d3 g1h1 d3e2 g3e2 e6d5 b1d3 b6b7 e2c3 d7f6 c3b5 d6b8 d2e3 f8d8 b5d4 f6e4 d1c1 c8c1 e3c1 d8c8 c1b2 a7a5 a2a4 b8a7 h2h3 g8h7 h1h2 a7b8 h2g1 b8d6 d4b5 d6e7 b2d4 e7h4 b5a7 e4c5 d4c5 c8c5 a7b5 b7e7 d3d2 e7e4 b5d6 e4e6 d6b5 h4f6 g1h2 e6e4 b5d6 e4e7 d6b5 d5d4 f1f3 c5c6 f3d3 e7e4 h3h4 f6h4 b5d4 c6d6 d3h3 g6g5 d4f3 d6d2 f3g5",
+   "P": "position startpos moves e2e4 c7c6 d2d4 d7d5 b1d2 d5e4 d2e4 c8f5 e4g3 f5g6 g1f3 e7e6 c2c3 g8f6 f3h4 d8c7 c1g5 f8d6 f1e2 b8d7 e1g1 e8g8 h4g6 h7g6 d1d2 f6h7 g5e3 f7f5 f2f4 h7f6 a1d1 b7b5 d2c1 f6d5 e3d2 a8c8 b2b3 c7b6 c3c4 c6c5 c4d5 c5d4 c1b1 d4d3 g1h1 d3e2 g3e2 e6d5 b1d3 b6b7 e2c3 d7f6 c3b5 d6b8 d2e3 f8d8 b5d4 f6e4 d1c1 c8c1 e3c1 d8c8 c1b2 a7a5 a2a4 b8a7 h2h3 g8h7 h1h2 a7b8 h2g1 b8d6 d4b5 d6e7 b2d4 e7h4 b5a7 e4c5 d4c5 c8c5 a7b5 b7e7 d3d2 e7e4 b5d6 e4e6 d6b5 h4f6 g1h2 e6e4 b5d6 e4e7 d6b5 d5d4 f1f3 c5c6 f3d3 e7e4 h3h4 f6h4 b5d4 c6d6 d3h3 g6g5 d4f3 d6d2 f3g5 h7g6 g5e4",
+   "clockP": "wtime 11250 btime 70801 winc 2000 binc 2000",
+   "bot_ponder_ms": 4109,
+   "bot_depth": 18,
+   "pieces": 13
+  },
+  {
+   "A": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 e4e5 f6d7 f2f4 c7c5 g1f3 b8c6 c1e3 a7a6 c3e2 d8b6 d1c1 f8e7 c2c3 f7f6 h2h4 e8g8 h4h5 a6a5 h5h6 g7g6 e1f2 f6e5 f4e5 c6e5 d4e5 d7e5 f2g1 e5g4 c3c4 g4e3 c1e3 e7d6 c4d5 e6d5 h1h4 c8d7 e2c3 d5d4 e3e1 a8e8 e1d2 f8f3 g2f3 d4c3",
+   "P": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 e4e5 f6d7 f2f4 c7c5 g1f3 b8c6 c1e3 a7a6 c3e2 d8b6 d1c1 f8e7 c2c3 f7f6 h2h4 e8g8 h4h5 a6a5 h5h6 g7g6 e1f2 f6e5 f4e5 c6e5 d4e5 d7e5 f2g1 e5g4 c3c4 g4e3 c1e3 e7d6 c4d5 e6d5 h1h4 c8d7 e2c3 d5d4 e3e1 a8e8 e1d2 f8f3 g2f3 d4c3 b2c3 d7f5",
+   "clockP": "wtime 125751 btime 81980 winc 0 binc 0",
+   "bot_ponder_ms": 2941,
+   "bot_depth": 12,
+   "pieces": 19
+  },
+  {
+   "A": "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 e1g1 f6e4 f1e1 e4d6 f3e5 c6e5 e1e5 f8e7 b5f1 e8g8 d2d4 e7f6 e5e1 f8e8 c2c3 e8e1 d1e1 b7b6 c1f4 c8b7 f4d6 c7d6 b1a3 d6d5 g2g3 d8f8 a3c2 a8e8 e1d2 b7c6 b2b4 c6b7 h2h4 g7g6 a2a4 f8d6 a4a5 b6a5",
+   "P": "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 g8f6 e1g1 f6e4 f1e1 e4d6 f3e5 c6e5 e1e5 f8e7 b5f1 e8g8 d2d4 e7f6 e5e1 f8e8 c2c3 e8e1 d1e1 b7b6 c1f4 c8b7 f4d6 c7d6 b1a3 d6d5 g2g3 d8f8 a3c2 a8e8 e1d2 b7c6 b2b4 c6b7 h2h4 g7g6 a2a4 f8d6 a4a5 b6a5 a1a5 a7a6",
+   "clockP": "wtime 141721 btime 119010 winc 2000 binc 2000",
+   "bot_ponder_ms": 2424,
+   "bot_depth": 14,
+   "pieces": 22
+  },
+  {
+   "A": "position startpos moves d2d4 g8f6 c2c4 e7e6 b1c3 f8b4 c1g5 h7h6 g5f6 b4c3 b2c3 d8f6 g1f3 d7d6 e2e3 b7b6 f1d3 c8b7 e1g1 b8d7 d1e2 e6e5 f3d2 f6e6 d3c2 f7f5 f2f4 e5d4 c3d4 e8c8",
+   "P": "position startpos moves d2d4 g8f6 c2c4 e7e6 b1c3 f8b4 c1g5 h7h6 g5f6 b4c3 b2c3 d8f6 g1f3 d7d6 e2e3 b7b6 f1d3 c8b7 e1g1 b8d7 d1e2 e6e5 f3d2 f6e6 d3c2 f7f5 f2f4 e5d4 c3d4 e8c8 a2a4 a7a5",
+   "clockP": "wtime 24859 btime 43950 winc 1000 binc 1000",
+   "bot_ponder_ms": 13955,
+   "bot_depth": 13,
+   "pieces": 26
+  },
+  {
+   "A": "position startpos moves e2e4 c7c6 d2d4 d7d5 e4e5 c6c5 d4c5 e7e6 a2a3 b8c6 g1f3 f8c5 b2b4 c5b6 b4b5 c6a5 f1d3 g8e7 a3a4 b6c5 e1g1 c8d7 c1a3 c5a3 a1a3 h7h6 d1d2 b7b6 d2e3 a5b7 b1c3 e8g8 c3e2 b7c5 e2d4 a7a6 f1a1 c5d3 e3d3 e7g6 b5a6 d8c8 a4a5 a8a6 a5b6 a6b6 h2h4 g6e7 g2g4 e7c6 g4g5 h6h5 g5g6 f7g6 d3g6 c6d4 f3d4 c8b8 g6g5 b6b1 g1g2 b1a1 a3a1 b8b4 a1d1 f8f7 f2f3 b4c3 g5d2 c3c7 d2g5 c7c3 g2g1 f7f8 g1h2 f8f7 g5d2 c3c7 d2e3 c7d8 h2h3 d7e8 d1g1 d8e7 g1g3 f7f8 e3h6 f8f7 h6g5 e7c7 h3h2",
+   "P": "position startpos moves e2e4 c7c6 d2d4 d7d5 e4e5 c6c5 d4c5 e7e6 a2a3 b8c6 g1f3 f8c5 b2b4 c5b6 b4b5 c6a5 f1d3 g8e7 a3a4 b6c5 e1g1 c8d7 c1a3 c5a3 a1a3 h7h6 d1d2 b7b6 d2e3 a5b7 b1c3 e8g8 c3e2 b7c5 e2d4 a7a6 f1a1 c5d3 e3d3 e7g6 b5a6 d8c8 a4a5 a8a6 a5b6 a6b6 h2h4 g6e7 g2g4 e7c6 g4g5 h6h5 g5g6 f7g6 d3g6 c6d4 f3d4 c8b8 g6g5 b6b1 g1g2 b1a1 a3a1 b8b4 a1d1 f8f7 f2f3 b4c3 g5d2 c3c7 d2g5 c7c3 g2g1 f7f8 g1h2 f8f7 g5d2 c3c7 d2e3 c7d8 h2h3 d7e8 d1g1 d8e7 g1g3 f7f8 e3h6 f8f7 h6g5 e7c7 h3h2 c7b6 c2c3",
+   "clockP": "wtime 12740 btime 78140 winc 3000 binc 3000",
+   "bot_ponder_ms": 2817,
+   "bot_depth": 16,
+   "pieces": 16
+  },
+  {
+   "A": "position startpos moves c2c4 e7e5 b1c3 f8b4 g2g3 g8f6 f1g2 b4c3 b2c3 d7d6 g1f3 e8g8 e1g1 f8e8 d2d3 a7a5 e2e4 b8a6 c1e3 c8g4 h2h3 g4d7 f3h2 a6c5 f2f4 d7a4 d1e2 f6d7 h2g4 f7f6 f4f5 b7b5 c4b5 a4b5 g4f2 d8e7 f1b1 b5c6 g3g4 c5a4 e2d2 e8b8 c3c4 b8b4 b1b4 a5b4 d2b4 h7h6 g2f1 a4c5 f2d1 a8a6 d1c3 e7d8 g1h2 d8a8 a2a3 a6b6 c3b5 c6b5 c4b5 c7c6 b4c4 g8h7 b5c6 b6b2 h2g1 a8c6 a3a4 c6a8 c4c3 b2b3 c3c2 a8a5 c2c4 b3b2 c4f7 c5e4 f1g2 e4g5 f7d7 g5h3 g2h3 a5d5 a1f1 d5d3 d7a7 b2e2 f1f3 d3b1 h3f1 e5e4 f3h3 h7g8 e3h6 e2g2 g1g2 b1c2 g2h1 g7h6 h3h6 d6d5",
+   "P": "position startpos moves c2c4 e7e5 b1c3 f8b4 g2g3 g8f6 f1g2 b4c3 b2c3 d7d6 g1f3 e8g8 e1g1 f8e8 d2d3 a7a5 e2e4 b8a6 c1e3 c8g4 h2h3 g4d7 f3h2 a6c5 f2f4 d7a4 d1e2 f6d7 h2g4 f7f6 f4f5 b7b5 c4b5 a4b5 g4f2 d8e7 f1b1 b5c6 g3g4 c5a4 e2d2 e8b8 c3c4 b8b4 b1b4 a5b4 d2b4 h7h6 g2f1 a4c5 f2d1 a8a6 d1c3 e7d8 g1h2 d8a8 a2a3 a6b6 c3b5 c6b5 c4b5 c7c6 b4c4 g8h7 b5c6 b6b2 h2g1 a8c6 a3a4 c6a8 c4c3 b2b3 c3c2 a8a5 c2c4 b3b2 c4f7 c5e4 f1g2 e4g5 f7d7 g5h3 g2h3 a5d5 a1f1 d5d3 d7a7 b2e2 f1f3 d3b1 h3f1 e5e4 f3h3 h7g8 e3h6 e2g2 g1g2 b1c2 g2h1 g7h6 h3h6 d6d5 h6h7 c2c7",
+   "clockP": "wtime 64330 btime 8540 winc 1000 binc 1000",
+   "bot_ponder_ms": 366,
+   "bot_depth": 9,
+   "pieces": 12
+  },
+  {
+   "A": "position startpos moves e2e4 c7c5 g1f3 b8c6 f1b5 c6d4 f3d4 c5d4 c2c3 d4c3 b1c3 g7g6 d2d4 a7a6 d1a4 f8g7 b5e2 b7b6 e1g1 c8b7 d4d5 g8f6 c1e3 b6b5 a4b3 e8g8 a2a4 d8b8 a4b5 a6b5 b3b5 h7h5 h2h3 e7e6 f1d1",
+   "P": "position startpos moves e2e4 c7c5 g1f3 b8c6 f1b5 c6d4 f3d4 c5d4 c2c3 d4c3 b1c3 g7g6 d2d4 a7a6 d1a4 f8g7 b5e2 b7b6 e1g1 c8b7 d4d5 g8f6 c1e3 b6b5 a4b3 e8g8 a2a4 d8b8 a4b5 a6b5 b3b5 h7h5 h2h3 e7e6 f1d1 g8h7 e2f3",
+   "clockP": "wtime 190570 btime 227997 winc 2000 binc 2000",
+   "bot_ponder_ms": 10047,
+   "bot_depth": 14,
+   "pieces": 25
+  }
+ ],
+ "misses": [
+  {
+   "A": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 c1g5 d5e4 c3e4 b8d7 g1f3 f8e7 e4f6 e7f6 g5f6 d7f6 f1d3 e8g8 e1g1 b7b6 f3e5 c8b7 f1e1 d8d5 d3f1 c7c5 d4c5 d5c5",
+   "P": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 c1g5 d5e4 c3e4 b8d7 g1f3 f8e7 e4f6 e7f6 g5f6 d7f6 f1d3 e8g8 e1g1 b7b6 f3e5 c8b7 f1e1 d8d5 d3f1 c7c5 d4c5 d5c5 d1e2 f8d8",
+   "clockP": "wtime 179824 btime 157080 winc 2000 binc 2000",
+   "bot_ponder_ms": 15787,
+   "bot_depth": 14,
+   "pieces": 24,
+   "B": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 c1g5 d5e4 c3e4 b8d7 g1f3 f8e7 e4f6 e7f6 g5f6 d7f6 f1d3 e8g8 e1g1 b7b6 f3e5 c8b7 f1e1 d8d5 d3f1 c7c5 d4c5 d5c5 d1e2 a8c8",
+   "clockB": "wtime 179489 btime 141620 winc 2000 binc 2000",
+   "actual": "a8c8",
+   "predicted": "f8d8"
+  },
+  {
+   "A": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 f8b4 e4e5 c7c5 a2a3 b4c3 b2c3 g8e7 h2h4 d8c7 h4h5 h7h6 a1b1 b7b6 d1g4 c5d4 g4g7 h8g8 g7h6 c7e5 g1e2 d4c3 h6f4 e5f4 c1f4 b8c6 e2c3 e6e5 c3b5 e8d7 f4d2 a7a6 b5c3 d7c7 f2f3 c8f5 b1b2 f5h7 e1f2 f7f5 g2g3 d5d4 c3a2 e7d5 f1c4 a8d8 c2c3 f5f4 g3f4 e5e4 c3d4 e4e3 d2e3 g8g2 f2g2 d5e3 g2g1 e3c4 b2g2 c6d4 g2g7",
+   "P": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 f8b4 e4e5 c7c5 a2a3 b4c3 b2c3 g8e7 h2h4 d8c7 h4h5 h7h6 a1b1 b7b6 d1g4 c5d4 g4g7 h8g8 g7h6 c7e5 g1e2 d4c3 h6f4 e5f4 c1f4 b8c6 e2c3 e6e5 c3b5 e8d7 f4d2 a7a6 b5c3 d7c7 f2f3 c8f5 b1b2 f5h7 e1f2 f7f5 g2g3 d5d4 c3a2 e7d5 f1c4 a8d8 c2c3 f5f4 g3f4 e5e4 c3d4 e4e3 d2e3 g8g2 f2g2 d5e3 g2g1 e3c4 b2g2 c6d4 g2g7 d8d7 h5h6",
+   "clockP": "wtime 101960 btime 141523 winc 3000 binc 3000",
+   "bot_ponder_ms": 7929,
+   "bot_depth": 15,
+   "pieces": 15,
+   "B": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 f8b4 e4e5 c7c5 a2a3 b4c3 b2c3 g8e7 h2h4 d8c7 h4h5 h7h6 a1b1 b7b6 d1g4 c5d4 g4g7 h8g8 g7h6 c7e5 g1e2 d4c3 h6f4 e5f4 c1f4 b8c6 e2c3 e6e5 c3b5 e8d7 f4d2 a7a6 b5c3 d7c7 f2f3 c8f5 b1b2 f5h7 e1f2 f7f5 g2g3 d5d4 c3a2 e7d5 f1c4 a8d8 c2c3 f5f4 g3f4 e5e4 c3d4 e4e3 d2e3 g8g2 f2g2 d5e3 g2g1 e3c4 b2g2 c6d4 g2g7 d8d7 g7d7",
+   "clockB": "wtime 94360 btime 141199 winc 3000 binc 3000",
+   "actual": "g7d7",
+   "predicted": "h5h6"
+  },
+  {
+   "A": "position startpos moves e2e4 c7c5 g1f3 d7d6 f1b5 c8d7 b5d7 b8d7 b1c3 g8f6 h2h3 e7e6 d2d3 f8e7 e1g1 e8g8 b2b3 d7b8 c1b2 b8c6 d1d2 d8a5 a1d1 f8d8 a2a4 a8c8 d1e1 a7a6 e4e5 f6e8 e5d6 e7d6 d2d1 a5c7 c3e4 d6e7 d1a1 b7b5 b2c3 f7f6 a4b5 a6b5 a1a6 c8b8 a6a1 e6e5 a1b2 b5b4 c3d2 c7c8 e4g3 c8d7 e1a1",
+   "P": "position startpos moves e2e4 c7c5 g1f3 d7d6 f1b5 c8d7 b5d7 b8d7 b1c3 g8f6 h2h3 e7e6 d2d3 f8e7 e1g1 e8g8 b2b3 d7b8 c1b2 b8c6 d1d2 d8a5 a1d1 f8d8 a2a4 a8c8 d1e1 a7a6 e4e5 f6e8 e5d6 e7d6 d2d1 a5c7 c3e4 d6e7 d1a1 b7b5 b2c3 f7f6 a4b5 a6b5 a1a6 c8b8 a6a1 e6e5 a1b2 b5b4 c3d2 c7c8 e4g3 c8d7 e1a1 e7f8 b2c1",
+   "clockP": "wtime 994910 btime 889665 winc 1000 binc 1000",
+   "bot_ponder_ms": 41583,
+   "bot_depth": 16,
+   "pieces": 26,
+   "B": "position startpos moves e2e4 c7c5 g1f3 d7d6 f1b5 c8d7 b5d7 b8d7 b1c3 g8f6 h2h3 e7e6 d2d3 f8e7 e1g1 e8g8 b2b3 d7b8 c1b2 b8c6 d1d2 d8a5 a1d1 f8d8 a2a4 a8c8 d1e1 a7a6 e4e5 f6e8 e5d6 e7d6 d2d1 a5c7 c3e4 d6e7 d1a1 b7b5 b2c3 f7f6 a4b5 a6b5 a1a6 c8b8 a6a1 e6e5 a1b2 b5b4 c3d2 c7c8 e4g3 c8d7 e1a1 e7f8 d2e3",
+   "clockB": "wtime 954210 btime 888769 winc 1000 binc 1000",
+   "actual": "d2e3",
+   "predicted": "b2c1"
+  },
+  {
+   "A": "position startpos moves g1f3 d7d5 d2d3 g8f6 g2g3 e7e6 f1g2 f8e7 e1g1 e8g8 b1d2 c7c5 e2e4 b8c6 f1e1 h7h6 e4d5 e6d5 d3d4 d8b6 d2b3 c5c4 b3d2 f8e8 c2c3 c8f5 d2f1 a8d8 f3h4 f5h7 g2f3 b6a6 h4g2 b7b5 c1d2 f6e4 f1e3 e7g5 f3e4 e8e4 f2f4 g5f6 f4f5 c6d4 c3d4 f6d4 d1f3 d4c5 g1h1 e4e5 g2h4 d5d4 e3g4 e5e1 a1e1 c5f8 f5f6 g7g5 d2b4 d4d3 b4f8 g8f8 f3e3 a6e6 e3c5 e6d6 c5a7 d3d2 a7e7 d6e7 f6e7 f8g7 e1d1 d8e8",
+   "P": "position startpos moves g1f3 d7d5 d2d3 g8f6 g2g3 e7e6 f1g2 f8e7 e1g1 e8g8 b1d2 c7c5 e2e4 b8c6 f1e1 h7h6 e4d5 e6d5 d3d4 d8b6 d2b3 c5c4 b3d2 f8e8 c2c3 c8f5 d2f1 a8d8 f3h4 f5h7 g2f3 b6a6 h4g2 b7b5 c1d2 f6e4 f1e3 e7g5 f3e4 e8e4 f2f4 g5f6 f4f5 c6d4 c3d4 f6d4 d1f3 d4c5 g1h1 e4e5 g2h4 d5d4 e3g4 e5e1 a1e1 c5f8 f5f6 g7g5 d2b4 d4d3 b4f8 g8f8 f3e3 a6e6 e3c5 e6d6 c5a7 d3d2 a7e7 d6e7 f6e7 f8g7 e1d1 d8e8 h4g2 b5b4",
+   "clockP": "wtime 65709 btime 24280 winc 0 binc 0",
+   "bot_ponder_ms": 1728,
+   "bot_depth": 15,
+   "pieces": 18,
+   "B": "position startpos moves g1f3 d7d5 d2d3 g8f6 g2g3 e7e6 f1g2 f8e7 e1g1 e8g8 b1d2 c7c5 e2e4 b8c6 f1e1 h7h6 e4d5 e6d5 d3d4 d8b6 d2b3 c5c4 b3d2 f8e8 c2c3 c8f5 d2f1 a8d8 f3h4 f5h7 g2f3 b6a6 h4g2 b7b5 c1d2 f6e4 f1e3 e7g5 f3e4 e8e4 f2f4 g5f6 f4f5 c6d4 c3d4 f6d4 d1f3 d4c5 g1h1 e4e5 g2h4 d5d4 e3g4 e5e1 a1e1 c5f8 f5f6 g7g5 d2b4 d4d3 b4f8 g8f8 f3e3 a6e6 e3c5 e6d6 c5a7 d3d2 a7e7 d6e7 f6e7 f8g7 e1d1 d8e8 h4g2 e8e7",
+   "clockB": "wtime 65369 btime 22940 winc 0 binc 0",
+   "actual": "e8e7",
+   "predicted": "b5b4"
+  },
+  {
+   "A": "position startpos moves e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 c1e3 e7e5 d4b3 f8e7 f2f3 c8e6 d1d2 b8d7 g2g4 e8g8 e1c1 b7b5 g4g5 f6h5 c3d5 e6d5 e4d5 f7f6 g5f6 e7f6 c1b1",
+   "P": "position startpos moves e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 c1e3 e7e5 d4b3 f8e7 f2f3 c8e6 d1d2 b8d7 g2g4 e8g8 e1c1 b7b5 g4g5 f6h5 c3d5 e6d5 e4d5 f7f6 g5f6 e7f6 c1b1 d7b6 h1g1",
+   "clockP": "wtime 99870 btime 182978 winc 2000 binc 2000",
+   "bot_ponder_ms": 4480,
+   "bot_depth": 12,
+   "pieces": 26,
+   "B": "position startpos moves e2e4 c7c5 g1f3 d7d6 d2d4 c5d4 f3d4 g8f6 b1c3 a7a6 c1e3 e7e5 d4b3 f8e7 f2f3 c8e6 d1d2 b8d7 g2g4 e8g8 e1c1 b7b5 g4g5 f6h5 c3d5 e6d5 e4d5 f7f6 g5f6 e7f6 c1b1 d7b6 b3a5",
+   "clockB": "wtime 95780 btime 182569 winc 2000 binc 2000",
+   "actual": "b3a5",
+   "predicted": "h1g1"
+  },
+  {
+   "A": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 e4e5 f6d7 f2f4 c7c5 g1f3 b8c6 c1e3 a7a6 c3e2 d8b6 d1c1 f8e7 c2c3 f7f6 h2h4 e8g8 h4h5 a6a5 h5h6 g7g6 e1f2 f6e5 f4e5 c6e5 d4e5 d7e5 f2g1 e5g4",
+   "P": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 e4e5 f6d7 f2f4 c7c5 g1f3 b8c6 c1e3 a7a6 c3e2 d8b6 d1c1 f8e7 c2c3 f7f6 h2h4 e8g8 h4h5 a6a5 h5h6 g7g6 e1f2 f6e5 f4e5 c6e5 d4e5 d7e5 f2g1 e5g4 c3c4 e6e5",
+   "clockP": "wtime 147865 btime 106380 winc 0 binc 0",
+   "bot_ponder_ms": 4306,
+   "bot_depth": 13,
+   "pieces": 27,
+   "B": "position startpos moves e2e4 e7e6 d2d4 d7d5 b1c3 g8f6 e4e5 f6d7 f2f4 c7c5 g1f3 b8c6 c1e3 a7a6 c3e2 d8b6 d1c1 f8e7 c2c3 f7f6 h2h4 e8g8 h4h5 a6a5 h5h6 g7g6 e1f2 f6e5 f4e5 c6e5 d4e5 d7e5 f2g1 e5g4 c3c4 g4e3",
+   "clockB": "wtime 146969 btime 102960 winc 0 binc 0",
+   "actual": "g4e3",
+   "predicted": "e6e5"
+  },
+  {
+   "A": "position startpos moves e2e4 e7e6 g1f3 d7d5 b1c3 d5e4 c3e4 c7c5 f1b5 c8d7 d1e2 f8e7 b5d7 b8d7 b2b3 g8f6 c1b2 e8g8 e1g1 f6e4 e2e4 d8c7 f3e5 a8d8 e5d7 d8d7 d2d3 d7d5",
+   "P": "position startpos moves e2e4 e7e6 g1f3 d7d5 b1c3 d5e4 c3e4 c7c5 f1b5 c8d7 d1e2 f8e7 b5d7 b8d7 b2b3 g8f6 c1b2 e8g8 e1g1 f6e4 e2e4 d8c7 f3e5 a8d8 e5d7 d8d7 d2d3 d7d5 f1e1 h7h6",
+   "clockP": "wtime 263768 btime 223260 winc 3000 binc 3000",
+   "bot_ponder_ms": 10652,
+   "bot_depth": 13,
+   "pieces": 24,
+   "B": "position startpos moves e2e4 e7e6 g1f3 d7d5 b1c3 d5e4 c3e4 c7c5 f1b5 c8d7 d1e2 f8e7 b5d7 b8d7 b2b3 g8f6 c1b2 e8g8 e1g1 f6e4 e2e4 d8c7 f3e5 a8d8 e5d7 d8d7 d2d3 d7d5 f1e1 d5f5",
+   "clockB": "wtime 263439 btime 212940 winc 3000 binc 3000",
+   "actual": "d5f5",
+   "predicted": "h7h6"
+  },
+  {
+   "A": "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 d7d6 e1g1 c8d7 a4c6 d7c6 d2d4 c6e4 b1c3 e4f5 d4e5 d6e5 d1e2 f8d6 f3e5 g8e7 e5c4 e8g8 f1d1 b7b5 c4d6 c7d6 c1g5 f8e8 g5e7 e8e7 e2d2 f5e4 a2a4 b5b4 c3e4 e7e4 d1e1 e4c4 b2b3 c4c3 e1e4",
+   "P": "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 d7d6 e1g1 c8d7 a4c6 d7c6 d2d4 c6e4 b1c3 e4f5 d4e5 d6e5 d1e2 f8d6 f3e5 g8e7 e5c4 e8g8 f1d1 b7b5 c4d6 c7d6 c1g5 f8e8 g5e7 e8e7 e2d2 f5e4 a2a4 b5b4 c3e4 e7e4 d1e1 e4c4 b2b3 c4c3 e1e4 a8c8 a1e1",
+   "clockP": "wtime 65480 btime 41215 winc 1000 binc 1000",
+   "bot_ponder_ms": 3221,
+   "bot_depth": 13,
+   "pieces": 20,
+   "B": "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6 b5a4 d7d6 e1g1 c8d7 a4c6 d7c6 d2d4 c6e4 b1c3 e4f5 d4e5 d6e5 d1e2 f8d6 f3e5 g8e7 e5c4 e8g8 f1d1 b7b5 c4d6 c7d6 c1g5 f8e8 g5e7 e8e7 e2d2 f5e4 a2a4 b5b4 c3e4 e7e4 d1e1 e4c4 b2b3 c4c3 e1e4 a8c8 e4b4",
+   "clockB": "wtime 62680 btime 40779 winc 1000 binc 1000",
+   "actual": "e4b4",
+   "predicted": "a1e1"
+  },
+  {
+   "A": "position startpos moves e2e4 c7c6 d2d4 d7d5 e4e5 c6c5 d4c5 e7e6 a2a3 b8c6 g1f3 f8c5 b2b4 c5b6 b4b5 c6a5 f1d3 g8e7 a3a4 b6c5 e1g1 c8d7 c1a3 c5a3 a1a3 h7h6 d1d2 b7b6 d2e3 a5b7 b1c3 e8g8 c3e2 b7c5 e2d4 a7a6 f1a1 c5d3 e3d3 e7g6 b5a6 d8c8 a4a5 a8a6 a5b6 a6b6 h2h4 g6e7 g2g4 e7c6 g4g5 h6h5 g5g6 f7g6 d3g6 c6d4 f3d4 c8b8 g6g5 b6b1 g1g2 b1a1 a3a1 b8b4 a1d1 f8f7 f2f3 b4c3 g5d2 c3c7 d2g5 c7c3 g2g1 f7f8 g1h2",
+   "P": "position startpos moves e2e4 c7c6 d2d4 d7d5 e4e5 c6c5 d4c5 e7e6 a2a3 b8c6 g1f3 f8c5 b2b4 c5b6 b4b5 c6a5 f1d3 g8e7 a3a4 b6c5 e1g1 c8d7 c1a3 c5a3 a1a3 h7h6 d1d2 b7b6 d2e3 a5b7 b1c3 e8g8 c3e2 b7c5 e2d4 a7a6 f1a1 c5d3 e3d3 e7g6 b5a6 d8c8 a4a5 a8a6 a5b6 a6b6 h2h4 g6e7 g2g4 e7c6 g4g5 h6h5 g5g6 f7g6 d3g6 c6d4 f3d4 c8b8 g6g5 b6b1 g1g2 b1a1 a3a1 b8b4 a1d1 f8f7 f2f3 b4c3 g5d2 c3c7 d2g5 c7c3 g2g1 f7f8 g1h2 f8f7 h2g3",
+   "clockP": "wtime 15780 btime 95981 winc 3000 binc 3000",
+   "bot_ponder_ms": 3838,
+   "bot_depth": 15,
+   "pieces": 16,
+   "B": "position startpos moves e2e4 c7c6 d2d4 d7d5 e4e5 c6c5 d4c5 e7e6 a2a3 b8c6 g1f3 f8c5 b2b4 c5b6 b4b5 c6a5 f1d3 g8e7 a3a4 b6c5 e1g1 c8d7 c1a3 c5a3 a1a3 h7h6 d1d2 b7b6 d2e3 a5b7 b1c3 e8g8 c3e2 b7c5 e2d4 a7a6 f1a1 c5d3 e3d3 e7g6 b5a6 d8c8 a4a5 a8a6 a5b6 a6b6 h2h4 g6e7 g2g4 e7c6 g4g5 h6h5 g5g6 f7g6 d3g6 c6d4 f3d4 c8b8 g6g5 b6b1 g1g2 b1a1 a3a1 b8b4 a1d1 f8f7 f2f3 b4c3 g5d2 c3c7 d2g5 c7c3 g2g1 f7f8 g1h2 f8f7 g5d2",
+   "clockB": "wtime 12260 btime 95659 winc 3000 binc 3000",
+   "actual": "g5d2",
+   "predicted": "h2g3"
+  },
+  {
+   "A": "position startpos moves c2c4 e7e5 b1c3 f8b4 g2g3 g8f6 f1g2 b4c3 b2c3 d7d6 g1f3 e8g8 e1g1 f8e8 d2d3 a7a5 e2e4 b8a6 c1e3 c8g4 h2h3 g4d7",
+   "P": "position startpos moves c2c4 e7e5 b1c3 f8b4 g2g3 g8f6 f1g2 b4c3 b2c3 d7d6 g1f3 e8g8 e1g1 f8e8 d2d3 a7a5 e2e4 b8a6 c1e3 c8g4 h2h3 g4d7 f3h2 a8b8",
+   "clockP": "wtime 116865 btime 87460 winc 1000 binc 1000",
+   "bot_ponder_ms": 3807,
+   "bot_depth": 13,
+   "pieces": 30,
+   "B": "position startpos moves c2c4 e7e5 b1c3 f8b4 g2g3 g8f6 f1g2 b4c3 b2c3 d7d6 g1f3 e8g8 e1g1 f8e8 d2d3 a7a5 e2e4 b8a6 c1e3 c8g4 h2h3 g4d7 f3h2 a6c5",
+   "clockB": "wtime 116549 btime 83970 winc 1000 binc 1000",
+   "actual": "a6c5",
+   "predicted": "a8b8"
+  },
+  {
+   "A": "position startpos moves d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 g1f3 c7c5 c4d5 e6d5 g2g3 c5d4 f3d4 f8c5 c1e3 e8g8 f1g2 f6g4 e1g1 g4e3 f2e3 b8d7 c3d5 d7b6 d1b3 c8g4 f1f4 d8d7 d5b6 c5b6 g2b7 d7b7 f4g4 a8e8 a1f1 g7g6 h2h3 e8e5 g4f4 e5e7 f1f3 f8c8 a2a4 c8c5 g1h2 b7d7 b3d3 c5e5 h2g2 d7e8 g2f2 e8d7 h3h4 h7h5 f2g2 d7e8 g2f2 e8d7 d3c4 e5c5 c4b3 c5e5 b3a3 d7h3 f2g1 e7d7 a3d3 e5c5 d3b1 d7c7 d4b3 c5e5 f4e4 e5d5 a4a5 c7d7 b3d4 d5a5 b1e1 b6c7 b2b4 a5a2 b4b5 g8g7 e1f1 h3f1 g1f1 a2a1 f1g2 a1c1 e4e8 c7d6 f3f2 c1a1 e8e4 d7c7 e4e8 c7c1",
+   "P": "position startpos moves d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 g1f3 c7c5 c4d5 e6d5 g2g3 c5d4 f3d4 f8c5 c1e3 e8g8 f1g2 f6g4 e1g1 g4e3 f2e3 b8d7 c3d5 d7b6 d1b3 c8g4 f1f4 d8d7 d5b6 c5b6 g2b7 d7b7 f4g4 a8e8 a1f1 g7g6 h2h3 e8e5 g4f4 e5e7 f1f3 f8c8 a2a4 c8c5 g1h2 b7d7 b3d3 c5e5 h2g2 d7e8 g2f2 e8d7 h3h4 h7h5 f2g2 d7e8 g2f2 e8d7 d3c4 e5c5 c4b3 c5e5 b3a3 d7h3 f2g1 e7d7 a3d3 e5c5 d3b1 d7c7 d4b3 c5e5 f4e4 e5d5 a4a5 c7d7 b3d4 d5a5 b1e1 b6c7 b2b4 a5a2 b4b5 g8g7 e1f1 h3f1 g1f1 a2a1 f1g2 a1c1 e4e8 c7d6 f3f2 c1a1 e8e4 d7c7 e4e8 c7c1 f2f3 c1g1",
+   "clockP": "wtime 103268 btime 89970 winc 3000 binc 3000",
+   "bot_ponder_ms": 3583,
+   "bot_depth": 16,
+   "pieces": 17,
+   "B": "position startpos moves d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 g1f3 c7c5 c4d5 e6d5 g2g3 c5d4 f3d4 f8c5 c1e3 e8g8 f1g2 f6g4 e1g1 g4e3 f2e3 b8d7 c3d5 d7b6 d1b3 c8g4 f1f4 d8d7 d5b6 c5b6 g2b7 d7b7 f4g4 a8e8 a1f1 g7g6 h2h3 e8e5 g4f4 e5e7 f1f3 f8c8 a2a4 c8c5 g1h2 b7d7 b3d3 c5e5 h2g2 d7e8 g2f2 e8d7 h3h4 h7h5 f2g2 d7e8 g2f2 e8d7 d3c4 e5c5 c4b3 c5e5 b3a3 d7h3 f2g1 e7d7 a3d3 e5c5 d3b1 d7c7 d4b3 c5e5 f4e4 e5d5 a4a5 c7d7 b3d4 d5a5 b1e1 b6c7 b2b4 a5a2 b4b5 g8g7 e1f1 h3f1 g1f1 a2a1 f1g2 a1c1 e4e8 c7d6 f3f2 c1a1 e8e4 d7c7 e4e8 c7c1 f2f3 d6b4",
+   "clockB": "wtime 102949 btime 86700 winc 3000 binc 3000",
+   "actual": "d6b4",
+   "predicted": "c1g1"
+  },
+  {
+   "A": "position startpos moves d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 g1f3 c7c5 c4d5 e6d5 g2g3 c5d4 f3d4 f8c5 c1e3 e8g8 f1g2 f6g4 e1g1 g4e3 f2e3 b8d7 c3d5 d7b6 d1b3 c8g4 f1f4 d8d7 d5b6 c5b6 g2b7 d7b7 f4g4 a8e8 a1f1 g7g6 h2h3 e8e5 g4f4 e5e7 f1f3 f8c8 a2a4 c8c5 g1h2 b7d7 b3d3 c5e5 h2g2 d7e8 g2f2 e8d7 h3h4 h7h5 f2g2 d7e8 g2f2 e8d7 d3c4 e5c5 c4b3 c5e5 b3a3 d7h3 f2g1 e7d7 a3d3 e5c5 d3b1 d7c7 d4b3 c5e5 f4e4 e5d5 a4a5 c7d7 b3d4 d5a5 b1e1 b6c7 b2b4 a5a2 b4b5 g8g7 e1f1 h3f1 g1f1 a2a1 f1g2 a1c1 e4e8 c7d6 f3f2 c1a1 e8e4 d7c7 e4e8 c7c1 f2f3 d6b4 f3f2 c1g1 g2h3 g1h1 f2h2 h1f1 e3e4 a1a3 d4f3 a3e3 e8a8 b4c5 a8b8 c5b6 e4e5 b6c7 b8e8 c7d6 e8a8 d6e5 a8a7 e5d6 a7d7 d6c5 d7c7 c5b4 h3g2 f1b1 c7c2 b4e7 h2h1 b1b5 h1d1 b5b7 d1d2 e7f6 g2f2 e3e4 d2d3 b7e7 f2f1 f6e5 f3g5 e4b4 f1g2 e5b8 c2d2 b4g4 d2b2 b8f4 g5h3 f4e3 b2b3 e3h6 g2f1 g4e4 h3g1 e4a4 f1g2 a4a6 b3a3 a6e6 g2f1 h6e3 g1f3 e6e4 d3c3 e3a7 f3g5 e4g4 a3b3 a7d4 c3d3 e7c7 f1g2 d4f6 g5h3 c7c2 g2f1 c2c1 f1f2 g4e4 f2f3 e4e7 h3f4 e7a7 f3g2 f6e5 f4h3 c1c8 d3d2 c8e8 b3e3 a7e7 d2d1 g7g8 e3e4 e5c7 e4e7 e8e7 g2f3 c7e5 d1d5 g8g7 f3f2 e5f6 d5d3 e7a7 f2g2 g7h7 h3g1 f6g7 g2f1 a7e7 g1h3 g7b2 f1f2 h7g7 f2f3 e7a7 f3g2 a7a3 d3d5 b2c1 d5d7 c1h6 h3g1 a3e3 d7a7 e3e8 a7a3 h6e3 g1f3 e3c1 a3a2 g7g8 g2g1 c1e3 g1g2 e3b6 f3g5 b6c5 g5h3 e8e3 a2d2 c5b6 d2c2 b6d4 h3g1 e3e8",
+   "P": "position startpos moves d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 g1f3 c7c5 c4d5 e6d5 g2g3 c5d4 f3d4 f8c5 c1e3 e8g8 f1g2 f6g4 e1g1 g4e3 f2e3 b8d7 c3d5 d7b6 d1b3 c8g4 f1f4 d8d7 d5b6 c5b6 g2b7 d7b7 f4g4 a8e8 a1f1 g7g6 h2h3 e8e5 g4f4 e5e7 f1f3 f8c8 a2a4 c8c5 g1h2 b7d7 b3d3 c5e5 h2g2 d7e8 g2f2 e8d7 h3h4 h7h5 f2g2 d7e8 g2f2 e8d7 d3c4 e5c5 c4b3 c5e5 b3a3 d7h3 f2g1 e7d7 a3d3 e5c5 d3b1 d7c7 d4b3 c5e5 f4e4 e5d5 a4a5 c7d7 b3d4 d5a5 b1e1 b6c7 b2b4 a5a2 b4b5 g8g7 e1f1 h3f1 g1f1 a2a1 f1g2 a1c1 e4e8 c7d6 f3f2 c1a1 e8e4 d7c7 e4e8 c7c1 f2f3 d6b4 f3f2 c1g1 g2h3 g1h1 f2h2 h1f1 e3e4 a1a3 d4f3 a3e3 e8a8 b4c5 a8b8 c5b6 e4e5 b6c7 b8e8 c7d6 e8a8 d6e5 a8a7 e5d6 a7d7 d6c5 d7c7 c5b4 h3g2 f1b1 c7c2 b4e7 h2h1 b1b5 h1d1 b5b7 d1d2 e7f6 g2f2 e3e4 d2d3 b7e7 f2f1 f6e5 f3g5 e4b4 f1g2 e5b8 c2d2 b4g4 d2b2 b8f4 g5h3 f4e3 b2b3 e3h6 g2f1 g4e4 h3g1 e4a4 f1g2 a4a6 b3a3 a6e6 g2f1 h6e3 g1f3 e6e4 d3c3 e3a7 f3g5 e4g4 a3b3 a7d4 c3d3 e7c7 f1g2 d4f6 g5h3 c7c2 g2f1 c2c1 f1f2 g4e4 f2f3 e4e7 h3f4 e7a7 f3g2 f6e5 f4h3 c1c8 d3d2 c8e8 b3e3 a7e7 d2d1 g7g8 e3e4 e5c7 e4e7 e8e7 g2f3 c7e5 d1d5 g8g7 f3f2 e5f6 d5d3 e7a7 f2g2 g7h7 h3g1 f6g7 g2f1 a7e7 g1h3 g7b2 f1f2 h7g7 f2f3 e7a7 f3g2 a7a3 d3d5 b2c1 d5d7 c1h6 h3g1 a3e3 d7a7 e3e8 a7a3 h6e3 g1f3 e3c1 a3a2 g7g8 g2g1 c1e3 g1g2 e3b6 f3g5 b6c5 g5h3 e8e3 a2d2 c5b6 d2c2 b6d4 h3g1 e3e8 g1f3 d4e3",
+   "clockP": "wtime 21316 btime 68380 winc 3000 binc 3000",
+   "bot_ponder_ms": 5121,
+   "bot_depth": 24,
+   "pieces": 12,
+   "B": "position startpos moves d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 g1f3 c7c5 c4d5 e6d5 g2g3 c5d4 f3d4 f8c5 c1e3 e8g8 f1g2 f6g4 e1g1 g4e3 f2e3 b8d7 c3d5 d7b6 d1b3 c8g4 f1f4 d8d7 d5b6 c5b6 g2b7 d7b7 f4g4 a8e8 a1f1 g7g6 h2h3 e8e5 g4f4 e5e7 f1f3 f8c8 a2a4 c8c5 g1h2 b7d7 b3d3 c5e5 h2g2 d7e8 g2f2 e8d7 h3h4 h7h5 f2g2 d7e8 g2f2 e8d7 d3c4 e5c5 c4b3 c5e5 b3a3 d7h3 f2g1 e7d7 a3d3 e5c5 d3b1 d7c7 d4b3 c5e5 f4e4 e5d5 a4a5 c7d7 b3d4 d5a5 b1e1 b6c7 b2b4 a5a2 b4b5 g8g7 e1f1 h3f1 g1f1 a2a1 f1g2 a1c1 e4e8 c7d6 f3f2 c1a1 e8e4 d7c7 e4e8 c7c1 f2f3 d6b4 f3f2 c1g1 g2h3 g1h1 f2h2 h1f1 e3e4 a1a3 d4f3 a3e3 e8a8 b4c5 a8b8 c5b6 e4e5 b6c7 b8e8 c7d6 e8a8 d6e5 a8a7 e5d6 a7d7 d6c5 d7c7 c5b4 h3g2 f1b1 c7c2 b4e7 h2h1 b1b5 h1d1 b5b7 d1d2 e7f6 g2f2 e3e4 d2d3 b7e7 f2f1 f6e5 f3g5 e4b4 f1g2 e5b8 c2d2 b4g4 d2b2 b8f4 g5h3 f4e3 b2b3 e3h6 g2f1 g4e4 h3g1 e4a4 f1g2 a4a6 b3a3 a6e6 g2f1 h6e3 g1f3 e6e4 d3c3 e3a7 f3g5 e4g4 a3b3 a7d4 c3d3 e7c7 f1g2 d4f6 g5h3 c7c2 g2f1 c2c1 f1f2 g4e4 f2f3 e4e7 h3f4 e7a7 f3g2 f6e5 f4h3 c1c8 d3d2 c8e8 b3e3 a7e7 d2d1 g7g8 e3e4 e5c7 e4e7 e8e7 g2f3 c7e5 d1d5 g8g7 f3f2 e5f6 d5d3 e7a7 f2g2 g7h7 h3g1 f6g7 g2f1 a7e7 g1h3 g7b2 f1f2 h7g7 f2f3 e7a7 f3g2 a7a3 d3d5 b2c1 d5d7 c1h6 h3g1 a3e3 d7a7 e3e8 a7a3 h6e3 g1f3 e3c1 a3a2 g7g8 g2g1 c1e3 g1g2 e3b6 f3g5 b6c5 g5h3 e8e3 a2d2 c5b6 d2c2 b6d4 h3g1 e3e8 g1f3 d4b6",
+   "clockB": "wtime 20989 btime 63580 winc 3000 binc 3000",
+   "actual": "d4b6",
+   "predicted": "d4e3"
+  }
+ ]
+}

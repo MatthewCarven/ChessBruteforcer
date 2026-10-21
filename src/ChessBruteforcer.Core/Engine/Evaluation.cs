@@ -144,8 +144,12 @@ public static class Evaluation
         return Math.Min(phase, MaxPhase);
     }
 
-    /// <summary>Score for the side to move, in centipawns.</summary>
-    public static int Evaluate(Position position) => Evaluate(position, Parameters);
+    /// <summary>
+    /// Score for the side to move, in centipawns: the network's when the position carries one
+    /// (<see cref="Position.UseNetwork"/>; the UCI option EvalFile with a .nnue file), the numbers' otherwise.
+    /// </summary>
+    public static int Evaluate(Position position) =>
+        position.Accumulators is { } network ? network.Evaluate(position.SideToMove) : Evaluate(position, Parameters);
 
     /// <summary>Score for the side to move, in centipawns, with the given numbers.</summary>
     public static int Evaluate(Position position, EvalParams p)

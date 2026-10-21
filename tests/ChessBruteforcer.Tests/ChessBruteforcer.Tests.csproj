@@ -24,6 +24,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ChessBruteforcer.Core\ChessBruteforcer.Core.csproj" />
+    <ProjectReference Include="..\..\src\ChessBruteforcer.Cli\ChessBruteforcer.Cli.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Fixtures written by scripts (Data\nnue-random-256.*: scripts/nnue-reference/nnue_reference.py). -->
+    <None Include="Data\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

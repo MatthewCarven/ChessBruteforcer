@@ -10,7 +10,10 @@ items are gathered into the plan.
 Where we are: every table of 5 pieces or fewer is solved, both kinds
 (FIVE-PIECE.md, FIVE-PIECE-PAWNS.md), and the engine plays them by the
 50-move rule. It plays on Lichess as matthewcarven (blitz ~2026) on a
-Texel-tuned evaluation (+208 Elo) with opening books of its own. Real games
+Texel-tuned evaluation (+208 Elo), then the network nnue1 (+742 over that),
+then nnue1-h512 (+76 over nnue1, 2026-10-17), and from its next start
+h512-3m (+11 over nnue1-h512 on three months' data, 2026-10-19), with
+opening books of its own. Real games
 set against the tables (all of September 2026, 5.23 M games reaching them):
 26.6% end otherwise than perfect play from there would, and 1 move in 31
 that could go wrong does.
@@ -19,9 +22,12 @@ that could go wrong does.
 
 - **The bot, the book learner and the month queue**: `start.cmd` starts all
   three, each in its own window, and skips any already running. Logs:
-  bot/logs/bot-<date>.log, bot/logs/restarts.log (the network guard),
+  bot/logs/bot-<date>.log, bot/logs/restarts.log (the network guard; from
+  its next start, Ctrl+C stops too), bot/lichess-bot/lichess_bot_auto_logs
+  (lichess-bot's DEBUG log, 7 days: signals, events),
   bot/logs/learn-<date>.log, games/month-queue.log. Restart the bot only
-  between games. The laptop must stay awake (plugged in).
+  between games: `bot\quit-soon.cmd` stops it once its games are over. The
+  laptop must stay awake (plugged in).
 - **The month queue** (`scripts\month-queue.cmd`; Matthew 2026-10-13: "queue
   the lot up"): newest first, 2026-09 back to 2022-12 (46 months, ~1.4 TB,
   ~4.3 B games, ~16 days at ~1 MB/s) onto the desktop share (Z:\lichess,
@@ -34,6 +40,273 @@ that could go wrong does.
   MB/s together v ~0.85 alone: ~16 days -> ~11); his spill-over drive (`-Dir`
   a list, filled in turn); recount the book deeper (16 moves) once ~12
   months are in. The whole archive is 165 months, 2.6 TB, 8.22 B games.
+
+### Handoff: start here (2026-10-17, 23:25; NNUE updated 2026-10-18 03:00)
+
+**Since 23:25**: Matthew rebooted and fast-forwarded compression; the bot,
+the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
+"768 -> 512 x2 -> 1, sha256 8a6cd3aff627"). The desktop trains two levers
+overnight (NNUE, below).
+
+**2026-10-20, 03:28: the bot is back, on h1024-3m** (Matthew's call at game
+188 of its match against h512-3m, "battle testing 1024"; its log: "768 ->
+1024 x2 -> 1, sha256 510a8d0e6c43"). bot\eval\h1024-3m.nnue, which
+make-config.py tries first (delete it to go back to h512-3m). **The match
+then finished beside the bot: SPRT accepted H1, +41 [+19, +63] in 584
+games** (MATCHES.md; 34 time losses in the part beside the bot, the clean
+part agreeing). h768-3m's match started by itself at 04:01, also beside
+the bot (Matthew's (b): he wants the data), and was stopped at 04:54 with
+27% of its games lost on time: to play again with the bot off (NNUE, below). Earlier: the bot went down at
+21:23 on 2026-10-19 to a Ctrl+C held in its window, not memory as first thought
+(lichess-bot's TypeError, below);
+after a restart of the laptop, `bot\start-bot.cmd`, then `bot\learn.cmd`
+once the bot's window has built the engine (two builds at once trip over
+each other); not `start.cmd` (the month queue is off).
+
+**Running right now, each in its own window (check them, don't start them):**
+- **The bot: OFF since 21:23 on 2026-10-19** (above). From its next start it
+  plays on h1024-3m, with the rejoin, busy and one-player fixes; `bot\start-bot.cmd`
+  brings it back (the learner is up).
+- **The month queue: OFF on Matthew's word** (2026-10-18: he closed it at
+  ~20:06 on purpose: his mum's YouTube was struggling, even at the 500 KB/s
+  cap; leave it off until he says). When it comes back: `-LimitRate 300k`, or
+  overnight only, when nobody's watching. March's .part is 5.22 of
+  29.35 GB on the share; `scripts\month-queue.cmd` carries on from there. Before that (restarted 23:26): June and May 2026 are counted into
+  the books (1,695,521 moves in 1,179,279 positions from 7,959,778 games, five
+  months); it is downloading April (29.3 GB, resumed from 3.1 GB) at 500
+  KB/s. Log games\month-queue.log; counts logs
+  bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
+- The book learner (bot\learn.py, restarted 23:26).
+- On the desktop: task "nnue h1024-3m-l32 then h1024-3m-l16-32", from
+  00:30 on 2026-10-21 to ~19:50 (NNUE, below).
+
+**Tonight's two matches, both with the bot off:**
+
+| match | games | +W -L =D | score | Elo [95%] |
+|---|---|---|---|---|
+| the bot as it plays (nnue1, 8 threads, book, tables) v Stockfish-2500, 3+2 | 10 | +10 -0 =0, all mates | 100% | at least ~+183 (one-sided, binomial) |
+| nnue1-h512 v nnue1, 10+0.1, one thread each | 285 | +114 -53 =118 | 60.7% | **+76 [+45, +107]**, SPRT [0, 10] accepted H1 |
+
+**The bot switched to nnue1-h512** (Matthew's G(a), ~23:20): branch
+`claude/nnue-desktop-8d5f2a` fast-forwarded into compression, then `start.cmd`
+after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
+(delete it to go back to nnue1).
+
+**NNUE, where it stands** (session 2b):
+- **The desktop's GTX 1660 is the second trainer**, driven from here over
+  SSH: `scripts\nnue-desktop.ps1 sync | train <run> [options] | status |
+  stop | fetch` (a scheduled task per run on the desktop, September's records
+  on its own D:, nothing downloaded). 0.65x the laptop's card: a 256 net
+  takes ~1.9 h there, a 512 net ~3.4 h. With the heat rule below, new nets
+  train there, not here. Its card showed no brownouts (Matthew asked).
+- **nnue1-h512** (512 hidden, Matthew's F(b)): held-back error 0.013664
+  against nnue1's 0.014851 (-8.0%), +76 Elo over it. NNUE.md's session 2b
+  and MATCHES.md have it all.
+- **Session 5's levers so far, all trained on the desktop** (it is idle now;
+  close Matthew's PySynthRack before training there: it held the card at
+  1,200 MHz instead of 1,920; `scripts\nnue-desktop.ps1 status | stop |
+  fetch`):
+  - **h512-blend25** (the result blend 0.25): done 06:25; **its match:
+    -11 Elo [-25, +3] against nnue1-h512, SPRT accepted H0** (1,252 games,
+    08:22-10:25, the bot stopped). Doesn't help.
+  - **h512-mates** (mates included): done 09:59; **its match: -11 Elo
+    [-26, +3] against nnue1-h512, SPRT accepted H0** (1,212 games,
+    14:03-16:03, the bot stopped). Doesn't help.
+  - **More data** (Matthew's yes, 2026-10-18 17:34): July's and
+    August's records were made **on the desktop** from the month files on
+    its disk (done 04:51 and 05:22 on 2026-10-19, 240.4 M and 253.4 M
+    records, all checked; ~11.5 h a month there). **h512-3m trained**
+    05:32-10:42 (512 hidden, July + August + September, 10 passes): in
+    games\nnue\nets\, loads in the engine; held-back error 0.013640 at K 1
+    (-0.2% against nnue1-h512), 0.013437 at its fitted K 1.10 (-1.7%): the
+    modest gain expected. **Its match: +11 Elo [-1, +22] against
+    nnue1-h512**, LOS 96.9%, the SPRT undecided at the 2,000-game limit
+    (LLR 1.73; 2026-10-19 11:09-14:27, the bot stopped). Very likely
+    better, by a little. **The bot switches to it** (Matthew's H(a):
+    bot\eval\h512-3m.nnue, tried first by make-config.py).
+  - **h768-3m and h1024-3m trained** (2026-10-19/20: h1024-3m on the
+    desktop 17:08-02:47, h768-3m on the laptop 22:25-02:42; h512-3m's
+    recipe at 768 and 1024 hidden). Both in games\nnue\nets\, both load
+    through EvalFile. Held-back error as the engine computes it, and speed:
+
+    | net | at K 1 | at its own K | `bench 9` a node |
+    |---|---|---|---|
+    | h512-3m (the bot's) | 0.013640 | 0.013437 | 1,746 knps |
+    | h768-3m | 0.013038 (-4.4%) | 0.012795 (-4.8%) | 1,516 (-13.2%) |
+    | h1024-3m | 0.012659 (-7.2%) | 0.012432 (-7.5%) | 1,470 (-15.8%) |
+
+    **Their matches against h512-3m** (Matthew's (a), from 03:04 on
+    2026-10-20, back to back in one window): **h1024-3m +41 [+19, +63],
+    SPRT accepted H1** at game ~579 (584 games, the last 264 beside the
+    bot); **the bot plays on it** (decision I). **h768-3m's match: play
+    it again with the bot off** (`scripts\nnue-match.cmd h768-3m h512-3m`,
+    30 min to 3.5 h): the run beside the bot was stopped at game 525 with
+    135 time losses (MATCHES.md), its files kept as
+    games\nnue\match-h768-3m-h512-3m-beside-bot.*.
+    **Order (Matthew, 2026-10-21): h768-3m's match is re-run after the
+    six ponder sessions (P1-P6) are done**, with the bot off. When is his
+    call. First comes the engine change for the deeper nets
+    (h1024-3m-l32, then -l16-32), with each matched against h1024-3m.
+  - **h1536-3m trained** (the desktop, 2026-10-20 04:45-18:34): held back
+    0.012193 at K 1, 0.011952 at its own K: **-3.7% / -3.9% against
+    h1024-3m**. In games\nnue\nets\. Before its match against h1024-3m
+    (the bot off) the engine's MaxHidden must rise from 1024 (a C# change:
+    Matthew's word; best on top of the engine-speed chain, which changes
+    Network.cs). **On hold** (Matthew, 2026-10-20 ~18:50): he tests the
+    engine speed upgrade first, before the next upgrade.
+  - **Deeper nets training on the desktop** (Matthew's (a), 2026-10-21):
+    h1024-3m-l32 (1024 x2 -> 32 -> 1) from 00:30, then h1024-3m-l16-32
+    (-> 16 -> 32 -> 1), ~9.5 h each: **done ~10:10 and ~19:50** (desktop
+    clock). Float held-back error against h1024-3m's 0.012394 decides
+    whether the engine work to play one (format, forward pass) is worth it.
+  - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
+    passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
+    3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
+    held-back scoring needs smaller chunks at 2048 (it ran out of GPU
+    memory there), and the engine's MaxHidden 1024 must rise (a C# change:
+    Matthew's word). Its speed cost is unmeasured (1024 cost 15.8% a node,
+    not the probe's 23%), so wait for h1024-3m's match first.
+  - **Speed at 1024, measured and built** (2026-10-20, a side session,
+    branch `claude/stoic-goodall-ecc132`; NNUE.md "Speed at 1024"): the
+    updates took 27-28% of a node, the forward pass 12-13%. Matthew's J(c):
+    AVX-512 with 64-byte alignment (+16.7% `bench 9` at 1024), then the lazy
+    update (+23.7% in all). **In compression** since 2026-10-20 ~21:50,
+    with K(a) and the bitboards below (not pushed). It takes effect when the
+    bot restarts between games (`bot\start-bot.cmd` builds the engine).
+    **8 threads, measured** (22:03, the bot off; NNUE.md "Speed at 1024"):
+    compression's engine searches **+101.6%** faster than the bot's
+    morning engine over UCI as the bot runs it (10.1 to 20.3 M nodes a
+    second, a ply deeper in 2 s), all of today's work together; AVX-512's
+    own share +12.1% on 8 threads (+12.6% on one), so no clock cost: keep
+    512 bits. **In play** (5 games after the 22:33 restart): its Speed
+    lines are about 2x the morning's, alone (1.8-2.1x) and with two games
+    at once (1.9-2.0x); WORKLOG has the table.
+  - **The rest of a node, measured** (2026-10-20, a side session, branch
+    `claude/friendly-cray-e85e18` on top of the speed branch; NNUE.md "The
+    rest of a node"): outside the network is 74-76% of a node now. Ordering
+    36% of it (quiescence sorts through moves it then skips), generation 25%,
+    InCheck 20%, make/unmake 6%, the table 5%. **Matthew's K(a), built**:
+    quiescence generates only what it searches, +24.6% to +25.5% `bench 9`
+    (A/B, 16 of 16 rounds; tests and mutation battery green). **In
+    compression** since ~21:50, live at the bot's next start. The bot was off
+    from ~09:50 (Matthew, for memory).
+  - **Bitboards, measured** (2026-10-20 noon, a side session, branch
+    `claude/affectionate-hugle-66968f`, which is K(a)'s branch plus write-up
+    and scripts; NNUE.md "Bitboards, measured"): with K(a) in, a node is 392
+    ns; generation 76-79 and InCheck 69-72 are the biggest pieces outside
+    the network. A prototype in the probe (no engine change), every answer
+    checked against today's: attack tables beside today's board **+16%**,
+    and generation from the sets in today's order **+26%** (both on the
+    identical tree); in the sets' own order +38%, but the tree changes 9%
+    (LMR reduces by place in the list), so that needs a match. The 840 KB
+    tables cost nothing beside the net's 1.5 MB (the L2 worry). **Matthew
+    chose L(b)** (~16:25): sessions 1 and 2, each merged on its own.
+  - **Bitboards session 1, built** (2026-10-20 afternoon, a side session,
+    branch `claude/busy-newton-fc0a07` = 9e22fb7 plus one commit; NNUE.md
+    "Bitboards session 1, built"): sets beside the squares, IsAttacked by
+    PEXT tables (magic multiplication where PEXT is slow or missing), the
+    tablebase's count and Material by popcount. **+13.2% to +14.1% `bench
+    9`**, the identical tree; full suite green on each path (`CB_ATTACKS`
+    unset, magic, rays); small tables re-solved byte-identical, the solver
+    22-25% sooner; battery 41 of 41 as expected. **In compression** since
+    ~21:50 (merge 50c7645), live at the bot's next start; then its Speed
+    lines for the 8-thread figure.
+  - **Bitboards session 2, built** (2026-10-20 evening, branch
+    `claude/affectionate-hugle-66968f` = session 1's 73028d8 plus one
+    commit; NNUE.md "Bitboards session 2, built"): generation from the sets
+    in today's move order, so the identical tree. **+9.5% to +9.8% `bench 9`
+    over session 1, +24.7% to +25.9% over 180fe25's engine** (16 of 16
+    rounds); full suite 477 + 2 skipped; deep perft 21 of 21 on each path;
+    small tables byte-identical; battery as expected. **In compression**
+    since ~21:50 (merge 31dcbb8, on Matthew's word; not pushed), live at the
+    bot's next start, between games. Then its Speed lines. Not chosen:
+    the sets' own move order (+9% more in the probe, the tree 9% smaller:
+    a match would judge it).
+  - **The split probe is behind the engine**: split-patch.py targets
+    180fe25, and session 1 rewrote Position.IsAttacked, so its Position
+    edits stop the script. Bring them up to date before the next split.
+  - Other levers waiting: the export's rounding (small); labels from our
+    own search.
+
+**Watch out:**
+- **Memory**: commit was down to 2.8 GB free at 23:20, with the Claude app's
+  processes taking most of it. Check `FreeVirtualMemory` before anything
+  heavy. A test run beside June's first count killed it (MemoryError, 11:16).
+- **Heat**: no NNUE training beside the bot's games (Matthew, until he has a
+  notebook cooler): the desktop trains.
+- **The share**: all traffic to it at or under ~8 MB/s in total, or the
+  laptop falls off the internet (scripts\capped-copy.py for big copies).
+- **Pushing**: Matthew is holding back pushes for a few days on purpose, so
+  rivals can't copy the bot. Don't nag.
+
+**Two games at once, and "later" when both run** (Matthew's (a), 2026-10-18
+~19:50; in effect since Matthew's `start.cmd` at 20:05:24, 2026-10-18; config.yml
+says concurrency 2): 136 of 191 accepts since 14 October had failed without a
+word (the challenge withdrawn while it waited in lichess-bot's queue through
+a whole game: 133 of the 168 accepts made straight after a game). Now
+`concurrency` 2 (two different people: `max_simultaneous_games_per_user` 1),
+and bot\lichess-bot-busy.patch declines a challenge at once with "later"
+when both slots are taken (bot\test-busy.py: 6 cases, 2 of them red without
+the patch). He'll go back to one game if it loses more: `concurrency` 1 in
+make-config.py (the patch still helps at 1).
+
+**The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
+had two players on one game; bot\lichess-bot-one-player.patch stops that
+(bot\test-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
+between games (not `start.cmd`: that starts the month queue, which is off).
+**lichess-bot's "TypeError in accept_challenges" is a held Ctrl+C, not a
+crash** (2026-10-20, a side session; WORKLOG). All four (2026-10-16 03:32,
+10-19 00:32 and 21:23, 10-20 22:27) came straight after a burst of SIGINTs
+33 ms apart, a Ctrl+C held down in the bot's window (lichess-bot's DEBUG log,
+bot\lichess-bot\lichess_bot_auto_logs, has every one); not memory. The
+Ctrl+C handler logs a line, and in lichess-bot's main process logging goes
+through the Manager on the main loop's own connection: while the loop waits
+for Lichess's next keep-alive (6 s apart), each repeat stacks a handler on
+the stuck one, at 82 deep Python's recursion limit breaks them off, and
+their replies go to the wrong calls (the challenge list's length: None).
+Of the 26 Ctrl+C stops since 10-13, 21 ended clean, 4 in the TypeError
+(93-116 SIGINTs each), 1 in an AssertionError from Python's pool shutdown
+(10-19 08:32). run-bot.ps1 didn't die: the same Ctrl+C stops it, by design
+(a copy tested with a real console Ctrl+C), and it does restart lichess-bot
+after a real crash (2026-10-15 14:15). Keep ~2 GB of commit free anyway.
+**Matthew picked (a)** (2026-10-20, ~23:15), now in start-bot.cmd and
+run-bot.ps1: bot\lichess-bot-sigint.patch (the handler only sets the stop
+flags; bot\test-sigint.py; a held Ctrl+C failed 0 of 6 trials, 5 of 10
+before) goes in after the ponder note, and run-bot.ps1 writes "lichess-bot
+stopped by Ctrl+C after N min" (or "between runs") to restarts.log. **In
+compression** (fast-forwarded 2026-10-21 with the bot stopped); live from the
+bot's next `bot\start-bot.cmd`. A merge that changes start-bot.cmd wants the
+bot stopped first: its window reads the file as it goes. Upstream
+lichess-bot (master, 2026-10-20) has the same handler: reporting it is his
+call.
+
+**bot\quit.soon stops the bot once its games are over** (2026-10-20, Matthew
+asked; WORKLOG). Double-click `bot\quit-soon.cmd` (or make bot\quit.soon; a
+quit.soon.txt from Explorer counts): lichess-bot declines new challenges
+("later": a decline can't carry words of its own), makes and accepts none,
+ends the games still on with "Good game! Sorry, no new challenges at this
+time: we're going to sleep, and when we wake up we'll be even better!", and
+stops when none is left; run-bot.ps1 notes it in restarts.log, deletes the
+file and starts nothing. Delete the file before then to cancel. A fresh
+`bot\start-bot.cmd` clears an old one. bot\lichess-bot-quit-soon.patch,
+bot\test-quit-soon.py. **In compression** (2026-10-21); works from the bot's
+next `bot\start-bot.cmd`.
+
+**The ponder note** (2026-10-20, Matthew asked; WORKLOG): 23% of the bot's
+engine moves logged "Source: Engine" and no stats, every one a ponder hit
+(python-chess keeps only what the engine reports after "ponderhit").
+bot\lichess-bot-ponder-note.patch (lib\engine_wrapper.py) marks them
+"Source: Engine, ponder hit", and says why when the stats are missing
+(bot\test-ponder-note.py). It goes in at the bot's next `bot\start-bot.cmd`.
+Later, maybe: the engine could send one last `info` line (depth, score, pv)
+before `bestmove` after a ponderhit, so those moves get their stats too; that's
+in src, so after the optimisation work there lands. (Now P1 of decision M,
+[PONDER.md](PONDER.md), 2026-10-21.)
+
+**Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
+on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now
+on, listed in `delete me\WHAT-THIS-IS.txt`. The index lives in `indexes\`
+(his call, 2026-10-18).
 
 ### Now (2026-10-15)
 
@@ -52,9 +325,9 @@ in both, with scripts/test-index-month.py. The long duplicates are bots
 (96.8% BOT v BOT). Format: Parquet, which `rows` now writes directly, with
 the count against counts.txt printed every run (evening). **July ran again
 with the fix, 18:39-20:58: 89,288,421 games, Lichess's count exactly**, every
-check passing (the write-up has both runs). It ran the old scripts, so its
-rows are plain columns that the new tools refuse ("run rows again"): July
-needs `rows` once more before session 2 reads it. **Matthew decides where the
+check passing (the write-up has both runs). **And again with the new `rows`,
+2026-10-16 03:33-04:56: Parquet rows, count MATCHES, every check passing**, so
+session 2 can read July. Pondering merged too (ddc54c8). **Matthew decides where the
 whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
 ~71 GB free, share ~1.4 TB).
 
@@ -72,23 +345,46 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          scripts at ee66600 (an 18:18 start died at 18:35 for memory, from
          another session's probes; WORKLOG). 89,288,421 games, SHA-256
          matching, check 4,000 of 4,000, dups 2.05% as before.
-   - [ ] **Tonight (2026-10-16 from ~00:08) the laptop is on Matthew's phone
-         hotspot**, so the desktop share is out for a few hours. July's
-         new-layout run (started 23:36) was stopped at 00:16, halfway. It
-         starts again by itself once the share answers: a launcher window
-         ("July 2026 index: waiting for the desktop share", from 01:01)
-         checks each minute, then runs index-month.cmd 2026-07.
-         May 2026 is downloading into the laptop's games\ (uncapped, his
-         unlimited data; restarted 00:39 on the fixed script, ~0.8 MB/s, so
-         ~10 h; its SHA-256 and count are saved): move it to the share
-         afterwards. June's .part waits on the share.
-   - [ ] **July's rows into the new layout**: that run used the old
-         scripts, so its games.json has no `"format": "parquet"` and the new
-         `check` / `dups` / `trial` refuse it ("run rows again").
-         `scripts\index-month.cmd 2026-07` once more (~1.5-2 h, own window,
-         the new `rows` proving itself on a real month and printing the
-         count), not beside a CPU benchmark or heavy memory work.
-   - [ ] Where the whole index lives: Matthew's call.
+   - [x] **May 2026 is on the share**, its SHA-256 matching Lichess's there
+         too (2026-10-16 13:14; copied 09:07 on, then checked at the 8 MB/s
+         cap). The laptop's copy (29.7 GB) is in `delete me` since 2026-10-18,
+         for Matthew to delete. June's .part waits on the
+         share; the month queue isn't running. Not counted into the books yet.
+   - [x] **The bot is off** (Matthew, 2026-10-17): the laptop ran warm with the
+         NNUE training and the bot's games together. Back on since 2026-10-18
+         17:24; nets train on the desktop, not beside it.
+   - [x] **Share traffic at or under ~8 MB/s** (Matthew, 2026-10-16: faster
+         knocks the laptop off the internet). make-book.py's Steady now
+         paces reads of a network path at 8,000,000 bytes/s (CB_SHARE_RATE
+         sets another; 0 = none): month counts, verify, index-month rows.
+         Measured at a 4 MB/s setting: 4.06 MB/s. Left to do:
+      - [ ] A copy to the share needs its own cap (robocopy /IPG, or a
+            Python copy through the same pacing): May's /Z copy happened to
+            run at ~2.7 MB/s.
+      - [ ] index-month's `check`/`get` read frames with plain open(): ~5.7
+            MB/s on average over July's check, but in 4.7 MB bursts.
+      - [ ] The cap is per reader, so one big share job at a time (the
+            month queue's download writes only ~0.5 MB/s).
+   - [x] **lichess-bot gave up on a game whose stream dropped** (2026-10-16
+         07:52, TroutBot; 2026-10-17 11:04, PeachFruit, lost on time). Fixed by
+         bot/lichess-bot-rejoin.patch (start-bot.cmd applies it beside the
+         chat patch): a stream that ends or fails while the game isn't over
+         asks Lichess whether the game is on, and if so opens the stream
+         again (up to 10 tries) and plays on from the state Lichess sends.
+         bot/test-rejoin.py drops a pretend game's stream mid-game: the
+         original lichess-bot leaves and the test fails at 60 s; patched, it
+         rejoins and wins. After a lichess-bot update, run the test again.
+   - [x] **July's rows in the new layout** (2026-10-16, 03:33-04:56, the
+         repo's index-month.cmd): 6,177 frames, **89,288,421 games, count
+         MATCHES**, SHA-256 matching, 1,267.1 MB of Parquet; check 2,000 of
+         2,000 games byte for byte and every row right in all 11 columns
+         against the game parsed again; dups as before (2.05%). The read ran
+         at 11.4 MB/s beside the bot on 8 threads.
+   - [x] Where the whole index lives: `indexes\<month>\` in the project
+         folder on the laptop (Matthew, 2026-10-18; git ignores it;
+         index-month.cmd and clean-up.ps1 point there). Space: ~1.27 GB of rows
+         a month, ~58 GB for 46 months; C: has 84 GB free (2026-10-18,
+         `delete me` emptied).
    - [x] `rows` writes Parquet directly (10 M games a part, zstd, through
          DuckDB) and the plain .zst columns are gone; `check`, `dups`,
          `trial` read the Parquet, and `check` also compares every sampled
@@ -97,17 +393,16 @@ whole index lives** (~1.27 GB of rows a month, ~58 GB for 46 months; laptop
          `<name>.count` beside the `.sha256`, `rows` prints MATCHES or SHORT
          BY n. Done 2026-10-15 evening (WORKLOG); July-September's `.count`
          are on the share.
-   - [ ] **June's `.count`**: its download started before the change, so it
-         has none. Once June has landed: `pwsh -File
+   - [x] **June's `.count`** (on the share since 2026-10-17 09:36): its download started before the change, so it
+         had none. Once June has landed: `pwsh -File
          scripts\download-lichess-month.ps1 2026-06 -Dir
          \\id10terror-desktop\chessbruteforcer\lichess` saves it and
          downloads nothing (never while June's .part is still growing: it
          would start a second download). May onwards get theirs as they land.
-   - [ ] lines.u16 (2.9 GB) can go now (the lines trial is done), and
-         July's old plain columns (games/index/2026-07/games, 1.27 GB) and
-         `tmp/` (426 MB, left by the 18:35 failure) once July's rows are in
-         the new layout: scripts/clean-up.ps1 offers the columns then
-         (Matthew's delete).
+   - [x] Moved into `delete me` (2026-10-18), 4.1 GB from games/index/2026-07:
+         lines.u16 (2.86 GB; the lines trial is done) and the old plain
+         columns in games/ (1.27 GB; scripts/clean-up.ps1 offers them now the
+         rows are Parquet). The new `rows` replaced parquet/ and cleared tmp/.
    - [ ] For the thesis: BOT v BOT games replay whole games (96.8% of the
          duplicates of 41+ plies; 0.46% of all games). Set them apart when
          counting how often positions happen.
@@ -182,6 +477,49 @@ Sessions, in order:
 
 ### 2. The engine's strength
 
+- [ ] **Two nets, switched by the clock** (Matthew's idea, 2026-10-21, "feel
+      free to push back"): keep a smaller, faster net loaded beside the big
+      one, and play on it when time runs short (to build some time up, then
+      back to the big net), or for bullet. Test before building. What our
+      numbers say so far (they lean against it, but one cheap match
+      decides):
+      - The nets differ a lot in strength and little in speed. 256 -> 1024
+        hidden won ~+128 Elo in matches (+76, then +11 for more data, then
+        +41) for ~19% fewer nodes a second (`bench 9`: -4%, then -16%;
+        likely less since AVX-512). 19% more speed is worth roughly +15-20
+        Elo, so the small net gives up far more than it gains.
+      - Our matches already play fast: 10+0.1 is ~0.25 s a move, faster than
+        Lichess bullet (1+0, ~0.85 s a move over ~70 moves) and far faster
+        than a 3+2 scramble (the 2 s increment keeps every move at ~2 s).
+        The bigger net still won there.
+      - A faster net doesn't bank time by itself: the time manager decides
+        how long a move takes, and the net only changes the depth reached
+        in it. Time trouble is the time manager's to fix first.
+      - **The test**: h1024-3m against h512-3m (or nnue1) at a much faster
+        clock, e.g. 2+0.02 (~0.05 s a move), the bot off, ~30 min. If the
+        small net wins there, build it: one engine holding both nets (a few
+        MB), accumulators refreshed at the switch, a switch point by time
+        left. If the big net still wins, the idea is answered.
+- [ ] **16 threads while only one game is on** (Matthew, 2026-10-21): the
+      laptop has 8 cores / 16 threads. With two games at once each engine
+      has 8 (and pondering keeps both busy), but while one game plays alone,
+      8 threads sit idle. Let a lone game use 16, back to 8 when a second
+      game starts. To weigh first:
+      - **Measure**: 16 threads were never timed. On 2026-10-15
+        (scripts/threads-bench-d12.txt) Lazy SMP on 8 gave 12.9 M nodes a
+        second, 6.9x one thread. The extra 8 are hyperthreads on the same 8
+        cores: chess engines usually gain +15-30% nodes a second from them,
+        not 2x, and a bit less in depth. Then a match, 16 v 8 threads,
+        nearer the bot's 3+2.
+      - **How often it applies**: the share of the bot's time with one game
+        on, from its logs (if it's mostly two games, the gain is small).
+      - **Heat**: the CPU sat at 88-92 C with 5 busy threads (2026-10-20);
+        16 busy threads may throttle the clocks and give part of it back.
+      - **How**: lichess-bot fixes Threads when it starts an engine.
+        Switching means a `setoption Threads` between moves, not while the
+        engine ponders: a lichess-bot patch that counts active games (16
+        alone, 8 each when a second starts), like the busy and one-player
+        patches.
 - [ ] **Texel tuning** (WORKLOG has it all; step 1, human results, gained
       nothing; step 2a, Stockfish's verdicts, +208 Elo [+130, +311], the bot
       uses bot/eval/eval-sf1.txt via EvalFile):
@@ -194,6 +532,139 @@ Sessions, in order:
       - [ ] Step 2b: new terms (passed / doubled / isolated pawns, mobility,
         king safety), tuned the same way towards Stockfish. "Where our
         losses turn" says which matter.
+- [ ] **An NNUE evaluation, trained on the laptop's GPU** (2026-10-16; the
+      build plan is [NNUE.md](NNUE.md)): the next step for the evaluation,
+      since sf2 showed the Texel shape is the limit. Measured: today's
+      evaluation is 5-11% of search time, so a 768 -> 256 x2 -> 1 network in
+      its place costs 9-18% of the speed (upper bound); September alone
+      holds ~224 M labelled quiet positions (sf2 used 13.6 M). Sessions: 1
+      data, 2 trainer (PyTorch, the 2.0 GB wheel, capped), 2b the desktop's
+      GTX 1660 (6 GB) as a second trainer, driven over SSH from 2026-10-17
+      (nothing downloaded in the end), 3 the network in C# (1 and 3 can run side by side), 4
+      the match against sf1. **Matthew chose (2026-10-16): A(a) PyTorch,
+      B(a) 768 -> 256 x2 -> 1, C(a) September, all speeds, D a + c** (the
+      laptop alongside the bot, then the desktop).
+      - [x] **Session 1, the data** (2026-10-16, branch
+            `claude/nnue-data-7d1bea`): `nnue data`, September in
+            games\nnue\2026-09\ on this laptop: 236,940,450 records (223.4 M
+            scored in centipawns + 13.6 M mates), 7.58 GB, 41.2 min; 39 of 39
+            mutations red. [scripts/nnue-data-2026-09.txt](scripts/nnue-data-2026-09.txt).
+      - [x] Swiss tournament games (1.07% of analysed games) are rated but
+            their Event lacks "Rated": Matthew's (a), they count now in both
+            `tune positions` and `nnue data` (`StoredGame.IsRated`), and
+            September was run again with them (+2.7 M records).
+      - [x] Merged into compression on Matthew's word (2026-10-16, 23:25,
+            f977646), with session 3's branch after it.
+      - [x] **Session 2, the trainer, and nnue1** (2026-10-16/17, branch
+            `claude/nnue-trainer-f0d60e`): PyTorch on the laptop's GPU
+            (`scripts/nnue/train.py`, `checks.py`, `bot_speed.py`,
+            `setup-venv.cmd`, `scripts\nnue-train.cmd`). Every check passed.
+            **nnue1's held-back error is 0.0149 against sf1's 0.0304** (-51%,
+            as the engine computes it). `games\nnue\nets\nnue1.nnue`, network
+            SHA-256 4a18e09a...9cf497. WORKLOG and NNUE.md have the run.
+      - [ ] Merging the branch is Matthew's. After it, run
+            `scripts\nnue\setup-venv.cmd` once in the main checkout (the venv
+            was made in the session's worktree; pip fetches ~9 MB, the wheel
+            is local).
+      - [x] **Session 4, the match** (2026-10-17, branch
+            `claude/heuristic-poincare-2d9fec`): **nnue1 +742 Elo [+645, +970]
+            over sf1**, +392 -3 =5 in 400 games at 10+0.1, after SPRT [0, 10]
+            accepted H1 at game 113 (+114 -0 =3). Clean games, a normal
+            search (depth 9.4 v 9.1, 13% more nodes a second).
+            `scripts\nnue-match.cmd`; MATCHES.md, WORKLOG and NNUE.md have it.
+      - [x] **The bot onto nnue1**: Matthew chose E(a) (2026-10-17).
+            `bot\eval\nnue1.nnue` (in git, 395 KB), and make-config.py prefers
+            it over eval-sf1.txt (delete it to go back). Checked: make-config.py
+            on a copy of bot\ picks the net, then sf1 without it, then nothing;
+            the engine loads it from that path (network 4a18e09ae654) with 8
+            threads and the tables.
+      - [x] **Merged and restarted** on Matthew's word (2026-10-17): the
+            branch into compression (7b2af26, suite 410 passed), the bot
+            started 04:57:57 by bot\start-bot.cmd in its own window (it had
+            been stopped since 03:31, so no game was cut). Its engine said
+            "evaluation: network ...\bot\eval\nnue1.nnue (... sha256
+            4a18e09ae654)", the match's net; 292 tables; online 04:58:05.
+            The learner and the month queue weren't running and weren't
+            started.
+      - [ ] **nnue1's first ~30 rated games** against sf1's record (NNUE.md
+            step 4): the bot's own games in bot\games from 04:58 on 2026-10-17.
+      - [ ] **The SPRT can't stop on a perfect score**: `MatchStats.
+            LogLikelihoodRatio` returns 0 when the variance is 0, which it
+            is while every game is a win (nnue1's first 112 games: LLR 0.00,
+            then 362 at the first draw). A small floor on the variance, or
+            the trinomial form, with a test of 30 straight wins.
+      - [ ] **Training beside the bot**: at full speed the GPU (~99 W) and the
+            bot's 8 threads hit the 180 W charger and the bot loses ~22%; at
+            half duty a bench loses ~10% and the bot's own speed nothing
+            measurable. `nnue-train.cmd` runs at full speed unless told:
+            beside the bot, pass `--duty 0.5` (or write 0.5 into
+            games\nnue\nets\<run>.duty). Runs wait for AC by themselves.
+      - [x] **Session 2b, the desktop's GTX 1660 as a second trainer**
+            (2026-10-17, branch `claude/nnue-desktop-8d5f2a`): the wheel,
+            torch's dependencies (from the laptop's venv) and September's
+            records copied to the share at <= 7.5 MB/s
+            (`scripts\capped-copy.py`), SHA-256 checked on the desktop's
+            disk; a venv there with nothing downloaded; runs as scheduled
+            tasks (`scripts\nnue-desktop.ps1 sync | train | status | stop |
+            fetch`). nnue1's first two passes replayed there: held-back
+            0.016734 / 0.016159 against 0.016731 / 0.016233, gaps the size a
+            new seed makes; the desktop repeats itself to the byte. **634-641
+            k positions a second** (0.65x the laptop's card; nnue1's recipe
+            ~1.9 h), 362 k at 512 hidden. NNUE.md and WORKLOG have it.
+      - [x] **nnue1-h512** (Matthew's F(b), 2026-10-17, 07:46-11:10 on the
+            desktop): nnue1's recipe at 512 hidden. **Held-back error
+            0.013664 against nnue1's 0.014851 (-8.0%)**; in
+            games\nnue\nets\, loads through EvalFile; `bench 9` -4.0% a node
+            against nnue1, a 2.8% bigger tree.
+      - [x] **nnue1-h512's match against nnue1** (2026-10-17, 22:48-23:17,
+            the bot off): **+76 Elo [+45, +107]**, +114 -53 =118 in 285
+            games, SPRT [0, 10] accepted H1; 8.9% slower in play. MATCHES.md.
+            Matthew's G(a): the bot switches to it at its next start
+            (bot\eval\nnue1-h512.nnue, make-config.py tries it first).
+      - [ ] **nnue1-h512's first ~30 rated games** against nnue1's (the
+            bot's own games in bot\games, from its next start).
+      - [x] **h512-3m's match against nnue1-h512** (2026-10-19,
+            11:09-14:27, the bot off): **+11 Elo [-1, +22]**, +583 -521
+            =896 in 2,000 games, LOS 96.9%, SPRT [0, 10] undecided at the
+            limit; equal speed. MATCHES.md. Matthew's H(a): the bot
+            switches to it at its next start (bot\eval\h512-3m.nnue,
+            make-config.py tries it first).
+      - [x] `scripts\nnue-train.cmd` passed only `%2`-`%9` to train.py, so a
+            tenth option token was dropped silently. Fixed 2026-10-19 as
+            train-desktop.cmd was (`for /f "tokens=1,*"` over `%*`), and it
+            uses the main checkout's venv when run from a worktree.
+      - [ ] A full-length reproducibility check (decision F's (a)): nnue1's
+            recipe on the desktop, ~1.9 h, for the end-of-run spread between
+            two runs of one recipe, the noise floor for judging levers by
+            held-back error. When the desktop is free.
+      - [ ] A small lever (session 5): the export's rounding leaves nnue1 a
+            constant -5 cp for the side to move (QB 64, forced by one output
+            weight at the clamp). Refit the output bias after rounding, or
+            train the output weights with their rounding.
+      - [x] Session 3, the network in C# (2026-10-16, branch
+        `claude/nnue-csharp-8117d8`, merged into compression the same night): EvalFile
+        takes a .nnue; 38 tests, 31 of 31 mutations red; `bench 9` -3.8% at
+        256 hidden against sf1 with bounds-checked slots and columns (-2.3%
+        without; the probe's bound was -9 to -18%). The 08:02 access
+        violation was a battery mutant (WORKLOG). The bot stays on sf1
+        until session 4's match.
+      - [x] Later speed steps, each measured with scripts/nnue-bench: AVX-512
+        (this CPU has it), 64-byte-aligned weights and stack, a lazy update
+        (only nodes that evaluate pay for their accumulators). **Measured
+        and built 2026-10-20** (NNUE.md "Speed at 1024", decision J(c)): at
+        1024 the updates were 27-28% of a node and the forward pass 12-13%;
+        28% of the pushes were illegal moves. `bench 9` at 1024: AVX-512 +
+        alignment +16.7%, with the lazy update +23.7%.
+      - [ ] The next speed lever: the rest of the search, 61% of a node at
+        1024 (a 64-square board, attacks found by walking rays; bitboards).
+        **Measured 2026-10-20** (NNUE.md "The rest of a node", decision K):
+        74-76% of a node now; quiescence's waste was the biggest piece.
+        **K(a) built the same day**: quiescence generates only what it
+        searches, +24.6% to +25.5% `bench 9`. Bitboards measured in the
+        probe (+16% attack tables, +26% with generation from the sets) and
+        **chosen, L(b)**: session 1 (sets and attack tables) built, +13.2%
+        to +14.1% `bench 9`; session 2 (generation from the sets in today's
+        order) built, +9.5% to +9.8% on top: +25% over 180fe25 in all.
 - [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by
@@ -269,6 +740,121 @@ Sessions, in order:
         that size, and 4-byte block offsets (~55 MB in memory at 8 KB).
         Recompress from the compressed files, one at a time, each checked
         against the old before it replaces it.
+- [ ] **Does depth win games?** (Matthew, 2026-10-21; MATCHES.md "More search
+      against less", branch claude/gallant-nash-c4b034, not merged yet.) Yes:
+      one more ply is worth +165, +132, +105 Elo at depths 6-7, 8-9, 10-11
+      (600 games each; 20% less every two plies), and twice the clock at
+      10+0.1 +87 [+68, +106] (a ply costs ~2.2x the time, so the two agree).
+      The match tool takes `tc=` per engine now (a clock, or `depth=N`);
+      `scripts/depth-match.py` plays a list of pairs.
+      - [ ] Depth 13 v 12, 300 games (~4 h with the machine to itself;
+            stopped at game 3 on Matthew's word so the bot could play):
+            `python scripts/depth-match.py 13v12/300`. Fixed depths give the
+            same games beside other work, so it can run beside the bot if
+            he's happy to share the cores.
+      - [ ] 4x time odds, `40+0.4v10+0.1/400` (~1 h 45 min, the machine to
+            itself). Matthew's, after P3.
+      - [ ] Optional: "think long early", an arm that spends much more of
+            its clock on its first moves out of book, against normal time
+            use (needs an engine option; the effect is likely under 20 Elo,
+            so ~2,000 games).
+- [ ] **Pondering** (2026-10-15, branch claude/vigilant-murdock-d223f5, built on
+      the threads branch; WORKLOG "pondering, and what it's worth"): the engine
+      thinks on the opponent's time (`go ponder`, `ponderhit`, `bestmove ...
+      ponder`). Against itself at 10+0.1, ponder on v off: 119 games, +48 -20
+      =51, **Elo +83 [+37, +133]**, the reply right 71.5% of the time (on
+      Lichess 51%, so expect less there). Merged into compression 2026-10-16
+      (ddc54c8; 341 tests pass).
+      - [x] Turned on in the bot, on Matthew's word (2026-10-16, 06:00):
+            `engine["ponder"] = True` in bot/make-config.py, which
+            start-bot.cmd writes into config.yml on its next start (with the
+            engine rebuilt from this checkout). Watch its first games: moves
+            on time, the bot's log free of ponder errors, the clock it banks.
+      - [ ] A clean re-run (the harness lost one game to a script bug, since
+            fixed), or longer (~400 games, ~1 h), once no index run is going.
+      - [ ] Spend the banked clock: the pondering side ended games with 4.8 s
+            of 10 left, the other 2.1. Stockfish plans 25% more time a move
+            when Ponder is on; try that, measured the same way. (2026-10-21:
+            on Lichess too, 3+2 games end with 41% of the clock left v 22%
+            before pondering; PONDER.md P3.)
+      - [ ] A Lichess-like hit rate: ponder on and off each against a third
+            engine (Stockfish, as book-match.py does), not each other. (The
+            bot's own rate on 2026-10-20: 56.5%, from its log.)
+      - [ ] **Decision M: what pondering should do with what it keeps**
+            ([PONDER.md](PONDER.md), scoped 2026-10-21, nothing in src yet).
+            It keeps everything (a hit is the same search; the table survives
+            a miss and the move), but a hit plays exactly what a plain search
+            on our clock would, only sooner, and the clock it saves mostly
+            goes unspent. Lost, from the bot's log of 2026-10-20: 37% of hits
+            stop at once and drop a half-searched depth with the move's whole
+            budget unspent; 8.5% run a median 10.4 s after the hit on a depth
+            the hard limit then cuts (37% of all the clock spent after hits
+            buys nothing, 14% for ordinary searches); 45% of hits report no
+            stats. And on the bot's 8 threads a miss's ponder overwrites
+            part of what our own search left in the table, so the next
+            search does 8-24% more work. Proposals, each with effort,
+            expected gain and the measurement, in PONDER.md:
+            - [x] P1: a final `info` after ponderhit (task_16a444a7): stats on
+                  every move. UciEngine, ~1 h. No Elo. (Done 2026-10-21 on
+                  claude/p1-final-info-a1e9a9, not merged yet: a hit with no
+                  new depth sends its last line again before `bestmove`.
+                  Through python-chess, hits with no stats went from 14 of
+                  27 to 0 of 33. PonderTests 13 → 20, 11 of 12 mutations
+                  caught (the 12th a race, now ruled out by the code), suite
+                  484 passed. After the bot's next restart, ponderlog.py
+                  should show 0 hits with no info after ponderhit; PONDER.md,
+                  "Results".)
+            - [x] P2: a hit may finish the depth it would drop, within the
+                  move's planned time, and stops by then. Search.PonderHit,
+                  ~2 h. (Done 2026-10-21 on claude/p2-finish-depth-246981,
+                  not merged yet. **Measured, and off: it doesn't win
+                  games.** In the lab a ply more on 6-9 of 12 hits at
+                  0.75-2 S, as the replay said, never more than S after the
+                  hit, every depth node for node as before. But at 10+0.1,
+                  both sides pondering: both rules -41 [-65, -17] (360
+                  games), the cap alone -22 [-41, -3] (575), finish alone
+                  -7 [-24, +11] (614). Two UCI options, PonderFinish and
+                  PonderCap, both default off, so merging changes nothing
+                  in the bot. PonderTests 20 → 65, 53 mutations caught,
+                  suite 529 passed. The slower control was skipped (a null
+                  would need ~11 h); measure P2 again after P4. PONDER.md,
+                  "P2".)
+            - [ ] **Matthew's "dirty trick"** (2026-10-21, beside p2.1's
+                  "think long early"): think a full minute on the first move
+                  out of book, then let a smaller, faster network carry the
+                  rest of the game. An A/B match through python-chess
+                  (scripts/ponder-match.py's loop) needs no engine change:
+                  arm A's first move out of book gets `Limit(time=60)`, then
+                  the script sends `setoption EvalFile` with the small net
+                  (h512-3m or nnue1, ~9-13% more nodes a second, MATCHES.md);
+                  arm B plays normally on h1024-3m. It needs a clock where a
+                  minute is affordable, e.g. the bot's 3+2 (a third of the
+                  clock) or 5+3: ~3-5 min a game, so ~300 games is 5-8 h at
+                  3 at a time. What to expect: a minute is ~10x a move's
+                  time, about +3 plies on that one move (p2.1: a ply costs
+                  ~2.2x the time); the table keeps that work only while the
+                  opponent follows our line (56.5% of replies on Lichess, so
+                  ~6% for five moves running); and every later move has less
+                  clock and a weaker net. Measure the halves apart too (the
+                  minute alone, the small net alone), as P2's split was.
+            - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
+                  Search.TimeBudget and the Ponder option, ~1 h.
+            - [ ] P4: play an unfinished depth's better move instead of
+                  throwing it away (all searches, not only pondering).
+                  Search.IterativeDeepening, about half a day.
+            - [ ] P5: keep the history table between moves (halve it, not
+                  clear it). Search.Prepare, ~30 min, a bench first.
+            - [ ] P6: a table that keeps its deep entries (buckets of 2-4
+                  slots, an age; the slot has spare bits). Always-replace
+                  lets an 8-thread ponder push out our own search's
+                  entries. TranspositionTable, about half a day.
+            - [x] An A/B mode for scripts/ponder-match.py (both sides
+                  ponder, the arms differ by a UCI option), which P2-P4 need.
+                  (With P2: `--arms "PonderFinish=true;PonderFinish=false"`,
+                  `--sprt 0,10`; the summary gives each side's clock left
+                  at the end.)
+            After the src work in flight lands (AVX-512 and the lazy update,
+            the bitboard sessions).
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);
@@ -280,6 +866,26 @@ Sessions, in order:
       the evaluation scaled down as the 50-move count rises; a server near
       Lichess (Europe) if it should run all day (from Australia each move
       costs ~1.2 s of connection).
+- [ ] Knight endings with a far passed pawn: is the net overrating them? In
+      UBIA6Hdc (2026-10-18, WORKLOG) it said +2.4 for an ending Stockfish
+      called +0.25 and drew a game it had been winning. Check our losses and
+      draws for the same shape (the bot's eval v Stockfish's, by material),
+      before any training change.
+- [ ] **Later, should the other levers run out: the piece-pair options**
+      (Matthew, 2026-10-21: b and c on the long-term list, "the closer we fit
+      to real life"; [scripts/piece-pairs-2026-09.md](scripts/piece-pairs-2026-09.md)).
+      Stockfish: bishop pair +48 cp, knight pair ~0, second rook -27.
+      h1024-3m already leans by only -1, 0 and +2 cp on them (+4 on all
+      three), so neither is worth a match yet. Before either, re-measure the
+      lean on whatever net plays then (`scripts/nnue/piece-pairs.py`, ~8 min).
+      - [ ] (b) A pair bonus beside the net, or pair flags as extra inputs:
+            at most ~2 cp to correct (~5 for all three, in 2.4% of
+            positions). A bonus: an engine change, tests, a match (~2 h, the
+            bot off). Inputs: a new input layout in the trainer and the
+            engine, a ~12 h retrain on the 1660, and the match.
+      - [ ] (c) A rook-pair term in sf1, which overvalues the second rook by
+            +26 cp [+21, +32] (it has none): a Texel round (~1 h) and a match
+            against sf1 (~2 h, the bot off). Only if sf1 plays again.
 
 ### 3. Findings for the thesis
 
@@ -302,6 +908,16 @@ Sessions, in order:
 - [x] Push `compression` (GitHub matched d13b55c at 00:47 on 2026-10-15).
 - [ ] A second pull request from `compression` into `main` (PR #1 took only
       the first commit).
+- [x] Pondering for the bot, if wanted (section 2): merge
+      claude/vigilant-murdock-d223f5 (it carries the threads branch too), build
+      the engine into bot/lichess-bot/engines/bruteforcer, and set `ponder:
+      true` in bot/lichess-bot/config.yml; restart the bot between games. The
+      ponder search takes a core for the whole game, from the learner and any
+      index run. (Done 2026-10-16: merged, and on in bot/make-config.py.)
+- [x] Decision M (pondering, [PONDER.md](PONDER.md)): pick an option, (a) to
+      (e), at the end of PONDER.md. (2026-10-21: Matthew chose all six, P1 to
+      P6, one session each, in sequence; the steps are ticked under
+      "Decision M" in section 2. P1 is in compression, 7cb0adb.)
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;
@@ -317,6 +933,24 @@ Sessions, in order:
 
 ### Done lately (details in WORKLOG)
 
+- 2026-10-21: **does depth win games?** One more ply +165 / +132 / +105 Elo
+  at depths 6-7 / 8-9 / 10-11; twice the clock at 10+0.1 +87 [+68, +106]
+  (2,400 games; MATCHES.md).
+- 2026-10-17 (night): **nnue1-h512 +76 Elo [+45, +107] over nnue1** (285
+  games, SPRT accepted H1), after the bot beat Stockfish-2500 10-0 at 3+2;
+  Matthew chose to switch the bot to it at its next start.
+- 2026-10-17: NNUE session 2b: the desktop's GTX 1660 trains over SSH
+  (scheduled tasks, records on its own disk, nothing downloaded), matching
+  the laptop within the size of a seed change at 0.65x its speed. Its first
+  full run, nnue1-h512 (Matthew's F(b)): held-back error -8.0% against
+  nnue1, -4.0% a node in the engine; its match is session 5's.
+- 2026-10-17: NNUE session 4, the match: **nnue1 +742 Elo [+645, +970]
+  over sf1** (+392 -3 =5 in 400 games; SPRT accepted H1). Matthew chose to
+  switch the bot (E(a)); it plays on nnue1 once the branch is merged and
+  the bot restarted.
+- 2026-10-16/17: NNUE sessions 1-3: September's 237 M labelled positions,
+  the network in C#, the trainer on the GPU, and nnue1 (held-back error
+  half sf1's).
 - 2026-10-14/15: `game takeover` reads in batches; the whole of September
   move by move: 1 in 31 held, classical 2.69 mistakes per 100, 2400 and up
   2.38, two minor pieces v a queen ~1 move in 5.

@@ -334,10 +334,7 @@ public sealed class Tablebase : IDisposable
         outcome = Outcome.Draw;
         if (position.Castling != CastlingRights.None)
             return false;
-        int pieces = 0;
-        for (int square = 0; square < 64 && pieces <= MaxPieces; square++)
-            if (!position[square].IsEmpty) pieces++;
-        if (pieces > MaxPieces)
+        if (System.Numerics.BitOperations.PopCount(position.Occupied) > MaxPieces)
             return false;
         var material = Material.FromPosition(position).Canonical;
         if ((dtz ? _missingDtz : _missing).ContainsKey(material))

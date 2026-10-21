@@ -58,6 +58,12 @@ public sealed class MatchRunner
         _settings = settings;
     }
 
+    /// <summary>Engine A's searches over every finished game: mean depth and speed.</summary>
+    public SearchTally SearchesA { get; private set; } = SearchTally.Empty;
+
+    /// <summary>Engine B's searches over every finished game.</summary>
+    public SearchTally SearchesB { get; private set; } = SearchTally.Empty;
+
     /// <summary>Play the match; <paramref name="log"/> receives a line per game and progress summaries.</summary>
     public MatchStats Run(Action<string> log)
     {
@@ -87,8 +93,11 @@ public sealed class MatchRunner
             // Games 2k and 2k+1 share an opening with colours reversed.
             var opening = _settings.Openings[(game / 2) % _settings.Openings.Count];
             bool aIsWhite = game % 2 == 0;
-            var record = GamePlayer.Play(aIsWhite ? a : b, aIsWhite ? b : a, opening, _settings.Clock,
-                                         game + 1, adjudicator);
+            // Each engine on its own time control when it has one (time odds, fixed depths).
+            var clockA = _a.Clock ?? _settings.Clock;
+            var clockB = _b.Clock ?? _settings.Clock;
+            var record = GamePlayer.Play(aIsWhite ? a : b, aIsWhite ? b : a, opening, aIsWhite ? clockA : clockB,
+                                         game + 1, adjudicator, blackClock: aIsWhite ? clockB : clockA);
 
             double scoreForA = record.Result switch
             {
@@ -96,15 +105,20 @@ public sealed class MatchRunner
                 GameResult.BlackWins => aIsWhite ? 0 : 1,
                 _ => 0.5,
             };
+            var searchesA = a.TakeSearches();
+            var searchesB = b.TakeSearches();
 
             lock (_lock)
             {
                 _stats = _stats.Add(scoreForA);
+                SearchesA = SearchesA.Add(searchesA);
+                SearchesB = SearchesB.Add(searchesB);
                 if (_settings.PgnPath is not null)
                     File.AppendAllText(_settings.PgnPath, record.ToPgn(_settings.EventName, DateTime.Now));
                 log($"game {game + 1,4}: {record.White} vs {record.Black}  {record.ResultText,-7} " +
                     $"{record.Termination}, {record.Moves.Count} plies");
                 log($"           {_a.Name} vs {_b.Name}: {_stats}");
+                log($"           {DateTime.Now:HH:mm:ss} searches: {_a.Name} {searchesA}; {_b.Name} {searchesB}");
                 if (_settings.Sprt is var (elo0, elo1))
                 {
                     double llr = _stats.LogLikelihoodRatio(elo0, elo1);

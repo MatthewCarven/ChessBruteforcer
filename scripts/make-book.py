@@ -48,18 +48,49 @@ def options(args, spec):
     return values, args
 
 
+def on_network(path):
+    """Whether a path is on a network share: a UNC path (\\\\host\\share\\...), or a drive letter mapped to one."""
+    path = os.path.abspath(path)
+    if path.startswith(("\\\\", "//")):
+        return True
+    drive = os.path.splitdrive(path)[0]
+    if os.name == "nt" and len(drive) == 2:
+        import ctypes
+        return ctypes.windll.kernel32.GetDriveTypeW(drive + "\\") == 4   # DRIVE_REMOTE
+    return False
+
+
 class Steady(io.RawIOBase):
     """A file read from start to end that rides out its network share dropping for a while (the months live on
     Matthew's desktop from 2026-10-13): a failed read, or one that finds nothing before the file's end, waits,
     reopens the file and carries on from the same byte, giving up after `patience` seconds of failures in a
-    row. It also hashes what it reads, so the whole file can be checked against Lichess's SHA-256."""
+    row. It also hashes what it reads, so the whole file can be checked against Lichess's SHA-256.
+    A file on a network share is read at most `share_rate` bytes a second (Matthew, 2026-10-16: much faster
+    than ~8 MB/s and the share traffic knocks the laptop off the internet, the bot's games with it).
+    CB_SHARE_RATE sets another rate in bytes a second; 0 means no cap."""
     opener = staticmethod(open)   # tests swap in a flaky one
     first_pause, longest_pause, patience = 5, 60, 30 * 60
+    share_rate = int(os.environ.get("CB_SHARE_RATE", 8_000_000))
 
     def __init__(self, path):
         self.path, self.offset, self.file, self.drops = path, 0, None, 0
         self.size = os.path.getsize(path)
         self.sha256 = hashlib.sha256()
+        self.rate = self.share_rate if on_network(path) else 0
+        self.paced_from = None                    # (time, offset) the pace counts from
+
+    def pace(self):
+        """Sleep as long as it takes to keep the reading at or under self.rate bytes a second."""
+        if not self.rate:
+            return
+        now = time.monotonic()
+        if self.paced_from is None:
+            self.paced_from = (now, self.offset)
+            return
+        start, base = self.paced_from
+        due = start + (self.offset - base) / self.rate
+        if due > now:
+            time.sleep(due - now)
 
     def readable(self):
         return True
@@ -92,9 +123,11 @@ class Steady(io.RawIOBase):
                 pause = min(2 * pause, self.longest_pause)
         if waited:
             print(f"back at byte {self.offset:,} after {waited}s", file=sys.stderr, flush=True)
+            self.paced_from = None                # no catching up on the time spent waiting
         if got:
             self.sha256.update(memoryview(buffer)[:got])
             self.offset += got
+            self.pace()
         return got
 
     def close(self):

@@ -1,0 +1,44 @@
+NNUE session 3: the network's speed in the engine, 2026-10-16 (the laptop, i9-11900H, .NET 8; the bot
+playing alongside and session 1's `nnue data` run going the whole time). The nets are piece-square nets
+(Network.FromPieceSquares from bot\eval\eval-sf1.txt, pst-net.cs): any net of a size costs the same per
+operation, and these give a search tree like a real evaluation's.
+
+=== bench.ps1, `bench 9`, one thread, 8 rounds, arms in turn (order rotated each round) ===
+arm          nodes (tree)   median knps   best knps   vs sf1
+sf1             4,767,261         1,218       1,241     +0.0%
+net256          4,625,058         1,192       1,229     -2.1%
+net128          4,527,020         1,282       1,329     +5.3%
+net512          4,625,058         1,075       1,114    -11.7%
+(sf1's tree is node for node the probe's depth-9 tree; net256 and net512 make the identical tree, so the
+step from 256 to 512 hidden is measured on the same nodes: -9.8%.)
+Every run, knps: sf1 1239 1158 1211 1234 1241 1221 1186 1215; net256 1190 1229 1185 1172 1194 1135 1197 1224;
+net128 1274 1291 1267 1292 1268 1323 1329 1199; net512 1079 1069 1091 1071 1091 1059 1069 1114.
+
+=== costs.cs bot\eval\eval-sf1.txt 7 (tree-free; medians of 7 rounds, arms in turn) ===
+Kiwipete perft 4 by make: 4,245,907 makes (legality checks included)
+arm      make+unmake ns   accumulator update ns   evaluation ns
+none/sf1            96.2                                   104.2
+net128             122.7                    26.4            45.3
+net256             148.7                    52.4            54.7
+net512             193.4                    97.2            86.5
+(64 positions evaluated 5,000 times each, so they stay in cache as the search's one position does; the
+same timing over 4,096 positions read 359 ns for sf1, which was cache misses.)
+At the probe's rates (0.65 evaluations a node; ~1.5 moves made a node, from its 13.2 column updates):
+net256 costs ~1.5 x 52 + 0.65 x 55 = ~114 ns a node against sf1's 0.65 x 104 = ~68: ~46 ns more on ~820
+ns a node, about -5%. The bench measured -2.1%. The probe's upper bound was -9% to -18%: it updated on
+unmake as well as make, one pass per square changed, and kept today's evaluation running beside the net.
+
+=== random weights (Network.Random(256), not a yardstick): Kiwipete, one thread ===
+                 depth 1 nodes    depth 2 nodes    depth 3 nodes
+no net                   3,422            7,173           19,837
+random, out 127      1,365,855        5,446,250       11,462,656 (20 s, stopped)
+random, out 8          390,082        1,722,314       12,105,728 (20 s, stopped)
+A random evaluation swings by thousands of centipawns from one capture to the next, so the capture search
+explores nearly every capture sequence. An untrained or badly scaled net would look like a hang.
+
+=== after the bounds checks (commit e4ffd61), 10:25-10:27: bench 9, 8 rounds, three arms in turn ===
+sf1             median   1320 knps    +0.0% vs sf1     (tree 4,767,261 nodes)
+net256 checked  median   1270 knps    -3.8% vs sf1     (tree 4,625,058 nodes)
+net256 before   median   1290 knps    -2.3% vs sf1     (the same tree: the checks cost 1.6%)
+costs.cs 7 rounds with the checks: update 35.6 / 53.9 / 96.0 ns a move (128 / 256 / 512), evaluation
+35.6 / 43.0 / 91.2 ns, sf1 92.7 ns (a faster phase of the laptop than the first run).

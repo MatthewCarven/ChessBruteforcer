@@ -1,0 +1,91 @@
+Speed at 1024: where a node's time goes with h1024-3m (the bot's net since 2026-10-20 03:28) against h512-3m,
+2026-10-20 04:52-05:29. The laptop (i9-11900H, .NET 8.0.32), on AC, with the bot playing (8 threads, pondering)
+and h768-3m's match running (5 games at a time) the whole time: every run here is one thread at below-normal
+priority, and every figure is the loaded laptop's (bench 9 read 890 / 744 knps against 1,746 / 1,470 with the
+bot off). The engine itself was not changed: the probe and the lab ran from a scratchpad copy.
+
+=== bench.ps1, `bench 9`, one thread, 10 rounds, arms in turn (order rotated each round) ===
+arm          nodes (tree)   median knps   best knps   vs h512
+h512            3,752,937           890         929     +0.0%
+h1024           3,775,106           744         766    -16.3%
+(bot off, 6 rounds, 2026-10-20 ~02:50: 1,746 and 1,470, -15.8%.)
+Every run, knps: h512 929 900 891 906 888 837 927 782 844 826; h1024 755 764 766 755 738 734 751 691 615 651.
+
+=== costs.cs with the trained nets as arms (costs-nets.cs), 9 rounds, medians; tree-free ===
+Kiwipete perft 4 by make: 4,245,907 makes (legality checks included)
+arm      make+unmake ns   accumulator update ns   evaluation ns (64 pos)   evaluation ns (8 pos)
+none               110.7                                            141.6                   128.8
+h512               227.6                   117.0                    102.1                    94.3
+h1024              338.8                   228.1                    197.7                   163.2
+("none" evaluates with eval-sf1.txt's numbers. Both costs double from 512 to 1024.)
+
+=== The probe: the search's own nodes, h512-3m and h1024-3m, bench's six positions at depth 9 ===
+A scratchpad copy of the engine with hooks (probe-instrumentation.patch): a counting run records every
+evaluation's value; replaying them gives the identical tree (checked: same nodes, every value equal), so arms
+without the forward pass ("upd") or without the updates as well ("none") search exactly the nodes the full
+engine ("full") does. full - upd = the forward pass, upd - none = the accumulator updates, none = the rest.
+Timed in the thread's own CPU time (QueryThreadCycleTime at the 2.496 GHz TSC), so the time a below-normal
+thread spends waiting for a CPU beside the bot doesn't count. (Wall-clock time was useless here: one arm read
+0.7 to 2.1 us a node from round to round.) Arms rotated search by search; 6 rounds; medians of per-round
+differences.
+
+Counts (a node; h1024, with h512's in brackets):
+  pushes 0.935 [0.957]: quiet 0.530, capture 0.401, castle 0.004; evaluations 0.563 [0.568], all but 0.005 the
+  quiescence stand-pat
+  illegal makes 0.259 [0.276] a node = 27.7% [28.8%] of the pushes (made, found to leave the king in check,
+  taken back)
+  pushes no evaluation ever needs: 29.3% [30.3%] (29.1% leaves, illegal makes included; 0.1% with children)
+  a lazy update's chain: 1.18 updates per evaluation; 0.5% of evaluations find their slot already computed
+
+Run 1 (05:07-05:14), thread time, ns a node:
+net     a node   forward pass     updates          rest             in place
+h512    1015.0    81.8 ( 8.1%)    191.2 (18.8%)    718.3 (70.8%)    199.8 ns a push, 144.0 ns an evaluation
+h1024   1181.9   154.2 (13.0%)    335.5 (28.4%)    725.8 (61.4%)    358.7 ns a push, 274.1 ns an evaluation
+  every round: h512 full 1033 1041 1050 997 867 899, upd 955 955 963 868 812 844, none 760 767 772 676 671 647;
+  h1024 full 1242 1249 1265 1122 1019 1070, upd 1088 1094 1099 973 972 915, none 749 754 762 703 638 648
+
+Run 2 (05:21-05:29), with an ideal lazy arm ("lazy": the full engine, skipping the work of exactly the pushes the
+counting run found no evaluation needed; checked: every evaluation exact, 1,033,032 of 3,530,759 pushes skipped
+at 1024, 1,087,465 of 3,592,554 at 512):
+net     a node   forward pass     updates          rest             in place
+h512    1061.5    86.9 ( 8.2%)    198.4 (18.7%)    770.9 (72.6%)    207.3 ns a push, 153.0 ns an evaluation
+h1024   1253.1   155.8 (12.4%)    336.2 (26.8%)    763.1 (60.9%)    359.4 ns a push, 277.0 ns an evaluation
+  ideal lazy: h512 40.1 ns a node saved (3.8% of a node, 20% of the updates' cost; rounds 44 43 45 37 21 11);
+              h1024 80.0 ns saved (6.4% of a node, 24% of the updates' cost; rounds 75 73 70 85 171 90)
+  every round: h512 full 1062 1061 1065 1078 858 739, lazy 1018 1018 1019 1040 837 727, upd 967 974 974 991
+  875 714, none 768 774 776 784 689 535; h1024 full 1254 1258 1253 1280 1100 911, lazy 1179 1185 1182 1194 929
+  821, upd 1102 1098 1103 1116 867 765, none 764 764 763 774 644 553 (the last two rounds ran in a quieter
+  minute)
+
+=== The kernel lab: the updates and forward passes of a real h1024 search, replayed apart from the search ===
+probelog.cs logged 150,000 pushes and evaluations from each of five bench positions (after their first 150,000;
+the endgame position is too small), 465,340 pushes and 284,660 evaluations in all; lab.cs replays them with each
+kernel, on the net's own weights, 10 rounds rotated, thread time, medians. Every variant gives the same checksum.
+"plain" is .NET arrays as the engine allocates them; @N is native memory N bytes past a 64-byte boundary.
+
+H 1024 (h1024-3m)                                  H 512 (h512-3m)
+variant     ns a push  vs now   ns an eval  vs now     ns a push  vs now   ns an eval  vs now
+256plain        298.9    +0.0%       237.3   +0.0%         137.7    +0.0%       118.4   +0.0%
+256@0           259.2   -13.3%       234.3   -1.3%         127.3    -7.6%       115.5   -2.4%
+256@16          305.1    +2.1%       238.6   +0.6%         148.1    +7.5%       110.1   -7.0%
+256@32          250.9   -16.0%       233.8   -1.4%         127.6    -7.4%       105.6  -10.8%
+512plain        238.7   -20.1%       151.5  -36.2%         106.1   -23.0%        85.6  -27.7%
+512@0           151.7   -49.2%       149.3  -37.1%          76.3   -44.6%        86.1  -27.3%
+512@16          242.3   -18.9%       152.7  -35.6%         110.8   -19.5%        85.1  -28.1%
+512@32          241.7   -19.1%       152.0  -36.0%         114.9   -16.6%        83.8  -29.2%
+
+Where the engine's own arrays land (align.cs, by reflection on the unmodified engine, three loads of each net):
+the feature weights 24 bytes past a 64-byte boundary every time, so half of today's 32-byte column loads cross
+a cache line; the output weights at 48; each position's accumulator stack anywhere (0-56, varying).
+
+=== Estimates at 1024, from run 2's split (a node 1,253 ns: updates 336, forward pass 156) ===
+step                                 saved a node                         nodes a second
+64-byte alignment alone (AVX2)       39-47 ns (lab: -13% a push)          +3% to +4%
+AVX-512 alone (plain arrays)         105-124 ns (lab: -20% / -36%)        +9% to +11%
+AVX-512 + 64-byte alignment          187-223 ns (lab: -49% / -37%)        +18% to +22%
+lazy update (measured ideal)         80 ns, less a few for bookkeeping    +5% to +7%
+AVX-512 + alignment, then lazy       234-264 ns (lazy saves 24% of what   +22% to +27%
+                                     the updates still cost)
+(Low end: the lab's nanoseconds saved, times pushes and evaluations a node; high end: the lab's percentage
+applied to the in-place cost, which is ~1.2x the lab's because the rest of the search shares the caches.
+AVX-512's multiplies may cost the whole core a little clock on this CPU: the engine's own A/B settles it.)
