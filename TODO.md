@@ -493,10 +493,14 @@ Sessions, in order:
       compounds on pondering"); `RepetitionRule` Twofold brings the old rule
       back (UCI, or bot/make-config.py's uci_options).
 - [ ] **Re-run TURNS on a week of the bot's games with the new rule**
-      (scripts/turning-points.py on branch claude/goofy-ellis-ded337, which
-      reads lichess-bot's DEBUG logs; they keep 7 days): the false draws
-      (7% of the lost points that week) should be gone, and no "thrown-away
-      lead by repetition" kind should appear in its place.
+      (scripts/turning-points.py, which reads lichess-bot's DEBUG logs; they
+      keep 7 days): the false draws (7% of the lost points that week) should
+      be gone, and no "thrown-away lead by repetition" kind should appear in
+      its place. This is Matthew's (c) in "3. Findings for the thesis". The
+      bot has run the new rule since 2026-10-22 02:25 (c297601). From about
+      10-29: `--dir games/turns-week2` on every command (a folder of its own;
+      the first run stays in games/turns), `extract --since "2026-10-22
+      02:25"`, then search, stretches, curves, calibrate, table.
 - [ ] **A push to make progress** (from the repetition rule's matches,
       2026-10-22): under the new rule a winning side may step back to an
       earlier position, and nothing pushes it on. Its +3.00 leads converted
@@ -694,7 +698,16 @@ Sessions, in order:
         **chosen, L(b)**: session 1 (sets and attack tables) built, +13.2%
         to +14.1% `bench 9`; session 2 (generation from the sets in today's
         order) built, +9.5% to +9.8% on top: +25% over 180fe25 in all.
-- [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
+- [x] **Where our losses turn**: done 2026-10-21 (P2.2, TURNS.md,
+      scripts/turning-points.py). The week of DEBUG logs (10-14 to 10-20): 225
+      games not won, 182 points lost. Our mistake (two plies deeper plays
+      another move) 5%, out-calculated 23%, misjudged 23%, outplayed slowly
+      20%, false draws from the repetition rule 7%, level draws 14%, other
+      10%. When our engine last thought we were OK, Stockfish agreed in only
+      24 of 167 games. With the networks and 8 threads, out-calculated fell
+      from 33% to 10% of the lost points (opponents' median 2030 to 2464).
+      SrwnQEj5 below came out out-calculated (move 23, -1.43 to -2.64).
+      The request as written (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by
       Stockfish). Then sort them: missed tactics (Stockfish sees the
@@ -929,7 +942,13 @@ Sessions, in order:
       UBIA6Hdc (2026-10-18, WORKLOG) it said +2.4 for an ending Stockfish
       called +0.25 and drew a game it had been winning. Check our losses and
       draws for the same shape (the bot's eval v Stockfish's, by material),
-      before any training change.
+      before any training change. 2026-10-21 (TURNS.md): UBIA6Hdc comes out
+      "misjudged, a slide" (+2.39 down to +0.07 over 16 moves, Stockfish at
+      +0.2 or less throughout). The shape recurs: bhJE4lVW (+2.02 for 11
+      moves, 6 pieces) and kq9Vc4JD (+1.44 for 11 moves, 7 pieces), both
+      0.00 for Stockfish. Misjudged is 23% of the lost points. Still to do:
+      the by-material split. games/turns/curves.jsonl has ours v Stockfish's
+      for 7,035 positions of those games.
 - [ ] **Later, should the other levers run out: the piece-pair options**
       (Matthew, 2026-10-21: b and c on the long-term list, "the closer we fit
       to real life"; [scripts/piece-pairs-2026-09.md](scripts/piece-pairs-2026-09.md)).
@@ -948,6 +967,22 @@ Sessions, in order:
 
 ### 3. Findings for the thesis
 
+- [x] Where the bot's lost and drawn games turned, and whose fault it was
+      (TURNS.md, 2026-10-21): our mistakes 5% of the lost points, out-calculated
+      23%, misjudged 23%, outplayed slowly 20%, false draws (the repetition
+      rule) 7%. Our score usually falls well after the game was lost: at our
+      last "OK", Stockfish agreed in 24 of 167 games.
+- [ ] Re-run the turning points, when the CPU is free (Matthew, 2026-10-21;
+      the first run had 2 threads on one core beside P3's match):
+      (b) `turning-points.py deep`: the 53 misjudged games, our engine 4
+      plies past the bot's depth. Is "no reasonable depth fixes it" true?
+      `table` then adds its own table. Overnight, with nothing else
+      running: ~50 core-hours (three workers of 4 threads, CPUs 2-13, the
+      second and third with `--reverse`; TURNS.md "Next runs").
+      (c) a fresh week with the repetition fix in the bot (since 2026-10-22
+      02:25; "Re-run TURNS" in section 2 has the commands). Did the fix
+      change how we lose? lichess-bot keeps 7 days of DEBUG logs.
+      Not (a), a plain re-run: only 5 turns lacked full depth.
 - [ ] New examples for "Endgames Thrown Away" from the month
       (scripts/takeover-moves-2026-09-month.txt; ratings of exactly 3000 are
       likely bots at their provisional start), if Matthew wants them.
