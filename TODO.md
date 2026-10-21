@@ -987,6 +987,30 @@ Sessions, in order:
                   at the end.)
             After the src work in flight lands (AVX-512 and the lazy update,
             the bitboard sessions).
+- [ ] **Decision O (P8): the setup per opponent** ([OPPONENTS.md](OPPONENTS.md),
+      scoped 2026-10-22, nothing built). No sign that any bot is weak against
+      us beyond its rating (the networks' games: 0 Elo [0, 100]), nor that a
+      bot's result depends on the net (0 [0, 100]); the bot meets most bots
+      1-4 times, and one game measures a bot to +-320 Elo. Simulated over the
+      next 3,000 games: Matthew's rule as stated -18 to -23 Elo, Thompson -7
+      to -16, a cautious learner +0.2. Options (a) log only (my pick), (b) a
+      cautious learner, (c) Thompson, (d) Matthew's rule, (e) per-bot
+      openings (scope first).
+      - [ ] Once chosen: (a) one line in bot/start-bot.cmd running
+            scripts/opponents/collect.py into bot\games\record.csv; (b)-(d)
+            bot/lichess-bot-opponent.patch in create_engine (clear of the
+            ponder-note patch), a chooser module, bot/test-opponent.py on a
+            copy through LICHESS_BOT, settings in make-config.py.
+      - [ ] Rerun scripts/opponents/analyze.py after ~3,000 more games (or
+            when two setups come within ~10 Elo: the deep nets' matches),
+            and look again.
+- [ ] The book learner (bot/learn.py) thinks with eval-sf1.txt, set when sf1
+      was our best evaluation (2026-10-14); the bot plays its moves
+      instantly from ours.bin, ahead of its own thinking with h1024-3m.
+      Check whether it should use the bot's net (its engine has no tables,
+      so the net is the whole difference), e.g. re-score ours.jsonl's
+      moves with h1024-3m and count the disagreements. (Turned up by P8,
+      OPPONENTS.md.)
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);
@@ -1082,6 +1106,8 @@ Sessions, in order:
       (e), at the end of PONDER.md. (2026-10-21: Matthew chose all six, P1 to
       P6, one session each, in sequence; the steps are ticked under
       "Decision M" in section 2. P1 is in compression, 7cb0adb.)
+- [ ] Decision O (P8, the setup per opponent, [OPPONENTS.md](OPPONENTS.md)):
+      pick an option, (a) to (e), at the end of OPPONENTS.md.
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;

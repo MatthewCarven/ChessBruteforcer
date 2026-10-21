@@ -1,0 +1,43 @@
+240 games, 115 opponents, nets ['nnue1', 'nnue1-h512', 'h512-3m', 'h1024-3m'] (networks only)
+games per opponent: [(1, 52), (2, 26), (3, 21), (4, 10), (5, 4), (6, 1), (7, 1)]
+results: +130 =56 -54  (score 0.658)
+
+Model without opponent effects:
+  S[nnue1] =    2667  (18 games, mean opponent 2283)
+  S[nnue1-h512] =    2661  (153 games, mean opponent 2407)
+  S[h512-3m] =    2543  (26 games, mean opponent 2566)
+  S[h1024-3m] =    2700  (43 games, mean opponent 2647)
+  bullet -6, rapid/classical -71, white +-93, draw width D 144
+  mean per-game score variance 0.101 (draws in: Matthew's 0.2), observed (s - E)^2 0.080
+
+Opponent effects: tau (the SD of 'this bot is weak/strong against us beyond its rating'):
+  profile  0:0.00  10:0.03  20:0.10  30:0.24  40:0.43  50:0.68  60:1.01  70:1.41  80:1.89  100:3.10  120:4.49  150:7.18  200:12.66  250:18.95
+  tau = 0 Elo, 95% interval [0, 100]; against tau = 0: LR 0.00, p = 0.500
+
+Opponents with 3+ games: 37; |z| > 1.96 for 1 (chance alone: 1.5, 95% of runs <= 4); largest |z| 1.98 (chance: median 2.50, 95% <= 3.83)
+  sum of z^2 over them 28.3 on 37 opponents (chance: mean 37, chi-square p = 0.848)
+
+  the most surprising opponents (3+ games): n, score, expected, z, Elo off the rating (raw)
+  Snaky-Bot                4    4.0    2.5  +1.98   +510   nnue1-h512 4
+  TeensyCheesy             4    0.5    1.9  -1.88   -329   nnue1-h512 3, h512-3m 1
+  Alieknek                 4    1.0    2.4  -1.88   -267   nnue1-h512 4
+  tallikebot               4    0.0    1.1  -1.56   -434   h512-3m 2, nnue1-h512 1, h1024-3m 1
+  fpga-chess               4    4.0    3.3  +1.14   +321   nnue1-h512 2, h512-3m 1, h1024-3m 1
+  LunaEngineChess          3    1.0    1.7  -1.11   -173   nnue1 1, nnue1-h512 1, h1024-3m 1
+  Mithandros               3    3.0    2.4  +1.11   +358   h512-3m 2, nnue1-h512 1
+  AaronsEngine             3    3.0    2.4  +1.09   +352   nnue1-h512 2, h1024-3m 1
+  BoxNumberbot             3    2.5    1.8  +1.01   +198   nnue1-h512 3
+  prokopakop               3    2.0    1.3  +1.00   +159   nnue1-h512 2, h512-3m 1
+  justbot-v1               3    2.0    1.3  +0.98   +156   nnue1-h512 2, h1024-3m 1
+  GroshBoss                3    2.5    2.8  -0.90   -187   nnue1-h512 2, nnue1 1
+
+Net x opponent (tau held at 0): 35 opponents met on two nets or more
+  profile  0:0.00  25:0.13  50:0.57  75:1.35  100:2.58  150:6.19  200:11.15  300:23.18
+  sigma = 0 Elo, 95% interval [0, 100]; against sigma = 0: LR 0.00, p = 0.500
+
+Openings: 108 pairs of games against the same bot with the same colours; identical for 8 plies 3 (3%), 12 plies 0 (0%), 16 plies 0 (0%)
+  the first difference in each pair: {'ours': 77, 'theirs': 31}
+  ours: 134 moves from a position met before, 77 different (57% a move)
+  theirs: 114 moves from a position met before, 31 different (27% a move)
+  our book moves a game: median 9, mean 8.5
+

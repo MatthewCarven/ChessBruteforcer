@@ -5282,3 +5282,50 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   Deleting bot\eval\h1024-3m-l16-32.nnue goes back to h1024-3m.
 - Still to come, on Matthew's word: the repetition match's last 613 games,
   then the deep nets' two matches (the bot off).
+
+## 2026-10-22 (05:15-06:15): P8, the setup per opponent, scoped (a side session)
+
+- Matthew's P8: keep a record per game, and choose which of our best three
+  setups plays each bot before the game starts, the least-used one for each
+  bot's first 3-10 games, then whichever did best against it, a heavy loss
+  counting against. Scoped with the bot's games first; nothing in src or
+  bot/lichess-bot changed. Write-up: [OPPONENTS.md](OPPONENTS.md); scripts
+  and outputs in scripts/opponents/.
+- **The record**: scripts/opponents/collect.py gives one row a game from
+  bot/games/*.pgn and bot/logs/bot-*.log (the net comes from the engine's
+  "info string evaluation" line at each start; who challenged; book moves
+  by book; games beside it; the first 20 plies). Backfilled into the main
+  checkout's bot\games\record.csv (out of git): all 617 games matched to
+  one of 49 starts: built-in 145, sf1 229, nnue1 19, nnue1-h512 154,
+  h512-3m 26, h1024-3m 44 (h1024-3m-l16-32's one game, KDKKzauD, has no
+  PGN: the bot stopped at 03:26 with it in progress).
+- **Few repeats**: 196 bots, 68 met once, 36 twice, three 10+ times (most
+  16).
+- **Opponent offsets** (analyze.py: BayesElo-style draws, one strength a
+  net, each bot's offset integrated out, profile intervals): all 596 games
+  with a result, tau 80 Elo [0, 120], p 0.05 against none; the networks'
+  240 games, tau 0 [0, 100]. Net x opponent, sigma 0 [0, 100] both ways.
+  Bot by bot: |z| > 1.96 for 3 of 90 bots (chance 3.8), 1 of 37 on the
+  networks (chance 1.5); the largest |z| 3.00 against chance's median
+  2.68. Matthew's sums hold (0.19 a game at even strength; our lopsided
+  games 0.13); one game measures a bot's offset to +-320 Elo.
+- **Openings**: from a position met before, the bots played another move
+  30% of the time, we 60% (the weighted-random book); 14 of 50 bots never
+  varied. Only 3% of same-bot same-colour pairs agree for 8 plies.
+- **Simulated** (simulate.py; a 300-bot pool fitted to the repeat
+  pattern; h1024-3m 0, h512-3m -41, nnue1-h512 -52), Elo played against
+  always h1024-3m over the next 3,000 games, weighted by how well each
+  sigma fits: Matthew's rule -18 (3 games exploring) to -23 (9), Thompson
+  sampling -7 to -16, a cautious learner +0.2; the ceiling (knowing each
+  bot's best net) +16. Matthew's rule pays only at sigma 100+ over
+  thousands of games (+12 to +18 at 20,000 games, sigma 100).
+- lichess-bot: create_engine(config, game) per game (engine_wrapper.py:35,
+  clear of the ponder-note patch); engine start to `+++` ~60 ms, the net
+  loaded ~25 ms in, so a per-game net is free in time and memory (nets
+  0.4-1.6 MB, one engine at a time). The startup check only loads the
+  default net.
+- Turned up: bot/learn.py still thinks with eval-sf1.txt, not the bot's
+  net (TODO).
+- **Decision O** (OPPONENTS.md, the end): (a) log only (my pick), (b) a
+  cautious learner, (c) Thompson sampling, (d) Matthew's rule as stated,
+  (e) per-bot openings instead (scope first). Matthew's call.
