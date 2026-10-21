@@ -4,7 +4,8 @@ Matthew, 2026-10-21: "if all of a sudden you were not winning you'd know if some
 being out-calculated". For every game the bot lost or drew, this finds where our own score fell, then looks again
 at the position before each fall: with our engine searching deeper, and with Stockfish.
 
-    bot\\lichess-bot\\.venv\\Scripts\\python.exe -I scripts/turning-points.py extract   (the logs -> games/turns/games.json)
+    bot\\lichess-bot\\.venv\\Scripts\\python.exe -I scripts/turning-points.py extract   (the logs -> games/turns/games.json;
+                                       --since "YYYY-MM-DD HH:MM" for one build's games only)
     ... turning-points.py falls       (each game not won: its scores, falls and turn, as a list)
     ... turning-points.py search      (the falls re-searched -> searches.jsonl; stop it any time, it carries on;
                                        --reverse for a second worker from the other end; --cpus 14,15)
@@ -14,6 +15,8 @@ at the position before each fall: with our engine searching deeper, and with Sto
     ... turning-points.py deep        (the misjudged games, our engine 4 plies past the bot's depth -> deep.jsonl;
                                        --extra, --cap 3600, --cpus, --threads, --hash 512, --reverse)
     ... turning-points.py table       (the tables, as markdown -> stdout)
+Every command takes --dir <folder> (relative to the repo) for another run's data, e.g. a later week's: the first
+run's is games/turns (TURNS.md).
 
 Where the scores come from: lichess-bot's DEBUG log (bot/lichess-bot/lichess_bot_auto_logs, 7 days kept) has every
 UCI line the engine sent. Our score for a move is the last `info` line of the search that chose it. For a ponder hit
@@ -57,6 +60,8 @@ MAIN = os.path.normpath(os.path.join(ROOT, "..", "..", "..")) if os.sep + ".clau
 LOGS = os.path.join(MAIN, "bot", "lichess-bot", "lichess_bot_auto_logs")
 PGNS = os.path.join(MAIN, "bot", "games")
 OUT = os.path.join(MAIN, "games", "turns")
+if "--dir" in sys.argv:          # another run's data folder (relative to the repo), e.g. games/turns-2026-10-29
+    OUT = os.path.join(MAIN, sys.argv[sys.argv.index("--dir") + 1])
 ME = "matthewcarven"
 
 FALL_CP = 100
@@ -211,12 +216,17 @@ def read_pgns():
 
 
 def extract():
+    """--since "YYYY-MM-DD HH:MM" keeps only games whose engine started thinking then or later (a new build's)."""
+    if os.path.exists(os.path.join(OUT, "games.json")) and "--force" not in sys.argv:
+        sys.exit(f"{OUT} already has games.json, and the other files there are keyed to it: give another --dir, or "
+                 f"--force to overwrite it")
+    since = sys.argv[sys.argv.index("--since") + 1] if "--since" in sys.argv else ""
     logs = read_logs()
     pgns = read_pgns()
     games = []
     for gid, g in logs.items():
         h = pgns.get(gid)
-        if h is None or not g["searches"]:
+        if h is None or not g["searches"] or g["searches"][0]["t"] < since:
             continue
         white = h.get("White", "").lower() == ME
         result = h.get("Result")
@@ -231,7 +241,7 @@ def extract():
                       "inc": int(inc) if inc.isdigit() else None, "event": h.get("Event"),
                       "termination": h.get("Termination"), "result": ours, "book": g["book"],
                       "eval": os.path.basename(g["options"].get("EvalFile", "")), "threads": g["options"].get("Threads"),
-                      "moves": our_moves(g["searches"])})
+                      "options": g["options"], "moves": our_moves(g["searches"])})
     games.sort(key=lambda x: (x["day"] or "", x["moves"][0]["t"] if x["moves"] else ""))
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, "games.json"), "w", encoding="utf-8", newline="\n") as f:

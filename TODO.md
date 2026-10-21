@@ -497,8 +497,10 @@ Sessions, in order:
       keep 7 days): the false draws (7% of the lost points that week) should
       be gone, and no "thrown-away lead by repetition" kind should appear in
       its place. This is Matthew's (c) in "3. Findings for the thesis". The
-      bot has run the new rule since 2026-10-22 02:25 (c297601), so
-      `extract --since "2026-10-22 02:25"`, from about 10-29.
+      bot has run the new rule since 2026-10-22 02:25 (c297601). From about
+      10-29: `--dir games/turns-week2` on every command (a folder of its own;
+      the first run stays in games/turns), `extract --since "2026-10-22
+      02:25"`, then search, stretches, curves, calibrate, table.
 - [ ] **A push to make progress** (from the repetition rule's matches,
       2026-10-22): under the new rule a winning side may step back to an
       earlier position, and nothing pushes it on. Its +3.00 leads converted
@@ -948,9 +950,7 @@ Sessions, in order:
       running: ~50 core-hours (three workers of 4 threads, CPUs 2-13, the
       second and third with `--reverse`; TURNS.md "Next runs").
       (c) a fresh week with the repetition fix in the bot (since 2026-10-22
-      02:25; "Re-run TURNS" in section 2): move games/turns aside first
-      (`extract` overwrites games.json), then `extract --since "2026-10-22
-      02:25"`, search, stretches, curves, calibrate, table. Did the fix
+      02:25; "Re-run TURNS" in section 2 has the commands). Did the fix
       change how we lose? lichess-bot keeps 7 days of DEBUG logs.
       Not (a), a plain re-run: only 5 turns lacked full depth.
 - [ ] New examples for "Endgames Thrown Away" from the month

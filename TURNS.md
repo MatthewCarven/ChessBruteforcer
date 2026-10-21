@@ -195,11 +195,19 @@ is level.) Another 51 moves in lost games scored exactly 0.00 at -1.50 or worse 
 the logged line. Some may be the same thing out of sight: a draw score from a repetition kept in the table and met
 again by another path.
 
+**Fixed 2026-10-22** (a session of its own, in compression as c297601; WORKLOG and TODO have the detail). It now
+uses Stockfish's rule, and a position the game has had before gets no table cutoff, which is the out-of-sight case
+above. On the bot's own positions where Stockfish had us at -1.50 or worse, the old rule said 0.00 in 43 of 68 and
+the new one in none. In self-play, the rule alone scored -16 [-32, +1] Elo; with the table fix, even. It's on by
+default (Matthew: "I'd rather be right because error compounds on pondering"), and the bot has played with it since
+02:25 that day. Run (c) under "Next runs" checks it on real games.
+
 ## What it suggests (Matthew's call)
 
 - **(a) The repetition rule.** Count a repetition as a draw only inside the search, or on the third occurrence, as
   Stockfish does. It's a small change in `Search.IsRepetition`. 13 games (7% of the lost points) turned on it, and it
-  hid when they'd really turned: Stockfish had 8 of them lost for 20+ moves. It needs an A/B match.
+  hid when they'd really turned: Stockfish had 8 of them lost for 20+ moves. It needs an A/B match. (Done
+  2026-10-22, above.)
 - **(b) Evaluation (C, 23%).** The misjudged positions make a test set for the networks, ours against Stockfish. The
   knight-ending kind is in there: +1.4 to +2.4 in endings Stockfish called 0.00.
 - **(c) Depth (B, 23%).** The ponder work (P2-P6) and speed give depth. p2.1 measured a ply at about +105 Elo at
@@ -219,8 +227,13 @@ ways:
   10-13), with nothing else running: ~5-8 h. A trial on 2N03uUpA (2 threads beside a match, 600 s) reached only +2,
   and there our engine did see the fall (-4.16 at depth 16, against -2.46 at 15), so expect some to flip.
   (games/turns/deep-trial.jsonl; not counted.)
-- **(c) A fresh week**, once the repetition fix (and P1-P6) is in the bot. Did the fixes change how we lose? Move
-  games/turns aside first: `extract` overwrites games.json, and the other files are keyed to its games.
+- **(c) A fresh week** with the repetition fix in the bot. Did the fix change how we lose? The fix went into
+  compression as c297601, and the bot has run it since 2026-10-22 02:25 (one game at a time). From about 10-29, when
+  lichess-bot's 7 days of DEBUG logs are all the new build's, give every command `--dir games/turns-week2`, a folder
+  of its own (the first run stays in games/turns, and `extract` won't overwrite a games.json without `--force`). Then
+  run `extract --since "2026-10-22 02:25"` (only games the new build played), search, stretches, curves
+  --sf-depth 16, calibrate, table. The engine copy for its re-searches is taken from the bot then, so it's the new
+  build.
 - Not (a), a plain re-run with more CPU. Only 5 of the 94 turns lacked the full +2 plies (all misjudged), so it would
   change at most ~3% of the lost points.
 
