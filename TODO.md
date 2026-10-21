@@ -906,8 +906,9 @@ Sessions, in order:
 ### 4. Matthew's (flagged, his to do)
 
 - [x] Push `compression` (GitHub matched d13b55c at 00:47 on 2026-10-15).
-- [ ] A second pull request from `compression` into `main` (PR #1 took only
-      the first commit).
+- [x] A second pull request from `compression` into `main` (PR #1 took only
+      the first commit). (Done: PRs #2-#4, and #6 on 2026-10-21, merged by
+      Matthew at 11:02, 91503ab: compression up to e419168.)
 - [x] Pondering for the bot, if wanted (section 2): merge
       claude/vigilant-murdock-d223f5 (it carries the threads branch too), build
       the engine into bot/lichess-bot/engines/bruteforcer, and set `ponder:
