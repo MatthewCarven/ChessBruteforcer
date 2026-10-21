@@ -48,6 +48,7 @@ if os.path.exists(out):
 fields = ["arm", "key", "fen", "learnt", "why", "learnt_depth", "learnt_cp", "best", "best_cp", "learnt_cp_now",
           "loss", "depth", "nodes", "seconds"]
 new_file = not os.path.exists(out)
+print(f"{arm}: {len(sample)} positions in this part, {len(done & set(sample))} of them done already", flush=True)
 engine = chess.engine.SimpleEngine.popen_uci(exe)
 engine.configure({"Hash": 64, "Threads": 1, "EvalFile": evalfile})
 
