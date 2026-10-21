@@ -97,7 +97,8 @@ public class CutDepthTests
     /// Node counts to cut <paramref name="full"/> at (one thread: the search stops as its count reaches a
     /// multiple of 2,048 at or past the limit), at each depth where some move was searched again: early in the
     /// depth, before its first event; and just after the last depth's best was searched, after each move began
-    /// to be searched again, and after each move's search that beat the best before it or had been searched again.
+    /// to be searched again, after each move's search that beat the best before it or had been searched again,
+    /// and after the next two moves' searches that end after one that beat the best (they did worse).
     /// </summary>
     private static IEnumerable<long> CutPoints(Traced full)
     {
@@ -111,6 +112,13 @@ public class CutDepthTests
             points.Add(After(full.Depth(depth - 1).Nodes));
             foreach (var e in events.Where(e => e.Research || e.Raised || e.Move == previousBest || searchedAgain.Contains(e.Move)))
                 points.Add(After(e.Nodes));
+            var ended = events.Where(e => !e.Research).ToList();
+            for (int i = 0; i < ended.Count; i++)
+            {
+                if (ended[i].Raised && ended[i].Move != previousBest)
+                    foreach (var after in ended.Skip(i + 1).TakeWhile(e => !e.Raised).Take(2))
+                        points.Add(After(after.Nodes));
+            }
         }
         return points.Where(p => p < full.Infos[^1].Nodes);   // (a point past a depth's end cuts the next one)
     }
@@ -401,6 +409,82 @@ public class CutDepthTests
             Assert.True(later.Infos[^1].Partial);
         }
         Assert.False(last.Raised, "the last best did better here: this test no longer reaches the case it's for");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ARangesThreadThatHasNotSearchedTheLastBestMoveYetProvesNothing(bool inTheFallback)
+    {
+        // As above, on four threads with Ranges: another move in the table at the root, so every window's thread
+        // (or, made to search the depth again with the full window, the calling thread) searches it first.  Stop
+        // as that move's search ends, before any thread has searched the last depth's best.
+        const string fen = MoveGeneratorTests.Kiwipete;
+        const int seeded = 6;
+        ulong rootKey = Position.FromFen(fen).Hash;
+        var table = new TranspositionTable(8);
+        var (previousBest, first) = (default(Move), default(Move));
+        Search.RootEvent? stoppedOn = null;
+        var traced = Run(fen, new SearchLimits { Depth = seeded + 1 }, 4, ParallelMode.Ranges, table: table,
+            onInfo: (_, info) =>
+            {
+                if (info.Depth != seeded)
+                    return;
+                previousBest = info.PrincipalVariation[0];
+                first = MoveGenerator.Legal(Position.FromFen(fen)).First(m => m != previousBest && !m.IsCapture);
+                table.Store(rootKey, first, info.Score, seeded, Bound.Exact);
+            },
+            onEvent: (t, e) =>
+            {
+                if (stoppedOn is not null || e.Depth != seeded + 1 || e.Research)
+                    return;
+                if (inTheFallback && e.Thread != t.Search)
+                {
+                    e.Thread.Stop();   // (no window settles the depth, so the calling thread searches it again)
+                    return;
+                }
+                if (e.Move == first)
+                {
+                    stoppedOn = e;
+                    t.Search.Stop();
+                }
+            });
+        Assert.NotNull(stoppedOn);
+        var stop = stoppedOn!.Value;
+        Assert.True(inTheFallback == (stop.Thread == traced.Search), "stopped on the wrong thread");
+        var atDepth = traced.Events.Where(e => e.Depth == seeded + 1).ToList();
+        Assert.DoesNotContain(atDepth.TakeWhile(e => e != stop), e => !e.Research && e.Move == previousBest);
+
+        // Whatever any thread had proved by the time it stopped: by the trace, nothing, unless a thread went on to
+        // search the last best after all before it saw the stop.
+        var best = BestProved(traced, seeded + 1, previousBest);
+        if (best.Count == 0)
+        {
+            Assert.Equal((previousBest, seeded), (traced.Result.BestMove!.Value, traced.Result.Depth));
+            Assert.DoesNotContain(traced.Infos, i => i.Partial);
+        }
+        else
+        {
+            Assert.Contains(traced.Result.BestMove!.Value, best.Select(e => e.Move));
+        }
+    }
+
+    [Fact]
+    public void ACutInTheFirstDepthPlaysTheBestMoveItHasFound()
+    {
+        // As before P4: depth 1 has no finished depth before it, so its best move so far is played, whatever it is.
+        var traced = Run(MoveGeneratorTests.Kiwipete, new SearchLimits { Depth = 3 },
+            onEvent: (t, e) =>
+            {
+                if (e.Depth == 1 && t.Events.Count(x => x.Depth == 1 && !x.Research) == 3)
+                    t.Search.Stop();
+            });
+        var ended = traced.Events.Where(e => e.Depth == 1 && !e.Research).ToList();
+        Assert.Equal(3, ended.Count);
+        var leader = ended.Last(e => e.Raised);
+        Assert.Equal((leader.Move, 1), (traced.Result.BestMove!.Value, traced.Result.Depth));
+        var line = Assert.Single(traced.Infos);
+        Assert.Equal((1, false, leader.Move), (line.Depth, line.Partial, line.PrincipalVariation[0]));
     }
 
     [Fact]

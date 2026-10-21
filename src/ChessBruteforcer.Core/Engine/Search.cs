@@ -620,6 +620,8 @@ public sealed class Search
         {
             int[] bounds = RangeBounds(previous, _workers.Length, _owner.RangeStep);
             int windows = bounds.Length - 1;
+            foreach (var worker in _workers)   // (those that sit this depth out too: nothing they knew counts now)
+                (worker.Helper._rootPreviousBest, worker.Helper._rootPreviousBestSearched) = (previousBest, false);
             for (int i = 0; i < windows; i++)
             {
                 var worker = _workers[i];
@@ -630,7 +632,6 @@ public sealed class Search
                 worker.Alpha = i == 0 ? -Infinity : bounds[i] - 1 - overlap;
                 worker.Beta = i == windows - 1 ? Infinity : bounds[i + 1] + overlap;
                 worker.Helper._stop = false;
-                (worker.Helper._rootPreviousBest, worker.Helper._rootPreviousBestSearched) = (previousBest, false);
                 worker.Go.Release();
             }
             if (_owner._stop)
@@ -658,7 +659,7 @@ public sealed class Search
 
             _owner.CheckLimits();
             if (_owner._stop)
-                return ProvedAtCut(windows, fallback: false);
+                return ProvedAtCut(fallback: false);
             // No window held it: pruning that depends on the window (null move above all) can
             // make neighbouring windows disagree about which side of their boundary the score is.
             // Settle the depth on this thread with the full window.
@@ -667,7 +668,7 @@ public sealed class Search
             int score = _owner.Negamax(_root, depth, -Infinity, Infinity, 0, allowNull: false);
             if (!_owner._stop)
                 return (score, _owner._pv[0].Take(_owner._pvLength[0]).ToArray(), true);
-            return ProvedAtCut(windows, fallback: true);
+            return ProvedAtCut(fallback: true);
         }
 
         /// <summary>
@@ -675,13 +676,13 @@ public sealed class Search
         /// last depth's best (<see cref="Search.ProvedAtCut"/>), the one with
         /// the highest score.  A window's score is at least the move's (exact
         /// in the window, or at least its top on a fail high), so this is the
-        /// move proved best, by the most.  The first <paramref name="windows"/>
-        /// workers searched this depth, and with <paramref name="fallback"/>
-        /// the owner too.
+        /// move proved best, by the most.  With <paramref name="fallback"/>,
+        /// the owner's full-window search of the depth counts too.  (A worker
+        /// that sat the depth out has proved nothing: its root was reset.)
         /// </summary>
-        private (int Score, Move[] Pv, bool Complete) ProvedAtCut(int windows, bool fallback)
+        private (int Score, Move[] Pv, bool Complete) ProvedAtCut(bool fallback)
         {
-            var searches = _workers.Take(windows).Select(worker => worker.Helper);
+            var searches = _workers.Select(worker => worker.Helper);
             if (fallback)
                 searches = searches.Append(_owner);
             (Move[] Pv, int Score)? best = null;
