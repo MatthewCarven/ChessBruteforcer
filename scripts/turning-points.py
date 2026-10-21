@@ -11,6 +11,8 @@ at the position before each fall: with our engine searching deeper, and with Sto
     ... turning-points.py stretches   (Stockfish at each game's stretch, its start and end -> stretches.jsonl)
     ... turning-points.py curves      (Stockfish on every move of ours up to the stretch's end -> curves.jsonl)
     ... turning-points.py calibrate   (Stockfish on every 5th move of the won games -> calibrate.jsonl)
+    ... turning-points.py deep        (the misjudged games, our engine 4 plies past the bot's depth -> deep.jsonl;
+                                       --extra, --cap 3600, --cpus, --threads, --hash 512, --reverse)
     ... turning-points.py table       (the tables, as markdown -> stdout)
 
 Where the scores come from: lichess-bot's DEBUG log (bot/lichess-bot/lichess_bot_auto_logs, 7 days kept) has every
@@ -542,6 +544,111 @@ def calibrate_cmd():
         sf.quit()
 
 
+# ---------------------------------------------------------------- deeper
+
+def misjudged_positions(games, searches, slides):
+    """The misjudged games (C): a sudden turn's position before the fall, or a slide's first position, with our move
+    there, the bot's depth there, and the line half the fall (or slide) below our score."""
+    out = []
+    for g in not_won(games):
+        kind, at = game_kind(g, searches, slides)
+        if kind not in ("misjudged", "slide: misjudged"):
+            continue
+        m = next(m for m in g["moves"] if m["ply"] == at["ply"])
+        out.append({"game": g["id"], "ply": at["ply"], "fen": m["fen"], "move": m["move"], "depth": m["depth"],
+                    "eval": g["eval"], "kind": kind, "line": at["before"] - (at["before"] - at["after"]) / 2,
+                    "lost": 1 - g["result"]})
+    return out
+
+
+def deep_cmd():
+    """Is "misjudged" really beyond depth? Our engine on each misjudged game's position, --extra (4) plies past the
+    bot's depth (games/turns/deep.jsonl), and on our move there: does it now see half the fall, or prefer another
+    move? Stop it any time; --reverse for a second worker."""
+    import chess.engine
+    games = load_games()
+    path = os.path.join(OUT, "deep.jsonl")
+    done = set(read_jsonl("deep.jsonl"))
+    todo = [p for p in misjudged_positions(games, read_jsonl("searches.jsonl"), read_jsonl("stretches.jsonl"))
+            if f"{p['game']}:{p['ply']}" not in done][:option("--limit", 10**9, int)]
+    if "--reverse" in sys.argv:
+        todo.reverse()
+    cpus = [int(c) for c in option("--cpus", "14,15").split(",")]
+    extra, cap = option("--extra", 4, int), option("--cap", 3600.0, float)   # +4 is about an hour of one core each
+    print(f"{len(todo)} misjudged positions to search ({len(done)} done); our engine on CPUs {cpus}, depth +{extra} "
+          f"(cap {cap:.0f} s)", flush=True)
+    ours = chess.engine.SimpleEngine.popen_uci([engine_copy()], creationflags=BELOW_NORMAL)
+    pin(ours.transport.get_pid(), cpus)
+    ours.configure({"Threads": option("--threads", len(cpus), int), "Hash": option("--hash", 512, int),
+                    "EndgameTables": TABLES, "TableCache": 256})
+    current_eval = None
+    try:
+        for n, t in enumerate(todo, 1):
+            key = f"{t['game']}:{t['ply']}"
+            if key in read_jsonl("deep.jsonl"):
+                continue
+            if t["eval"] != current_eval:
+                ours.configure({"EvalFile": os.path.join(EVALS, t["eval"]) if t["eval"] else "<empty>"})
+                current_eval = t["eval"]
+            board = chess.Board(t["fen"])
+            move = chess.Move.from_uci(t["move"])
+            depth = (t["depth"] or 10) + extra
+            t0 = time.time()
+            deep = ours.analyse(board, chess.engine.Limit(depth=depth, time=cap), game=key)
+            best = deep["pv"][0] if deep.get("pv") else None
+            rec = {"key": key, "extra": extra, "depth": deep.get("depth"), "best": best.uci() if best else None,
+                   "score": pov_cp(deep["score"].relative)}
+            if best == move:
+                rec["move_score"] = rec["score"]
+            else:
+                board.push(move)
+                after = ours.analyse(board, chess.engine.Limit(depth=depth - 1, time=cap), game=key)
+                board.pop()
+                rec["move_score"] = -pov_cp(after["score"].relative)
+            rec["s"] = round(time.time() - t0, 1)
+            with open(path, "a", encoding="utf-8", newline="\n") as f:
+                f.write(json.dumps(rec) + "\n")
+            print(f"{n}/{len(todo)} {key} {t['kind']} bot d{t['depth']} -> d{rec['depth']} best {rec['best']} "
+                  f"{rec['score']:+} (played {rec['move_score']:+}; half the fall at {t['line']:+.0f}) {rec['s']}s",
+                  flush=True)
+    finally:
+        ours.quit()
+
+
+def deep_verdict(p, r):
+    if r["move_score"] <= p["line"]:
+        return "now sees half the fall or more"
+    if r["score"] - r["move_score"] >= MISTAKE_CP:
+        return "still doesn't, but prefers another move"
+    return "still doesn't see it"
+
+
+def deep_table(games, searches, slides):
+    deep = read_jsonl("deep.jsonl")
+    if not deep:
+        return
+    rows = defaultdict(lambda: defaultdict(lambda: [0, 0.0]))
+    reached = defaultdict(int)
+    for p in misjudged_positions(games, searches, slides):
+        r = deep.get(f"{p['game']}:{p['ply']}")
+        verdict = deep_verdict(p, r) if r else "not searched yet"
+        for k in (p["kind"], "all"):
+            rows[k][verdict][0] += 1
+            rows[k][verdict][1] += p["lost"]
+        if r:
+            reached[f"+{(r['depth'] or 0) - (p['depth'] or 0)}"] += 1
+    extra = next(iter(deep.values()))["extra"]
+    verdicts = ["now sees half the fall or more", "still doesn't, but prefers another move", "still doesn't see it",
+                "not searched yet"]
+    print(f"\n| misjudged (C), our engine {extra} plies past the bot's depth (games / points lost) | "
+          + " | ".join(verdicts) + " |\n|---|" + "---:|" * len(verdicts))
+    for k in ("misjudged", "slide: misjudged", "all"):
+        if k in rows:
+            print(f"| {k} | " + " | ".join(f"{rows[k][v][0]} / {rows[k][v][1]:g}" if rows[k][v][0] else "" for v in verdicts)
+                  + " |")
+    print(f"\nplies reached past the bot's depth (the cap can stop it short): {dict(sorted(reached.items()))}")
+
+
 # ---------------------------------------------------------------- table
 
 def read_jsonl(name):
@@ -691,6 +798,7 @@ def table():
             print(f"| {k} | {count[k][0]} | {count[k][1]} |")
     print(f"\nre-search depth against the bot's: {dict(depth_gap)}")
     lag_table(nw, searches, slides)
+    deep_table(games, searches, slides)
 
 
 LAGS = ["agreed", "1-2 moves", "3-5 moves", "6-10 moves", "11-20 moves", "more than 20", "never, out of book"]
@@ -793,4 +901,5 @@ def lag_table(nw, searches, slides):
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "table"
-    {"extract": extract, "falls": falls_cmd, "search": search, "stretches": stretches_cmd, "curves": curves_cmd, "calibrate": calibrate_cmd, "table": table}[cmd]()
+    {"extract": extract, "falls": falls_cmd, "search": search, "stretches": stretches_cmd, "curves": curves_cmd, "calibrate": calibrate_cmd, "deep": deep_cmd,
+     "table": table}[cmd]()

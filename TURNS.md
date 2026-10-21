@@ -206,10 +206,29 @@ again by another path.
   this depth. With the networks and 8 threads, B is already down to 10%.
 - **(d) Nothing for A.** Plain mistakes are 5%.
 
+## Next runs (Matthew, 2026-10-21; when the CPU is free)
+
+This run had 2 threads on one core beside P3's match, so Matthew asked for it to be run again, and chose two of three
+ways:
+
+- **(b) A deeper check of the misjudged games** (`deep`). The 53 games in C (22 sudden, 31 slides), with our engine 4
+  plies past the bot's depth instead of 2. Does it now see half the fall in our move, or prefer another move? If most
+  still don't, "no reasonable depth fixes it" holds. `table` then adds its own table. **It's an overnight job**:
+  +4 plies costs about an hour of one core a position (a ply is ~2.2x), so ~50 core-hours for the 53. For example,
+  three workers of 4 threads on CPUs 2-13 (`--cpus 2,3,4,5 --threads 4`, then `--reverse` on 6-9, and a third on
+  10-13), with nothing else running: ~5-8 h. A trial on 2N03uUpA (2 threads beside a match, 600 s) reached only +2,
+  and there our engine did see the fall (-4.16 at depth 16, against -2.46 at 15), so expect some to flip.
+  (games/turns/deep-trial.jsonl; not counted.)
+- **(c) A fresh week**, once the repetition fix (and P1-P6) is in the bot. Did the fixes change how we lose? Move
+  games/turns aside first: `extract` overwrites games.json, and the other files are keyed to its games.
+- Not (a), a plain re-run with more CPU. Only 5 of the 94 turns lacked the full +2 plies (all misjudged), so it would
+  change at most ~3% of the lost points.
+
 ## Scripts and data
 
-- `scripts/turning-points.py extract | falls | search | stretches | curves | calibrate | table`. Run it with the bot's
-  venv python, `-I`. `search` can be stopped any time and carries on; `search --reverse` runs a second worker from the
-  other end, and each skips what the other has done.
+- `scripts/turning-points.py extract | falls | search | stretches | curves | calibrate | deep | table`. Run it with
+  the bot's venv python, `-I`. `search` and `deep` can be stopped any time and carry on. With `--reverse`, a second
+  worker runs from the other end, and each skips what the other has done.
 - Data in `games/turns/` (not in git): games.json (our score at every engine move), searches.jsonl,
-  stretches.jsonl, curves.jsonl, calibrate.jsonl, and the run logs. The engine copy is in games/turns/engine.
+  stretches.jsonl, curves.jsonl, calibrate.jsonl, deep.jsonl, and the run logs. The engine copy is in
+  games/turns/engine.

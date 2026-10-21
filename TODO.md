@@ -791,9 +791,19 @@ Sessions, in order:
       (TURNS.md, 2026-10-21): our mistakes 5% of the lost points, out-calculated
       23%, misjudged 23%, outplayed slowly 20%, false draws (the repetition
       rule) 7%. Our score usually falls well after the game was lost: at our
-      last "OK", Stockfish agreed in 24 of 167 games. Worth re-running on a
-      later week, after P1-P6 and the repetition fix (the script reads any
-      DEBUG logs; lichess-bot keeps 7 days).
+      last "OK", Stockfish agreed in 24 of 167 games.
+- [ ] Re-run the turning points, when the CPU is free (Matthew, 2026-10-21;
+      the first run had 2 threads on one core beside P3's match):
+      (b) `turning-points.py deep`: the 53 misjudged games, our engine 4
+      plies past the bot's depth. Is "no reasonable depth fixes it" true?
+      `table` then adds its own table. Overnight, with nothing else
+      running: ~50 core-hours (three workers of 4 threads, CPUs 2-13, the
+      second and third with `--reverse`; TURNS.md "Next runs").
+      (c) a fresh week, once the repetition fix (and P1-P6) is in the bot:
+      move games/turns aside first (`extract` overwrites games.json), then
+      extract, search, stretches, curves, calibrate, table. Did the fixes
+      change how we lose? lichess-bot keeps 7 days of DEBUG logs.
+      Not (a), a plain re-run: only 5 turns lacked full depth.
 - [ ] New examples for "Endgames Thrown Away" from the month
       (scripts/takeover-moves-2026-09-month.txt; ratings of exactly 3000 are
       likely bots at their provisional start), if Matthew wants them.
