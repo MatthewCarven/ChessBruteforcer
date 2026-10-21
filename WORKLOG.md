@@ -5312,7 +5312,7 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   (filter 4.1-4.3 h, import 4.4-4.6, nnue data 2.3-2.5, check ~20 min), two
   side by side.
 
-## 2026-10-22 (06:00-08:10): the book learner's evaluation, sf1 or the bot's net? (a side session from P8)
+## 2026-10-22 (06:00-08:05): the book learner's evaluation, sf1 or the bot's net? (a side session from P8)
 
 - **The question** (P8, OPPONENTS.md section 4): bot/learn.py thinks with
   bot\eval\eval-sf1.txt, set on 2026-10-14 when sf1 was our best. Since
@@ -5407,3 +5407,24 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   - My pick: **(b)** now: it's cheap and keeps the book in step with the
     bot. Then (c) at X = 50 only if O3 (a) gets built, since only then do
     the old entries come up.
+- **(b) built** (Matthew's O3 (b) in P8's session, "the learner onto the
+  net first, then (a) a replay trial", passed on by P8 at ~07:55; (c) not
+  chosen). bot/learn.py: `bot_evaluation()` reads make-config.py's list of
+  evaluations from its text with `ast` (running it would rewrite config.yml)
+  and takes the first present in bot\eval, h1024-3m today. If that finds
+  nothing it falls back to eval-sf1.txt, then the built-in numbers. It's read
+  once, when the learner starts, so a new net reaches it at its next restart,
+  as with the bot. Each new ours.jsonl row says which evaluation learnt it
+  (`"eval"`; the 1,656 old rows have none and were sf1's). The start line in
+  the learn log names the evaluation, and `--summary` counts the rows by it.
+  **bot/test-learn.py**, 10 checks, no engine: for six sets of files in
+  eval\, make-config.py run for real on a temporary copy picks the same file
+  as the learner; plus no list, a make-config.py that doesn't parse, and none
+  at all; plus this tree's choice. Green, and red on two mutants of learn.py
+  (always sf1, as before: 6 checks fail; the last file present instead of
+  the first: 5). learn.start_engine() on a copy of the learner's engine
+  loaded the network h1024-3m (sha256 510a8d0e6c43, the bot's) and searched
+  to depth 6. `--summary` on a copy of the real book: "learnt with: eval-sf1
+  1656; the learner now thinks with h1024-3m". **It takes effect when
+  Matthew restarts the learner** (bot\learn.cmd, or start.cmd) after the
+  merge; the running one keeps sf1 until then.
