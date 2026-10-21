@@ -4921,3 +4921,20 @@ first; it had no commits of its own.
 
   A steady ~2% behind l32, so about -6% against h1024-3m at the end (l32:
   -8.4%), on a first layer of 16 instead of 32 (half the pairs' arithmetic).
+- **h1024-3m-l16-32 done** 19:08 by the desktop's clock (exit 0), exported
+  as version 2 by itself (QA 255, Q 8,192 / 16,384 / 8,192, network sha256
+  dd1d4b7ec442), fetched into games\nnue\nets (1,641,816 B). Held back as
+  the engine computes it **0.011588 at K 1.125, -6.8% against h1024-3m's
+  0.012432** (l32: 0.011390, -8.4%); 0.011864 at K 1. Passes 8-10 at its
+  K: 0.011611, 0.011585, 0.011567.
+- Matthew's order for the cores: P4's match (P4 v P3, ended 21:05, +7
+  [-3, +17] at the 2,000 cap), then the repetition fix's run (from 21:05),
+  then the deep nets' matches, on this branch's engine as it is (his (a):
+  both sides share the old repetition rule).
+- **h1536-3m-l32 training** (NNUE session 2b's note): Matthew started it on
+  the desktop at 22:25 by its clock, his (a) after l16-32 came out behind
+  l32: 1536 x2 -> 32 -> 1, h1024-3m-l32's months and schedule, done ~12:30
+  on 2026-10-22, exporting itself; `scripts\nnue-desktop.ps1 fetch
+  h1536-3m-l32`. Not in the match queue unless Matthew adds it, and **the
+  engine can't load it yet**: Network.MaxHidden is 1024 (the same C# change,
+  Matthew's word, that h1536-3m's match waits on).
