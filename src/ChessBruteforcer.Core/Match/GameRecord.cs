@@ -35,11 +35,22 @@ public sealed record GameRecord(
         Tag("White", White);
         Tag("Black", Black);
         Tag("Result", ResultText);
-        // PGN's TimeControl tag has no fixed-time-per-move form; record that separately.
-        if (TimeControl.StartsWith("movetime"))
+        // PGN's TimeControl tag has no fixed-time-per-move, fixed-depth or per-side form; record those separately.
+        if (TimeControl.Split(" v ") is [var whiteControl, var blackControl])
+        {
+            Tag("TimeControl", "-");
+            Tag("WhiteTimeControl", whiteControl);
+            Tag("BlackTimeControl", blackControl);
+        }
+        else if (TimeControl.StartsWith("movetime"))
         {
             Tag("TimeControl", "-");
             Tag("MoveTime", TimeControl["movetime ".Length..]);
+        }
+        else if (TimeControl.StartsWith("depth"))
+        {
+            Tag("TimeControl", "-");
+            Tag("Depth", TimeControl["depth ".Length..]);
         }
         else
         {

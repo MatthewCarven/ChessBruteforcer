@@ -162,6 +162,64 @@ The lesson for matches beside the bot: at 10+0.1, five games at a time is
 too many while the bot plays; h1024-3m's last 264 games were near the
 edge too.
 
+## Pondering (2026-10-16 on)
+
+Our engine against itself through python-chess, as lichess-bot drives it
+(`scripts/ponder-match.py`): each engine pinned to a physical core of its
+own, one thread, Hash 64, below-normal priority, the 300 book openings in
+colour-reversed pairs, no endgame tables. Plain mode: one side ponders, the
+other doesn't. A/B mode: both ponder, and they differ by a UCI option.
+Results from the first-named side's point of view; "clock left" is at the
+end of the game. Details in PONDER.md.
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-16 | ponder on | ponder off | 119 | +48 -20 =51 | 61.8% | +83 [+37, +133] | 10+0.1, sf1 numbers; hit rate 71.5%; clock left 48% v 20% |
+| 2026-10-21 | P2 (PonderFinish on) | P2 off, both pondering | 360 | +61 -103 =196 | 44.2% | **-41 [-65, -17]** | 10+0.1, h1024-3m, 3 at a time, the bot stopped; SPRT [0, 10] **accepted H0** at game 358 (LLR -3.07); hit rate 69%; clock left 34% v 43%; no time losses |
+| 2026-10-21 | P2's cap only (PonderCap on) | both off | 575 | +106 -142 =327 | 46.9% | **-22 [-41, -3]** | 10+0.1, as above; SPRT [0, 10] **accepted H0** at game 571; clock left 46% v 40%; no time losses |
+| 2026-10-21 | P2's finish only (PonderFinish on) | both off | 614 | +117 -129 =368 | 49.0% | -7 [-24, +11] | 10+0.1, as above; SPRT [0, 10] undecided (LLR -1.50), stopped at a fixed count; clock left 28% v 44%; no time losses |
+
+## More search against less (2026-10-21)
+
+Does depth win games? (Matthew, 2026-10-21.) Our engine against itself,
+the same build on both sides, with more search on one: a fixed depth
+against one ply less (`go depth N`, no clock), or twice the clock. Matthew's
+laptop with the bot stopped, the bot's network (h1024-3m), one thread and
+Hash 64 each, no tables in the engines (ours adjudicate), the 300 openings
+of games/tune/openings-300.txt in colour-reversed pairs, below-normal
+priority. Depth pairs ran 7 at a time (a one-thread search to a fixed depth
+plays the same game however busy the machine is), the clock pair 5 at a
+time, as the matches above did. `scripts/depth-match.py` on branch
+claude/gallant-nash-c4b034 (the match tool's per-engine `tc=`, commit
+793d71d); `scripts/depth-summary.py` reads the logs (games\depth\).
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-21 | depth 7 | depth 6 | 600 | +321 -56 =223 | 72.1% | **+165 [+143, +188]** | 4 min |
+| 2026-10-21 | depth 9 | depth 8 | 600 | +261 -43 =296 | 68.2% | **+132 [+113, +152]** | 18 min |
+| 2026-10-21 | depth 11 | depth 10 | 600 | +207 -31 =362 | 64.7% | **+105 [+88, +122]** | 1 h 41 min |
+| 2026-10-21 | 20+0.2 | 10+0.1 | 600 | +212 -65 =323 | 62.3% | **+87 [+68, +106]** | 1 h 26 min; mean depth 12.0 v 10.8 |
+| 2026-10-21 | depth 13 | depth 12 | 14 | +3 -0 =11 | 60.7% | +76 [0, +159] | smoke test only; the 300-game run stopped at game 3 so the bot could play |
+
+**One more ply is worth about 20% less for every two plies deeper**:
++165, +132, +105 (each 0.80 of the one before). At that rate depth 13
+against 12 would be about +84, which the smoke test's +76 fits. **A ply
+costs about 2.2x the time** (the mean time a move over both sides: 21 ms at
+depths 6-7, 104 ms at 8-9, 554 ms at 10-11, or 475 ms at the speed of the
+other pairs; that pair ran 14% slower in nodes a second). So at depths
+10-11, one doubling of time buys 1/log2(2.2) = 0.88 of a ply, about +92
+Elo by the depth matches, and **doubling the clock measured +87 [+68,
++106]**: the two methods agree. At 10+0.1 on one thread the engine
+reached depth 10.8 on average; at 20+0.2, 12.0.
+
+For scale: 8 threads against 1 (+215, above) is worth about two and a half
+doublings, and pondering (+83, 2026-10-15) about one. Draws rise with
+depth: 37% of games at depths 6-7, 49% at 8-9, 60% at 10-11, 54% with
+double time. Counting each opening's two games together (pentanomial) gave
+the same intervals to within 2 Elo. Ends over the 2,400 games: 733
+repetitions, 705 by the tables, 491 checkmates, 418 table draws, 50 by the
+50-move rule, 3 stalemates; no time losses, crashes or illegal moves.
+
 ## Versions
 
 - **v0.1**: first engine (alpha-beta + PVS, TT, null move, LMR, quiescence,

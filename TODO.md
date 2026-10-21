@@ -144,6 +144,10 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     h768-3m h512-3m`, 30 min to 3.5 h): the run beside the bot was stopped at game 525 with
     135 time losses (MATCHES.md), its files kept as
     games\nnue\match-h768-3m-h512-3m-beside-bot.*.
+    **Order (Matthew, 2026-10-21): h768-3m's match is re-run after the
+    six ponder sessions (P1-P6) are done**, with the bot off. When is his
+    call. First comes the engine change for the deeper nets
+    (h1024-3m-l32, then -l16-32), with each matched against h1024-3m.
   - **h1536-3m trained** (the desktop, 2026-10-20 04:45-18:34): held back
     0.012193 at K 1, 0.011952 at its own K: **-3.7% / -3.9% against
     h1024-3m**. In games\nnue\nets\. Before its match against h1024-3m
@@ -159,11 +163,14 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     the engine computes it, **but -47.9% knps** in `bench 9` (and a 37%
     bigger tree). h1024-3m-l16-32 (-> 16 -> 32 -> 1) training on the
     desktop, done ~19:20 by its clock, exported as version 2 by itself.
-    **Matthew's (a), 2026-10-21 ~10:40: wait for l16-32, then both deep
-    nets against h1024-3m back to back tonight, the bot off** (from this
-    branch's engine: `scripts\nnue-match.cmd h1024-3m-l32 h1024-3m`, then
-    `h1024-3m-l16-32 h1024-3m`). More speed work (int8 weights; the small
-    layers trained clamped) if they lose on speed.
+    **Matthew's (c), 2026-10-21 ~11:10: once l16-32 is done, both deep
+    nets against h1024-3m at 10+0.1, back to back, the bot off; then the
+    better at 30+0.3 if it's close** (the bot thinks ~20x longer a move
+    than 10+0.1, and p2.1 found double time worth +87 at 10+0.1, about
+    what the deep net's speed costs). From this branch's engine, by NNUE
+    session 2b (a session made for the same matches stands down). More
+    speed work (int8 weights; the small layers trained clamped) if they
+    lose on speed.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
@@ -177,9 +184,15 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     AVX-512 with 64-byte alignment (+16.7% `bench 9` at 1024), then the lazy
     update (+23.7% in all). **In compression** since 2026-10-20 ~21:50,
     with K(a) and the bitboards below (not pushed). It takes effect when the
-    bot restarts between games (`bot\start-bot.cmd` builds the engine); then
-    compare its Speed lines with today's for the 8-thread effect
-    (`CB_NNUE_SIMD=256` is the fallback if AVX-512's clock cost shows).
+    bot restarts between games (`bot\start-bot.cmd` builds the engine).
+    **8 threads, measured** (22:03, the bot off; NNUE.md "Speed at 1024"):
+    compression's engine searches **+101.6%** faster than the bot's
+    morning engine over UCI as the bot runs it (10.1 to 20.3 M nodes a
+    second, a ply deeper in 2 s), all of today's work together; AVX-512's
+    own share +12.1% on 8 threads (+12.6% on one), so no clock cost: keep
+    512 bits. **In play** (5 games after the 22:33 restart): its Speed
+    lines are about 2x the morning's, alone (1.8-2.1x) and with two games
+    at once (1.9-2.0x); WORKLOG has the table.
   - **The rest of a node, measured** (2026-10-20, a side session, branch
     `claude/friendly-cray-e85e18` on top of the speed branch; NNUE.md "The
     rest of a node"): outside the network is 74-76% of a node now. Ordering
@@ -739,6 +752,24 @@ Sessions, in order:
         that size, and 4-byte block offsets (~55 MB in memory at 8 KB).
         Recompress from the compressed files, one at a time, each checked
         against the old before it replaces it.
+- [ ] **Does depth win games?** (Matthew, 2026-10-21; MATCHES.md "More search
+      against less", branch claude/gallant-nash-c4b034, not merged yet.) Yes:
+      one more ply is worth +165, +132, +105 Elo at depths 6-7, 8-9, 10-11
+      (600 games each; 20% less every two plies), and twice the clock at
+      10+0.1 +87 [+68, +106] (a ply costs ~2.2x the time, so the two agree).
+      The match tool takes `tc=` per engine now (a clock, or `depth=N`);
+      `scripts/depth-match.py` plays a list of pairs.
+      - [ ] Depth 13 v 12, 300 games (~4 h with the machine to itself;
+            stopped at game 3 on Matthew's word so the bot could play):
+            `python scripts/depth-match.py 13v12/300`. Fixed depths give the
+            same games beside other work, so it can run beside the bot if
+            he's happy to share the cores.
+      - [ ] 4x time odds, `40+0.4v10+0.1/400` (~1 h 45 min, the machine to
+            itself). Matthew's, after P3.
+      - [ ] Optional: "think long early", an arm that spends much more of
+            its clock on its first moves out of book, against normal time
+            use (needs an engine option; the effect is likely under 20 Elo,
+            so ~2,000 games).
 - [ ] **Pondering** (2026-10-15, branch claude/vigilant-murdock-d223f5, built on
       the threads branch; WORKLOG "pondering, and what it's worth"): the engine
       thinks on the opponent's time (`go ponder`, `ponderhit`, `bestmove ...
@@ -785,9 +816,39 @@ Sessions, in order:
                   484 passed. After the bot's next restart, ponderlog.py
                   should show 0 hits with no info after ponderhit; PONDER.md,
                   "Results".)
-            - [ ] P2: a hit may finish the depth it would drop, within the
+            - [x] P2: a hit may finish the depth it would drop, within the
                   move's planned time, and stops by then. Search.PonderHit,
-                  ~2 h.
+                  ~2 h. (Done 2026-10-21 on claude/p2-finish-depth-246981,
+                  not merged yet. **Measured, and off: it doesn't win
+                  games.** In the lab a ply more on 6-9 of 12 hits at
+                  0.75-2 S, as the replay said, never more than S after the
+                  hit, every depth node for node as before. But at 10+0.1,
+                  both sides pondering: both rules -41 [-65, -17] (360
+                  games), the cap alone -22 [-41, -3] (575), finish alone
+                  -7 [-24, +11] (614). Two UCI options, PonderFinish and
+                  PonderCap, both default off, so merging changes nothing
+                  in the bot. PonderTests 20 → 65, 53 mutations caught,
+                  suite 529 passed. The slower control was skipped (a null
+                  would need ~11 h); measure P2 again after P4. PONDER.md,
+                  "P2".)
+            - [ ] **Matthew's "dirty trick"** (2026-10-21, beside p2.1's
+                  "think long early"): think a full minute on the first move
+                  out of book, then let a smaller, faster network carry the
+                  rest of the game. An A/B match through python-chess
+                  (scripts/ponder-match.py's loop) needs no engine change:
+                  arm A's first move out of book gets `Limit(time=60)`, then
+                  the script sends `setoption EvalFile` with the small net
+                  (h512-3m or nnue1, ~9-13% more nodes a second, MATCHES.md);
+                  arm B plays normally on h1024-3m. It needs a clock where a
+                  minute is affordable, e.g. the bot's 3+2 (a third of the
+                  clock) or 5+3: ~3-5 min a game, so ~300 games is 5-8 h at
+                  3 at a time. What to expect: a minute is ~10x a move's
+                  time, about +3 plies on that one move (p2.1: a ply costs
+                  ~2.2x the time); the table keeps that work only while the
+                  opponent follows our line (56.5% of replies on Lichess, so
+                  ~6% for five moves running); and every later move has less
+                  clock and a weaker net. Measure the halves apart too (the
+                  minute alone, the small net alone), as P2's split was.
             - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
                   Search.TimeBudget and the Ponder option, ~1 h.
             - [ ] P4: play an unfinished depth's better move instead of
@@ -799,8 +860,11 @@ Sessions, in order:
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's
                   entries. TranspositionTable, about half a day.
-            - [ ] An A/B mode for scripts/ponder-match.py (both sides
+            - [x] An A/B mode for scripts/ponder-match.py (both sides
                   ponder, the arms differ by a UCI option), which P2-P4 need.
+                  (With P2: `--arms "PonderFinish=true;PonderFinish=false"`,
+                  `--sprt 0,10`; the summary gives each side's clock left
+                  at the end.)
             After the src work in flight lands (AVX-512 and the lazy update,
             the bitboard sessions).
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
@@ -819,6 +883,21 @@ Sessions, in order:
       called +0.25 and drew a game it had been winning. Check our losses and
       draws for the same shape (the bot's eval v Stockfish's, by material),
       before any training change.
+- [ ] **Later, should the other levers run out: the piece-pair options**
+      (Matthew, 2026-10-21: b and c on the long-term list, "the closer we fit
+      to real life"; [scripts/piece-pairs-2026-09.md](scripts/piece-pairs-2026-09.md)).
+      Stockfish: bishop pair +48 cp, knight pair ~0, second rook -27.
+      h1024-3m already leans by only -1, 0 and +2 cp on them (+4 on all
+      three), so neither is worth a match yet. Before either, re-measure the
+      lean on whatever net plays then (`scripts/nnue/piece-pairs.py`, ~8 min).
+      - [ ] (b) A pair bonus beside the net, or pair flags as extra inputs:
+            at most ~2 cp to correct (~5 for all three, in 2.4% of
+            positions). A bonus: an engine change, tests, a match (~2 h, the
+            bot off). Inputs: a new input layout in the trainer and the
+            engine, a ~12 h retrain on the 1660, and the match.
+      - [ ] (c) A rook-pair term in sf1, which overvalues the second rook by
+            +26 cp [+21, +32] (it has none): a Texel round (~1 h) and a match
+            against sf1 (~2 h, the bot off). Only if sf1 plays again.
 
 ### 3. Findings for the thesis
 
@@ -839,16 +918,19 @@ Sessions, in order:
 ### 4. Matthew's (flagged, his to do)
 
 - [x] Push `compression` (GitHub matched d13b55c at 00:47 on 2026-10-15).
-- [ ] A second pull request from `compression` into `main` (PR #1 took only
-      the first commit).
+- [x] A second pull request from `compression` into `main` (PR #1 took only
+      the first commit). (Done: PRs #2-#4, and #6 on 2026-10-21, merged by
+      Matthew at 11:02, 91503ab: compression up to e419168.)
 - [x] Pondering for the bot, if wanted (section 2): merge
       claude/vigilant-murdock-d223f5 (it carries the threads branch too), build
       the engine into bot/lichess-bot/engines/bruteforcer, and set `ponder:
       true` in bot/lichess-bot/config.yml; restart the bot between games. The
       ponder search takes a core for the whole game, from the learner and any
       index run. (Done 2026-10-16: merged, and on in bot/make-config.py.)
-- [ ] Decision M (pondering, [PONDER.md](PONDER.md)): pick an option, (a) to
-      (e), at the end of PONDER.md.
+- [x] Decision M (pondering, [PONDER.md](PONDER.md)): pick an option, (a) to
+      (e), at the end of PONDER.md. (2026-10-21: Matthew chose all six, P1 to
+      P6, one session each, in sequence; the steps are ticked under
+      "Decision M" in section 2. P1 is in compression, 7cb0adb.)
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;
@@ -864,6 +946,9 @@ Sessions, in order:
 
 ### Done lately (details in WORKLOG)
 
+- 2026-10-21: **does depth win games?** One more ply +165 / +132 / +105 Elo
+  at depths 6-7 / 8-9 / 10-11; twice the clock at 10+0.1 +87 [+68, +106]
+  (2,400 games; MATCHES.md).
 - 2026-10-17 (night): **nnue1-h512 +76 Elo [+45, +107] over nnue1** (285
   games, SPRT accepted H1), after the bot beat Stockfish-2500 10-0 at 3+2;
   Matthew chose to switch the bot to it at its next start.

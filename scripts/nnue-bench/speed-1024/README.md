@@ -24,6 +24,11 @@ thread each, below-normal priority, so they can run beside the bot.
   a checksum.
 - `align.cs <net .nnue>`: where the engine's own arrays land against 64-byte
   boundaries (by reflection).
+- `uci-ab.py <net .nnue> <rounds> <movetime ms> <name>=<engine dll>[|ENV=VALUE] ...`:
+  8 threads as the bot runs the engine (UCI: EvalFile, Threads 8, Hash 256 MB),
+  each build in turn, one engine at a time, below-normal priority; nodes a
+  second from the engine's own info lines on bench's six positions. With the
+  bot off: it would share the CPU with the bot's 8 threads otherwise.
 
 The probe needs its copy of the engine: the sources as they were before the
 speed steps (commit 619c703; the hooks don't apply to the lazy stack), made in a

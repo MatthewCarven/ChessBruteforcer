@@ -27,6 +27,7 @@ public sealed class UciEngine
     private int _moveOverheadMs = 50;
     private int _threads = 1;
     private ParallelMode _split = ParallelMode.LazySmp;
+    private bool _ponderFinish, _ponderCap;   // (P2's two rules, off: neither won games; PONDER.md)
     private bool _tablesLoaded;
     private int _tableCacheMegabytes = BlockCache.DefaultMegabytes;
     private List<ulong> _previousHashes = new();
@@ -46,6 +47,9 @@ public sealed class UciEngine
     }
 
     public Position Position => _position;
+
+    /// <summary>The search "go" runs, set up as the last one was (for tests).</summary>
+    internal Search Search => _search;
 
     /// <summary>Read commands until "quit" or end of input.</summary>
     public void Run(TextReader input)
@@ -80,6 +84,8 @@ public sealed class UciEngine
                     Send("option name Threads type spin default 1 min 1 max 64");
                     Send("option name ThreadSplit type combo default LazySMP var LazySMP var Ranges");
                     Send("option name Ponder type check default false");
+                    Send("option name PonderFinish type check default false");
+                    Send("option name PonderCap type check default false");
                     Send("uciok");
                     break;
                 case "isready":
@@ -175,6 +181,16 @@ public sealed class UciEngine
                 // Only tells us the GUI may send "go ponder", which works either way.  (UCI lets an
                 // engine plan its time differently when it may ponder; this one doesn't, yet.)
                 break;
+            case "ponderfinish":
+                // A ponder hit lets a depth begun past half the planned time finish, within that time from the
+                // hit (Search.PonderFinish; off: the depth is dropped, as before).
+                _ponderFinish = Check("PonderFinish", value);
+                break;
+            case "pondercap":
+                // After a ponder hit, a depth that goes on stops by the hit + the planned time (Search.PonderCap;
+                // off: at the hard limit, as before).
+                _ponderCap = Check("PonderCap", value);
+                break;
             case "evalfile":
                 // A network (.nnue, told apart by its magic), this engine's own; or tuned evaluation numbers
                 // (EvalParams text), process-wide; empty for the built-in numbers.
@@ -216,6 +232,14 @@ public sealed class UciEngine
                 break;
         }
     }
+
+    /// <summary>A check option's value: true or false.</summary>
+    private static bool Check(string option, string value) => value.ToLowerInvariant() switch
+    {
+        "true" => true,
+        "false" => false,
+        _ => throw new ArgumentException($"{option} is true or false, not {value}."),
+    };
 
     private void SetTablePath(string? path)
     {
@@ -300,6 +324,8 @@ public sealed class UciEngine
         var search = _search;
         search.Threads = _threads;
         search.Split = _split;
+        search.PonderFinish = _ponderFinish;
+        search.PonderCap = _ponderCap;
         lock (_infoLock)
             (_lastInfo, _ponderHit, _infoSinceHit) = (null, false, false);
         // "go" returns once the search is ready, so a "stop" or "ponderhit" straight after it isn't lost.
