@@ -195,11 +195,11 @@ to a draw it was avoiding). Results from the new rule's point of view.
 | date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-21 | new rule (95a231c) | old rule | 642 | +107 -136 =399 | 47.7% | **-16 [-32, +1]** | SPRT [0, 10] **accepted H0** at game 638 (LLR -3.00); won 79% of its +3.00 leads against 93%: a stale table entry hid threefolds the other side could make |
-| 2026-10-22 | new rule + no table cutoff at positions seen before (b5061ed) | old rule | 1,245 | +259 -256 =730 | 50.1% | **+1 [-12, +13]** | SPRT [0, 10] undecided (LLR -1.04) at 1,245 games; playing on to 2,000 | |
+| 2026-10-22 | new rule + no table cutoff at positions seen before (b5061ed) | old rule | 2,000 | +423 -410 =1167 | 50.3% | **+2 [-8, +12]** | SPRT [0, 10] undecided at the cap (LLR -1.09); won 88% of its +3.00 leads against 89%; 3 time losses (A 2, B 1) while the bot rebuilt its engine beside the match; **on by default since** (Matthew's call) |
 
 Both got ahead equally often in each match. The table fix took the leads
-lost to the other side's repetitions from 25 (in 642 games) to 9 (in
-1,245). WORKLOG (2026-10-21, the repetition rule) has the tables.
+lost to the other side's repetitions from 25 (in 642 games) to 14 (in
+2,000). WORKLOG (2026-10-21, the repetition rule) has the tables.
 
 ## More search against less (2026-10-21)
 

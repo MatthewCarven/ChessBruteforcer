@@ -4972,7 +4972,7 @@ scripts/turning-points.py. Nothing in src changed.
   CPUs 14-15, plus Stockfish's WSL thread. Commit free stayed 4.9-8 GB; the bot
   wasn't running.
 
-## 2026-10-21 (16:57) to 10-22 (02:30, match 2 playing on to ~04:15): the repetition rule, fixed and measured (a side session)
+## 2026-10-21 (16:57) to 10-22 (05:20): the repetition rule, fixed and measured (a side session)
 
 - **Asked** (from p2.2's TURNS.md, "The false draw"): `Search.IsRepetition`
   called a position a draw if it had occurred once before anywhere since the
@@ -5032,32 +5032,39 @@ scripts/turning-points.py. Nothing in src changed.
   turned up in the tests and been fixed in 95a231c. Now a position the game
   has had before, the root included, gets its table move but no cutoff.
   Replayed again: 3 of 25 (two of them genuinely drawn, at 0.00).
-- **Match 2, the rule with that fix: even.** The same conditions, 23:00 to
-  02:08 (1,245 games), then on Matthew's word from 02:14 to the 2,000-game
-  cap: **+1 [-12, +13] over the first 1,245 games** (+259 -256 =730), SPRT [0, 10] undecided (LLR -1.04); the final figure when it ends.
+- **Match 2, the rule with that fix: even. +2 [-8, +12] over 2,000 games**
+  (+423 -410 =1167, 50.3%), SPRT [0, 10] undecided at the cap (LLR -1.09).
+  The same conditions, in five stretches around the bot (Matthew played it
+  on the new rule between them): 23:00-02:08, 02:14-02:29, 02:38-02:45,
+  03:08-03:10 and 03:31-05:04, each resumed from the results file by the same
+  engine copy (from 03:10 a script paused it whenever lichess-bot ran and
+  resumed it after 5 quiet minutes).
+  3 games lost on time (A 2, B 1; games 1350-1352, while the bot rebuilt its
+  engine beside the match); none otherwise. Hit rates 67.6% and 67.3%;
+  clock left 37% and 38%.
 
-  | first to reach +3.00 (first 1,245 games) | games | won | drawn | lost |
+  | first to reach +3.00 | games | won | drawn | lost |
   |---|---:|---:|---:|---:|
-  | new rule | 292 | 259 (89%) | 32 | 1 |
-  | old rule | 280 | 255 (91%) | 25 | 0 |
+  | new rule | 478 | 422 (88%) | 54 | 2 |
+  | old rule | 457 | 407 (89%) | 49 | 1 |
 
-  Leads thrown away by a repetition the other side made: 9 in 1,245 games
-  (match 1: 25 in 642). The rest of the small gap is bare-material draws
-  (19 against 16) and the 50-move rule. Where only the old rule brought a
-  position round again (its false draws), the new rule scored +41 -3 =14.
-  What the old rule did right by accident: a winner that never steps back to
-  an earlier position keeps making progress. The new one has nothing pushing
-  it forward (Stockfish pairs its rule with an evaluation that shrinks as
-  the 50-move count rises), and draws by the 50-move rule went from 3% of
-  games (match 1) to 6%.
+  The conversion gap of match 1 (79% against 93%) is gone. Leads thrown
+  away by a repetition the other side made: 14 in 2,000 games (match 1: 25 in
+  642); bare-material draws 30 each; the 50-move rule 7 against 11. Where
+  only the old rule brought a position round again (its false draws), the
+  new rule scored +55 -11 =22 (75%). Draws by the 50-move rule were 6.7% of
+  games (match 1: 2.6%): with neither side calling an early repeat a draw,
+  games run longer. Stockfish pairs its rule with an evaluation that shrinks
+  as the 50-move count rises, a push to make progress; parked in TODO.
 - **Matthew's call (02:10-02:15): the new rule, on by default.** "I'd rather
   be right because error compounds on pondering": a false 0.00 comes with no
   line, so no ponder move (the old rule named a reply on 99.1% of its moves,
   the new one on 99.6%), and the search after it starts from a wrong belief.
-  `RepetitionRule` defaults to Threefold, so the bot takes it at its next
-  restart (`bot\start-bot.cmd` builds the engine); `"RepetitionRule":
-  "Twofold"` in bot/make-config.py's uci_options would put the old rule back.
-  The push to make progress is parked in TODO, for a session of its own.
+  `RepetitionRule` defaults to Threefold; `"RepetitionRule": "Twofold"` in
+  bot/make-config.py's uci_options would put the old rule back. On his word
+  compression was fast-forwarded to it at 02:20 (c297601, with the bot set to
+  one game at a time, his too), and he started the bot on it at 02:25. The
+  push to make progress is parked in TODO, for a session of its own.
 - **ponder-match.py --draws occurred** (95a231c): python-chess's
   claim_draw (the script's default, kept) ends a game as soon as the side to
   move *could* claim, including when it has a move that would make a

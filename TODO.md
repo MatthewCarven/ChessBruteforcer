@@ -509,7 +509,7 @@ Sessions, in order:
       other side could make). Lab, the bot's own positions: where Stockfish
       had us at -1.50 or worse, the old rule said 0.00 in 43 of 68, the new
       one in none. Self-play A/B, 10+0.1, both pondering: the rule alone
-      -16 [-32, +1] (642 games); with the table fix +1 [-12, +13] over 1,245 games (2,000 by ~04:15), even. **On
+      -16 [-32, +1] (642 games); with the table fix +2 [-8, +12] (2,000 games), even. **On
       by default, Matthew's call** ("I'd rather be right because error
       compounds on pondering"); `RepetitionRule` Twofold brings the old rule
       back (UCI, or bot/make-config.py's uci_options).
@@ -522,15 +522,16 @@ Sessions, in order:
       10-29: `--dir games/turns-week2` on every command (a folder of its own;
       the first run stays in games/turns), `extract --since "2026-10-22
       02:25"`, then search, stretches, curves, calibrate, table.
-- [ ] **A push to make progress** (from the repetition rule's matches,
-      2026-10-22): under the new rule a winning side may step back to an
-      earlier position, and nothing pushes it on. Its +3.00 leads converted
-      89% against the old rule's 91%, and 50-move draws doubled (3% to 6%
-      of games). Stockfish's answer: the evaluation shrinks as the 50-move
-      count rises (v x (200 - count) / 214 or so), so lines with a capture
-      or pawn move score better than shuffling. One change in
-      Evaluation.Evaluate (both the network and the hand-written numbers),
-      then an A/B match against the bot's engine. A session of its own.
+- [ ] **A push to make progress** (low priority; from the repetition rule's
+      matches, 2026-10-22): under the new rule a winning side may step back
+      to an earlier position, and nothing pushes it on. Over match 2's 2,000
+      games it converted +3.00 leads as often as the old rule did (88% against
+      89%), but draws by the 50-move rule were 6.7% of games (2.6% in match
+      1), from both sides' leads (7 and 11). Stockfish's answer: the
+      evaluation shrinks as the 50-move count rises (v x (200 - count) / 214
+      or so), so lines with a capture or pawn move score better than
+      shuffling. One change in Evaluation.Evaluate (the network and the
+      hand-written numbers), then an A/B match. A session of its own, if ever.
 - [ ] **Two nets, switched by the clock** (Matthew's idea, 2026-10-21, "feel
       free to push back"): keep a smaller, faster net loaded beside the big
       one, and play on it when time runs short (to build some time up, then
