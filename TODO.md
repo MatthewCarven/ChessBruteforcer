@@ -275,6 +275,17 @@ make-config.py (the patch still helps at 1).
 had two players on one game; bot\lichess-bot-one-player.patch stops that
 (bot\test-one-player.py). It goes in at the bot's next `bot\start-bot.cmd`,
 between games (not `start.cmd`: that starts the month queue, which is off).
+- [ ] **start-bot.cmd's "The one-player fix didn't go in" is a false alarm**
+      (2026-10-22, from 02:44 on): the fix is in (all 11 of its lines are in
+      lib\lichess_bot.py), but the quit.soon patch, applied for the first
+      time at 02:25 that day, changed lines next to it, so its "already in?"
+      test (`git apply --reverse --check`) fails, the cmd tries to apply it
+      again, and that fails too. Undo quit-soon on a copy and the check
+      passes again. Fix: make the check recognise it (look for one of its own
+      lines, or re-cut the patch with less context), then check all seven
+      patches on a fresh copy of lichess-bot, in start-bot.cmd's order, and
+      each one's "already in?" afterwards. Stop the bot first (cmd reads the
+      file as it runs).
 **lichess-bot's "TypeError in accept_challenges" is a held Ctrl+C, not a
 crash** (2026-10-20, a side session; WORKLOG). All four (2026-10-16 03:32,
 10-19 00:32 and 21:23, 10-20 22:27) came straight after a burst of SIGINTs
@@ -1027,7 +1038,14 @@ Sessions, in order:
       plies past the bot's depth. Is "no reasonable depth fixes it" true?
       `table` then adds its own table. Overnight, with nothing else
       running: ~50 core-hours (three workers of 4 threads, CPUs 2-13, the
-      second and third with `--reverse`; TURNS.md "Next runs").
+      second and third with `--reverse`; TURNS.md "Next runs"). **First move
+      games\turns\engine aside** (to games\turns\engine-run1): the script
+      reuses that copy if it's there, and it is the build from before the
+      repetition fix; without it, the script copies the bot's current engine.
+      Start one worker, and the others once games\turns\engine exists (two
+      copying at once collide). Say in TURNS.md which build it used. (P2's
+      session had this queued after the deep-net matches of 2026-10-22, and
+      was archived before they ended, so it hasn't run.)
       (c) a fresh week of the bot's games on one settled build, after the
       repetition fix and the other 10-22 changes ("Re-run TURNS" in section
       2 has when and how). Did the changes change how we lose?
