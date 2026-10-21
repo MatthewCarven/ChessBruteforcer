@@ -5311,3 +5311,25 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   Z:\lichess), March part-way. A month's records took ~11 h on the desktop
   (filter 4.1-4.3 h, import 4.4-4.6, nnue data 2.3-2.5, check ~20 min), two
   side by side.
+
+## 2026-10-22 (06:30-07:10): April-June's records started on the desktop; h1536-3m-l32 held (the nnue-deep-layers session)
+
+- Matthew: (a) output buckets and (b) more data, so (c) both, and (d) stop
+  h1536-3m-l32; then plan with him how to scale the network, and training
+  on both GPUs.
+- **(b) started**: `scripts\nnue-desktop.ps1 data 2026-04`, `-05`, `-06`, three
+  tasks side by side from ~06:55 by the desktop's clock (each ~11 h at July
+  and August's pace; three at once may run longer). The share's cli is the
+  2026-10-18 build: nothing in Records/ or `nnue data` has changed since, so
+  the records match July's and August's. D: has 1,182 GB free; the desktop's
+  CPU was at 12% with the trainer running, 11.7 GB of memory free. The
+  trainer held 136.5 k positions a second as they started.
+- **(d) held, asked again**: h1536-3m-l32 (1536 x2 -> 32 -> 1) turned out the
+  best held-back error of any net so far: by pass at its K 0.012574,
+  0.012092, 0.011877, 0.011731, 0.011123, **0.011012 after pass 6 (-11%
+  against h1024-3m's 0.012394 float; l32 had 0.011608 there)**, ~83 min a
+  pass at 136 k a second, done ~12:10 by the desktop's clock. A stop keeps
+  the pass-6 checkpoint (`train ... --resume`), and the GPU's next job
+  (output buckets) isn't written yet, so stopping it now gains little.
+- The laptop holds July-September's records (games\nnue\2026-07..09), 53 GB
+  free on C:, an RTX 3070 Laptop GPU (8 GB).
