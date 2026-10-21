@@ -172,10 +172,13 @@ public sealed class Search
     public bool PonderCap { get; set; }
 
     /// <summary>
-    /// The old repetition rule, kept for an A/B match against the new one: a
-    /// position seen once before since the last capture or pawn move, the game
-    /// before the search included, is a draw.  Off (the default): Stockfish's
-    /// rule (<see cref="Repetition"/>).  Set between searches.
+    /// The old repetition rule, kept for A/B matches: a position seen once
+    /// before since the last capture or pawn move, the game before the search
+    /// included, is a draw.  Off (the default): Stockfish's rule
+    /// (<see cref="Repetition"/>).  In self-play the two came out even, but the
+    /// old one is wrong in the lost positions where the bot meets it (a 0.00
+    /// with no line, so no ponder move), and Matthew would rather the engine
+    /// be right (WORKLOG, 2026-10-21, the repetition rule).  Set between searches.
     /// </summary>
     public bool TwofoldRepetitions { get; set; }
 

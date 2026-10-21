@@ -4858,3 +4858,117 @@ first; it had no commits of its own.
 - **New**: scripts/nnue/piece-pairs.py (features, net, report: like-for-like
   means and squashed-scale regressions, intervals by game, sandwich checked
   against 20 bootstrap refits); scripts/piece-pairs-2026-09-full.md its output.
+
+## 2026-10-21 (16:57) to 10-22 (02:30, match 2 playing on to ~04:15): the repetition rule, fixed and measured (a side session)
+
+- **Asked** (from p2.2's TURNS.md, "The false draw"): `Search.IsRepetition`
+  called a position a draw if it had occurred once before anywhere since the
+  last capture or pawn move, the game before the search included. So a move
+  back to a position from a few moves ago scored 0.00 at once, with a
+  one-move line and no ponder move, and a winning opponent just played on.
+  Change it to Stockfish's rule, test it, and measure it in an A/B match.
+- **The rule** (95a231c): a repeat is a draw if the earlier occurrence is
+  inside the search (after the root), or if the position is there for the
+  third time. The root counts as the game's, so coming back to it once is not
+  a draw. `_hashes` is the game's positions, then the root, then the line
+  being searched; `_rootIndex` marks the root. Each Lazy SMP or Ranges helper
+  has its own list and root index (Prepare), and takes the rule from the
+  search it works for. The old rule stays reachable for A/B matches:
+  `Search.TwofoldRepetitions`, UCI option `RepetitionRule` (Threefold or
+  Twofold).
+- **The bot's own false draws, searched again** (scripts/repetition-lab.py,
+  depth 10, one thread, h1024-3m, from p2.2's games/turns data): the 94
+  moves TURNS counted in lost games, plus 401 in drawn games.
+
+  | moves | n | old rule 0.00 | new rule 0.00 | new rule plays another move | line past one move: old / new | new -3.00 or worse |
+  |---|---:|---:|---:|---:|---:|---:|
+  | lost: our move itself repeated | 54 | 53 | 1 | 26 | 1 / 54 | 38 |
+  | lost: a later move of its line repeated | 40 | 6 | 5 | 11 | 39 / 40 | 25 |
+  | Stockfish had us at -1.50 or worse | 68 | 43 | **0** | 31 | 26 / 68 | 63 |
+  | drawn games | 401 | 305 | 199 | 98 | 195 / 357 | 9 |
+
+  So the rule does what it says: where Stockfish said we were lost, the new
+  rule never says 0.00, and it always has a line (so a ponder move).
+- **Match 1, the rule alone: it lost.** scripts/ponder-match.py --arms
+  "RepetitionRule=Threefold;RepetitionRule=Twofold", 10+0.1, both pondering,
+  h1024-3m, one thread and one core each, 3 games at a time on CPUs 2-12,
+  below-normal priority, the bot off, `--draws occurred` (below). **-16
+  [-32, +1] over 642 games** (+107 -136 =399), SPRT [0, 10] accepted H0 at
+  game 638 (LLR -3.00), 21:05-22:35. Hit rates 68% and 70%, clock left 40%
+  and 42%, no time losses. Every game scored at depth 6 every 6 plies
+  showed why:
+
+  | first to reach +3.00 | games | won | drawn | lost |
+  |---|---:|---:|---:|---:|
+  | new rule | 136 | 107 (79%) | 29 | 0 |
+  | old rule | 147 | 136 (93%) | 11 | 0 |
+
+  Both got ahead equally often; the new rule threw away more leads, and 25
+  of its 29 were threefold repetitions that the side behind completed.
+  Replaying A's moves before those (one table kept from move to move, as in
+  play, depth 10), the new rule played the move that let the other side
+  repeat in **16 of 25**, scoring it +2 to +6; the old rule in 2.
+- **The cause, and the second fix** (b5061ed). Under the new rule a
+  position the game has had once is not a draw, so the search looked it up
+  in the table, and the entry there had been stored before it came round
+  again, when the reply that now makes another position's third time
+  wasn't a draw yet. It said "still winning" and hid the draw one move on.
+  (The old rule never got that far: it called the second time a draw.) The
+  same thing at the root (its own entry from the depth before, answering for
+  a return to the root, hid every perpetual check through the root) had
+  turned up in the tests and been fixed in 95a231c. Now a position the game
+  has had before, the root included, gets its table move but no cutoff.
+  Replayed again: 3 of 25 (two of them genuinely drawn, at 0.00).
+- **Match 2, the rule with that fix: even.** The same conditions, 23:00 to
+  02:08 (1,245 games), then on Matthew's word from 02:14 to the 2,000-game
+  cap: **+1 [-12, +13] over the first 1,245 games** (+259 -256 =730), SPRT [0, 10] undecided (LLR -1.04); the final figure when it ends.
+
+  | first to reach +3.00 (first 1,245 games) | games | won | drawn | lost |
+  |---|---:|---:|---:|---:|
+  | new rule | 292 | 259 (89%) | 32 | 1 |
+  | old rule | 280 | 255 (91%) | 25 | 0 |
+
+  Leads thrown away by a repetition the other side made: 9 in 1,245 games
+  (match 1: 25 in 642). The rest of the small gap is bare-material draws
+  (19 against 16) and the 50-move rule. Where only the old rule brought a
+  position round again (its false draws), the new rule scored +41 -3 =14.
+  What the old rule did right by accident: a winner that never steps back to
+  an earlier position keeps making progress. The new one has nothing pushing
+  it forward (Stockfish pairs its rule with an evaluation that shrinks as
+  the 50-move count rises), and draws by the 50-move rule went from 3% of
+  games (match 1) to 6%.
+- **Matthew's call (02:10-02:15): the new rule, on by default.** "I'd rather
+  be right because error compounds on pondering": a false 0.00 comes with no
+  line, so no ponder move (the old rule named a reply on 99.1% of its moves,
+  the new one on 99.6%), and the search after it starts from a wrong belief.
+  `RepetitionRule` defaults to Threefold, so the bot takes it at its next
+  restart (`bot\start-bot.cmd` builds the engine); `"RepetitionRule":
+  "Twofold"` in bot/make-config.py's uci_options would put the old rule back.
+  The push to make progress is parked in TODO, for a session of its own.
+- **ponder-match.py --draws occurred** (95a231c): python-chess's
+  claim_draw (the script's default, kept) ends a game as soon as the side to
+  move *could* claim, including when it has a move that would make a
+  position's third time, wanted or not. That penalises exactly the new rule,
+  a winner that lets a position come round twice. "occurred" ends a game when
+  a position is there for the third time, or after 100 plies with no capture
+  or pawn move, as the C# match tool and Lichess do. Results files record it.
+- **Tests** (SearchTests, UciTests; 13 new, the two classes 33): a position
+  seen once in the game isn't a draw (1 and 4 threads), the third time is,
+  a repetition inside the search is (a perpetual, from both sides, at depths
+  that can't reach the root's third time), coming back to the root once
+  isn't, a stale table entry for a position come round again isn't trusted,
+  helpers search by their search's rule (test hook `HelperRules`), and the
+  UCI option. 9 of 9 mutants caught (scratchpad battery: root counted as
+  inside, no third time, no in-search repetition, table cutoff at a position
+  seen before, root index or "seen before" never set, only the root skipping
+  the table, helpers ignoring the option, the old rule always). Full suite
+  544 passed, 2 skipped (546).
+- **Sharing the machine**: P4's build match (2,000 games, 5 at a time,
+  every CPU) started 6 s before match 1's first attempt, each launcher
+  having checked for other engines before the other's started. I stopped
+  mine after 13 games (kept as games/ponder/rep-ab-10+0.1-beside-p4.*) and
+  waited for P4's to finish (21:05). P4's 1-thread probe had also run beside
+  my test runs 17:35-17:48; I told it so.
+- Files (main checkout, games/ is ignored): games/ponder/rep-ab-10+0.1.*
+  (match 1), rep2-ab-10+0.1.* (match 2), games/turns/repetition-lab-d10.jsonl
+  (the lab). 9.5-11.5 GB of commit free throughout.

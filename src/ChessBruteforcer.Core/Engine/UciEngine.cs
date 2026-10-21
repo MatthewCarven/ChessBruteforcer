@@ -28,7 +28,7 @@ public sealed class UciEngine
     private int _threads = 1;
     private ParallelMode _split = ParallelMode.LazySmp;
     private bool _ponderFinish, _ponderCap;   // (P2's two rules, off: neither won games; PONDER.md)
-    private bool _twofoldRepetitions;         // RepetitionRule Twofold: the old rule, for its A/B match
+    private bool _twofoldRepetitions;         // RepetitionRule Twofold: the old rule, for A/B matches
     private bool _tablesLoaded;
     private int _tableCacheMegabytes = BlockCache.DefaultMegabytes;
     private List<ulong> _previousHashes = new();

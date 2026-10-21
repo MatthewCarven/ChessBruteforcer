@@ -179,6 +179,27 @@ end of the game. Details in PONDER.md.
 | 2026-10-21 | P2's cap only (PonderCap on) | both off | 575 | +106 -142 =327 | 46.9% | **-22 [-41, -3]** | 10+0.1, as above; SPRT [0, 10] **accepted H0** at game 571; clock left 46% v 40%; no time losses |
 | 2026-10-21 | P2's finish only (PonderFinish on) | both off | 614 | +117 -129 =368 | 49.0% | -7 [-24, +11] | 10+0.1, as above; SPRT [0, 10] undecided (LLR -1.50), stopped at a fixed count; clock left 28% v 44%; no time losses |
 
+## The repetition rule (2026-10-21/22)
+
+Stockfish's repetition rule (a draw if the earlier time is inside the
+search, or on the third time) against the old one (any position seen once
+before is a draw), as `RepetitionRule=Threefold;RepetitionRule=Twofold` in
+`scripts/ponder-match.py`'s A/B mode: 10+0.1, both pondering, h1024-3m,
+one thread and one core each, 3 games at a time on CPUs 2-12, the bot off.
+`--draws occurred`: a game is drawn when a position is there for the third
+time, not when the side to move could make it so (python-chess's
+claim_draw, which would hold a winner that let a position come round twice
+to a draw it was avoiding). Results from the new rule's point of view.
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-21 | new rule (95a231c) | old rule | 642 | +107 -136 =399 | 47.7% | **-16 [-32, +1]** | SPRT [0, 10] **accepted H0** at game 638 (LLR -3.00); won 79% of its +3.00 leads against 93%: a stale table entry hid threefolds the other side could make |
+| 2026-10-22 | new rule + no table cutoff at positions seen before (b5061ed) | old rule | 1,245 | +259 -256 =730 | 50.1% | **+1 [-12, +13]** | SPRT [0, 10] undecided (LLR -1.04) at 1,245 games; playing on to 2,000 | |
+
+Both got ahead equally often in each match. The table fix took the leads
+lost to the other side's repetitions from 25 (in 642 games) to 9 (in
+1,245). WORKLOG (2026-10-21, the repetition rule) has the tables.
+
 ## More search against less (2026-10-21)
 
 Does depth win games? (Matthew, 2026-10-21.) Our engine against itself,
