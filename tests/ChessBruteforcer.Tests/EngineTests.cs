@@ -305,19 +305,48 @@ public class SearchTests : IClassFixture<RookEndgame>
     }
 
     [Theory]
-    [InlineData("", 1)]
-    [InlineData("", 4)]
-    [InlineData("h5e8", 1)]
-    [InlineData("h5e8", 4)]
-    public void ARepetitionInsideTheSearchIsADraw(string moves, int threads)
+    [InlineData("", 3, 1)]
+    [InlineData("", 3, 4)]
+    [InlineData("h5e8", 2, 1)]
+    [InlineData("h5e8", 2, 4)]
+    public void ARepetitionInsideTheSearchIsADraw(string moves, int depth, int threads)
     {
         // Qe8+ Kh7 Qh5+ Kg8 (the root again: not a draw yet) Qe8+, the first check's position a second time,
-        // inside the search: a draw.  At depth 4 the search reaches that, but not the third time (ply 9).  And
-        // from Black's side, after Qe8+: Kh7 is forced, and the checks go round.  (Each needs the search to look
-        // past the root's return, not take the root's own table entry from the depth before for it.)
+        // inside the search: a draw (ply 5).  At depth 3 the search reaches that, but not the root's third time
+        // (ply 8), which would be a draw by any rule.  And from Black's side, after Qe8+ (in check at the root,
+        // so a ply deeper): Kh7 is forced and the checks go round, Kh7's position a second time at ply 5.
+        // (Each needs the search to look past the root's return, not take the root's table entry for it.)
         var (root, earlier) = Game(Perpetual, moves);
-        var result = Think(root, earlier, 4, threads);
+        var result = Think(root, earlier, depth, threads);
         Assert.Equal(0, result.Score);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HelpersSearchByTheRuleOfTheSearchTheyWorkFor(bool twofold)
+    {
+        var (root, earlier) = Game(QueenUp, QueenUpMoves);
+        var search = new Search(new TranspositionTable(8)) { Threads = 4, TwofoldRepetitions = twofold };
+        search.Run(root, new SearchLimits { Depth = 4 }, earlier);
+        Assert.Equal(new[] { twofold, twofold, twofold }, search.HelperRules);
+    }
+
+    [Fact]
+    public void ATableEntryStoredBeforeAPositionCameRoundAgainIsNotTrusted()
+    {
+        // White, a queen up, and both kings shuffling: Kb1-a1 now brings back a position the game has had once
+        // (Black to move), and from there Kh8 makes another position's third time, a draw.  An entry for that
+        // position stored before it came round (here a made-up one: Black lost by far) mustn't stand in for
+        // searching it, or Kb1-a1 looks best and lets Black draw.  (In the A/B match the new rule's leads were
+        // thrown away like this: in 16 of 25 replayed, it played the move that let the other side repeat.)
+        const string start = "7k/8/8/8/8/3Q4/8/K7 w - - 0 1", shuffle = "a1b1 h8g8 b1a1 g8h8 a1b1 h8g8";
+        var (root, earlier) = Game(start, shuffle);
+        var table = new TranspositionTable(8);
+        table.Store(Game(start, shuffle + " b1a1").Root.Hash, default, -5000, 100, Bound.Exact);
+        var result = new Search(table) { TwofoldRepetitions = false }.Run(root, new SearchLimits { Depth = 4 }, earlier);
+        Assert.NotEqual("b1a1", result.BestMove?.ToUci());
+        Assert.InRange(result.Score, 500, 4000);
     }
 
     [Fact]
