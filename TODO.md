@@ -1028,6 +1028,23 @@ Sessions, in order:
       - [ ] (c) A rook-pair term in sf1, which overvalues the second rook by
             +26 cp [+21, +32] (it has none): a Texel round (~1 h) and a match
             against sf1 (~2 h, the bot off). Only if sf1 plays again.
+- [x] **Decision N: draw offers in level games** (P7; Matthew's idea, 2026-10-22:
+      offer a draw when the PV has sat at ~0.00 for a long time against a
+      player of similar strength; [DRAWS.md](DRAWS.md), scoped the same day,
+      nothing changed). lichess-bot already offers and accepts at exactly
+      0.00 for 10 moves with 10 pieces or fewer: offers in 34 games, 4
+      accepted. On the networks (240 games), 30 games had 10 of our moves in
+      a row within +-0.15, and they ended 1 / 29 / 0, so an offer changes the
+      rating by ~0 and saves only time: 66 minutes of 43 hours if every
+      offer were taken, ~8 at the 1-in-8 rate bots accept. Options (a) leave
+      it, (b) draws off, (c) a tuned setting in make-config.py, (d) a
+      rating-aware lichess-bot patch. **Chosen: (a), leave it** (Matthew,
+      2026-10-22); the line below stays open.
+      - [ ] Look again if humans start playing the bot (in the tables they
+            go wrong 1 game in 4-5; never offering a human would be part of
+            (d)), or if level games start being lost again, as on the old
+            evaluation (4 of 8 lost against bots within 50; (d) would have
+            been +40 points over those 356 games).
 
 ### 3. Findings for the thesis
 
@@ -1086,6 +1103,9 @@ Sessions, in order:
       (e), at the end of PONDER.md. (2026-10-21: Matthew chose all six, P1 to
       P6, one session each, in sequence; the steps are ticked under
       "Decision M" in section 2. P1 is in compression, 7cb0adb.)
+- [x] Decision N (P7, draw offers, [DRAWS.md](DRAWS.md)): pick (a) to (d) at the
+      end of "The options". (2026-10-22: Matthew chose (a), leave it as it is:
+      nothing to build.)
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;
