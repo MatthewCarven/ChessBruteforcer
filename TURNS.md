@@ -227,13 +227,15 @@ ways:
   10-13), with nothing else running: ~5-8 h. A trial on 2N03uUpA (2 threads beside a match, 600 s) reached only +2,
   and there our engine did see the fall (-4.16 at depth 16, against -2.46 at 15), so expect some to flip.
   (games/turns/deep-trial.jsonl; not counted.)
-- **(c) A fresh week** with the repetition fix in the bot. Did the fix change how we lose? The fix went into
-  compression as c297601, and the bot has run it since 2026-10-22 02:25 (one game at a time). From about 10-29, when
-  lichess-bot's 7 days of DEBUG logs are all the new build's, give every command `--dir games/turns-week2`, a folder
-  of its own (the first run stays in games/turns, and `extract` won't overwrite a games.json without `--force`). Then
-  run `extract --since "2026-10-22 02:25"` (only games the new build played), search, stretches, curves
-  --sf-depth 16, calibrate, table. The engine copy for its re-searches is taken from the bot then, so it's the new
-  build.
+- **(c) A fresh week** of the bot's games on one settled build. Did the changes change how we lose? The bot changed
+  three times on 2026-10-22. The repetition fix came in at 02:25. At 03:10 there was a new engine build (P3, P4, the
+  rule) and the deeper net h1024-3m-l16-32, on trial. At 03:25 it started challenging bots within 500 of its rating.
+  So the week starts at the bot's restart after its last change, and any later change restarts it. After a week,
+  before that day's log rotates out, give every command `--dir games/turns-week2`, a folder of its own (the first
+  run stays in games/turns, and `extract` won't overwrite a games.json without `--force`). Then run `extract --since
+  "<that restart>"`, search, stretches, curves --sf-depth 16, calibrate, table. `table`'s "by evaluation" should show
+  one net. The engine copy for its re-searches is taken from the bot then, so it's that build. TODO's "Re-run TURNS"
+  has the same.
 - Not (a), a plain re-run with more CPU. Only 5 of the 94 turns lacked the full +2 plies (all misjudged), so it would
   change at most ~3% of the lost points.
 

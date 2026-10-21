@@ -513,15 +513,29 @@ Sessions, in order:
       by default, Matthew's call** ("I'd rather be right because error
       compounds on pondering"); `RepetitionRule` Twofold brings the old rule
       back (UCI, or bot/make-config.py's uci_options).
-- [ ] **Re-run TURNS on a week of the bot's games with the new rule**
-      (scripts/turning-points.py, which reads lichess-bot's DEBUG logs; they
-      keep 7 days): the false draws (7% of the lost points that week) should
-      be gone, and no "thrown-away lead by repetition" kind should appear in
-      its place. This is Matthew's (c) in "3. Findings for the thesis". The
-      bot has run the new rule since 2026-10-22 02:25 (c297601). From about
-      10-29: `--dir games/turns-week2` on every command (a folder of its own;
-      the first run stays in games/turns), `extract --since "2026-10-22
-      02:25"`, then search, stretches, curves, calibrate, table.
+- [ ] **Re-run TURNS on a week of the bot's games on one settled build**
+      (Matthew's (c) in "3. Findings for the thesis"; scripts/turning-points.py
+      reads lichess-bot's DEBUG logs, which it keeps 7-8 days). Did the
+      changes change how we lose? The false draws (7% of the lost points)
+      should be gone, with no "thrown-away lead by repetition" kind in their
+      place. **The goalpost moved** (Matthew, 2026-10-22): the week needs
+      games from one unchanged bot, and on 10-22 it changed three times. The
+      new rule came in at 02:25. At 03:10 there was a new engine build (P3,
+      P4, the repetition rule) and the deeper net h1024-3m-l16-32, which is
+      on trial "for a game or two before its match". At 03:25 the bot started
+      challenging bots within 500 of its rating, not 300. So:
+      - start the week at the bot's restart after its **last** change of
+        engine, net or config (that day the trial net may still be swapped);
+        any change after that restarts the week;
+      - after a week of games, before that day's log rotates out (8 days at
+        most), run every command with `--dir games/turns-week2` (a folder of
+        its own; the first run stays in games/turns). That's `extract --since
+        "<that restart, YYYY-MM-DD HH:MM>"`, then search, stretches, curves
+        --sf-depth 16, calibrate, table;
+      - check that `table`'s "by evaluation" has one net only (games.json
+        keeps each game's engine options), and compare with TURNS.md's first
+        run. Several changes landed together, so it measures them together,
+        not the repetition rule alone.
 - [ ] **A push to make progress** (low priority; from the repetition rule's
       matches, 2026-10-22): under the new rule a winning side may step back
       to an earlier position, and nothing pushes it on. Over match 2's 2,000
@@ -1014,9 +1028,9 @@ Sessions, in order:
       `table` then adds its own table. Overnight, with nothing else
       running: ~50 core-hours (three workers of 4 threads, CPUs 2-13, the
       second and third with `--reverse`; TURNS.md "Next runs").
-      (c) a fresh week with the repetition fix in the bot (since 2026-10-22
-      02:25; "Re-run TURNS" in section 2 has the commands). Did the fix
-      change how we lose? lichess-bot keeps 7 days of DEBUG logs.
+      (c) a fresh week of the bot's games on one settled build, after the
+      repetition fix and the other 10-22 changes ("Re-run TURNS" in section
+      2 has when and how). Did the changes change how we lose?
       Not (a), a plain re-run: only 5 turns lacked full depth.
 - [ ] New examples for "Endgames Thrown Away" from the month
       (scripts/takeover-moves-2026-09-month.txt; ratings of exactly 3000 are
