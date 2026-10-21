@@ -717,6 +717,9 @@ played. By the lab (1 of 153 hits on 8 threads), expect roughly ten a day: the b
 - **(b)** Merge it behind a UCI option, off by default, as P2 and P3 are: no change in the bot until you turn it on.
 - **(c)** Leave it unmerged: an unfinished depth stays thrown away, as before.
 
+**Matthew chose (a)** (2026-10-22). P4 has been in compression since 4ebe998 (merged with P3), so the bot plays with it
+from its next start on compression.
+
 One idea it turned up, not part of decision M: on the bot's 8 threads, half the helpers run a depth ahead and often
 finish a depth the main thread hasn't. Their move is in the table, and the main thread's answer ignores it. Engines
 commonly pick the answer from the thread that got deepest ("thread voting", Stockfish's best-thread choice). That

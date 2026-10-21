@@ -932,9 +932,10 @@ Sessions, in order:
                   cap), so no loss and likely no gain; P2's A/B not run
                   again. Uncut searches node for node as before (60
                   positions, depth 11). CutDepthTests 17, 31 of 32
-                  mutations caught, suite 558 passed. **Decision P4,
-                  Matthew's**: (a) merge as it is (my pick), (b) behind an
-                  option, off, (c) leave it. PONDER.md, "P4".)
+                  mutations caught, suite 558 passed. **Decision P4:
+                  Matthew chose (a), merge it as it is** (2026-10-22); it is
+                  in compression since 4ebe998, so on in the bot from its
+                  next start on compression. PONDER.md, "P4".)
             - [ ] P5: keep the history table between moves (halve it, not
                   clear it). Search.Prepare, ~30 min, a bench first.
             - [ ] P6: a table that keeps its deep entries (buckets of 2-4
