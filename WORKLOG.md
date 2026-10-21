@@ -5283,6 +5283,57 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - Still to come, on Matthew's word: the repetition match's last 613 games,
   then the deep nets' two matches (the bot off).
 
+## 2026-10-22 (05:09-06:30): the deep nets' matches: both lost on speed (the nnue-deep-layers session)
+
+- The repetition match ended 05:04 (its session: the cores free, the bot
+  off). Both matches back to back from 05:09, `scripts\nnue-match.cmd` per
+  net through a wrapper in this session's scratchpad (the `echo. |` answers
+  each one's closing pause), from this branch's engine (compression merged,
+  so the new repetition rule plays on both sides). Nothing else running:
+  a 4 s CPU sample showed only a Windows download under a core.
+- **h1024-3m-l32 -85 [-121, -51]** (191 games, +25 -71 =95, SPRT H0 at
+  game 187, 05:09-05:29) and **h1024-3m-l16-32 -58 [-88, -30]** (276 games,
+  +45 -91 =140, H0 at game 272, 05:29-05:58). No time losses. Searches:
+  l32 1,344 knps, depth 9.4, against 2,982 and 10.7; l16-32 1,597 and 9.8
+  against 3,112 and 10.8. Not close, so no 30+0.3 run (Matthew's rule).
+  MATCHES.md has the table.
+- **The bot back on h1024-3m** (Matthew's (a)): bot/make-config.py's list
+  without l16-32, bot\eval\h1024-3m-l16-32.nnue removed from git (the net
+  stays in games\nnue\nets), 5fc8a61; compression first fast-forwarded to
+  60cc6a1 (another session's TODO commits, PR #7 to main among them).
+- **The speed work, weighed** (NNUE.md session 6): break-even needs the small
+  layers ~4x cheaper; halving their arithmetic saved ~50 of ~285 ns a node;
+  and a probe found **no AVX-512 VNNI reachable from .NET 8 or .NET 10 on
+  the i9-11900H** (AvxVnni is the VEX form, false here; no Avx512Vnni class;
+  Avx10v1 false). So int8 isn't the next lever on this laptop.
+- The desktop's records: July, August, September (nnue\ on the share); April,
+  May and June 2026 are downloaded there as month files (27-28 GB each,
+  Z:\lichess), March part-way. A month's records took ~11 h on the desktop
+  (filter 4.1-4.3 h, import 4.4-4.6, nnue data 2.3-2.5, check ~20 min), two
+  side by side.
+
+## 2026-10-22 (06:30-07:10): April-June's records started on the desktop; h1536-3m-l32 held (the nnue-deep-layers session)
+
+- Matthew: (a) output buckets and (b) more data, so (c) both, and (d) stop
+  h1536-3m-l32; then plan with him how to scale the network, and training
+  on both GPUs.
+- **(b) started**: `scripts\nnue-desktop.ps1 data 2026-04`, `-05`, `-06`, three
+  tasks side by side from ~06:55 by the desktop's clock (each ~11 h at July
+  and August's pace; three at once may run longer). The share's cli is the
+  2026-10-18 build: nothing in Records/ or `nnue data` has changed since, so
+  the records match July's and August's. D: has 1,182 GB free; the desktop's
+  CPU was at 12% with the trainer running, 11.7 GB of memory free. The
+  trainer held 136.5 k positions a second as they started.
+- **(d) held, asked again**: h1536-3m-l32 (1536 x2 -> 32 -> 1) turned out the
+  best held-back error of any net so far: by pass at its K 0.012574,
+  0.012092, 0.011877, 0.011731, 0.011123, **0.011012 after pass 6 (-11%
+  against h1024-3m's 0.012394 float; l32 had 0.011608 there)**, ~83 min a
+  pass at 136 k a second, done ~12:10 by the desktop's clock. A stop keeps
+  the pass-6 checkpoint (`train ... --resume`), and the GPU's next job
+  (output buckets) isn't written yet, so stopping it now gains little.
+- The laptop holds July-September's records (games\nnue\2026-07..09), 53 GB
+  free on C:, an RTX 3070 Laptop GPU (8 GB).
+
 ## 2026-10-22 (05:15-06:15): P8, the setup per opponent, scoped (a side session)
 
 - Matthew's P8: keep a record per game, and choose which of our best three
