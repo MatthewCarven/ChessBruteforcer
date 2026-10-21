@@ -655,6 +655,9 @@ bot, then the answer:
 | the same, the table warm: our own search two plies earlier first, as in a game | 297 | 2 (1%) | | 2 (1.0 s) | **0** |
 | all | 1,044 | 163 | 150 | 13 | **1** |
 
+(The one-thread hits ran 17:33-17:48 beside other sessions' test runs and builds, so their first samples may have been
+searched more slowly than the rest; the 8-thread run, 16:55-17:30, had the machine to itself.)
+
 So **1 changed move in 1,044 searches, from 163 cut depths.** The one: a hit at 4.7 s (S 5.2 s) whose depth 14, begun
 at 1.9 s, ran 13.7 s to the hard limit, and played f4e3 (-7) where depth 13 had e1e2 (+17). A search four times as long
 (depth 15, from an empty table) preferred a third move, f2g1, so even that one isn't clearly a gain.
@@ -674,6 +677,7 @@ lab, so the bot may see a little more than the lab: still around a move in a few
 **The match.** `scripts/build-match.py p4-v-p3-10+0.1 08a4118`: P4 (477d0f8) against P3's tip (08a4118), 10+0.1, no
 pondering, h1024-3m on both sides, one thread and Hash 64 each, 5 at a time, the 300 openings in colour-reversed pairs,
 our tables adjudicating, 17:53-21:05. The bot wasn't running; another session's fixed-depth lab held CPU 14 from 17:57.
+Nothing crowded it: both sides searched 3,140-3,240 knps (median) in every quarter hour.
 The SPRT never decided (LLR 0.63 at the cap; its high was 1.63 at game ~1,000):
 
 | P4 v P3, 2,000 games | |
