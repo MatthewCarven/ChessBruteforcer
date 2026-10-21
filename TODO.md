@@ -962,8 +962,23 @@ Sessions, in order:
                   Matthew chose (a), merge it as it is** (2026-10-22); it is
                   in compression since 4ebe998, so on in the bot from its
                   next start on compression. PONDER.md, "P4".)
-            - [ ] P5: keep the history table between moves (halve it, not
-                  clear it). Search.Prepare, ~30 min, a bench first.
+            - [x] P5: keep the history table between moves (halve it, not
+                  clear it). Search.Prepare, ~30 min, a bench first. (Done
+                  2026-10-22 on claude/p5-keep-history-7a2c68, on
+                  compression, not merged yet. **Benched, and off: it
+                  saves no nodes.** 40 runs of 8 searches as the bot met
+                  them (2026-10-19/20), depth 12, one thread: keeping 25%,
+                  50% or 100% took 1.04x, 1.07x and 1.06x the cleared
+                  search's nodes (geometric means, 95% intervals all
+                  reaching 1.0), after misses too; the old build matched
+                  the cleared arm node for node. No match played (the
+                  brief: under 3% fewer, stop). UCI option HistoryKept
+                  (0-100), default 0, so merging changes nothing in the
+                  bot; ucinewgame clears the history. KeptHistoryTests 10,
+                  6 mutations caught, suite 601 passed. **Decision P5 for
+                  Matthew: (a) merge, option off (my pick), or (b) drop the
+                  src change, keep the write-up and the bench.** PONDER.md,
+                  "P5".)
             - [ ] P6: a table that keeps its deep entries (buckets of 2-4
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's

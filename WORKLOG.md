@@ -5282,3 +5282,46 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   Deleting bot\eval\h1024-3m-l16-32.nnue goes back to h1024-3m.
 - Still to come, on Matthew's word: the repetition match's last 613 games,
   then the deep nets' two matches (the bot off).
+
+## 2026-10-22 (05:30-06:40): P5, keep the move-ordering history between moves (a side session)
+
+- Decision M's P5 (PONDER.md), branch claude/p5-keep-history-7a2c68 on
+  compression (5fc8a61, P1-P4 in). Every search cleared the history (the
+  quiet moves' cutoff tallies that order moves) in Search.Prepare; now a new
+  search keeps `HistoryKept` percent of it, the helpers' too (each aged once
+  a search, from the main search's Prepare), and `ucinewgame`,
+  SearchPlayer.NewGame and bench-threads clear it (Search.ClearHistory).
+  Killers still cleared. UCI option HistoryKept, 0-100.
+- **The bench** (scripts/ponder-scope/p5.py): 40 runs of 8 searches from
+  the bot's logs of 2026-10-19/20 (1,041 runs in 142 games; 206 searches
+  two plies on, 74 after a miss), `ucinewgame` then each to depth 12 on one
+  thread, Hash 256, h1024-3m, no tables, the table carried over. Five arms
+  at once (nodes to a fixed depth don't depend on the machine's load):
+
+  | history kept | nodes against cleared, 280 searches (95% interval) | total nodes |
+  |---|---|---|
+  | 25% | 1.038 (0.965-1.130) | 1.042 |
+  | 50% | 1.073 (0.994-1.170) | 1.095 |
+  | 100% | 1.062 (0.990-1.154) | 1.106 |
+
+  No gain anywhere (after misses, 50%: 1.056). The middle half of the
+  searches ran 0.75-1.4x either way, and a quarter ended on another move.
+  Every run's first search matched node for node, and the build before P5
+  matched the cleared arm at every depth of all 320 searches. **So P5
+  stops at the bench: HistoryKept defaults to 0, and merging changes
+  nothing in the bot.** No match. A guess why, not measured: the history
+  only grows (no penalty for moves that failed) and ordering caps it at
+  700,000, so old tallies pile up; Stockfish's "gravity" updates let old
+  entries fade. Not proposed.
+- KeptHistoryTests 10; 6 mutations caught. My first version expected every
+  thread to have history after a 3-thread search and failed in the full
+  suite: the main thread can find everything in the table its helpers fill
+  and cut off nothing itself. The tests now fill it on one thread after.
+  **Full suite 601 passed, 2 skipped.** In four full runs two older tests
+  failed once each, neither touching the history:
+  PonderTests.AHitAtOnceStopsAsAPlainSearchWouldNotAtTheCap (one thread,
+  wall-clock; it failed 2 of 2 on the build before P5 here too) and
+  CutDepthTests.StoppedAsAFailHighIsSearchedAgainItKeepsWhatWasProved (R4;
+  8 of 8 alone on both builds).
+- Decision P5 for Matthew: (a) merge, the option off (my pick); (b) drop
+  the src change and keep the write-up and the bench. PONDER.md, "P5".

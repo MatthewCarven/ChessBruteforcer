@@ -7,9 +7,10 @@ namespace ChessBruteforcer.Tests;
 
 /// <summary>
 /// The move-ordering history between searches (PONDER.md, P5).  Before, every
-/// search started it from nothing.  Now a new search keeps
+/// search started it from nothing.  Now a new search can keep
 /// <see cref="Search.HistoryKept"/> percent of it from the one before, on
-/// every thread, and "ucinewgame" forgets it.
+/// every thread (none by default: keeping some saved no nodes), and
+/// "ucinewgame" forgets it.
 /// </summary>
 public class KeptHistoryTests
 {
@@ -121,6 +122,7 @@ public class KeptHistoryTests
         var expected = Go(fresh, freshOutput, MoveGeneratorTests.Middlegame, 7);
 
         var (engine, output) = Start();
+        engine.Handle("setoption name HistoryKept value 50");
         Go(engine, output, MoveGeneratorTests.Kiwipete, 7);
         engine.Handle("ucinewgame");
         Assert.Equal(expected, Go(engine, output, MoveGeneratorTests.Middlegame, 7));

@@ -223,16 +223,18 @@ public sealed class Search
     /// </summary>
     public bool TwofoldRepetitions { get; set; }
 
-    /// <summary>The <see cref="HistoryKept"/> a search starts with.</summary>
-    public const int DefaultHistoryKept = 50;
+    /// <summary>The <see cref="HistoryKept"/> a search starts with: none (keeping some saved no nodes).</summary>
+    public const int DefaultHistoryKept = 0;
 
     /// <summary>
     /// Percent of the move-ordering history (each quiet move's tally of
     /// cutoffs, by side, from and to square) that a new search keeps from the
-    /// searches before it, on every thread (PONDER.md, P5).  0: each search
-    /// starts it from nothing, as before P5.  The killers, which belong to a
-    /// ply of the old tree, are cleared either way.  <see cref="ClearHistory"/>
-    /// forgets it outright (a new game).  Set between searches.
+    /// searches before it, on every thread (PONDER.md, P5).  0, the default:
+    /// each search starts it from nothing, as before P5, since on the bot's
+    /// games keeping 25, 50 or 100% took 4-7% more nodes to the same depth,
+    /// not fewer.  The killers, which belong to a ply of the old tree, are
+    /// cleared either way.  <see cref="ClearHistory"/> forgets it outright (a
+    /// new game).  Set between searches.
     /// </summary>
     public int HistoryKept { get; set; } = DefaultHistoryKept;
 

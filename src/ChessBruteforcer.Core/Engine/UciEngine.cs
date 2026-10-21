@@ -31,7 +31,7 @@ public sealed class UciEngine
     private ParallelMode _split = ParallelMode.LazySmp;
     private bool _ponderFinish, _ponderCap;   // (P2's two rules, off: neither won games; PONDER.md)
     private bool _twofoldRepetitions;         // RepetitionRule Twofold: the old rule, for A/B matches
-    private int _historyKept = Search.DefaultHistoryKept;   // percent of the move-ordering history a new search keeps (P5)
+    private int _historyKept = Search.DefaultHistoryKept;   // percent of the move-ordering history a new search keeps (0: P5 saved nothing)
     private bool _tablesLoaded;
     private int _tableCacheMegabytes = BlockCache.DefaultMegabytes;
     private List<ulong> _previousHashes = new();
