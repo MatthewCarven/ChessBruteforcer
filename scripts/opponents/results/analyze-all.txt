@@ -33,9 +33,25 @@ Opponents with 3+ games: 90; |z| > 1.96 for 3 (chance alone: 3.8, 95% of runs <=
   AaronsEngine             5    4.0    2.9  +1.60   +192   built-in 2, nnue1-h512 2, h1024-3m 1
   TeensyCheesy             4    0.5    1.9  -1.59   -316   nnue1-h512 3, h512-3m 1
 
-Net x opponent (tau held at 80): 90 opponents met on two nets or more
+net x opponent (tau held at 80): 6 kinds; 90 bots met on two or more; 145 (bot, net) cells with 2+ games
   profile  0:0.00  25:0.04  50:0.28  75:1.00  100:2.43  150:7.89  200:16.64  300:40.32
   sigma = 0 Elo, 95% interval [0, 100]; against sigma = 0: LR 0.00, p = 0.500
+
+opening family x opponent (tau held at 80): 72 kinds; 124 bots met on two or more; 59 (bot, opening family) cells with 2+ games
+  profile  0:0.00  25:0.25  50:1.03  75:2.35  100:4.29  150:9.86  200:17.29  300:35.71
+  sigma = 0 Elo, 95% interval [0, 75]; against sigma = 0: LR 0.00, p = 0.500
+
+ECO volume x opponent (tau held at 80): 5 kinds; 114 bots met on two or more; 121 (bot, ECO volume) cells with 2+ games
+  profile  0:0.00  25:0.28  50:1.14  75:2.63  100:4.79  150:11.07  200:19.71  300:41.22
+  sigma = 0 Elo, 95% interval [0, 75]; against sigma = 0: LR 0.00, p = 0.500
+
+Pairs of games against one bot, the covariance of their surprises (x 1000):
+  same opening, same net        45 pairs   +45.3
+  same opening, other net       66 pairs   +20.1
+  other opening, same net      430 pairs   +19.2
+  other opening, other net     586 pairs    +7.4
+  same opening minus other opening: +17.9 [-13.4, +51.2]  (as an SD in Elo: +141)
+  same net minus other net: +13.0 [-6.3, +36.4]  (as an SD in Elo: +120)
 
 Openings: 568 pairs of games against the same bot with the same colours; identical for 8 plies 15 (3%), 12 plies 4 (1%), 16 plies 3 (1%)
   the first difference in each pair: {'ours': 390, 'theirs': 176, 'never (20 plies)': 2}
@@ -43,3 +59,10 @@ Openings: 568 pairs of games against the same bot with the same colours; identic
   theirs: 596 moves from a position met before, 176 different (30% a move)
   bots with 4+ such moves: 50; 14 of them never varied, 29 varied on a quarter or more
   our book moves a game: median 8, mean 7.5
+  games with a move from the learner's book (ours.bin), by net; and among games against a bot met before:
+    built-in       0 of 143 (0%);    0 of  69 (0%)
+    eval-sf1       1 of 213 (0%);    1 of 168 (1%)
+    nnue1          0 of  18 (0%);    0 of  10 (0%)
+    nnue1-h512     0 of 153 (0%);    0 of 104 (0%)
+    h512-3m        0 of  26 (0%);    0 of  20 (0%)
+    h1024-3m       0 of  43 (0%);    0 of  31 (0%)

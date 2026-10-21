@@ -7,15 +7,22 @@ From bot/logs/bot-*.log (lichess-bot's INFO log, read in order): which evaluatio
 (the engine's "info string evaluation" line during "Checking engine configuration"; no such line = the built-in
 numbers), so each game gets the setup of the start that played it; who sent the challenge; how many of our moves came
 from each book; and how many other games were running beside it. Lines naming a token are never read.
+From git (the checkout the bot folder is in): the commit that checkout was on at each start, from its HEAD reflog, since
+bot/start-bot.cmd builds the engine and runs make-config.py from it. "build" is the last commit there to touch src,
+and the engine options (Threads, Hash, ponder) are read from that commit's bot/make-config.py. (Uncommitted changes
+at a start can't be seen; a start before the reflog's first entry gets none.)
 """
 import csv
+import datetime
 import glob
 import os
 import re
+import subprocess
 import sys
 
 bot, out = sys.argv[1], sys.argv[2]
 ME = "matthewcarven"
+REPO = os.path.dirname(os.path.abspath(bot))
 
 
 def read_text(path):
@@ -24,6 +31,46 @@ def read_text(path):
         return data.decode("utf-8")
     except UnicodeDecodeError:
         return data.decode("cp1252")
+
+
+def git(*args):
+    try:
+        return subprocess.run(["git", "-C", REPO, *args], capture_output=True, text=True, encoding="utf-8",
+                               errors="replace", check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+
+
+# The checkout's HEAD over time (local time, as the logs are), oldest first.
+heads = []
+for line in git("reflog", "HEAD", "--date=iso-strict", "--format=%H|%gd").splitlines():
+    sha_, _, when = line.partition("|")
+    m = re.search(r"\{(.+)\}", when)
+    if m:
+        local = datetime.datetime.fromisoformat(m.group(1)).astimezone().replace(tzinfo=None)
+        heads.append((local, sha_))
+heads.sort()
+setups = {}
+
+
+def setup_at(start_time):
+    """(build, threads, hash, ponder) for a start at local time 'YYYY-MM-DD HH:MM:SS'."""
+    when = datetime.datetime.fromisoformat(start_time)
+    head = None
+    for local, sha_ in heads:
+        if local <= when:
+            head = sha_
+    if head is None:
+        return "", "", "", ""
+    if head not in setups:
+        build = git("log", "-1", "--format=%h", head, "--", "src").strip()
+        cfg = git("show", f"{head}:bot/make-config.py")
+        threads = re.search(r'"Threads":\s*(\d+)', cfg)
+        hash_ = re.search(r'"Hash":\s*(\d+)', cfg)
+        ponder = re.search(r'engine\["ponder"\]\s*=\s*(True|False)', cfg)
+        setups[head] = (build, threads.group(1) if threads else "1", hash_.group(1) if hash_ else "",   # unset: 1
+                        ("on" if ponder.group(1) == "True" else "off") if ponder else "off")
+    return setups[head]
 
 
 # The logs, in order: starts, nets, games.
@@ -144,6 +191,8 @@ for path in sorted(glob.glob(os.path.join(bot, "games", "*.pgn"))):
         "challenger": challenged_by.get(gid, ""),
         "net": g.get("net", ""),
         "net_sha": g.get("sha", ""),
+        **dict(zip(("build", "threads", "hash", "ponder"),
+                   setup_at(g["bot_start"]) if g.get("bot_start") else ("", "", "", ""))),
         "bot_start": g.get("bot_start", ""),
         "log_start": g.get("log_start", ""),
         "beside": g.get("beside", ""),
@@ -161,4 +210,4 @@ with open(out, "w", newline="", encoding="utf-8") as f:
     w.writerows(rows)
 print(len(rows), "games;", sum(1 for r in rows if r["net"]), "matched to a start;", len(starts), "starts")
 for s in starts:
-    print("  start", *s)
+    print("  start", *s, *setup_at(s[0]))

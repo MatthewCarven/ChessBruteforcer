@@ -5329,3 +5329,37 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - **Decision O** (OPPONENTS.md, the end): (a) log only (my pick), (b) a
   cautious learner, (c) Thompson sampling, (d) Matthew's rule as stated,
   (e) per-bot openings instead (scope first). Matthew's call.
+
+## 2026-10-22 (06:20-07:00): P8 again, along Matthew's steer (the same side session)
+
+- Matthew's steer, through the session that started this one ("advise the
+  p8 session of 1,2 & 3"): 1 log first and test the history; 2 explore
+  cheaply (Thompson with priors from overall strength; his rule beside
+  it); 3 vary the opening too. OPPONENTS.md rewritten around the three.
+- **1. The record** now has the build and options: collect.py reads the
+  main checkout's HEAD reflog at each start (the last commit to touch src;
+  Threads, Hash and pondering from that commit's make-config.py). The
+  network era was one build: 232 of 243 games on 8c3a396, 8 threads,
+  Hash 256, pondering on. bot\games\record.csv rewritten.
+- **3. Openings in the model**: offsets per (bot, opening family) and per
+  (bot, ECO volume), as for nets: all games 0 [0, 75] Elo each, the
+  networks' 0 [0, 100]. Without a model (two games against one bot,
+  the covariance of their surprises): same opening minus other +17.9
+  [-13.4, +51.2] x 1e-3, same net minus other +13.0 [-6.3, +36.4]. The
+  data can't say whether results follow the opening more than the net.
+- **The learner's book played 3 moves in 617 games** (main 4,302, wide
+  291; learner_hits.py: 3 of our 7,254 opening positions were learnt
+  before the game, all in one game on 10-16). Against a bot met before
+  with the same colours (319 games), last game's first out-of-book
+  position came back 16 times, and 15 of those are in today's main book.
+  We wander off our own lines (60% a move against the bots' 30%).
+  Replaying our line against a bot met before would bring that position
+  back in ~23% of those games (72 of 317, from each bot's repeat rate).
+- **2. Cheap exploring, simulated**: the steered explorer (the best
+  setup; another in 5% or 10% of a bot's games; a switch once 95% ahead)
+  costs -2.3 / -4.6 Elo and never switches, even at sigma 150 over 20,000
+  games: a 50-Elo edge needs ~220 games a setup against one bot to be 95%
+  clear. Thompson with prior SD 10 costs -0.1 because it never explores.
+- Decision O is now three parts: O1 the log ((a) on, my pick), O2 the net
+  per bot ((a) none for now, my pick), O3 the opening per bot ((b) the
+  learner onto the net first, my pick, then (a) a replay trial).

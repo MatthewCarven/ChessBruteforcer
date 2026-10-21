@@ -1,0 +1,2 @@
+617 games: our positions in the first 12 moves 7254; already learnt before the game 3, in 1 games
+against a bot met before with the same colours (319 games): any of our positions after move 1 the same as last time in 59; last time's first out-of-book position reached again in 16, which the learner had in its book in 1 (in time for that game in 0); in today's main book 15, wide book 15
