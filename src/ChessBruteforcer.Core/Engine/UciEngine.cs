@@ -55,6 +55,9 @@ public sealed class UciEngine
     /// <summary>The search "go" runs, set up as the last one was (for tests).</summary>
     internal Search Search => _search;
 
+    /// <summary>The engine's table (for tests).</summary>
+    internal TranspositionTable Table => _table;
+
     /// <summary>Read commands until "quit" or end of input.</summary>
     public void Run(TextReader input)
     {

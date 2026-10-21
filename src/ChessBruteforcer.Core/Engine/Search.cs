@@ -337,6 +337,7 @@ public sealed class Search
     {
         _activeHelpers = 0;
         RangeFallbacks = 0;
+        _table.NewSearch();   // (once a search: its helpers share it; a ponderhit goes on in the same one)
         Prepare(root, limits, previousHashes);
         onStarted?.Invoke();
         var result = IterativeDeepening(root, limits, previousHashes, onInfo);

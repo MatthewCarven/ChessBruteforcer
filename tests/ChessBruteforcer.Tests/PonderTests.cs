@@ -795,4 +795,33 @@ public class PonderTests
         Assert.InRange(clock.ElapsedMilliseconds, 0, HardLimitMs + 300);
         AssertLegal(engine.Position, best!);
     }
+
+    [Fact]
+    public void GoAndGoPonderEachStartANewTableGenerationAndAHitGoesOnInItsOwn()
+    {
+        // (P6: what a search stores is newer than anything the searches before it left, a ponder's included;
+        // a hit is the ponder's own search, going on.)
+        var (engine, output) = Start();
+        engine.Handle("position startpos moves e2e4 e7e5");
+        engine.Handle("go depth 4");
+        Assert.NotNull(output.WaitForBestMove(1, 10_000));
+        Assert.Equal(1, engine.Table.Generation);
+
+        engine.Handle(Pondered);
+        engine.Handle($"go ponder {Clock}");
+        Assert.Equal(2, engine.Table.Generation);
+        engine.Handle("ponderhit");
+        Assert.NotNull(output.WaitForBestMove(2, 5000));
+        Assert.Equal(2, engine.Table.Generation);
+
+        engine.Handle($"go ponder {Clock}");   // a miss
+        engine.Handle("stop");
+        Assert.NotNull(output.WaitForBestMove(3, 5000));
+        engine.Handle("go depth 4");
+        Assert.NotNull(output.WaitForBestMove(4, 10_000));
+        Assert.Equal(4, engine.Table.Generation);
+
+        engine.Handle("ucinewgame");
+        Assert.Equal(0, engine.Table.Generation);
+    }
 }

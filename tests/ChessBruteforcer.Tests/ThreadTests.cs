@@ -43,25 +43,27 @@ public class ThreadTests
     }
 
     /// <summary>
-    /// Four threads writing different positions into the same few slots,
-    /// four more reading: every hit must be the entry stored for that key,
-    /// never half of one and half of another.
+    /// Four threads writing different positions into the same few buckets,
+    /// four more reading (and, as the search count moves on, writing back
+    /// what they find as the current search's): every hit must be the entry
+    /// stored for that key, never half of one and half of another.
     /// </summary>
     [Fact]
     public void ThreadsWritingOneSlotNeverReadAMixedEntry()
     {
         var table = new TranspositionTable(1);
-        const int slots = 1_048_576 / 24;
+        Assert.Equal(65_536, table.Slots);   // 16,384 buckets: a key's top 14 bits are its bucket
         static (Move Move, int Score, int Depth) For(ulong key) =>
             (new Move((byte)(key % 64), (byte)(key / 64 % 64), PieceType.None, MoveFlags.None),
              (int)(key % 20_000) - 10_000, (int)(key % 100));
-        ulong KeyAt(int slot, int which) => (ulong)slot + (ulong)slots * (ulong)(which + 1) * 7919;
+        static ulong KeyAt(int bucket, int which) => (ulong)bucket << 50 | (ulong)(which + 1) * 7919;
 
         long hits = 0, mixed = 0;
         using var stop = new CancellationTokenSource(TimeSpan.FromMilliseconds(400));
         var threads = Enumerable.Range(0, 8).Select(t => new Thread(() =>
         {
             var rng = new Random(t);
+            int stores = 0;
             while (!stop.IsCancellationRequested)
             {
                 ulong key = KeyAt(rng.Next(4), rng.Next(64));
@@ -69,6 +71,8 @@ public class ThreadTests
                 if (t < 4)
                 {
                     table.Store(key, move, score, depth, Bound.Exact);
+                    if (t == 0 && ++stores % 1000 == 0)
+                        table.NewSearch();
                 }
                 else if (table.TryGet(key, out var entry))
                 {
