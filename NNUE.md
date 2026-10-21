@@ -1467,6 +1467,24 @@ code, the trainer and the reference, clear of the ponder sessions' files).
   16-wide first layer is half the pairs' arithmetic); more speed (int8
   weights with VNNI-style sums, which needs the small layers trained
   clamped, as Stockfish trains them).
+- **h1024-3m-l16-32** (768 -> 1024 x2 -> 16 -> 32 -> 1; the desktop,
+  2026-10-21 09:49-19:08 by its clock, 10 passes, exported by the trainer
+  itself: Q 8,192 / 16,384 / 8,192, network sha256 dd1d4b7ec442): held back
+  as the engine computes it **0.011588 at K 1.125, -6.8% against
+  h1024-3m** (l32 -8.4%), 0.011864 at K 1. Pass by pass it ran a steady
+  ~2% behind l32. `bench 9`, one thread, 6 rounds alternated (2026-10-22,
+  the laptop idle):
+
+  | net | nodes | knps | time to depth 9 |
+  |---|---|---|---|
+  | h1024-3m | 3,775,600 | 2,760 | 1.00x |
+  | h1024-3m-l32 | 5,185,617 | 1,433 (-48.1%) | 2.65x |
+  | h1024-3m-l16-32 | 3,657,429 | 1,549 (-43.9%) | 1.73x |
+
+  The first layer's 16 outputs halve the pairs' arithmetic but not the
+  listing, so the speed gains only 4 points on l32. Its tree came out
+  smaller than l32's (six positions, so rough). The bot plays it for a game
+  or two from 2026-10-22 (Matthew), before the two matches.
 
 ## Risks
 

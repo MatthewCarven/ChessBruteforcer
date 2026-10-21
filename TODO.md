@@ -163,8 +163,14 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     export, the numpy reference, the C# loader and pass; 69 of 69 network
     tests, 29 of 29 mutants red): **held back -8.4% against h1024-3m** as
     the engine computes it, **but -47.9% knps** in `bench 9` (and a 37%
-    bigger tree). h1024-3m-l16-32 (-> 16 -> 32 -> 1) training on the
-    desktop, done ~19:20 by its clock, exported as version 2 by itself.
+    bigger tree). **h1024-3m-l16-32** (-> 16 -> 32 -> 1) done 2026-10-21
+    19:08, in games\nnue\nets: **held back -6.8%**, -43.9% knps in `bench
+    9` but a smaller tree, ~1.7x the time to depth 9 (l32 2.65x). **In
+    compression since 2026-10-22 (3988dbe), and the bot plays
+    h1024-3m-l16-32 for a game or two** (Matthew; bot/make-config.py lists
+    it first; delete bot\eval\h1024-3m-l16-32.nnue to go back).
+    h1536-3m-l32 training on the desktop, done ~12:30 on 10-22; the engine
+    can't load 1536 hidden yet.
     **Matthew's (c), 2026-10-21 ~11:10: once l16-32 is done, both deep
     nets against h1024-3m at 10+0.1, back to back, the bot off; then the
     better at 30+0.3 if it's close** (the bot thinks ~20x longer a move

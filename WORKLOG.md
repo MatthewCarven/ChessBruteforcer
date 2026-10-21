@@ -5242,3 +5242,36 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   h1536-3m-l32`. Not in the match queue unless Matthew adds it, and **the
   engine can't load it yet**: Network.MaxHidden is 1024 (the same C# change,
   Matthew's word, that h1536-3m's match waits on).
+
+## 2026-10-22 (02:45-03:10): everything into compression, the bot on h1024-3m-l16-32 for a game or two (the nnue-deep-layers session)
+
+- Matthew, with the repetition rule's match paused at game 1,387 (it
+  resumes from its file later): merge everything, and start the bot on P4
+  and the newest net or the lowest-error one, my pick, for a game or two
+  before the tests resume.
+- **bench 9**, one thread, 6 rounds alternated after a warm-up, nothing else
+  running:
+
+  | net | held back v h1024-3m | nodes | knps | time to depth 9 |
+  |---|---|---|---|---|
+  | h1024-3m | - | 3,775,600 | 2,760 | 1.00x |
+  | h1024-3m-l32 | -8.4% | 5,185,617 | 1,433 (-48.1%) | 2.65x |
+  | h1024-3m-l16-32 | -6.8% | 3,657,429 | 1,549 (-43.9%) | 1.73x |
+
+  The trees are six positions' worth, so the time to depth is rough. **The
+  pick: h1024-3m-l16-32.** At p2.1's +87 a doubling, l16-32 gives up ~0.8
+  of one and l32 ~1.4; the earlier net upgrades put -7 to -8% error at
+  roughly +70 to +90. So l16-32 is about even with h1024-3m and l32 likely
+  behind, untested in games either way. A game or two shows it runs in the
+  bot, not how strong it is.
+- **The merge**: P4 and the repetition fix were already in compression
+  (13b8db1). Compression merged into this branch (3d1d144; WORKLOG the only
+  conflict, both sides adding entries). bot/make-config.py puts
+  h1024-3m-l16-32.nnue first (3988dbe); the net copied into bot\eval (sha256
+  2721fb8a..., the file's). **Full suite 591 passed, 2 skipped** (65 s). A
+  smoke test the bot's way (8 threads, Hash 256, the tables, a search, a
+  ponder and a ponderhit) played and exited cleanly. The main checkout's
+  compression fast-forwarded to 3988dbe; start-bot.cmd builds from it.
+  Deleting bot\eval\h1024-3m-l16-32.nnue goes back to h1024-3m.
+- Still to come, on Matthew's word: the repetition match's last 613 games,
+  then the deep nets' two matches (the bot off).
