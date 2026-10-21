@@ -991,6 +991,47 @@ Sessions, in order:
                   at the end.)
             After the src work in flight lands (AVX-512 and the lazy update,
             the bitboard sessions).
+- [ ] **Decision O (P8): the setup per opponent** ([OPPONENTS.md](OPPONENTS.md),
+      scoped 2026-10-22 along Matthew's steer: 1 log first, 2 explore
+      cheaply, 3 vary the opening; nothing built). No bot is weak against us
+      beyond its rating (the networks' games: 0 Elo [0, 100]), and no bot's
+      results follow the net or the opening (0 [0, 100] each); the bot meets
+      most bots 1-4 times, and one game measures a bot to +-320 Elo.
+      Simulated over the next 3,000 games: the steered explorer (5%) -2.3 Elo
+      and it never switches, Thompson -7 to -16, Matthew's rule -18 to -23.
+      The learner's book played 3 moves in 617 games: we wander off our own
+      lines; replaying ours against a bot met before would bring last game's
+      position back ~23% of the time against 5%. Three parts, Matthew's call:
+      O1 the log ((a) on, my pick; (b) by hand), O2 the net per bot ((a) none
+      for now, my pick; (b) steered; (c) Thompson; (d) his rule), O3 the
+      opening per bot ((a) a replay trial; (b) the learner onto the net
+      first, my pick, then (a); (c) leave it). **Matthew chose O1 (a), O2
+      (a), O3 (b) then (a)** (2026-10-22).
+      - [x] O1 (a), built 2026-10-22: bot/start-bot.cmd runs
+            scripts/opponents/collect.py into bot\games\record.csv at every
+            start (a failure leaves the old record and the bot starts
+            anyway); scripts/opponents/test_collect.py, 9 of 9 mutants
+            caught. On from the bot's first start on a compression with it.
+      - [ ] O3 (b): the learner onto the bot's net (the item below; its
+            session waits for the cores).
+      - [ ] O3 (a), after (b): the replay trial. bot/lichess-bot-replay.patch
+            in get_book_move (engine_wrapper.py 756-799, clear of the
+            ponder-note patch): against a bot met before with the same
+            colours, our book moves from the last game unless it was lost;
+            logs which games replayed; bot/test-replay.py on a copy through
+            LICHESS_BOT; a setting in make-config.py. ~half a day.
+      - [ ] O2: rerun scripts/opponents/analyze.py on the record after
+            ~3,000 more games (~6 weeks), or when a setup comes within ~10
+            Elo of the best (the deep nets didn't: -85 and about -55), and
+            look again.
+- [ ] The book learner (bot/learn.py) thinks with eval-sf1.txt, set when sf1
+      was our best evaluation (2026-10-14); the bot plays its moves
+      instantly from ours.bin, ahead of its own thinking with h1024-3m.
+      Check whether it should use the bot's net (its engine has no tables,
+      so the net is the whole difference), e.g. re-score ours.jsonl's
+      moves with h1024-3m and count the disagreements. O3 (b) in
+      OPPONENTS.md: a replay would make its moves come up far more often
+      (today 3 in 617 games).
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);
@@ -1106,6 +1147,14 @@ Sessions, in order:
 - [x] Decision N (P7, draw offers, [DRAWS.md](DRAWS.md)): pick (a) to (d) at the
       end of "The options". (2026-10-22: Matthew chose (a), leave it as it is:
       nothing to build.)
+- [x] Decision O (P8, the setup per opponent, [OPPONENTS.md](OPPONENTS.md)):
+      pick an option in each of O1 (the log), O2 (the net per bot) and O3
+      (the opening per bot). (2026-10-22: O1 (a), O2 (a), O3 (b) then (a);
+      O1 built, section 2.)
+- [ ] Restart the bot (between games, `bot\quit-soon.cmd`) once the P8
+      branch is in compression, so start-bot.cmd's game record line runs.
+      It changes bot\start-bot.cmd, so stop the bot before merging (cmd.exe
+      reads a running batch file line by line).
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;

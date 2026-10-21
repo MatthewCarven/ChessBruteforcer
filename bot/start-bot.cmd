@@ -33,6 +33,10 @@ if %errorlevel%==0 (
     pause
     exit /b 1
 )
+rem The game record (P8, OPPONENTS.md; Matthew's O1 (a), 2026-10-22): one row a game with the setup that played it,
+rem rebuilt from bot\games and bot\logs into bot\games\record.csv. A failure here only leaves the old record.
+"%PY%" -I scripts\opponents\collect.py bot bot\games\record.csv
+if errorlevel 1 echo The game record wasn't updated: starting anyway.
 rem Our chat commands (!info, and !help listing it): bot\chat_commands.py into lichess-bot, and the small change
 rem to its lib\conversation.py that asks it first (bot\lichess-bot-chat.patch), unless that's in already.
 copy /y bot\chat_commands.py bot\lichess-bot\lib\bruteforcer_chat.py >nul

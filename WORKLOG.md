@@ -5417,3 +5417,116 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - Session context (local_20f56c49) now orchestrates: it merges finished
   branches into compression; this session no longer fast-forwards the main
   checkout.
+
+## 2026-10-22 (05:15-06:15): P8, the setup per opponent, scoped (a side session)
+
+- Matthew's P8: keep a record per game, and choose which of our best three
+  setups plays each bot before the game starts, the least-used one for each
+  bot's first 3-10 games, then whichever did best against it, a heavy loss
+  counting against. Scoped with the bot's games first; nothing in src or
+  bot/lichess-bot changed. Write-up: [OPPONENTS.md](OPPONENTS.md); scripts
+  and outputs in scripts/opponents/.
+- **The record**: scripts/opponents/collect.py gives one row a game from
+  bot/games/*.pgn and bot/logs/bot-*.log (the net comes from the engine's
+  "info string evaluation" line at each start; who challenged; book moves
+  by book; games beside it; the first 20 plies). Backfilled into the main
+  checkout's bot\games\record.csv (out of git): all 617 games matched to
+  one of 49 starts: built-in 145, sf1 229, nnue1 19, nnue1-h512 154,
+  h512-3m 26, h1024-3m 44 (h1024-3m-l16-32's one game, KDKKzauD, has no
+  PGN: the bot stopped at 03:26 with it in progress).
+- **Few repeats**: 196 bots, 68 met once, 36 twice, three 10+ times (most
+  16).
+- **Opponent offsets** (analyze.py: BayesElo-style draws, one strength a
+  net, each bot's offset integrated out, profile intervals): all 596 games
+  with a result, tau 80 Elo [0, 120], p 0.05 against none; the networks'
+  240 games, tau 0 [0, 100]. Net x opponent, sigma 0 [0, 100] both ways.
+  Bot by bot: |z| > 1.96 for 3 of 90 bots (chance 3.8), 1 of 37 on the
+  networks (chance 1.5); the largest |z| 3.00 against chance's median
+  2.68. Matthew's sums hold (0.19 a game at even strength; our lopsided
+  games 0.13); one game measures a bot's offset to +-320 Elo.
+- **Openings**: from a position met before, the bots played another move
+  30% of the time, we 60% (the weighted-random book); 14 of 50 bots never
+  varied. Only 3% of same-bot same-colour pairs agree for 8 plies.
+- **Simulated** (simulate.py; a 300-bot pool fitted to the repeat
+  pattern; h1024-3m 0, h512-3m -41, nnue1-h512 -52), Elo played against
+  always h1024-3m over the next 3,000 games, weighted by how well each
+  sigma fits: Matthew's rule -18 (3 games exploring) to -23 (9), Thompson
+  sampling -7 to -16, a cautious learner +0.2; the ceiling (knowing each
+  bot's best net) +16. Matthew's rule pays only at sigma 100+ over
+  thousands of games (+12 to +18 at 20,000 games, sigma 100).
+- lichess-bot: create_engine(config, game) per game (engine_wrapper.py:35,
+  clear of the ponder-note patch); engine start to `+++` ~60 ms, the net
+  loaded ~25 ms in, so a per-game net is free in time and memory (nets
+  0.4-1.6 MB, one engine at a time). The startup check only loads the
+  default net.
+- Turned up: bot/learn.py still thinks with eval-sf1.txt, not the bot's
+  net (TODO).
+- **Decision O** (OPPONENTS.md, the end): (a) log only (my pick), (b) a
+  cautious learner, (c) Thompson sampling, (d) Matthew's rule as stated,
+  (e) per-bot openings instead (scope first). Matthew's call.
+
+## 2026-10-22 (06:20-07:00): P8 again, along Matthew's steer (the same side session)
+
+- Matthew's steer, through the session that started this one ("advise the
+  p8 session of 1,2 & 3"): 1 log first and test the history; 2 explore
+  cheaply (Thompson with priors from overall strength; his rule beside
+  it); 3 vary the opening too. OPPONENTS.md rewritten around the three.
+- **1. The record** now has the build and options: collect.py reads the
+  main checkout's HEAD reflog at each start (the last commit to touch src;
+  Threads, Hash and pondering from that commit's make-config.py). The
+  network era was one build: 232 of 243 games on 8c3a396, 8 threads,
+  Hash 256, pondering on. bot\games\record.csv rewritten.
+- **3. Openings in the model**: offsets per (bot, opening family) and per
+  (bot, ECO volume), as for nets: all games 0 [0, 75] Elo each, the
+  networks' 0 [0, 100]. Without a model (two games against one bot,
+  the covariance of their surprises): same opening minus other +17.9
+  [-13.4, +51.2] x 1e-3, same net minus other +13.0 [-6.3, +36.4]. The
+  data can't say whether results follow the opening more than the net.
+- **The learner's book played 3 moves in 617 games** (main 4,302, wide
+  291; learner_hits.py: 3 of our 7,254 opening positions were learnt
+  before the game, all in one game on 10-16). Against a bot met before
+  with the same colours (319 games), last game's first out-of-book
+  position came back 16 times, and 15 of those are in today's main book.
+  We wander off our own lines (60% a move against the bots' 30%).
+  Replaying our line against a bot met before would bring that position
+  back in ~23% of those games (72 of 317, from each bot's repeat rate).
+- **2. Cheap exploring, simulated**: the steered explorer (the best
+  setup; another in 5% or 10% of a bot's games; a switch once 95% ahead)
+  costs -2.3 / -4.6 Elo and never switches, even at sigma 150 over 20,000
+  games: a 50-Elo edge needs ~220 games a setup against one bot to be 95%
+  clear. Thompson with prior SD 10 costs -0.1 because it never explores.
+- Decision O is now three parts: O1 the log ((a) on, my pick), O2 the net
+  per bot ((a) none for now, my pick), O3 the opening per bot ((b) the
+  learner onto the net first, my pick, then (a) a replay trial).
+
+## 2026-10-22 (07:10-07:45): decision O taken; O1, the game record at each start, built (the P8 side session)
+
+- Matthew: "O1 (a) switch the log on, O2 (a) no per-bot net for now, O3
+  (b) the learner onto the net first, then (a) a replay trial. Build O1
+  now."
+- Compression merged into the P8 branch first (WORKLOG the only conflict:
+  both sides adding entries, compression's first).
+- **bot/start-bot.cmd** runs `scripts\opponents\collect.py bot
+  bot\games\record.csv` with lichess-bot's Python after make-config.py and
+  the token check; on a failure it prints "The game record wasn't updated:
+  starting anyway." and carries on. collect.py now prints one line ("game
+  record: N games in ..."), lists the starts only with --starts, writes
+  to a .tmp and replaces the record in one step, and refuses with a
+  message when there are no games or the record is held open (Excel).
+- **Tests**: scripts/opponents/test_collect.py builds a bot folder in
+  lichess-bot's formats (two starts, a network and the built-in numbers;
+  our challenge and theirs; book moves from two books; a line naming the
+  token that would change a row if read) and checks both rows, a second
+  run giving the same file, and the no-games refusal. 9 of 9 mutants of
+  collect.py caught (three lived at first: a drawn game hid the black-
+  score flip, one main-book move hid the count, and the token line
+  matched nothing; the test now has a black win, two main-book moves and
+  a token line that would mark a game ours). The start-bot.cmd lines
+  themselves, verbatim, in a scratch copy with real logs and games: a
+  normal run (12 games), the record held open (left as it was, no .tmp
+  left behind, the bot carries on) and no games (the same).
+- On from the bot's first start on a compression with this branch in it.
+  bot\games\record.csv in the main checkout is already the 617-game
+  backfill. The OPPONENTS.md note on a close second is updated: the deep
+  nets lost (l32 -85, l16-32 about -55), so O2 waits for a net within ~10
+  Elo, or for ~3,000 more games.

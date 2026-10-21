@@ -1,0 +1,227 @@
+"""One row per game the bot has played, with the setup that played it: P8's game record (OPPONENTS.md).
+
+    python -I collect.py <bot folder> <out.csv> [--starts]
+
+bot/start-bot.cmd runs it at every start (Matthew's O1 (a), 2026-10-22), into bot/games/record.csv, so the record is
+one start behind at most; it is rebuilt whole each time (a few seconds), so it never drifts. --starts lists each bot
+start with its net, build and options.
+
+From bot/games/*.pgn (lichess-bot's records, headers only): the game, the opponent, the ratings, the result.
+From bot/logs/bot-*.log (lichess-bot's INFO log, read in order): which evaluation the engine loaded at each start
+(the engine's "info string evaluation" line during "Checking engine configuration"; no such line = the built-in
+numbers), so each game gets the setup of the start that played it; who sent the challenge; how many of our moves came
+from each book; and how many other games were running beside it. Lines naming a token are never read.
+From git (the checkout the bot folder is in): the commit that checkout was on at each start, from its HEAD reflog, since
+bot/start-bot.cmd builds the engine and runs make-config.py from it. "build" is the last commit there to touch src,
+and the engine options (Threads, Hash, ponder) are read from that commit's bot/make-config.py. (Uncommitted changes
+at a start can't be seen; a start before the reflog's first entry gets none.)
+"""
+import csv
+import datetime
+import glob
+import os
+import re
+import subprocess
+import sys
+
+bot, out = sys.argv[1], sys.argv[2]
+ME = "matthewcarven"
+REPO = os.path.dirname(os.path.abspath(bot))
+
+
+def read_text(path):
+    data = open(path, "rb").read()
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data.decode("cp1252")
+
+
+def git(*args):
+    try:
+        return subprocess.run(["git", "-C", REPO, *args], capture_output=True, text=True, encoding="utf-8",
+                               errors="replace", check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+
+
+# The checkout's HEAD over time (local time, as the logs are), oldest first.
+heads = []
+for line in git("reflog", "HEAD", "--date=iso-strict", "--format=%H|%gd").splitlines():
+    sha_, _, when = line.partition("|")
+    m = re.search(r"\{(.+)\}", when)
+    if m:
+        local = datetime.datetime.fromisoformat(m.group(1)).astimezone().replace(tzinfo=None)
+        heads.append((local, sha_))
+heads.sort()
+setups = {}
+
+
+def setup_at(start_time):
+    """(build, threads, hash, ponder) for a start at local time 'YYYY-MM-DD HH:MM:SS'."""
+    when = datetime.datetime.fromisoformat(start_time)
+    head = None
+    for local, sha_ in heads:
+        if local <= when:
+            head = sha_
+    if head is None:
+        return "", "", "", ""
+    if head not in setups:
+        build = git("log", "-1", "--format=%h", head, "--", "src").strip()
+        cfg = git("show", f"{head}:bot/make-config.py")
+        threads = re.search(r'"Threads":\s*(\d+)', cfg)
+        hash_ = re.search(r'"Hash":\s*(\d+)', cfg)
+        ponder = re.search(r'engine\["ponder"\]\s*=\s*(True|False)', cfg)
+        setups[head] = (build, threads.group(1) if threads else "1", hash_.group(1) if hash_ else "",   # unset: 1
+                        ("on" if ponder.group(1) == "True" else "off") if ponder else "off")
+    return setups[head]
+
+
+# The logs, in order: starts, nets, games.
+starts = []           # (local time, net name, sha)
+game = {}             # id -> facts from the log
+running = set()       # games in progress at this point of the log
+net, sha = None, None
+checking = False
+r_check = re.compile(r"^(\S+ \S+),\d+ .*INFO Checking engine configuration")
+r_ok = re.compile(r"^(\S+ \S+),\d+ .*INFO Engine configuration OK")
+r_net = re.compile(r"info string evaluation: network .*\\\\([^\\]+?)\.nnue \((.*?), sha256 ([0-9a-f]+)\)")
+r_txt = re.compile(r"info string evaluation from .*\\\\([^\\]+?)'")
+r_accept = re.compile(r"INFO Accept .* challenge from .* \((\w{8})\)$")
+r_ours = re.compile(r"INFO Challenge id is (\w{8})\.")
+r_start = re.compile(r"^(\S+ \S+),\d+ .*INFO \+\+\+ https://lichess\.org/(\w{8})/(white|black)")
+r_over = re.compile(r"^(\S+ \S+),\d+ .*INFO --- https://lichess\.org/(\w{8})/\w+ Game over")
+r_book = re.compile(r"INFO Got move \S+ from book .*\\([^\\]+)\.bin for game (\w{8})")
+challenged_by = {}
+for path in sorted(glob.glob(os.path.join(bot, "logs", "bot-*.log"))):
+    for line in read_text(path).splitlines():
+        low = line.lower()
+        if "token" in low or "authoriz" in low:
+            continue
+        m = r_check.search(line)
+        if m:
+            checking, net, sha = True, "built-in", ""
+            start_time = m.group(1)
+            running.clear()      # a new start: games of the last one are over or will be rejoined below
+            continue
+        if checking:
+            m = r_net.search(line)
+            if m:
+                net, sha = m.group(1), m.group(3)
+                continue
+            m = r_txt.search(line)
+            if m:
+                net, sha = m.group(1).rsplit(".", 1)[0], ""
+                continue
+            m = r_ok.search(line)
+            if m:
+                checking = False
+                starts.append((start_time, net, sha))
+            continue
+        m = r_accept.search(line)
+        if m:
+            challenged_by[m.group(1)] = "them"
+            continue
+        m = r_ours.search(line)
+        if m:
+            challenged_by[m.group(1)] = "us"
+            continue
+        m = r_start.search(line)
+        if m:
+            gid = m.group(2)
+            g = game.setdefault(gid, {"net": net, "sha": sha, "bot_start": start_time, "log_start": m.group(1),
+                                      "beside": 0, "books": {}, "segments": 0})
+            g["segments"] += 1
+            if g["net"] != net:
+                g["net"] = g["net"] + "+" + net      # rejoined after a restart on another net
+            for other in running:
+                game[other]["beside"] = max(game[other]["beside"], len(running))
+            g["beside"] = max(g["beside"], len(running))
+            running.add(gid)
+            continue
+        m = r_over.search(line)
+        if m:
+            running.discard(m.group(2))
+            continue
+        m = r_book.search(line)
+        if m and m.group(2) in game:
+            b = game[m.group(2)]["books"]
+            b[m.group(1)] = b.get(m.group(1), 0) + 1
+
+# The games.
+hdr = re.compile(r'^\[(\w+) "(.*)"\]\s*$', re.M)
+rows = []
+for path in sorted(glob.glob(os.path.join(bot, "games", "*.pgn"))):
+    text = read_text(path)
+    h = dict(hdr.findall(text))
+    if h.get("White") == ME:
+        colour, us, them = "white", "White", "Black"
+    elif h.get("Black") == ME:
+        colour, us, them = "black", "Black", "White"
+    else:
+        continue
+    gid = h.get("GameId") or h.get("Site", "").rsplit("/", 1)[-1]
+    res = h.get("Result")
+    score = {"1-0": 1.0, "0-1": 0.0, "1/2-1/2": 0.5}.get(res)
+    if score is not None and colour == "black":
+        score = 1.0 - score
+    tags = list(hdr.finditer(text))
+    body = text[tags[-1].end():] if tags else text
+    body = re.sub(r"\{[^}]*\}", " ", body)
+    while "(" in body:                        # our PVs, which run past the game's last move
+        body, n = re.subn(r"\([^()]*\)", " ", body)
+        if not n:
+            break
+    nums = [int(n) for n in re.findall(r"(\d+)\.", body)]
+    sans = [t for t in re.sub(r"\d+\.(\.\.)?", " ", body).split() if t not in ("1-0", "0-1", "1/2-1/2", "*")]
+    g = game.get(gid, {})
+    books = g.get("books", {})
+    ev = h.get("Event", "")
+    rows.append({
+        "id": gid,
+        "utc": h.get("UTCDate", "").replace(".", "-") + " " + h.get("UTCTime", ""),
+        "rated": "rated" if ev.startswith("rated") else "casual",
+        "speed": ev.split()[1] if len(ev.split()) > 2 else "",
+        "tc": h.get("TimeControl", ""),
+        "colour": colour,
+        "opponent": h.get(them, ""),
+        "opp_title": h.get(them + "Title", ""),
+        "our_elo": h.get(us + "Elo", ""),
+        "opp_elo": h.get(them + "Elo", ""),
+        "our_diff": h.get(us + "RatingDiff", ""),
+        "score": "" if score is None else score,
+        "termination": h.get("Termination", ""),
+        "moves": max(nums) if nums else 0,
+        "challenger": challenged_by.get(gid, ""),
+        "net": g.get("net", ""),
+        "net_sha": g.get("sha", ""),
+        **dict(zip(("build", "threads", "hash", "ponder"),
+                   setup_at(g["bot_start"]) if g.get("bot_start") else ("", "", "", ""))),
+        "bot_start": g.get("bot_start", ""),
+        "log_start": g.get("log_start", ""),
+        "beside": g.get("beside", ""),
+        "book_main": books.get("lichess-2200", 0) + books.get("lichess-2026-09-2200", 0),
+        "book_ours": books.get("ours", 0),
+        "book_wide": books.get("lichess-2200-wide", 0),
+        "eco": h.get("ECO", ""),
+        "opening": h.get("Opening", ""),
+        "line": " ".join(sans[:20]),                    # the first 20 plies, to see who repeats an opening
+    })
+rows.sort(key=lambda r: r["utc"])
+if not rows:
+    sys.exit("no games found in " + os.path.join(bot, "games"))
+tmp = out + ".tmp"                           # a whole file or the old one, never half of one
+with open(tmp, "w", newline="", encoding="utf-8") as f:
+    w = csv.DictWriter(f, fieldnames=list(rows[0]))
+    w.writeheader()
+    w.writerows(rows)
+try:
+    os.replace(tmp, out)
+except PermissionError:                      # open in Excel, say: keep the old one, say so
+    os.remove(tmp)
+    sys.exit(f"{out} is in use (open somewhere?): not updated")
+unmatched = sum(1 for r in rows if not r["net"])
+print(f"game record: {len(rows)} games in {out}" + (f", {unmatched} without a known setup" if unmatched else ""))
+if "--starts" in sys.argv:
+    for s in starts:
+        print("  start", *s, *setup_at(s[0]))

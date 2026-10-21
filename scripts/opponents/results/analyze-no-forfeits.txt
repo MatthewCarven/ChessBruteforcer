@@ -1,0 +1,45 @@
+562 games, 189 opponents, nets ['built-in', 'eval-sf1', 'nnue1', 'nnue1-h512', 'h512-3m', 'h1024-3m'], no time forfeits
+games per opponent: [(1, 68), (2, 35), (3, 19), (4, 25), (5, 14), (6, 13), (7, 6), (8, 7), (9, 1), (12, 1)]
+results: +299 =92 -171  (score 0.614)
+
+Model without opponent effects:
+  S[built-in] =    2023  (138 games, mean opponent 2013)
+  S[eval-sf1] =    2232  (197 games, mean opponent 2108)
+  S[nnue1] =    2628  (18 games, mean opponent 2283)
+  S[nnue1-h512] =    2626  (147 games, mean opponent 2405)
+  S[h512-3m] =    2551  (26 games, mean opponent 2566)
+  S[h1024-3m] =    2617  (36 games, mean opponent 2618)
+  bullet +13, rapid/classical -78, white +-50, draw width D 92
+  mean per-game score variance 0.128 (draws in: Matthew's 0.2), observed (s - E)^2 0.102
+
+Opponent effects: tau (the SD of 'this bot is weak/strong against us beyond its rating'):
+  profile  0:1.43  10:1.36  20:1.16  30:0.88  40:0.56  50:0.27  60:0.06  70:0.00  80:0.05  100:0.86  120:2.49  150:6.42  200:15.87  250:27.52
+  tau = 70 Elo, 95% interval [0, 120]; against tau = 0: LR 1.43, p = 0.116
+
+Opponents with 3+ games: 86; |z| > 1.96 for 3 (chance alone: 3.7, 95% of runs <= 7); largest |z| 2.99 (chance: median 2.71, 95% <= 3.90)
+  sum of z^2 over them 92.9 on 86 opponents (chance: mean 86, chi-square p = 0.288)
+
+  the most surprising opponents (3+ games): n, score, expected, z, Elo off the rating (raw)
+  Alieknek                 6    1.0    4.0  -2.99   -395   nnue1-h512 4, built-in 1, eval-sf1 1
+  CalciumEngine           12    5.5    9.0  -2.75   -217   eval-sf1 7, built-in 5
+  DeMen100ns-bot           8    2.5    4.9  -2.10   -216   eval-sf1 5, built-in 3
+  myChessJava              4    4.0    2.5  +1.88   +507   built-in 2, eval-sf1 2
+  simpleEval               3    3.0    1.7  +1.88   +561   eval-sf1 2, built-in 1
+  sseh-c                   6    6.0    4.4  +1.77   +427   built-in 3, eval-sf1 3
+  TroutBot                 8    3.0    4.6  -1.62   -144   eval-sf1 3, built-in 2, nnue1-h512 2, nnue1 1
+  TeensyCheesy             4    0.5    1.9  -1.59   -314   nnue1-h512 3, h512-3m 1
+  GroshBoss                6    3.5    4.7  -1.58   -170   eval-sf1 2, nnue1-h512 2, built-in 1, nnue1 1
+  TopasBot                 4    4.0    2.8  +1.55   +460   built-in 4
+  uzenatch                 8    7.0    5.5  +1.43   +206   built-in 5, eval-sf1 3
+  thunfisch-bot            6    2.5    3.7  -1.39   -137   nnue1-h512 3, built-in 2, eval-sf1 1
+
+Net x opponent (tau held at 70): 87 opponents met on two nets or more
+  profile  0:0.00  25:0.15  50:0.70  75:1.79  100:3.69  150:9.92  200:19.22  300:42.88
+  sigma = 0 Elo, 95% interval [0, 100]; against sigma = 0: LR 0.00, p = 0.500
+
+Openings: 502 pairs of games against the same bot with the same colours; identical for 8 plies 13 (3%), 12 plies 3 (1%), 16 plies 2 (0%)
+  the first difference in each pair: {'ours': 340, 'theirs': 161, 'never (20 plies)': 1}
+  ours: 562 moves from a position met before, 340 different (60% a move)
+  theirs: 517 moves from a position met before, 161 different (31% a move)
+  our book moves a game: median 8, mean 7.5
+
