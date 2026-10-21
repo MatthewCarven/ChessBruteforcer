@@ -100,14 +100,16 @@ internal sealed class AccumulatorStack
             Refresh(position);
     }
 
+    /// <summary>The score for <paramref name="sideToMove"/>, with the output bucket of a board of <paramref name="pieces"/> pieces.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int Evaluate(Colour sideToMove)
+    public int Evaluate(Colour sideToMove, int pieces)
     {
         Compute();
         var slot = Slots.Slice(_top * _stride, _stride);
+        int bucket = Network.Bucket(pieces);
         return sideToMove == Colour.White
-            ? Network.Forward(slot[.._hidden], slot[_hidden..])
-            : Network.Forward(slot[_hidden..], slot[.._hidden]);
+            ? Network.Forward(slot[.._hidden], slot[_hidden..], bucket)
+            : Network.Forward(slot[_hidden..], slot[.._hidden], bucket);
     }
 
     /// <summary>A move with no capture: <paramref name="moved"/> off <paramref name="from"/>, <paramref name="placed"/> (itself, or what it promotes to) on <paramref name="to"/>.</summary>

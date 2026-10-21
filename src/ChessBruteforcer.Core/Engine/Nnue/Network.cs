@@ -48,17 +48,34 @@ namespace ChessBruteforcer.Core.Engine.Nnue;
 /// (the side to move's H first); each layer's outputs are clamp((bias + sum x w + Q / 2) / Q, 0, QA); the
 /// score is (bias + sum x w) x scale / (QA x Q) of the output's. Divisions truncate towards zero, sums
 /// fit in int32 (the loader checks every row at the largest inputs), and the score is clamped as version 1's.
+///
+/// Version 3 (2026-10-22, NNUE.md session 7: output buckets) is version 1 with K output rows in place of one, the
+/// row picked by how many pieces are on the board, as Stockfish picks its:
+/// <code>
+///   8 bytes   "CBNNUE01"
+///   u32       version (3), inputs (768), hidden H
+///   i32       QA (255), QB, scale (400)
+///   u32       K, the number of output buckets (1-16)
+///   int16     feature weights [768][H], feature biases [H]     (as version 1)
+///   int16     output weights [K][2H], bucket by bucket; each as version 1's [2H]
+///   i32       output biases [K]
+///   32 bytes  SHA-256 of everything above
+/// </code>
+/// A board of n pieces, kings included, takes bucket b = (n - 1) x K / 32 (with K 8, Stockfish's (n - 1) / 4), and the
+/// score is version 1's with bucket b's weights and bias. Every bucket's weights get version 1's check.
 /// scripts/nnue-reference/nnue_reference.py is the reference these must equal exactly.
 /// </summary>
 public sealed class Network
 {
     public const int Version = 1;
     public const int DeepVersion = 2;
+    public const int BucketVersion = 3;
     public const int Inputs = 768;
     public const int MaxHidden = 2048;      // 1024 to 2026-10-22; 2048 still can't overflow Forward256 (see there)
     public const int MaxLayers = 4;
     public const int MaxLayerSize = 256;
     public const int MaxLayerQ = 1 << 24;
+    public const int MaxBuckets = 16;
 
     /// <summary>No network score may read as a mate.</summary>
     public const int MaxScore = Search.MateBound - 1;
@@ -71,7 +88,15 @@ public sealed class Network
     public int QA { get; }
     public int QB { get; }
     public int Scale { get; }
-    public int OutputBias { get; }
+
+    /// <summary>Version 1's output bias: bucket 0's.</summary>
+    public int OutputBias => OutputBiases[0];
+
+    /// <summary>[K], one per output bucket (one for versions 1 and 2).</summary>
+    internal int[] OutputBiases { get; }
+
+    /// <summary>K, the number of output buckets: 1 but in version 3.</summary>
+    public int Buckets => OutputBiases.Length;
 
     /// <summary>The file's SHA-256, in hex: says which net a log or a match used.</summary>
     public string Sha256 { get; }
@@ -82,15 +107,22 @@ public sealed class Network
     /// <summary>[H].</summary>
     internal short[] FeatureBiases { get; }
 
-    /// <summary>[2H]: the side to move's half first; from a 64-byte boundary on.</summary>
-    internal ReadOnlySpan<short> OutputWeights => _outputWeights.AsSpan(_outputWeightsAt, 2 * Hidden);
+    /// <summary>[K][2H]: each bucket the side to move's half first; from a 64-byte boundary on, as every bucket is (4H bytes each).</summary>
+    internal ReadOnlySpan<short> OutputWeights => _outputWeights.AsSpan(_outputWeightsAt, Buckets * 2 * Hidden);
+
+    /// <summary>Bucket <paramref name="bucket"/>'s [2H] (bounds-checked: no bucket past K).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal ReadOnlySpan<short> BucketWeights(int bucket) => _outputWeights.AsSpan(_outputWeightsAt + bucket * 2 * Hidden, 2 * Hidden);
 
     // Pinned (Aligned), each holding its numbers from ...At on.
     private readonly short[] _featureWeights, _outputWeights;
     private readonly int _featureWeightsAt, _outputWeightsAt;
 
-    /// <summary>The file's version: 1, or 2 for a net with small layers.</summary>
-    public int FileVersion => Layers.Length == 0 ? Version : DeepVersion;
+    /// <summary>For each count of pieces on the board, 0 to 64, its output bucket.</summary>
+    private readonly byte[] _bucketOf;
+
+    /// <summary>The file's version: 1, 2 for a net with small layers, or 3 for one with output buckets.</summary>
+    public int FileVersion { get; }
 
     /// <summary>Version 2's small layers, in order (none in version 1).</summary>
     internal Layer[] Layers { get; } = [];
@@ -154,9 +186,11 @@ public sealed class Network
         public ReadOnlySpan<short> Pairs => _pairs.AsSpan(_pairsAt, PaddedInputs * PaddedOutputs);
     }
 
-    private Network(int hidden, int qa, int qb, int scale, ReadOnlySpan<short> featureWeights, short[] featureBiases,
-                    ReadOnlySpan<short> outputWeights, int outputBias, string sha256)
+    /// <summary>Version 1, or 3 with an output row and bias per bucket (as many buckets as <paramref name="outputBiases"/>).</summary>
+    private Network(int fileVersion, int hidden, int qa, int qb, int scale, ReadOnlySpan<short> featureWeights, short[] featureBiases,
+                    ReadOnlySpan<short> outputWeights, int[] outputBiases, string sha256)
     {
+        FileVersion = fileVersion;
         Hidden = hidden;
         QA = qa;
         QB = qb;
@@ -166,22 +200,34 @@ public sealed class Network
         FeatureBiases = featureBiases;
         _outputWeights = Aligned.Allocate(outputWeights.Length, out _outputWeightsAt);
         outputWeights.CopyTo(_outputWeights.AsSpan(_outputWeightsAt));
-        OutputBias = outputBias;
+        OutputBiases = outputBiases;
+        _bucketOf = new byte[65];
+        for (int n = 0; n <= 64; n++)   // (past 32 pieces, no real board: the last bucket)
+            _bucketOf[n] = (byte)Math.Min(Math.Max(n - 1, 0) * Buckets / 32, Buckets - 1);
         Sha256 = sha256;
     }
 
     /// <summary>Version 2: the feature layer, then small layers and the output (QB and the output weights unused).</summary>
     private Network(int hidden, int qa, int scale, ReadOnlySpan<short> featureWeights, short[] featureBiases,
                     Layer[] layers, Layer output, string sha256)
-        : this(hidden, qa, 0, scale, featureWeights, featureBiases, ReadOnlySpan<short>.Empty, 0, sha256)
+        : this(DeepVersion, hidden, qa, 0, scale, featureWeights, featureBiases, ReadOnlySpan<short>.Empty, [0], sha256)
     {
         Layers = layers;
         Output = output;
     }
 
-    public override string ToString() => Layers.Length == 0
-        ? $"768 -> {Hidden} x2 -> 1, sha256 {Sha256[..12]}"
-        : $"768 -> {Hidden} x2 -> {string.Join(" -> ", Layers.Select(l => l.Outputs))} -> 1, sha256 {Sha256[..12]}";
+    public override string ToString() => Layers.Length != 0
+        ? $"768 -> {Hidden} x2 -> {string.Join(" -> ", Layers.Select(l => l.Outputs))} -> 1, sha256 {Sha256[..12]}"
+        : FileVersion == BucketVersion
+        ? $"768 -> {Hidden} x2 -> 1, {Buckets} output buckets, sha256 {Sha256[..12]}"
+        : $"768 -> {Hidden} x2 -> 1, sha256 {Sha256[..12]}";
+
+    /// <summary>
+    /// The output bucket of a board with <paramref name="pieces"/> pieces on it, kings included (0 to 64): (n - 1) x K / 32,
+    /// so always 0 with one bucket.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal int Bucket(int pieces) => _bucketOf[pieces];
 
     /// <summary>
     /// The input for <paramref name="piece"/> on <paramref name="square"/> (a1 = 0) as
@@ -224,24 +270,35 @@ public sealed class Network
         int qa = BinaryPrimitives.ReadInt32LittleEndian(bytes[20..]);
         int qb = BinaryPrimitives.ReadInt32LittleEndian(bytes[24..]);
         int scale = BinaryPrimitives.ReadInt32LittleEndian(bytes[28..]);
-        if (version != Version)
-            throw new FormatException($"{name}: version {version}; this engine reads versions {Version} and {DeepVersion}.");
+        if (version != Version && version != BucketVersion)
+            throw new FormatException($"{name}: version {version}; this engine reads versions {Version}, {DeepVersion} and {BucketVersion}.");
         if (inputs != Inputs)
             throw new FormatException($"{name}: {inputs} inputs; this engine's are the {Inputs} piece-square ones.");
         if (hidden is < 16 or > MaxHidden || hidden % 16 != 0)
             throw new FormatException($"{name}: hidden size {hidden}; it must be a multiple of 16 from 16 to {MaxHidden}.");
         if (qa is < 1 or > 255 || qb < 1 || scale < 1)
             throw new FormatException($"{name}: QA {qa}, QB {qb}, scale {scale}; QA must be 1-255, the others positive.");
-        int h = (int)hidden;
-        long expected = HeaderBytes + 2L * (Inputs * h + h + 2 * h) + 4 + HashBytes;
+        int h = (int)hidden, buckets = 1, at = HeaderBytes;
+        if (version == BucketVersion)
+        {
+            if (bytes.Length < HeaderBytes + 4 + HashBytes)
+                throw new FormatException($"{name}: {bytes.Length} bytes is too short for a .nnue file.");
+            uint k = BinaryPrimitives.ReadUInt32LittleEndian(bytes[HeaderBytes..]);
+            if (k is < 1 or > MaxBuckets)
+                throw new FormatException($"{name}: {k} output buckets; version {BucketVersion} has 1 to {MaxBuckets}.");
+            buckets = (int)k;
+            at += 4;
+        }
+        long expected = at + 2L * (Inputs * h + h + buckets * 2 * h) + 4L * buckets + HashBytes;
         if (bytes.Length != expected)
-            throw new FormatException($"{name}: {bytes.Length:N0} bytes; a hidden size of {h} makes {expected:N0}.");
+            throw new FormatException(version == Version
+                ? $"{name}: {bytes.Length:N0} bytes; a hidden size of {h} makes {expected:N0}."
+                : $"{name}: {bytes.Length:N0} bytes; a hidden size of {h} and {buckets} output buckets make {expected:N0}.");
         var body = bytes[..^HashBytes];
         byte[] hash = SHA256.HashData(body);
         if (!bytes[^HashBytes..].SequenceEqual(hash))
             throw new FormatException($"{name}: the SHA-256 at the end doesn't match the contents (damaged or cut).");
 
-        int at = HeaderBytes;
         short[] ReadShorts(ReadOnlySpan<byte> source, int count)
         {
             var values = new short[count];
@@ -252,10 +309,12 @@ public sealed class Network
         }
         var featureWeights = ReadShorts(bytes, Inputs * h);
         var featureBiases = ReadShorts(bytes, h);
-        var outputWeights = ReadShorts(bytes, 2 * h);
-        int outputBias = BinaryPrimitives.ReadInt32LittleEndian(bytes[at..]);
+        var outputWeights = ReadShorts(bytes, buckets * 2 * h);
+        var outputBiases = new int[buckets];
+        for (int b = 0; b < buckets; b++)
+            outputBiases[b] = BinaryPrimitives.ReadInt32LittleEndian(bytes[(at + 4 * b)..]);
 
-        var network = new Network(h, qa, qb, scale, featureWeights, featureBiases, outputWeights, outputBias,
+        var network = new Network((int)version, h, qa, qb, scale, featureWeights, featureBiases, outputWeights, outputBiases,
                                   Convert.ToHexString(hash).ToLowerInvariant());
         network.CheckRanges(name);
         return network;
@@ -357,14 +416,17 @@ public sealed class Network
 
     /// <summary>
     /// What the int16 arithmetic needs: an output weight times QA fits in 16 bits (the SIMD pass's
-    /// (v x w) step), and no accumulator can overflow on a real board (bias plus the 32 largest weights
-    /// of one sign, per hidden unit: the trainer's export makes the same check).
+    /// (v x w) step), every bucket's, and no accumulator can overflow on a real board (bias plus the 32 largest
+    /// weights of one sign, per hidden unit: the trainer's export makes the same check).
     /// </summary>
     private void CheckRanges(string name)
     {
-        foreach (short w in OutputWeights)
-            if (Math.Abs(w) * QA > short.MaxValue)
-                throw new FormatException($"{name}: output weight {w} times QA {QA} doesn't fit in 16 bits.");
+        var weights = OutputWeights;
+        for (int i = 0; i < weights.Length; i++)
+            if (Math.Abs(weights[i]) * QA > short.MaxValue)
+                throw new FormatException(FileVersion == BucketVersion
+                    ? $"{name}: bucket {i / (2 * Hidden)}'s output weight {weights[i]} times QA {QA} doesn't fit in 16 bits."
+                    : $"{name}: output weight {weights[i]} times QA {QA} doesn't fit in 16 bits.");
         CheckFeatureRanges(name);
     }
 
@@ -394,20 +456,26 @@ public sealed class Network
     {
         if (Layers.Length > 0)
             return ToBytesDeep();
-        int h = Hidden;
-        var bytes = new byte[HeaderBytes + 2 * (Inputs * h + h + 2 * h) + 4 + HashBytes];
+        int h = Hidden, k = Buckets, at = FileVersion == BucketVersion ? HeaderBytes + 4 : HeaderBytes;
+        var bytes = new byte[at + 2 * (Inputs * h + h + k * 2 * h) + 4 * k + HashBytes];
         var span = bytes.AsSpan();
         Magic.CopyTo(span);
-        BinaryPrimitives.WriteUInt32LittleEndian(span[8..], Version);
+        BinaryPrimitives.WriteUInt32LittleEndian(span[8..], (uint)FileVersion);
         BinaryPrimitives.WriteUInt32LittleEndian(span[12..], Inputs);
         BinaryPrimitives.WriteUInt32LittleEndian(span[16..], (uint)h);
         BinaryPrimitives.WriteInt32LittleEndian(span[20..], QA);
         BinaryPrimitives.WriteInt32LittleEndian(span[24..], QB);
         BinaryPrimitives.WriteInt32LittleEndian(span[28..], Scale);
-        int at = Write(span, HeaderBytes, FeatureWeights);
+        if (FileVersion == BucketVersion)
+            BinaryPrimitives.WriteUInt32LittleEndian(span[HeaderBytes..], (uint)k);
+        at = Write(span, at, FeatureWeights);
         at = Write(span, at, FeatureBiases);
         at = Write(span, at, OutputWeights);
-        BinaryPrimitives.WriteInt32LittleEndian(span[at..], OutputBias);
+        foreach (int bias in OutputBiases)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(span[at..], bias);
+            at += 4;
+        }
         SHA256.HashData(span[..^HashBytes], span[^HashBytes..]);
         return bytes;
 
@@ -477,8 +545,33 @@ public sealed class Network
         var outputWeights = new short[2 * hidden];
         for (int i = 0; i < outputWeights.Length; i++)
             outputWeights[i] = (short)rng.Next(-outputRange, outputRange + 1);
-        var draft = new Network(hidden, 255, 64, 400, featureWeights, featureBiases, outputWeights, 0, "");
+        var draft = new Network(Version, hidden, 255, 64, 400, featureWeights, featureBiases, outputWeights, [0], "");
         return Read(draft.ToBytes(), $"random net {hidden}/{seed}");   // the same checks as a file, and its checksum
+    }
+
+    /// <summary>
+    /// A random version 3 net: <see cref="Random"/>'s numbers with <paramref name="buckets"/> output rows, each its own
+    /// weights in +-<paramref name="outputRange"/> and its own bias in +-<paramref name="biasRange"/> (so every bucket
+    /// scores a board its own way). The same seed gives the same net.
+    /// </summary>
+    public static Network RandomBuckets(int hidden, int buckets, int seed, int featureRange = 64, int outputRange = 127,
+                                        int biasRange = 8_000)
+    {
+        var rng = new Random(seed);
+        var featureWeights = new short[Inputs * hidden];
+        for (int i = 0; i < featureWeights.Length; i++)
+            featureWeights[i] = (short)rng.Next(-featureRange, featureRange + 1);
+        var featureBiases = new short[hidden];
+        for (int i = 0; i < hidden; i++)
+            featureBiases[i] = (short)rng.Next(0, 2 * featureRange);
+        var outputWeights = new short[buckets * 2 * hidden];
+        for (int i = 0; i < outputWeights.Length; i++)
+            outputWeights[i] = (short)rng.Next(-outputRange, outputRange + 1);
+        var outputBiases = new int[buckets];
+        for (int b = 0; b < buckets; b++)
+            outputBiases[b] = rng.Next(-biasRange, biasRange + 1);
+        var draft = new Network(BucketVersion, hidden, 255, 64, 400, featureWeights, featureBiases, outputWeights, outputBiases, "");
+        return Read(draft.ToBytes(), $"random bucket net {hidden}/{buckets}/{seed}");
     }
 
     /// <summary>
@@ -541,7 +634,7 @@ public sealed class Network
             }
         var featureBiases = Enumerable.Repeat((short)bias, hidden).ToArray();
         var outputWeights = Enumerable.Range(0, 2 * hidden).Select(i => (short)(i < hidden ? 1 : -1)).ToArray();
-        var draft = new Network(hidden, qa, Math.Max(1, qb), scale, featureWeights, featureBiases, outputWeights, 0, "");
+        var draft = new Network(Version, hidden, qa, Math.Max(1, qb), scale, featureWeights, featureBiases, outputWeights, [0], "");
         return Read(draft.ToBytes(), $"piece-square net {hidden}");
     }
 
@@ -591,20 +684,28 @@ public sealed class Network
         var white = new short[Hidden];
         var black = new short[Hidden];
         Refresh(position, white, black);
-        return position.SideToMove == Colour.White ? Forward(white, black) : Forward(black, white);
+        int bucket = Bucket(BitOperations.PopCount(position.Occupied));
+        return position.SideToMove == Colour.White ? Forward(white, black, bucket) : Forward(black, white, bucket);
     }
 
     // ---- the forward pass ----
 
-    /// <summary>The score for the side to move from its accumulator and the other side's, at <see cref="Kernels.Width"/>.</summary>
+    /// <summary>
+    /// The score for the side to move from its accumulator and the other side's, at <see cref="Kernels.Width"/>, with output
+    /// bucket <paramref name="bucket"/> (<see cref="Bucket"/>; version 2 has none).
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal int Forward(ReadOnlySpan<short> us, ReadOnlySpan<short> them) => Layers.Length != 0
-        ? ForwardDeep(Kernels.Width, us, them)
-        : Kernels.Width switch
+    internal int Forward(ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket) => Forward(Kernels.Width, us, them, bucket);
+
+    /// <summary>The same at <paramref name="width"/> bits (0: one number at a time), for the tests to reach every width's way in.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal int Forward(int width, ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket) => Layers.Length != 0
+        ? ForwardDeep(width, us, them)
+        : width switch
         {
-            512 => Forward512(us, them),
-            256 => Forward256(us, them),
-            _ => ForwardScalar(us, them),
+            512 => Forward512(us, them, bucket),
+            256 => Forward256(us, them, bucket),
+            _ => ForwardScalar(us, them, bucket),
         };
 
     // ---- version 2's pass ----
@@ -1020,13 +1121,13 @@ public sealed class Network
     /// A lane collects H / 8 products of at most 255 x 32,767 = 8,355,585, so it can't overflow for H up to
     /// 2048: 256 of them are 2,138,909,760, under 2^31 (2,056 is the last H that fits).
     /// </summary>
-    internal int Forward256(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
+    internal int Forward256(ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket)
     {
         CheckAccumulators(us, them);
-        ref short ow = ref MemoryMarshal.GetReference(OutputWeights);
+        ref short ow = ref MemoryMarshal.GetReference(BucketWeights(bucket));
         long sum = Half256(ref MemoryMarshal.GetReference(us), ref ow, 0)
                  + Half256(ref MemoryMarshal.GetReference(them), ref Unsafe.Add(ref ow, Hidden), 0);
-        return Finish(sum);
+        return Finish(sum, bucket);
     }
 
     /// <summary>
@@ -1034,13 +1135,13 @@ public sealed class Network
     /// the last 16 as <see cref="Forward256"/> does when H isn't a multiple of 32. A lane collects H / 16
     /// products, so it can't overflow for H up to 4096.
     /// </summary>
-    internal int Forward512(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
+    internal int Forward512(ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket)
     {
         CheckAccumulators(us, them);
-        ref short ow = ref MemoryMarshal.GetReference(OutputWeights);
+        ref short ow = ref MemoryMarshal.GetReference(BucketWeights(bucket));
         long sum = Half512(ref MemoryMarshal.GetReference(us), ref ow)
                  + Half512(ref MemoryMarshal.GetReference(them), ref Unsafe.Add(ref ow, Hidden));
-        return Finish(sum);
+        return Finish(sum, bucket);
     }
 
     private void CheckAccumulators(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
@@ -1085,10 +1186,10 @@ public sealed class Network
         return i < Hidden ? sum + Half256(ref accumulator, ref weights, i) : sum;
     }
 
-    /// <summary>The forward pass one number at a time, in 64 bits: the reference the SIMD passes must equal.</summary>
-    internal int ForwardScalar(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
+    /// <summary>The forward pass one number at a time, in 64 bits, with bucket <paramref name="bucket"/>'s row: the reference the SIMD passes must equal.</summary>
+    internal int ForwardScalar(ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket)
     {
-        var weights = OutputWeights;
+        var weights = BucketWeights(bucket);
         long sum = 0;
         for (int i = 0; i < Hidden; i++)
         {
@@ -1097,13 +1198,13 @@ public sealed class Network
             long u = Math.Clamp((int)them[i], 0, QA);
             sum += u * u * weights[Hidden + i];
         }
-        return Finish(sum);
+        return Finish(sum, bucket);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int Finish(long sum)
+    private int Finish(long sum, int bucket)
     {
-        long score = (sum / QA + OutputBias) * Scale / ((long)QA * QB);
+        long score = (sum / QA + OutputBiases[bucket]) * Scale / ((long)QA * QB);
         return (int)Math.Clamp(score, -MaxScore, MaxScore);
     }
 }

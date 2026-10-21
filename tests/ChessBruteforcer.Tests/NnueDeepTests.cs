@@ -303,7 +303,7 @@ public class NnueDeepTests
         Func<int, int, int, short> zero = (_, _, _) => 0;
         Func<int, int, int> none = (_, _) => 0;
         FormatException Refused(byte[] bytes) => Assert.Throws<FormatException>(() => Network.Read(bytes));
-        Assert.Contains("version", Refused(CraftDeep(16, [8], zero, none, [64, 64], version: 3)).Message);
+        Assert.Contains("version", Refused(CraftDeep(16, [8], zero, none, [64, 64], version: 4)).Message);   // (3 is the bucketed nets')
         Assert.Contains("inputs", Refused(CraftDeep(16, [8], zero, none, [64, 64], inputs: 640)).Message);
         Assert.Contains("hidden size", Refused(CraftDeep(24, [8], zero, none, [64, 64])).Message);
         Assert.Contains("QA", Refused(CraftDeep(16, [8], zero, none, [64, 64], qa: 256)).Message);
