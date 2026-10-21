@@ -68,8 +68,11 @@ public class PonderTests
         }
     }
 
-    /// <summary>What an "info depth" line says.</summary>
-    private sealed record Info(int Depth, string Score, long Nodes, long TimeMs, string Pv)
+    /// <summary>
+    /// What an "info depth" line says.  <paramref name="Partial"/>: a depth cut off, sent because it proved a
+    /// better move, which is played (its score a lower bound; P4, CutDepthTests).
+    /// </summary>
+    private sealed record Info(int Depth, string Score, long Nodes, long TimeMs, string Pv, bool Partial = false)
     {
         public static Info Parse(string line)
         {
@@ -77,8 +80,21 @@ public class PonderTests
             string After(string word) => words[Array.IndexOf(words, word) + 1];
             int score = Array.IndexOf(words, "score");
             return new Info(int.Parse(After("depth")), $"{words[score + 1]} {words[score + 2]}", long.Parse(After("nodes")),
-                            long.Parse(After("time")), line[(line.IndexOf(" pv ") + 4)..]);
+                            long.Parse(After("time")), line[(line.IndexOf(" pv ") + 4)..], words[score + 3] == "lowerbound");
         }
+
+        public string Move => Pv.Split(' ')[0];
+    }
+
+    /// <summary>
+    /// A hit stopped a depth that had proved a better move (P4): instead of the last line sent again, that depth's
+    /// line comes after the hit, and its move is played.
+    /// </summary>
+    private static void AssertCutDepthAnswered(Info last, Info line, string best)
+    {
+        Assert.True(line.Partial);
+        Assert.Equal(last.Depth + 1, line.Depth);
+        Assert.Equal(line.Move, best.Split(' ')[1]);
     }
 
     /// <summary>No depth was reported twice: nothing was sent again after the search's own lines.</summary>
@@ -245,12 +261,19 @@ public class PonderTests
             Thread.Sleep(HardLimitMs + 300);   // past the whole budget, so the hit answers at once, with no new depth
             var clock = Stopwatch.StartNew();
             engine.Handle("ponderhit");
-            Assert.NotNull(output.WaitForBestMove(round, 5000));
+            string? best = output.WaitForBestMove(round, 5000);
+            Assert.NotNull(best);
             Assert.InRange(clock.ElapsedMilliseconds, 0, 200);
 
             var infos = output.InfosBefore(round);
             Assert.True(infos.Length >= 2, $"{infos.Length} info lines");
             var (pondered, sentAgain) = (infos[^2], infos[^1]);
+            if (sentAgain.Partial)   // (the depth dropped had proved a better move, so its line is the hit's: P4)
+            {
+                AssertCutDepthAnswered(pondered, sentAgain, best!);
+                AssertNoRepeat(infos);
+                continue;
+            }
             Assert.Equal(pondered.Depth, sentAgain.Depth);
             Assert.Equal(pondered.Score, sentAgain.Score);
             Assert.Equal(pondered.Pv, sentAgain.Pv);
@@ -514,7 +537,12 @@ public class PonderTests
             var lastBefore = before[^1];
             log.Add($"{Lines()}, hit at {hitMs} after {before.Length}");
             var line = Assert.Single(after);   // one depth at most, and the line sent again (P1) only if none
-            if (line.Depth == lastBefore.Depth + 1)
+            if (line.Partial)
+            {
+                // Stopped by the hit + S, but the depth had proved a better move: its line, and its move played (P4).
+                AssertCutDepthAnswered(lastBefore, line, best!);
+            }
+            else if (line.Depth == lastBefore.Depth + 1)
             {
                 // It finished within S of the hit, and it's the move played.
                 finished++;
@@ -600,10 +628,14 @@ public class PonderTests
         var before = output.InfosBefore(1);
         var clock = Stopwatch.StartNew();
         engine.Handle("ponderhit");
-        Assert.NotNull(output.WaitForBestMove(1, 5000));
+        string? best = output.WaitForBestMove(1, 5000);
+        Assert.NotNull(best);
         Assert.InRange(clock.ElapsedMilliseconds, 0, 200);   // at once, as before P2
         var line = Assert.Single(output.InfosBefore(1)[before.Length..]);   // no new depth: the last line sent again
-        Assert.Equal((before[^1].Depth, before[^1].Pv), (line.Depth, line.Pv));
+        if (line.Partial)   // (or, if the depth dropped had proved a better move, its line: P4)
+            AssertCutDepthAnswered(before[^1], line, best!);
+        else
+            Assert.Equal((before[^1].Depth, before[^1].Pv), (line.Depth, line.Pv));
     }
 
     [Fact]
@@ -626,5 +658,141 @@ public class PonderTests
         Assert.Equal(Play(false, ponderCap: false), on);
         Assert.Equal(Play(true, ponderCap: false), on);
         Assert.Equal(Play(false), on);
+    }
+
+    // P3: when the GUI may ponder (UCI's Ponder option), every move plans PonderTimeBonus percent more (Stockfish's
+    // quarter): hits answer before the planned time is up, and this spends the clock they save.  The hard limit
+    // stays where it was.  The option is 0 by default: 25 didn't win games at 10+0.1 (PONDER.md, "P3").
+
+    [Theory]
+    // our clock, increment, Move Overhead -> planned and hard limit with no bonus; planned with 25%
+    [InlineData(3000, 0, 50, 98, 294, 122)]           // 2,950 / 30 = 98; three times that
+    [InlineData(10000, 100, 50, 406, 1218, 507)]      // 10+0.1: 331 + 75
+    [InlineData(180000, 2000, 100, 7496, 22488, 9370)] // the bot's 3+2: 5,996 + 1,500
+    [InlineData(100, 1000, 50, 30, 30, 30)]           // 50 ms left: the hard limit (50 - 20) caps the planned time, bonus or not
+    public void TheTimeBudgetPlansAQuarterMoreWhenPondering(int clockMs, int incrementMs, int overheadMs,
+                                                            long soft, long hard, long ponderSoft)
+    {
+        var root = Position.FromFen(MoveGeneratorTests.Kiwipete);   // White to move
+        var limits = new SearchLimits { WhiteTimeMs = clockMs, WhiteIncrementMs = incrementMs, MoveOverheadMs = overheadMs };
+        Assert.Equal((soft, hard), Search.TimeBudget(root, limits));
+        Assert.Equal((soft, hard), Search.TimeBudget(root, limits with { PonderTimeBonusPercent = 0 }));
+        Assert.Equal((ponderSoft, hard), Search.TimeBudget(root, limits with { PonderTimeBonusPercent = 25 }));
+        Assert.Equal((Math.Min(2 * soft, hard), hard), Search.TimeBudget(root, limits with { PonderTimeBonusPercent = 100 }));
+    }
+
+    [Fact]
+    public void ThePonderTimeBonusLeavesMovetimeAndMovesToGoAlone()
+    {
+        var root = Position.FromFen(MoveGeneratorTests.Kiwipete);
+        var moveTime = new SearchLimits { MoveTimeMs = 1000 };
+        Assert.Equal((0L, 975L), Search.TimeBudget(root, moveTime with { PonderTimeBonusPercent = 25 }));
+        Assert.Equal((0L, 0L), Search.TimeBudget(root, new SearchLimits { Infinite = true, PonderTimeBonusPercent = 25 }));
+        // 10 moves in 60 s: 5,995 planned (59,950 / 10), 17,985 at most; a quarter more is 7,493.
+        var control = new SearchLimits { WhiteTimeMs = 60000, MovesToGo = 10 };
+        Assert.Equal((5995L, 17985L), Search.TimeBudget(root, control));
+        Assert.Equal((7493L, 17985L), Search.TimeBudget(root, control with { PonderTimeBonusPercent = 25 }));
+    }
+
+    [Fact]
+    public void WithPonderOnEveryMovePlansTheBonus()
+    {
+        var (engine, output) = Start();
+        (long, long) Planned(string go)
+        {
+            engine.Handle(go);
+            var budget = engine.Search.PlannedBudget;
+            engine.Handle("stop");
+            return budget;
+        }
+
+        Assert.Equal((98L, 294L), Planned($"go ponder {Clock}"));   // Ponder off, as a GUI that never ponders leaves it
+        engine.Handle("setoption name Ponder value true");
+        Assert.Equal((98L, 294L), Planned($"go ponder {Clock}"));    // no bonus by default
+        engine.Handle("setoption name PonderTimeBonus value 25");
+        Assert.Equal((122L, 294L), Planned($"go ponder {Clock}"));   // a quarter more
+        Assert.Equal((122L, 294L), Planned($"go {Clock}"));          // and on our own time too, as after a miss
+        Assert.Equal((0L, 975L), Planned("go movetime 1000"));         // (a fixed time is a fixed time)
+        engine.Handle("setoption name PonderTimeBonus value 100");
+        Assert.Equal((196L, 294L), Planned($"go ponder {Clock}"));
+        engine.Handle("setoption name PonderTimeBonus value 0");
+        Assert.Equal((98L, 294L), Planned($"go {Clock}"));
+        engine.Handle("setoption name PonderTimeBonus value 25");
+        engine.Handle("setoption name Ponder value false");
+        Assert.Equal((98L, 294L), Planned($"go ponder {Clock}"));
+        Assert.DoesNotContain(output.Lines(), l => l.StartsWith("info string"));
+    }
+
+    [Fact]
+    public void UciOffersAPonderTimeBonusFrom0To100()
+    {
+        var (engine, output) = Start();
+        engine.Handle("uci");
+        Assert.Contains("option name PonderTimeBonus type spin default 0 min 0 max 100", output.Lines());
+        engine.Handle("setoption name Ponder value true");
+        // A minute on the clock: 1,998 ms planned (59,950 / 30), 5,994 at most, so 1% is 19 ms.
+        (long, long) Planned()
+        {
+            engine.Handle("go ponder wtime 60000 btime 60000");
+            var budget = engine.Search.PlannedBudget;
+            engine.Handle("stop");
+            return budget;
+        }
+
+        engine.Handle("setoption name PonderTimeBonus value 150");
+        Assert.Equal((3996L, 5994L), Planned());   // 100 at most
+        engine.Handle("setoption name PonderTimeBonus value -5");
+        Assert.Equal((1998L, 5994L), Planned());   // 0 at least
+        engine.Handle("setoption name PonderTimeBonus value 1");
+        Assert.Equal((2017L, 5994L), Planned());
+        engine.Handle("setoption name PonderTimeBonus value 50");
+        Assert.Equal((2997L, 5994L), Planned());
+        Assert.DoesNotContain(output.Lines(), l => l.StartsWith("info string"));
+
+        engine.Handle("setoption name Ponder value maybe");   // not a check box's value: an error, and Ponder stays on
+        Assert.Contains(output.Lines(), l => l.StartsWith("info string error"));
+        Assert.Equal((2997L, 5994L), Planned());
+        engine.Handle("setoption name Ponder value False");
+        Assert.Equal((1998L, 5994L), Planned());
+    }
+
+    [Theory]
+    [InlineData(1, "LazySMP")]
+    [InlineData(4, "LazySMP")]
+    [InlineData(4, "Ranges")]
+    public void WithPonderOnHitsStillAnswerWithinTheClock(int threads, string split)
+    {
+        var (engine, output) = Start(threads, split);
+        engine.Handle("setoption name Ponder value true");
+        engine.Handle("setoption name PonderTimeBonus value 25");
+        engine.Handle(Pondered);
+
+        // A hit at once: the clock decides, with 122 ms planned and still 294 at most.
+        engine.Handle($"go ponder {Clock}");
+        Assert.Equal((122L, (long)HardLimitMs), engine.Search.PlannedBudget);
+        var clock = Stopwatch.StartNew();
+        engine.Handle("ponderhit");
+        string? best = output.WaitForBestMove(1, 5000);
+        Assert.NotNull(best);
+        Assert.InRange(clock.ElapsedMilliseconds, 0, HardLimitMs + 300);
+        AssertLegal(engine.Position, best!);
+
+        // A hit after the whole budget: at once.
+        engine.Handle($"go ponder {Clock}");
+        Thread.Sleep(HardLimitMs + 300);
+        clock.Restart();
+        engine.Handle("ponderhit");
+        best = output.WaitForBestMove(2, 5000);
+        Assert.NotNull(best);
+        Assert.InRange(clock.ElapsedMilliseconds, 0, 200);
+        AssertLegal(engine.Position, best!);
+
+        // Our own time (after a miss): within the hard limit.
+        clock.Restart();
+        engine.Handle($"go {Clock}");
+        best = output.WaitForBestMove(3, 5000);
+        Assert.NotNull(best);
+        Assert.InRange(clock.ElapsedMilliseconds, 0, HardLimitMs + 300);
+        AssertLegal(engine.Position, best!);
     }
 }

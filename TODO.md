@@ -492,6 +492,39 @@ Sessions, in order:
 
 ### 2. The engine's strength
 
+- [x] **The repetition rule** (TURNS.md, "The false draw"; done 2026-10-22,
+      WORKLOG): `Search.IsRepetition` called a position seen once before
+      anywhere since the last capture or pawn move (the game before the
+      search too) a draw, so a losing bot "drew" by going back to a position
+      from a few moves ago, with a one-move line and no ponder move. Now
+      Stockfish's rule: a draw if the earlier time is inside the search, or
+      on the third time; and a position the game has had before gets no
+      table cutoff (its entry predates the repeat, and hid threefolds the
+      other side could make). Lab, the bot's own positions: where Stockfish
+      had us at -1.50 or worse, the old rule said 0.00 in 43 of 68, the new
+      one in none. Self-play A/B, 10+0.1, both pondering: the rule alone
+      -16 [-32, +1] (642 games); with the table fix +1 [-12, +13] over 1,245 games (2,000 by ~04:15), even. **On
+      by default, Matthew's call** ("I'd rather be right because error
+      compounds on pondering"); `RepetitionRule` Twofold brings the old rule
+      back (UCI, or bot/make-config.py's uci_options).
+- [ ] **Re-run TURNS on a week of the bot's games with the new rule**
+      (scripts/turning-points.py, which reads lichess-bot's DEBUG logs; they
+      keep 7 days): the false draws (7% of the lost points that week) should
+      be gone, and no "thrown-away lead by repetition" kind should appear in
+      its place. This is Matthew's (c) in "3. Findings for the thesis". The
+      bot has run the new rule since 2026-10-22 02:25 (c297601). From about
+      10-29: `--dir games/turns-week2` on every command (a folder of its own;
+      the first run stays in games/turns), `extract --since "2026-10-22
+      02:25"`, then search, stretches, curves, calibrate, table.
+- [ ] **A push to make progress** (from the repetition rule's matches,
+      2026-10-22): under the new rule a winning side may step back to an
+      earlier position, and nothing pushes it on. Its +3.00 leads converted
+      89% against the old rule's 91%, and 50-move draws doubled (3% to 6%
+      of games). Stockfish's answer: the evaluation shrinks as the 50-move
+      count rises (v x (200 - count) / 214 or so), so lines with a capture
+      or pawn move score better than shuffling. One change in
+      Evaluation.Evaluate (both the network and the hand-written numbers),
+      then an A/B match against the bot's engine. A session of its own.
 - [ ] **Two nets, switched by the clock** (Matthew's idea, 2026-10-21, "feel
       free to push back"): keep a smaller, faster net loaded beside the big
       one, and play on it when time runs short (to build some time up, then
@@ -680,7 +713,16 @@ Sessions, in order:
         **chosen, L(b)**: session 1 (sets and attack tables) built, +13.2%
         to +14.1% `bench 9`; session 2 (generation from the sets in today's
         order) built, +9.5% to +9.8% on top: +25% over 180fe25 in all.
-- [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
+- [x] **Where our losses turn**: done 2026-10-21 (P2.2, TURNS.md,
+      scripts/turning-points.py). The week of DEBUG logs (10-14 to 10-20): 225
+      games not won, 182 points lost. Our mistake (two plies deeper plays
+      another move) 5%, out-calculated 23%, misjudged 23%, outplayed slowly
+      20%, false draws from the repetition rule 7%, level draws 14%, other
+      10%. When our engine last thought we were OK, Stockfish agreed in only
+      24 of 167 games. With the networks and 8 threads, out-calculated fell
+      from 33% to 10% of the lost points (opponents' median 2030 to 2464).
+      SrwnQEj5 below came out out-calculated (move 23, -1.43 to -2.64).
+      The request as written (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by
       Stockfish). Then sort them: missed tactics (Stockfish sees the
@@ -787,11 +829,14 @@ Sessions, in order:
             on time, the bot's log free of ponder errors, the clock it banks.
       - [ ] A clean re-run (the harness lost one game to a script bug, since
             fixed), or longer (~400 games, ~1 h), once no index run is going.
-      - [ ] Spend the banked clock: the pondering side ended games with 4.8 s
+      - [x] Spend the banked clock: the pondering side ended games with 4.8 s
             of 10 left, the other 2.1. Stockfish plans 25% more time a move
             when Ponder is on; try that, measured the same way. (2026-10-21:
             on Lichess too, 3+2 games end with 41% of the clock left v 22%
-            before pondering; PONDER.md P3.)
+            before pondering; PONDER.md P3.) (Tried 2026-10-21 as P3: -0
+            [-10, +9] over 2,000 games at 10+0.1; off by default. Neither
+            P2's way of spending it, after hits, nor P3's, on every move,
+            won games.)
       - [ ] A Lichess-like hit rate: ponder on and off each against a third
             engine (Stockfish, as book-match.py does), not each other. (The
             bot's own rate on 2026-10-20: 56.5%, from its log.)
@@ -852,11 +897,38 @@ Sessions, in order:
                   ~6% for five moves running); and every later move has less
                   clock and a weaker net. Measure the halves apart too (the
                   minute alone, the small net alone), as P2's split was.
-            - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
-                  Search.TimeBudget and the Ponder option, ~1 h.
-            - [ ] P4: play an unfinished depth's better move instead of
+            - [x] P3: plan more time a move when pondering (Stockfish's +25%).
+                  Search.TimeBudget and the Ponder option, ~1 h. (Done
+                  2026-10-21 on claude/p3-ponder-time-254cad, on compression
+                  with P2, not merged yet. **Measured, and off: it doesn't win
+                  games.** At 10+0.1, both sides pondering, 25% against 0:
+                  -0 [-10, +9] over 2,000 games (SPRT undecided at the cap).
+                  25% more planned time came out as 8.5% more clock spent,
+                  mostly after hits; the bank went from 40% to 29%, no time
+                  losses. UCI option PonderTimeBonus (0-100), default 0, so
+                  merging changes nothing in the bot. PonderTests 65 → 75,
+                  19 mutations caught, suite 541 passed. The slower control
+                  was skipped, as for P2. Measure again after P4 and P6.
+                  PONDER.md, "P3".)
+            - [x] P4: play an unfinished depth's better move instead of
                   throwing it away (all searches, not only pondering).
-                  Search.IterativeDeepening, about half a day.
+                  Search.IterativeDeepening, about half a day. (Done
+                  2026-10-21 on claude/p4-partial-depth-081e28, on P3's
+                  branch, not merged yet. A cut depth that searched the
+                  last best to the end and then saw another move's full
+                  search end above it plays that move, its line sent with
+                  `lowerbound`; an unconfirmed fail-high never counts.
+                  Always on. **It almost never fires**: 1 changed move in
+                  1,044 lab searches of the bot's positions (163 cut
+                  depths), since most cuts come before the last best's own
+                  search has ended. Against P3 at 10+0.1, no pondering:
+                  +7 [-3, +17] over 2,000 games (SPRT undecided at the
+                  cap), so no loss and likely no gain; P2's A/B not run
+                  again. Uncut searches node for node as before (60
+                  positions, depth 11). CutDepthTests 17, 31 of 32
+                  mutations caught, suite 558 passed. **Decision P4,
+                  Matthew's**: (a) merge as it is (my pick), (b) behind an
+                  option, off, (c) leave it. PONDER.md, "P4".)
             - [ ] P5: keep the history table between moves (halve it, not
                   clear it). Search.Prepare, ~30 min, a bench first.
             - [ ] P6: a table that keeps its deep entries (buckets of 2-4
@@ -885,7 +957,13 @@ Sessions, in order:
       UBIA6Hdc (2026-10-18, WORKLOG) it said +2.4 for an ending Stockfish
       called +0.25 and drew a game it had been winning. Check our losses and
       draws for the same shape (the bot's eval v Stockfish's, by material),
-      before any training change.
+      before any training change. 2026-10-21 (TURNS.md): UBIA6Hdc comes out
+      "misjudged, a slide" (+2.39 down to +0.07 over 16 moves, Stockfish at
+      +0.2 or less throughout). The shape recurs: bhJE4lVW (+2.02 for 11
+      moves, 6 pieces) and kq9Vc4JD (+1.44 for 11 moves, 7 pieces), both
+      0.00 for Stockfish. Misjudged is 23% of the lost points. Still to do:
+      the by-material split. games/turns/curves.jsonl has ours v Stockfish's
+      for 7,035 positions of those games.
 - [ ] **Later, should the other levers run out: the piece-pair options**
       (Matthew, 2026-10-21: b and c on the long-term list, "the closer we fit
       to real life"; [scripts/piece-pairs-2026-09.md](scripts/piece-pairs-2026-09.md)).
@@ -904,6 +982,22 @@ Sessions, in order:
 
 ### 3. Findings for the thesis
 
+- [x] Where the bot's lost and drawn games turned, and whose fault it was
+      (TURNS.md, 2026-10-21): our mistakes 5% of the lost points, out-calculated
+      23%, misjudged 23%, outplayed slowly 20%, false draws (the repetition
+      rule) 7%. Our score usually falls well after the game was lost: at our
+      last "OK", Stockfish agreed in 24 of 167 games.
+- [ ] Re-run the turning points, when the CPU is free (Matthew, 2026-10-21;
+      the first run had 2 threads on one core beside P3's match):
+      (b) `turning-points.py deep`: the 53 misjudged games, our engine 4
+      plies past the bot's depth. Is "no reasonable depth fixes it" true?
+      `table` then adds its own table. Overnight, with nothing else
+      running: ~50 core-hours (three workers of 4 threads, CPUs 2-13, the
+      second and third with `--reverse`; TURNS.md "Next runs").
+      (c) a fresh week with the repetition fix in the bot (since 2026-10-22
+      02:25; "Re-run TURNS" in section 2 has the commands). Did the fix
+      change how we lose? lichess-bot keeps 7 days of DEBUG logs.
+      Not (a), a plain re-run: only 5 turns lacked full depth.
 - [ ] New examples for "Endgames Thrown Away" from the month
       (scripts/takeover-moves-2026-09-month.txt; ratings of exactly 3000 are
       likely bots at their provisional start), if Matthew wants them.
