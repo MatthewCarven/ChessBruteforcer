@@ -74,7 +74,11 @@ public sealed class SearchPlayer : IPlayer
 
     public string Name { get; }
 
-    public void NewGame() => _table.Clear();
+    public void NewGame()
+    {
+        _table.Clear();
+        _search.ClearHistory();
+    }
 
     public string? ChooseMove(MoveRequest request, TimeSpan timeout)
     {

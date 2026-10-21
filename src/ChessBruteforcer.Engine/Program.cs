@@ -181,7 +181,8 @@ static class SelfPlay
 /// to a fixed depth by every arm ("1": one thread, "L4": Lazy SMP on 4, "R4":
 /// Ranges on 4), all the arms one after another within a position, so that a
 /// change in the machine's speed falls on them alike, and in reverse order
-/// on alternate rounds.  The table is cleared before each search.  One line
+/// on alternate rounds.  The table and the move-ordering history are cleared
+/// before each search, so every search starts from nothing.  One line
 /// a search, then a table of each arm against "1".  Runs at below-normal
 /// priority, so that a game the bot is playing comes first.
 ///
@@ -272,6 +273,7 @@ static class BenchThreads
         foreach (var arm in arms)
         {
             table.Clear();
+            search.ClearHistory();
             search.Threads = arm.Threads;
             search.Split = arm.Split;
             search.Run(Position.FromFen(fens[0]), new SearchLimits { Depth = Math.Max(1, depth - 2) });
@@ -283,6 +285,7 @@ static class BenchThreads
             foreach (string fen in fens)
             {
                 table.Clear();
+                search.ClearHistory();
                 tablebase.ClearBlockCaches();
                 search.Run(Position.FromFen(fen), new SearchLimits { Depth = depth });
             }
@@ -302,6 +305,7 @@ static class BenchThreads
                 foreach (var arm in order)
                 {
                     table.Clear();
+                    search.ClearHistory();
                     tablebase?.ClearBlockCaches();
                     var before = tablebase?.BlockCacheCounts() ?? default;
                     search.Threads = arm.Threads;
