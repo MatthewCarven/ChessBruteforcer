@@ -45,10 +45,9 @@ engine["uci_options"] = {
 # Stockfish's verdicts on Lichess's analysed games (2026-10-14: +208 Elo [+130, +311] over the built-in ones, 69
 # games at 10+0.1, SPRT decided). Delete h1024-3m.nnue to go back to h512-3m, h512-3m.nnue as well for nnue1-h512,
 # nnue1-h512.nnue as well for nnue1, nnue1.nnue as well for sf1, and eval-sf1.txt as well for the built-in numbers.
-# Ahead of them for a game or two (Matthew, 2026-10-22, before its match): h1024-3m-l16-32, the newest deep net
-# (768 -> 1024 x2 -> 16 -> 32 -> 1, .nnue version 2; NNUE.md session 6): held back -6.8% against h1024-3m, but
-# -44% knps in bench 9 and ~1.7x the time to depth 9. Delete bot\eval\h1024-3m-l16-32.nnue to go back to h1024-3m.
-for name in ("h1024-3m-l16-32.nnue", "h1024-3m.nnue", "h512-3m.nnue", "nnue1-h512.nnue", "nnue1.nnue", "eval-sf1.txt"):
+# (The deep nets lost to h1024-3m at 10+0.1, 2026-10-22: h1024-3m-l32 -85 Elo, h1024-3m-l16-32 about -55, both
+# at about half its speed; MATCHES.md. The bot played h1024-3m-l16-32 for a game or two before that, then went back.)
+for name in ("h1024-3m.nnue", "h512-3m.nnue", "nnue1-h512.nnue", "nnue1.nnue", "eval-sf1.txt"):
     evaluation = os.path.join(here, "eval", name)
     if os.path.exists(evaluation):
         engine["uci_options"]["EvalFile"] = evaluation
