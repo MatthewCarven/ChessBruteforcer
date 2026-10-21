@@ -780,11 +780,26 @@ Sessions, in order:
       against Lichess bots ~8; if that dilutes it, give Stockfish the book
       too, or a full-strength Stockfish at a short movetime. The bot's own
       rated games: 34% in 19 before the book, 46% in 42 with it (+-10 each).
-- [ ] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
+- [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it
       vetoed. It covers our first 12 moves only; middlegame losses don't
-      teach it anything.
+      teach it anything. **Measured 2026-10-22** (WORKLOG, the learner's
+      evaluation): 1,656 positions, 4 of them wide-book vetoes; **ours.bin
+      played 3 moves in 617 games**, all in one game. Learnt positions
+      rarely come back (P8, OPPONENTS.md section 4).
+      - [ ] **Matthew's call: which evaluation the learner thinks with**
+            (it uses eval-sf1.txt; the bot has played h1024-3m since 10-20).
+            (a) leave it; (b) the bot's net from now on (learn.py takes the
+            first evaluation present in make-config.py's list); (c) (b), and
+            re-learn the existing entries where the net disagrees by more
+            than X cp; (d) stop the learner until a replay (P8's O3 (a))
+            brings positions back. My pick (b).
+      - [ ] The re-score, waiting for a CPU slot (asked the "ponder hit
+            keeps the tree" session's queue, 2026-10-22): 200 positions at
+            depth 14, h1024-3m and sf1, scripts/learner/rescore.py (the
+            command is in the WORKLOG entry). It sizes (c): how many entries
+            the net disagrees with, and by how much.
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
