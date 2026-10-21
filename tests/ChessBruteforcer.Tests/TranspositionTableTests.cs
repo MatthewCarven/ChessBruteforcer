@@ -195,16 +195,18 @@ public class TranspositionTableTests
         Assert.Equal(3, DepthOf(table, used));
     }
 
-    [Fact]
-    public void ThePositionAlreadyThereIsUpdatedInPlace()
+    [Theory]
+    [InlineData(0)]   // the bucket's first slot
+    [InlineData(2)]   // a slot past one it would otherwise replace
+    public void ThePositionAlreadyThereIsUpdatedInPlace(int slot)
     {
         var table = Small();
         var keys = Enumerable.Range(0, 4).Select(which => Key(19, which)).ToList();
         keys.ForEach(key => Put(table, key, 5));
-        table.Store(keys[0], default, 70, 7, Bound.Lower);
-        Assert.True(table.TryGet(keys[0], out var entry));
+        table.Store(keys[slot], default, 70, 7, Bound.Lower);
+        Assert.True(table.TryGet(keys[slot], out var entry));
         Assert.Equal((7, Bound.Lower, new Move(12, 28)), (entry.Depth, entry.Bound, entry.Move));
-        Assert.All(keys.Skip(1), key => Assert.Equal(5, DepthOf(table, key)));
+        Assert.All(keys.Where((_, i) => i != slot), key => Assert.Equal(5, DepthOf(table, key)));
     }
 
     [Fact]

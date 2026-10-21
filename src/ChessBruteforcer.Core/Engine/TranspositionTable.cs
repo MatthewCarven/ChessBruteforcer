@@ -90,7 +90,7 @@ public sealed class TranspositionTable
     internal int Generation => _generation;
 
     /// <summary>Where bucket 0 is in memory (for tests: on a cache line).</summary>
-    internal long FirstBucketAddress => (long)Marshal.UnsafeAddrOfPinnedArrayElement(_words, _first);
+    internal long FirstBucketAddress => (long)Marshal.UnsafeAddrOfPinnedArrayElement(_words, BucketStart(0));
 
     public bool TryGet(ulong key, out TableEntry entry)
     {
@@ -185,12 +185,11 @@ public sealed class TranspositionTable
         // a given Hash kept the slots, and so the one-thread search, it had before the table went lockless.
         // Buckets and ages change that search anyway, so Hash now means what it says: Hash 256 is 1.5x the slots.)
         long bytes = Math.Max(1, megabytes) * 1024L * 1024L;
-        long buckets = Math.Max(256, bytes / 64);
+        long buckets = bytes / 64;
         var words = GC.AllocateArray<ulong>((int)(buckets * WordsPerBucket + 7), pinned: true);
         long address = (long)Marshal.UnsafeAddrOfPinnedArrayElement(words, 0);
         _first = (int)(-address & 63) / 8;
         _buckets = (ulong)buckets;
         _words = words;
-        _generation = 0;
     }
 }
