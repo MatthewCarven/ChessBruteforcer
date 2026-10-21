@@ -942,6 +942,18 @@ Sessions, in order:
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's
                   entries. TranspositionTable, about half a day.
+            - [ ] (Turned up by P4, not part of decision M; Matthew's call
+                  whether.) **Lazy SMP: answer from the thread that got
+                  deepest** (Stockfish's best-thread choice, "thread
+                  voting"). On the bot's 8 threads half the helpers run a
+                  depth ahead and often finish a depth the main thread
+                  hasn't; today only the main thread's last finished depth
+                  answers, and P4 can't use the helpers' work. Measure
+                  first (how often a helper is deeper at the answer, and
+                  with another move), then build and match on 4-8 threads
+                  a side (scripts/build-match.py). PONDER.md, "P4", the
+                  last paragraph. (A proposal card was left in the P4
+                  session, task_f3349d40, with a full brief.)
             - [x] An A/B mode for scripts/ponder-match.py (both sides
                   ponder, the arms differ by a UCI option), which P2-P4 need.
                   (With P2: `--arms "PonderFinish=true;PonderFinish=false"`,
