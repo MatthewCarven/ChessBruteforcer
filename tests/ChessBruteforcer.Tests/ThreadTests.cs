@@ -59,7 +59,7 @@ public class ThreadTests
         static ulong KeyAt(int bucket, int which) => (ulong)bucket << 50 | (ulong)(which + 1) * 7919;
 
         long hits = 0, mixed = 0;
-        using var stop = new CancellationTokenSource(TimeSpan.FromMilliseconds(400));
+        using var stop = new CancellationTokenSource();
         var threads = Enumerable.Range(0, 8).Select(t => new Thread(() =>
         {
             var rng = new Random(t);
@@ -82,9 +82,16 @@ public class ThreadTests
                 }
             }
         })).ToList();
+        // At least 400 ms and 10,000 hits, so that a machine busy with other work (a match, the rest of the suite)
+        // stretches the test rather than failing it (once, beside other runs: "only 0 hits" at a flat 400 ms); 30 s at most.
+        long started = Environment.TickCount64;
         threads.ForEach(t => t.Start());
+        long Elapsed() => Environment.TickCount64 - started;
+        while (Elapsed() < 30_000 && (Elapsed() < 400 || Interlocked.Read(ref hits) < 10_000))
+            Thread.Sleep(5);
+        stop.Cancel();
         threads.ForEach(t => t.Join());
-        Assert.True(hits > 1000, $"only {hits} hits");
+        Assert.True(hits >= 10_000, $"only {hits} hits in {Elapsed()} ms");
         Assert.Equal(0, mixed);
     }
 

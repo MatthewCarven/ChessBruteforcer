@@ -94,7 +94,8 @@ def main():
             if line.strip():
                 r = json.loads(line)
                 traced[r["n"]] = r["K"]
-    e = Low(EXE, {"Hash": 256, "Threads": 1, "Move Overhead": 100, "EvalFile": NET})
+    # (PONDER_SCOPE_HASH: P6 sizes Hash in megabytes, where 256 had been 11.2 M slots; 171 is that again)
+    e = Low(EXE, {"Hash": int(os.environ.get("PONDER_SCOPE_HASH") or 256), "Threads": 1, "Move Overhead": 100, "EvalFile": NET})
     # JIT warm-up on a position of no interest
     fresh(e)
     search(e, "position startpos moves e2e4 e7e5 g1f3 b8c6 f1b5 a7a6", "go depth 13")
