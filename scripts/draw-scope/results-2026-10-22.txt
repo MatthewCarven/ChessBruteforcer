@@ -1,0 +1,242 @@
+Draw-offer scoping, 2026-10-22: the outputs DRAWS.md quotes. Data: bot/games (617 records, 2026-10-12 to 10-21 UTC) and bot/logs.
+
+== analyze.py data.json (band 15 cp)
+finished games 596 (of 617); band +-15 cp; every opponent a BOT: True
+
+### Games with N of our moves in a row within +-0.15 (of 596 finished)
+| N | games | <=5 pieces (tables) | 6-10 | 11-20 | 21-32 |
+|---|---|---|---|---|---|
+| 10 | 72 (12%) | 17 | 21 | 12 | 22 |
+| 20 | 25 (4%) | 11 | 8 | 5 | 1 |
+| 30 | 19 (3%) | 11 | 3 | 5 | 0 |
+
+### N = 10: outcome by rating difference (opponent - us)
+| group | games | W / D / L | score | expected | rating pts as played | pts if drawn at trigger | change |
+|---|---|---|---|---|---|---|---|
+| a. opp 150+ weaker | 19 | 6 / 10 / 3 | 58% | 79% | -315 | -277 | +38 |
+| b. opp 50-150 weaker | 10 | 6 / 3 / 1 | 75% | 62% | +45 | -23 | -68 |
+| c. within 50 | 12 | 0 / 8 / 4 | 33% | 49% | -126 | -5 | +121 |
+| d. opp 50-150 stronger | 11 | 1 / 9 / 1 | 50% | 35% | +15 | +24 | +9 |
+| e. opp 150+ stronger | 20 | 1 / 15 / 4 | 42% | 20% | +88 | +149 | +61 |
+| all | 72 | 14 / 45 / 13 | 51% | 48% | -294 | -132 | +161 |
+
+### N = 10: outcome by pieces at the trigger
+| group | games | W / D / L | score | expected | rating pts as played | pts if drawn at trigger | change |
+|---|---|---|---|---|---|---|---|
+| a. <=5 (tables) | 17 | 0 / 17 / 0 | 50% | 38% | +78 | +78 | +0 |
+| b. 6-10 | 21 | 3 / 17 / 1 | 55% | 49% | -84 | -25 | +59 |
+| c. 11-20 | 12 | 1 / 8 / 3 | 42% | 41% | -103 | -73 | +30 |
+| d. 21-32 | 22 | 10 / 3 / 9 | 52% | 60% | -185 | -113 | +72 |
+| all | 72 | 14 / 45 / 13 | 51% | 48% | -294 | -132 | +161 |
+
+### N = 20: outcome by rating difference (opponent - us)
+| group | games | W / D / L | score | expected | rating pts as played | pts if drawn at trigger | change |
+|---|---|---|---|---|---|---|---|
+| a. opp 150+ weaker | 5 | 1 / 4 / 0 | 60% | 76% | -11 | -17 | -6 |
+| b. opp 50-150 weaker | 2 | 0 / 2 / 0 | 50% | 59% | -4 | -4 | +0 |
+| c. within 50 | 6 | 0 / 4 / 2 | 33% | 50% | -99 | -8 | +91 |
+| d. opp 50-150 stronger | 4 | 0 / 4 / 0 | 50% | 34% | +8 | +8 | +0 |
+| e. opp 150+ stronger | 8 | 0 / 7 / 1 | 44% | 19% | +46 | +94 | +48 |
+| all | 25 | 1 / 21 / 3 | 46% | 43% | -59 | +73 | +133 |
+
+### N = 20: outcome by pieces at the trigger
+| group | games | W / D / L | score | expected | rating pts as played | pts if drawn at trigger | change |
+|---|---|---|---|---|---|---|---|
+| a. <=5 (tables) | 11 | 0 / 11 / 0 | 50% | 39% | +52 | +52 | +0 |
+| b. 6-10 | 8 | 1 / 6 / 1 | 50% | 52% | -90 | -11 | +80 |
+| c. 11-20 | 5 | 0 / 4 / 1 | 40% | 45% | -3 | +2 | +5 |
+| d. 21-32 | 1 | 0 / 0 / 1 | 0% | 19% | -18 | +30 | +48 |
+| all | 25 | 1 / 21 / 3 | 46% | 43% | -59 | +73 | +133 |
+
+### N = 30: outcome by rating difference (opponent - us)
+| group | games | W / D / L | score | expected | rating pts as played | pts if drawn at trigger | change |
+|---|---|---|---|---|---|---|---|
+| a. opp 150+ weaker | 4 | 0 / 4 / 0 | 50% | 76% | -14 | -14 | +0 |
+| b. opp 50-150 weaker | 2 | 0 / 2 / 0 | 50% | 59% | -4 | -4 | +0 |
+| c. within 50 | 6 | 0 / 4 / 2 | 33% | 50% | -99 | -8 | +91 |
+| d. opp 50-150 stronger | 3 | 0 / 3 / 0 | 50% | 34% | +6 | +6 | +0 |
+| e. opp 150+ stronger | 4 | 0 / 4 / 0 | 50% | 18% | +15 | +15 | +0 |
+| all | 19 | 0 / 17 / 2 | 45% | 47% | -96 | -5 | +91 |
+
+### N = 30: outcome by pieces at the trigger
+| group | games | W / D / L | score | expected | rating pts as played | pts if drawn at trigger | change |
+|---|---|---|---|---|---|---|---|
+| a. <=5 (tables) | 11 | 0 / 11 / 0 | 50% | 48% | +0 | +0 | +0 |
+| b. 6-10 | 3 | 0 / 2 / 1 | 33% | 50% | -93 | -7 | +86 |
+| c. 11-20 | 5 | 0 / 4 / 1 | 40% | 45% | -3 | +2 | +5 |
+| all | 19 | 0 / 17 / 2 | 45% | 47% | -96 | -5 | +91 |
+
+### N = 10: after the trigger (eval later reached +-1.50 for us / them; minutes of play left)
+| pieces | games | we got +1.50 | they got +1.50 | won on time | lost on time | median plies left | median minutes left | total minutes |
+|---|---|---|---|---|---|---|---|---|
+| a. <=5 (tables) | 17 | 0 | 0 | 0 | 0 | 16 | 0.3 | 13 |
+| b. 6-10 | 21 | 4 | 1 | 0 | 0 | 56 | 1.4 | 42 |
+| c. 11-20 | 12 | 0 | 3 | 1 | 0 | 57 | 3.1 | 57 |
+| d. 21-32 | 22 | 10 | 10 | 0 | 0 | 96 | 7.0 | 166 |
+
+### N = 20: after the trigger (eval later reached +-1.50 for us / them; minutes of play left)
+| pieces | games | we got +1.50 | they got +1.50 | won on time | lost on time | median plies left | median minutes left | total minutes |
+|---|---|---|---|---|---|---|---|---|
+| a. <=5 (tables) | 11 | 0 | 0 | 0 | 0 | 65 | 0.9 | 16 |
+| b. 6-10 | 8 | 1 | 1 | 0 | 0 | 48 | 1.6 | 16 |
+| c. 11-20 | 5 | 0 | 1 | 0 | 0 | 139 | 4.2 | 29 |
+| d. 21-32 | 1 | 0 | 1 | 0 | 0 | 71 | 5.3 | 5 |
+
+lichess-bot's rule (0 cp, 10 moves, <=10 pieces): fires in 34 games; 37 if no-score moves didn't break the run
+  pieces at first fire: {'b. 6-10': 13, 'a. <=5 (tables)': 21}
+  outcome W/D/L: (1, 32, 1)
+
+games in the logs: 596 of 596
+our offers: {'offers': 89, 'declined by them': 83, 'accepted': 4}  games where we offered: 34
+their offers: {'offers': 48, 'declined by us': 45, 'accepted by us': 3}
+games where we declined theirs: 18 W/D/L (3, 14, 1)  rating diff buckets: {'c. within 50': 3, 'b. opp 50-150 weaker': 1, 'a. opp 150+ weaker': 3, 'd. opp 50-150 stronger': 3, 'e. opp 150+ stronger': 8}
+  GcIChtGz 2026.10.19 vs PeachFruit (-230) declined 1x, result 0.5 Normal, pts as played -3.0, if drawn -3.0
+  4Gbpgh4d 2026.10.17 vs GroshBoss (-206) declined 1x, result 0.5 Normal, pts as played -3.0, if drawn -3.0
+  rJkLH8eb 2026.10.15 vs BattleBornThe2nd (-158) declined 1x, result 1.0 Normal, pts as played +3.0, if drawn -2.2
+  obeitMyU 2026.10.13 vs pi0w (-107) declined 4x, result 0.5 Normal, pts as played -2.0, if drawn -2.0
+  kq9Vc4JD 2026.10.18 vs BattleBornThe3rd (-29) declined 3x, result 0.5 Normal, pts as played -3.0, if drawn -3.0
+  39pdToMC 2026.10.14 vs myChessJava (+40) declined 1x, result 1.0 Normal, pts as played +6.0, if drawn +0.6
+  9yhYwWGc 2026.10.13 vs DeMen100ns-bot (+42) declined 1x, result 0.5 Normal, pts as played +0.8, if drawn +0.8
+  gf2fqUlX 2026.10.18 vs Vic98lg (+108) declined 1x, result 0.5 Normal, pts as played +1.7, if drawn +1.7
+  lNzncAi7 2026.10.18 vs Grindfish (+127) declined 1x, result 0.5 Normal, pts as played +2.0, if drawn +2.0
+  n3hIQ5eT 2026.10.16 vs BattleBornThe3rd (+145) declined 5x, result 0.5 Normal, pts as played +2.2, if drawn +2.2
+  BuX7dAAV 2026.10.17 vs KirinChessBot (+153) declined 1x, result 1.0 Normal, pts as played +8.0, if drawn +2.3
+  3dk0EhCk 2026.10.19 vs Valhalla-Bot (+156) declined 3x, result 0.5 Normal, pts as played +2.0, if drawn +2.0
+  E43jnXnj 2026.10.19 vs nickdrohan (+242) declined 1x, result 0.5 Normal, pts as played +3.0, if drawn +3.0
+  JfwCmAaT 2026.10.19 vs AggressiveStockfish (+269) declined 2x, result 0.5 Normal, pts as played +4.0, if drawn +4.0
+  w9GBmOUH 2026.10.19 vs DeepBecky (+289) declined 7x, result 0.5 Normal, pts as played +18.0, if drawn +18.0
+  8Zwe0NO4 2026.10.19 vs Ravager_BOT (+289) declined 3x, result 0.5 Normal, pts as played +16.0, if drawn +16.0
+  qArV8776 2026.10.19 vs endspiel-pi (+298) declined 1x, result 0.0 Normal, pts as played -1.6, if drawn +3.5
+  U4Gg0qAp 2026.10.18 vs Ravager_BOT (+305) declined 8x, result 0.5 Normal, pts as played +5.0, if drawn +5.0
+our eval when they offered: {'+-0.15': 19, '+0.16..+1.49': 20, '>= +1.50': 7, 'mate for us': 1, '-1.49..-0.16': 1}
+accepted (ours): [('9yhYwWGc', 'DeMen100ns-bot', 42), ('kq9Vc4JD', 'BattleBornThe3rd', -29), ('E43jnXnj', 'nickdrohan', 242), ('JfwCmAaT', 'AggressiveStockfish', 269)]
+accepted (theirs): [('4Gbpgh4d', 'GroshBoss', -206), ('w9GBmOUH', 'DeepBecky', 289), ('nTuLvqAW', 'DeepBecky', 242)]
+opponents who offered: [('Ravager_BOT', 11), ('DeepBecky', 9), ('BattleBornThe3rd', 8), ('pi0w', 4), ('Valhalla-Bot', 3), ('GroshBoss', 2), ('AggressiveStockfish', 2), ('DeMen100ns-bot', 1), ('myChessJava', 1), ('BattleBornThe2nd', 1), ('KirinChessBot', 1), ('Vic98lg', 1), ('Grindfish', 1), ('PeachFruit', 1), ('nickdrohan', 1), ('endspiel-pi', 1)]
+
+== analyze2.py data.json
+finished games 596 (of 617); band +-15 cp; every opponent a BOT: True
+eras: Counter({'early': 356, 'networks': 240})
+early W/D/L (190, 39, 127) our elo median 2066.5 draws by agreement-ish (Normal 1/2 with >=1 draw chat) 14
+networks W/D/L (130, 56, 54) our elo median 2443.0 draws by agreement-ish (Normal 1/2 with >=1 draw chat) 25
+
+### Games with N of our moves in a row within +-0.15
+| era | games | N | with a stretch | <=5 pieces | 6-10 | 11-20 | 21-32 | W / D / L after |
+|---|---|---|---|---|---|---|---|---|
+| early | 356 | 10 | 42 (12%) | 5 | 9 | 8 | 20 | 13 / 16 / 13 |
+| early | 356 | 20 | 12 (3%) | 4 | 5 | 2 | 1 | 1 / 8 / 3 |
+| early | 356 | 30 | 9 (3%) | 4 | 3 | 2 | 0 | 0 / 7 / 2 |
+| networks | 240 | 10 | 30 (12%) | 12 | 12 | 4 | 2 | 1 / 29 / 0 |
+| networks | 240 | 20 | 13 (5%) | 7 | 3 | 3 | 0 | 0 / 13 / 0 |
+| networks | 240 | 30 | 10 (4%) | 7 | 0 | 3 | 0 | 0 / 10 / 0 |
+
+### N = 10: how the games with a level stretch ended, by rating difference (opponent - us)
+| era | group | games | W / D / L | score | expected | pts as played | pts if drawn | change |
+|---|---|---|---|---|---|---|---|---|
+| early | a. opp 150+ weaker | 13 | 6 / 4 / 3 | 62% | 80% | -27.6 | -44.9 | -17.2 |
+| early | b. opp 50-150 weaker | 8 | 5 / 2 / 1 | 75% | 61% | +12.8 | -10.2 | -23.0 |
+| early | c. within 50 | 8 | 0 / 4 / 4 | 25% | 49% | -21.7 | +1.3 | +23.0 |
+| early | d. opp 50-150 stronger | 6 | 1 / 4 / 1 | 50% | 35% | +10.4 | +10.4 | +0.0 |
+| early | e. opp 150+ stronger | 7 | 1 / 2 / 4 | 29% | 19% | +7.4 | +24.7 | +17.2 |
+| early | all | 42 | 13 / 16 / 13 | 50% | 54% | -18.7 | -18.7 | -0.0 |
+| networks | a. opp 150+ weaker | 6 | 0 / 6 / 0 | 50% | 77% | -18.8 | -18.8 | +0.0 |
+| networks | b. opp 50-150 weaker | 2 | 1 / 1 / 0 | 75% | 64% | +2.6 | -3.1 | -5.8 |
+| networks | c. within 50 | 4 | 0 / 4 / 0 | 50% | 51% | -0.5 | -0.5 | +0.0 |
+| networks | d. opp 50-150 stronger | 5 | 0 / 5 / 0 | 50% | 35% | +8.7 | +8.7 | +0.0 |
+| networks | e. opp 150+ stronger | 13 | 0 / 13 / 0 | 50% | 20% | +45.1 | +45.1 | +0.0 |
+| networks | all | 30 | 1 / 29 / 0 | 52% | 41% | +37.0 | +31.3 | -5.8 |
+| all | a. opp 150+ weaker | 19 | 6 / 10 / 3 | 58% | 79% | -46.4 | -63.7 | -17.2 |
+| all | b. opp 50-150 weaker | 10 | 6 / 3 / 1 | 75% | 62% | +15.4 | -13.3 | -28.8 |
+| all | c. within 50 | 12 | 0 / 8 / 4 | 33% | 49% | -22.3 | +0.7 | +23.0 |
+| all | d. opp 50-150 stronger | 11 | 1 / 9 / 1 | 50% | 35% | +19.1 | +19.1 | +0.0 |
+| all | e. opp 150+ stronger | 20 | 1 / 15 / 4 | 42% | 20% | +52.5 | +69.8 | +17.3 |
+| all | all | 72 | 14 / 45 / 13 | 51% | 48% | +18.3 | +12.6 | -5.8 |
+
+### N = 20: how the games with a level stretch ended, by rating difference (opponent - us)
+| era | group | games | W / D / L | score | expected | pts as played | pts if drawn | change |
+|---|---|---|---|---|---|---|---|---|
+| early | a. opp 150+ weaker | 2 | 1 / 1 / 0 | 75% | 79% | -0.8 | -6.6 | -5.8 |
+| early | b. opp 50-150 weaker | 1 | 0 / 1 / 0 | 50% | 61% | -1.2 | -1.2 | +0.0 |
+| early | c. within 50 | 4 | 0 / 2 / 2 | 25% | 50% | -11.4 | +0.1 | +11.5 |
+| early | d. opp 50-150 stronger | 4 | 0 / 4 / 0 | 50% | 34% | +7.3 | +7.3 | +0.0 |
+| early | e. opp 150+ stronger | 1 | 0 / 0 / 1 | 0% | 19% | -2.1 | +3.6 | +5.8 |
+| early | all | 12 | 1 / 8 / 3 | 42% | 48% | -8.3 | +3.2 | +11.5 |
+| networks | a. opp 150+ weaker | 3 | 0 / 3 / 0 | 50% | 74% | -8.4 | -8.4 | +0.0 |
+| networks | b. opp 50-150 weaker | 1 | 0 / 1 / 0 | 50% | 58% | -0.9 | -0.9 | +0.0 |
+| networks | c. within 50 | 2 | 0 / 2 / 0 | 50% | 52% | -0.4 | -0.4 | +0.0 |
+| networks | e. opp 150+ stronger | 7 | 0 / 7 / 0 | 50% | 19% | +25.3 | +25.3 | +0.0 |
+| networks | all | 13 | 0 / 13 / 0 | 50% | 40% | +15.5 | +15.5 | +0.0 |
+| all | a. opp 150+ weaker | 5 | 1 / 4 / 0 | 60% | 76% | -9.2 | -15.0 | -5.8 |
+| all | b. opp 50-150 weaker | 2 | 0 / 2 / 0 | 50% | 59% | -2.2 | -2.2 | +0.0 |
+| all | c. within 50 | 6 | 0 / 4 / 2 | 33% | 50% | -11.8 | -0.3 | +11.5 |
+| all | d. opp 50-150 stronger | 4 | 0 / 4 / 0 | 50% | 34% | +7.3 | +7.3 | +0.0 |
+| all | e. opp 150+ stronger | 8 | 0 / 7 / 1 | 44% | 19% | +23.1 | +28.9 | +5.8 |
+| all | all | 25 | 1 / 21 / 3 | 46% | 43% | +7.2 | +18.7 | +11.5 |
+
+### Networks era, N = 10: what was left after the trigger
+| pieces | games | we later +1.50 | they later +1.50 | median plies left | most plies left | median minutes left | total minutes |
+|---|---|---|---|---|---|---|---|
+| a. <=5 (tables) | 12 | 0 | 0 | 14 | 97 | 0.1 | 5 |
+| b. 6-10 | 12 | 1 | 0 | 26 | 226 | 1.0 | 19 |
+| c. 11-20 | 4 | 0 | 0 | 74 | 388 | 3.0 | 25 |
+| d. 21-32 | 2 | 0 | 0 | 158 | 227 | 8.6 | 17 |
+
+### Networks era, N = 20: what was left after the trigger
+| pieces | games | we later +1.50 | they later +1.50 | median plies left | most plies left | median minutes left | total minutes |
+|---|---|---|---|---|---|---|---|
+| a. <=5 (tables) | 7 | 0 | 0 | 55 | 81 | 0.7 | 6 |
+| b. 6-10 | 3 | 0 | 0 | 60 | 206 | 1.5 | 7 |
+| c. 11-20 | 3 | 0 | 0 | 139 | 360 | 4.2 | 22 |
+
+our offers: gaps in moves between successive offers in a game: [(11, 52), (12, 1), (16, 1), (20, 1)]
+
+### Their offers: each game, at their first offer
+| era | game | opponent | opp - us | move | pieces | our eval then | last 10 of ours within +-0.15 | offers | result | how | plies left | minutes left | pts change if we'd accepted |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| early | rJkLH8eb | BattleBornThe2nd | -158 | 27 | 21 | 0.8 | no | 1 | W | Normal | 26 | 1.2 | -5.8 |
+| early | obeitMyU | pi0w | -107 | 172 | 7 | 1.09 | no | 4 | D | Normal | 73 | 3.7 | +0.0 |
+| early | 39pdToMC | myChessJava | +40 | 126 | 9 | 1.11 | no | 1 | W | Normal | 66 | 2.3 | -5.7 |
+| early | 9yhYwWGc | DeMen100ns-bot | +42 | 92 | 8 | 0.0 | no | 1 | D | Normal | 18 | 0.1 | +0.0 |
+| early | n3hIQ5eT | BattleBornThe3rd | +145 | 60 | 6 | 2.9 | no | 5 | D | Normal | 95 | 2.2 | +0.0 |
+| networks | GcIChtGz | PeachFruit | -230 | 168 | 6 | 0.0 | no | 1 | D | Normal | 19 | 1.1 | +0.0 |
+| networks | 4Gbpgh4d | GroshBoss | -206 | 51 | 8 | 0.0 | yes | 2 | D | Normal | 35 | 1.2 | +0.0 |
+| networks | kq9Vc4JD | BattleBornThe3rd | -29 | 38 | 7 | 1.44 | no | 3 | D | Normal | 52 | 2.0 | +0.0 |
+| networks | gf2fqUlX | Vic98lg | +108 | 58 | 8 | #10 | yes | 1 | D | Normal | 3 | 0.1 | +0.0 |
+| networks | lNzncAi7 | Grindfish | +127 | 66 | 6 | 0.0 | no | 1 | D | Normal | 19 | 0.1 | +0.0 |
+| networks | BuX7dAAV | KirinChessBot | +153 | 62 | 10 | 0.3 | no | 1 | W | Normal | 62 | 3.0 | -5.8 |
+| networks | 3dk0EhCk | Valhalla-Bot | +156 | 53 | 10 | 0.9 | no | 3 | D | Normal | 49 | 1.6 | +0.0 |
+| networks | E43jnXnj | nickdrohan | +242 | 41 | 8 | 0.0 | no | 1 | D | Normal | 14 | 0.1 | +0.0 |
+| networks | nTuLvqAW | DeepBecky | +242 | 127 | 4 | 0.0 | yes | 1 | D | Normal | 1 | 0.0 | +0.0 |
+| networks | JfwCmAaT | AggressiveStockfish | +269 | 66 | 6 | 0.0 | no | 2 | D | Normal | 26 | 1.0 | +0.0 |
+| networks | w9GBmOUH | DeepBecky | +289 | 74 | 10 | 1.46 | no | 8 | D | Normal | 177 | 7.8 | +0.0 |
+| networks | 8Zwe0NO4 | Ravager_BOT | +289 | 35 | 20 | 0.05 | no | 3 | D | Normal | 63 | 6.6 | +0.0 |
+| networks | qArV8776 | endspiel-pi | +298 | 96 | 9 | -0.72 | no | 1 | L | Normal | 61 | 2.4 | +5.8 |
+| networks | U4Gg0qAp | Ravager_BOT | +305 | 40 | 11 | 0.0 | no | 8 | D | Normal | 162 | 12.4 | +0.0 |
+
+### Rule options, networks games: if every offer were accepted / at the 12% of games where bots accepted ours
+| rule | games it fires in | W / D / L as played | pts change if accepted | minutes saved if accepted | pts change at 12% | minutes at 12% |
+|---|---|---|---|---|---|---|
+| today: 0 cp, 10 moves, <=10 pieces (no-score breaks) | 20 | 0 / 20 / 0 | +0.0 | 16 | +0.0 | 2 |
+| tuned: 15 cp, 20 moves, any pieces | 13 | 0 / 13 / 0 | +0.0 | 35 | +0.0 | 4 |
+| tuned: 15 cp, 10 moves, <=10 pieces | 26 | 0 / 26 / 0 | +0.0 | 24 | +0.0 | 3 |
+| rating-aware: 15 cp, 20 moves, any pieces, opp >= us - 50 | 9 | 0 / 9 / 0 | +0.0 | 27 | +0.0 | 3 |
+| rating-aware: 15 cp, 10 moves, any pieces, opp >= us - 50 | 22 | 0 / 22 / 0 | +0.0 | 45 | +0.0 | 5 |
+| rating-aware: 0 cp, 10 moves, <=10 pieces, opp >= us - 50 | 15 | 0 / 15 / 0 | +0.0 | 7 | +0.0 | 1 |
+
+### Rule options, all games: if every offer were accepted / at the 12% of games where bots accepted ours
+| rule | games it fires in | W / D / L as played | pts change if accepted | minutes saved if accepted | pts change at 12% | minutes at 12% |
+|---|---|---|---|---|---|---|
+| today: 0 cp, 10 moves, <=10 pieces (no-score breaks) | 34 | 1 / 32 / 1 | +0.0 | 42 | +0.0 | 5 |
+| tuned: 15 cp, 20 moves, any pieces | 25 | 1 / 21 / 3 | +11.5 | 66 | +1.4 | 8 |
+| tuned: 15 cp, 10 moves, <=10 pieces | 41 | 2 / 38 / 1 | -5.8 | 56 | -0.7 | 7 |
+| rating-aware: 15 cp, 20 moves, any pieces, opp >= us - 50 | 18 | 0 / 15 / 3 | +17.2 | 50 | +2.1 | 6 |
+| rating-aware: 15 cp, 10 moves, any pieces, opp >= us - 50 | 43 | 2 / 32 / 9 | +40.2 | 141 | +4.8 | 17 |
+| rating-aware: 0 cp, 10 moves, <=10 pieces, opp >= us - 50 | 25 | 0 / 24 / 1 | +5.8 | 26 | +0.7 | 3 |
+early: 356 games, 62.5 hours of play, median 9.8 min a game
+networks: 240 games, 43.1 hours of play, median 9.3 min a game
+
+== reasons.py data.json <bot>
+finished games 596 (of 617); band +-15 cp; every opponent a BOT: True
+early all draws 39 {'insufficient material': 3, 'threefold repetition': 29, '50-move rule': 6, 'agreement': 1}
+early draws with a 10-move level stretch 16 {'insufficient material': 1, 'threefold repetition': 11, '50-move rule': 3, 'agreement': 1}
+networks all draws 56 {'agreement': 6, 'threefold repetition': 32, '50-move rule': 7, 'insufficient material': 7, '?': 4}
+networks draws with a 10-move level stretch 29 {'agreement': 6, 'threefold repetition': 14, 'insufficient material': 6, '?': 1, '50-move rule': 2}
