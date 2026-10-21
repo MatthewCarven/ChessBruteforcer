@@ -605,7 +605,16 @@ Sessions, in order:
         **chosen, L(b)**: session 1 (sets and attack tables) built, +13.2%
         to +14.1% `bench 9`; session 2 (generation from the sets in today's
         order) built, +9.5% to +9.8% on top: +25% over 180fe25 in all.
-- [ ] **Where our losses turn** (Matthew, 2026-10-15): Stockfish 16 over the
+- [x] **Where our losses turn**: done 2026-10-21 (P2.2, TURNS.md,
+      scripts/turning-points.py). The week of DEBUG logs (10-14 to 10-20): 225
+      games not won, 182 points lost. Our mistake (two plies deeper plays
+      another move) 5%, out-calculated 23%, misjudged 23%, outplayed slowly
+      20%, false draws from the repetition rule 7%, level draws 14%, other
+      10%. When our engine last thought we were OK, Stockfish agreed in only
+      24 of 167 games. With the networks and 8 threads, out-calculated fell
+      from 33% to 10% of the lost points (opponents' median 2030 to 2464).
+      SrwnQEj5 below came out out-calculated (move 23, -1.43 to -2.64).
+      The request as written (Matthew, 2026-10-15): Stockfish 16 over the
       bot's lost games (bot/games), finding in each the move where the game
       turned (e.g. the first of ours that loses 150 cp or more by
       Stockfish). Then sort them: missed tactics (Stockfish sees the
@@ -759,10 +768,32 @@ Sessions, in order:
       UBIA6Hdc (2026-10-18, WORKLOG) it said +2.4 for an ending Stockfish
       called +0.25 and drew a game it had been winning. Check our losses and
       draws for the same shape (the bot's eval v Stockfish's, by material),
-      before any training change.
+      before any training change. 2026-10-21 (TURNS.md): UBIA6Hdc comes out
+      "misjudged, a slide" (+2.39 down to +0.07 over 16 moves, Stockfish at
+      +0.2 or less throughout). The shape recurs: bhJE4lVW (+2.02 for 11
+      moves, 6 pieces) and kq9Vc4JD (+1.44 for 11 moves, 7 pieces), both
+      0.00 for Stockfish. Misjudged is 23% of the lost points. Still to do:
+      the by-material split. games/turns/curves.jsonl has ours v Stockfish's
+      for 7,035 positions of those games.
+- [ ] **The repetition rule** (TURNS.md, "The false draw"):
+      `Search.IsRepetition` counts a position seen once before, anywhere
+      since the last capture or pawn move (the game before the search too), as
+      a draw, and `Negamax` scores it 0. So a move back to a position from a
+      few moves ago scores 0.00, and a winning opponent just plays on. In lost
+      games 94 of our moves scored 0.00 that way, 67 of them at -1.50 or worse
+      for Stockfish; 13 games (7% of the lost points) turned on it. Stockfish's
+      rule: a draw if the earlier occurrence is inside the search, or on the
+      third occurrence. Small change, then an A/B match (ponder-match.py).
 
 ### 3. Findings for the thesis
 
+- [x] Where the bot's lost and drawn games turned, and whose fault it was
+      (TURNS.md, 2026-10-21): our mistakes 5% of the lost points, out-calculated
+      23%, misjudged 23%, outplayed slowly 20%, false draws (the repetition
+      rule) 7%. Our score usually falls well after the game was lost: at our
+      last "OK", Stockfish agreed in 24 of 167 games. Worth re-running on a
+      later week, after P1-P6 and the repetition fix (the script reads any
+      DEBUG logs; lichess-bot keeps 7 days).
 - [ ] New examples for "Endgames Thrown Away" from the month
       (scripts/takeover-moves-2026-09-month.txt; ratings of exactly 3000 are
       likely bots at their provisional start), if Matthew wants them.

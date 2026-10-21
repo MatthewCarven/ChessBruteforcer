@@ -4568,3 +4568,52 @@ needed. P2 builds on this branch. Not merged.
   finished after the hit to report" (183 on 10-20).
 - No Elo match (none needed: the moves don't change). 10.8-12.2 GB of
   commit free throughout; the bot wasn't running.
+
+## 2026-10-21 (10:45-13:30): where the bot's lost and drawn games turned (P2.2, a side session)
+
+Matthew's question: "if all of a sudden you were not winning you'd know if
+someone made a mistake or you were being out-calculated". Branch
+claude/goofy-ellis-ded337, fast-forwarded to compression a9e2355 (P1) first,
+since it had no commits of its own. Write-up: TURNS.md. Script:
+scripts/turning-points.py. Nothing in src changed.
+
+- **Data**: lichess-bot's DEBUG logs (10-14 to 10-20, all 7 days it keeps),
+  joined to bot/games for results, ratings and time controls. 502 games; 225
+  not won (139 lost, 86 drawn), so 182 points lost. Our score for each of the
+  29,020 engine moves is the last info line of the search that chose it, the
+  lines before `ponderhit` included, so every move has one, before P1 too.
+  games/turns/games.json keeps it after the logs rotate out.
+- **Method**: a fall is 1.00+ in one move (and 0.05+ of expected score). A game
+  turned between our last move still OK (-1.00 / +1.00 in a draw) and the first
+  where it was gone (-3.00 / +0.20): at the biggest fall in there, or it slid.
+  Each fall was re-searched on the position before it. Our engine ran to the
+  bot's depth + 2, with that game's evaluation file, a copy of the bot's build,
+  2 threads on CPUs 14-15, below normal, cap 90 s. Stockfish 16 (WSL) ran to
+  depth 20 on the position, on our move, and after the reply. Stockfish also
+  ran at depth 16 over every move of ours up to each turn (7,035 positions),
+  and over every 5th move of the won games, to calibrate (2,099; slope 0.94,
+  median -0.17: the same scale).
+- **Result** (points lost): our mistake 8.5 (5%); out-calculated 41 (23%);
+  misjudged 41 (23%); false draw 13 (7%); outplayed slowly 36 (20%); never
+  ahead 25 (14%); other 17.5 (10%). At our last "OK", Stockfish agreed in
+  24 of 167 games. In 84 it had had us worse for 6+ moves, or since the book.
+  By its own reckoning 69 games turned on one move of ours, and our score fell
+  at that move in 11. Hand-written evaluations (10-14 to 10-17) against the
+  networks (10-17 to 10-20): out-calculated 33% -> 10%, outplayed slowly
+  9% -> 33%. But opponents' median rating also went from 2030 to 2464.
+- **Found: the repetition rule** (TODO, engine strength). `Search.IsRepetition`
+  counts one earlier occurrence of a position, anywhere since the last
+  irreversible move (game history included), as a draw. So in lost positions
+  the bot played back into a position and showed 0.00, with a one-move pv and
+  no ponder move. The opponent played on. 94 such moves in lost games, 67 of
+  them at -1.50 or worse for Stockfish; 13 games turned on one. The cold
+  re-search (from a FEN, no history) can't see repetitions. So these were
+  first sorted as "out-calculated" (two plies deeper "saw" the loss), and are
+  now told apart by the repetition itself.
+- **Not done when this was written**: the every-fall table (TURNS.md) had 135
+  of 304 falls re-searched. The rest are mostly falls in games already lost,
+  and the run carries on (games/turns/search-run3.log). The turns, and so all
+  the main tables, were complete.
+- P3's A/B match (CPUs 2-12, even) ran throughout, so the re-search kept to
+  CPUs 14-15, plus Stockfish's WSL thread. Commit free stayed 4.9-8 GB; the bot
+  wasn't running.
