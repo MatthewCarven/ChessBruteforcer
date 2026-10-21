@@ -790,16 +790,17 @@ Sessions, in order:
       rarely come back (P8, OPPONENTS.md section 4).
       - [ ] **Matthew's call: which evaluation the learner thinks with**
             (it uses eval-sf1.txt; the bot has played h1024-3m since 10-20).
-            (a) leave it; (b) the bot's net from now on (learn.py takes the
-            first evaluation present in make-config.py's list); (c) (b), and
-            re-learn the existing entries where the net disagrees by more
-            than X cp; (d) stop the learner until a replay (P8's O3 (a))
-            brings positions back. My pick (b).
-      - [ ] The re-score, waiting for a CPU slot (asked the "ponder hit
-            keeps the tree" session's queue, 2026-10-22): 200 positions at
-            depth 14, h1024-3m and sf1, scripts/learner/rescore.py (the
-            command is in the WORKLOG entry). It sizes (c): how many entries
-            the net disagrees with, and by how much.
+            The re-score (200 positions at depth 14): **h1024-3m's best move
+            differs from the learnt one in 50% [43, 56]** (sf1 itself, the
+            noise floor, 21%), the learnt move loses 14 cp on average in the
+            net's view, and **10% [7, 15] lose 50 cp or more** (~166 of
+            1,656). (a) leave it; (b) the bot's net from now on (learn.py
+            takes the first evaluation present in make-config.py's list);
+            (c) (b), and replace the entries the net thinks lose X cp or
+            more (X = 50: ~166; re-scoring all 1,656 to find them is ~5 h of
+            one core), or just drop them; (d) stop the learner until a
+            replay (P8's O3 (a)) brings positions back. My pick (b) now,
+            (c) at X = 50 only if O3 (a) is built.
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.

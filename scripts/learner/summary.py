@@ -24,7 +24,8 @@ def share(k, n):
     p, z = k / n, 1.96
     centre = (p + z * z / (2 * n)) / (1 + z * z / n)
     half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
-    return f"{k} of {n} ({100 * p:.0f}% [{100 * (centre - half):.0f}, {100 * (centre + half):.0f}])"
+    low, high = max(0.0, centre - half), min(1.0, centre + half)
+    return f"{k} of {n} ({100 * p:.0f}% [{100 * low:.0f}, {100 * high:.0f}])"
 
 
 for arm, rows in arms.items():
