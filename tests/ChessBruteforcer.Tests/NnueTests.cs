@@ -326,6 +326,8 @@ public class NnueTests
     [InlineData(48)]
     [InlineData(256)]
     [InlineData(1024)]
+    [InlineData(1536)]
+    [InlineData(2048)]
     public void SimdEqualsScalar(int hidden)
     {
         Assert.True(Avx2.IsSupported, "this test is about the SIMD passes");
@@ -360,14 +362,18 @@ public class NnueTests
         }
     }
 
-    [Fact]
-    public void SimdEqualsScalarAtTheLargestSums()
+    [Theory]
+    [InlineData(1024)]
+    [InlineData(1536)]
+    [InlineData(2048)]
+    public void SimdEqualsScalarAtTheLargestSums(int hidden)
     {
-        // H = 1024, every output weight the largest the loader allows, every accumulator past QA: each
-        // int32 lane of the 256-bit pass holds 128 products of 255 x 255 x 128, its largest (512 bits: 64).
-        var network = Network.Read(Craft(1024, f: _ => 0, b: _ => 0, o: i => i % 3 == 0 ? (short)-128 : (short)128, outputBias: 0));
-        var full = Enumerable.Repeat((short)1000, 1024).ToArray();
-        var limited = Network.Read(Craft(1024, f: _ => 0, b: _ => 0, o: _ => 128, outputBias: 0));
+        // Every output weight the largest the loader allows, every accumulator past QA: each int32 lane of the
+        // 256-bit pass holds H / 8 products of 255 x 255 x 128, its largest (512 bits: H / 16). At H 2048 the
+        // all-positive net's lanes come to 2,130,739,200, 0.8% under 2^31, so a wrap would show as a negative score.
+        var network = Network.Read(Craft(hidden, f: _ => 0, b: _ => 0, o: i => i % 3 == 0 ? (short)-128 : (short)128, outputBias: 0));
+        var full = Enumerable.Repeat((short)1000, hidden).ToArray();
+        var limited = Network.Read(Craft(hidden, f: _ => 0, b: _ => 0, o: _ => 128, outputBias: 0));
         Assert.Equal(Network.MaxScore, limited.ForwardScalar(full, full));
         foreach (int width in SimdWidths)
         {
@@ -592,6 +598,8 @@ public class NnueTests
         Assert.Contains("version", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, version: 3))).Message);
         Assert.Contains("inputs", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, inputs: 640))).Message);
         Assert.Contains("hidden size", Assert.Throws<FormatException>(() => Network.Read(Craft(24, zero, zero, zero, 0))).Message);
+        Assert.Contains("hidden size", Assert.Throws<FormatException>(() => Network.Read(Craft(Network.MaxHidden + 16, zero, zero, zero, 0))).Message);
+        Assert.Equal(Network.MaxHidden, Network.Read(Craft(Network.MaxHidden, zero, zero, zero, 0)).Hidden);
         Assert.Contains("QA", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, qa: 256))).Message);
         byte[] cut = Net32.ToBytes()[..^1];
         Assert.Throws<FormatException>(() => Network.Read(cut));

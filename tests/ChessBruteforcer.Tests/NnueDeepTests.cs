@@ -109,6 +109,8 @@ public class NnueDeepTests
     [InlineData(256, "1")]
     [InlineData(1024, "32")]
     [InlineData(1024, "16-32")]
+    [InlineData(1536, "32")]          // h1536-3m-l32's shape
+    [InlineData(2048, "16-32")]       // MaxHidden
     public void EveryWidthEqualsTheDefinition(int hidden, string shape)
     {
         var network = Network.RandomDeep(hidden, Sizes(shape), seed: hidden + shape.Length, featureRange: hidden >= 1024 ? 100 : 200);
