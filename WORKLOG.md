@@ -5573,3 +5573,99 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   8 of 8 alone on both builds).
 - Decision P5 for Matthew: (a) merge, the option off (my pick); (b) drop
   the src change and keep the write-up and the bench. PONDER.md, "P5".
+
+## 2026-10-22 (06:00-08:10): the book learner's evaluation, sf1 or the bot's net? (a side session from P8)
+
+- **The question** (P8, OPPONENTS.md section 4): bot/learn.py thinks with
+  bot\eval\eval-sf1.txt, set on 2026-10-14 when sf1 was our best. Since
+  2026-10-20 the bot plays h1024-3m, roughly +870 Elo over sf1 in self-play
+  (MATCHES.md, chained: nnue1 +742 over sf1, then +76, +11, +41). The
+  learner's engine has no tables, so the evaluation is the whole difference,
+  and lichess-bot plays an ours.bin move at once, before its own search.
+- **What it has learnt** (the main checkout's bot\books\ours.jsonl): 1,656
+  positions, 1,652 where no book had a move and 4 where it vetoed the wide
+  book's move. They come from 653 games, ~2.5 a game at 45 s each (about 2
+  minutes of one core per game). Depth 11-18, median 14. Our moves 2-12,
+  mostly 8-11. 1,012 of the 1,652 (61%) are the move the bot itself chose in
+  that game.
+- **How often the bot played them: 3 moves, in 1 game of 617** (PJjtQaPm,
+  2026-10-16, on sf1, a win). The main book gave 4,302 and the wide one 291
+  (bot\logs). Replaying every game's first 12 moves: positions in ours.jsonl
+  came up 1,669 times. 1,656 of those are the games they were learnt from,
+  and only 3 had been learnt before the game. P8's learner_hits.py agrees (3
+  of 7,254 positions). The reason, from P8: from a position met before, our
+  weighted-random book plays a different move 60% of the time, the bots 30%.
+  So a learnt position rarely comes back. Against a bot met before with the
+  same colours (319 games), last game's first out-of-book position came back
+  16 times, and today's main book (rebuilt 10-18) has 15 of those.
+
+  | | count |
+  |---|---|
+  | positions learnt (ours.jsonl) | 1,656 (no book 1,652, wide book vetoed 4) |
+  | games studied | 653 |
+  | our moves from ours.bin, all games | **3, in 1 game of 617** |
+  | ... from the main book / the wide book | 4,302 / 291 |
+  | learnt positions met again after they were learnt | 3 |
+
+- **The re-score** (06:54-07:53, in a slot from the queue's session, the
+  "ponder hit keeps the tree" scope; the bot off; P6's tests ran beside it
+  from 07:16, which only slows it, since the depth is fixed).
+  scripts/learner/rescore.py re-searches a seeded sample of 200 positions at
+  depth 14 (the learner's median), one thread, Hash 64, below normal
+  priority, from a copy of the learner's engine build. If the best move
+  isn't the learnt one, it also searches the position after the learnt move
+  one ply less (the engine has no searchmoves), and loss = best - learnt, in
+  that evaluation's own centipawns. One arm is h1024-3m. The other is sf1
+  itself, as the noise floor: how often the same evaluation, searched again
+  to a fixed depth, leaves its own 45 s answer. sf1 was stopped at 145 of
+  200 to keep to the hour. ~11 s a position for the net, ~13 for sf1.
+
+  | | h1024-3m | sf1 (noise floor) |
+  |---|---|---|
+  | positions | 200 | 145 |
+  | best move differs from the learnt one | **50% [43, 56]** | 21% [15, 28] |
+  | the learnt move's loss where they differ, median (quartiles) | 21 cp (5, 43) | 0.5 cp (-2, 11) |
+  | mean loss, all positions | **14 cp** | 0.7 cp |
+  | loss 25 cp or more | 22% [16, 28], ~356 of 1,656 | 1% |
+  | loss 50 cp or more | **10% [7, 15], ~166 of 1,656** | 1% |
+  | loss 100 cp or more | 2% [1, 4], ~25 of 1,656 | 0% |
+
+  On the 145 positions both searched: the net disagrees with the learnt move
+  in 80, sf1 in 30, and 55 of the net's 80 are ones sf1 itself agrees with.
+  So the method's own noise is small (sf1's "disagreements" cost it ~0 cp:
+  near-equal moves), and about 30 points of the net's 50% come from the
+  evaluation. The net thinks half the learnt moves are not its best, but
+  mostly by little: 14 cp behind on average over the book (~1/7 of a pawn),
+  and a tenth 50 cp or more behind. scripts/learner holds the two runs' files
+  (rescore-2026-10-22-*.csv) and the summary. To run it again, one arm per
+  window from a copy of the engine build:
+
+      bot\lichess-bot\.venv\Scripts\python.exe -I scripts\learner\rescore.py bot <copy>\ChessBruteforcer.Engine.exe bot\eval\h1024-3m.nnue net <out>\rescore-net.csv
+      bot\lichess-bot\.venv\Scripts\python.exe -I scripts\learner\rescore.py bot <copy>\ChessBruteforcer.Engine.exe bot\eval\eval-sf1.txt sf1 <out>\rescore-sf1.csv
+      bot\lichess-bot\.venv\Scripts\python.exe -I scripts\learner\summary.py <out>\rescore-net.csv <out>\rescore-sf1.csv
+
+- **What it means.** At 3 moves in 617 games, which evaluation the learner
+  uses can't move the bot's results today: even if every learnt move were a
+  blunder, it would touch 1 game in 600. It matters only if the positions
+  start coming back. P8's O3 (a), replaying our last line against a bot met
+  before, would bring last game's first out-of-book position back ~23% of
+  the time instead of 5%. Then the learnt move faces a bot that has shown its
+  hand, and it should be the net's move, not sf1's: today half of them
+  aren't, and a tenth are 50 cp or more behind in the net's view.
+- **Options for Matthew** (TODO, under the book learner):
+  - (a) Leave it. Costs nothing, and changes nothing measurable today.
+  - (b) The learner thinks with the bot's net from now on: learn.py takes
+    the first evaluation present in make-config.py's list (h1024-3m today),
+    so it follows the bot when the net changes. A few lines, then restart the
+    learner. Same 45 s a position. New entries only.
+  - (c) (b), and replace the existing entries where the net thinks the
+    learnt move loses X cp or more: at X = 50, ~166 of them (X = 100: ~25;
+    X = 25: ~356). Finding them means re-scoring all 1,656 at depth 14,
+    ~5 hours of one core, and that search's best move is the replacement.
+    Or replace none and drop them instead: take those lines out of
+    ours.jsonl, and the bot searches those positions itself, with the net.
+  - (d) Stop the learner until a replay exists. It spends ~2 minutes of
+    one core per game (below normal priority) for 3 moves so far.
+  - My pick: **(b)** now: it's cheap and keeps the book in step with the
+    bot. Then (c) at X = 50 only if O3 (a) gets built, since only then do
+    the old entries come up.

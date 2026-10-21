@@ -778,11 +778,27 @@ Sessions, in order:
       against Lichess bots ~8; if that dilutes it, give Stockfish the book
       too, or a full-strength Stockfish at a short movetime. The bot's own
       rated games: 34% in 19 before the book, 46% in 42 with it (+-10 each).
-- [ ] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
+- [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it
       vetoed. It covers our first 12 moves only; middlegame losses don't
-      teach it anything.
+      teach it anything. **Measured 2026-10-22** (WORKLOG, the learner's
+      evaluation): 1,656 positions, 4 of them wide-book vetoes; **ours.bin
+      played 3 moves in 617 games**, all in one game. Learnt positions
+      rarely come back (P8, OPPONENTS.md section 4).
+      - [ ] **Matthew's call: which evaluation the learner thinks with**
+            (it uses eval-sf1.txt; the bot has played h1024-3m since 10-20).
+            The re-score (200 positions at depth 14): **h1024-3m's best move
+            differs from the learnt one in 50% [43, 56]** (sf1 itself, the
+            noise floor, 21%), the learnt move loses 14 cp on average in the
+            net's view, and **10% [7, 15] lose 50 cp or more** (~166 of
+            1,656). (a) leave it; (b) the bot's net from now on (learn.py
+            takes the first evaluation present in make-config.py's list);
+            (c) (b), and replace the entries the net thinks lose X cp or
+            more (X = 50: ~166; re-scoring all 1,656 to find them is ~5 h of
+            one core), or just drop them; (d) stop the learner until a
+            replay (P8's O3 (a)) brings positions back. My pick (b) now,
+            (c) at X = 50 only if O3 (a) is built.
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
@@ -1039,14 +1055,6 @@ Sessions, in order:
             ~3,000 more games (~6 weeks), or when a setup comes within ~10
             Elo of the best (the deep nets didn't: -85 and about -55), and
             look again.
-- [ ] The book learner (bot/learn.py) thinks with eval-sf1.txt, set when sf1
-      was our best evaluation (2026-10-14); the bot plays its moves
-      instantly from ours.bin, ahead of its own thinking with h1024-3m.
-      Check whether it should use the bot's net (its engine has no tables,
-      so the net is the whole difference), e.g. re-score ours.jsonl's
-      moves with h1024-3m and count the disagreements. O3 (b) in
-      OPPONENTS.md: a replay would make its moves come up far more often
-      (today 3 in 617 games).
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);
