@@ -5729,3 +5729,32 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   not beside the bench.
 - No trained version 3 net yet: ob-trainer's run follows. A version 3 net
   loads through EvalFile as any other (UCI prints "8 output buckets").
+
+## 2026-10-22 (08:40-08:50): option (c) for the learner, prepared (the learner side session)
+
+- (b) is in compression (68c0b92), and the learner restarted at 08:39
+  "with h1024-3m". Matthew then chose (c) as well, "when the orchestrator
+  asks": replace the learnt moves the net thinks lose 50 cp or more (~166 of
+  1,656 by the sample).
+- **scripts/learner/relearn.py**: from rescore.py's files, each position
+  whose loss is 50 cp or more, and whose latest ours.jsonl row still has the
+  scored move, gets a new row appended: why "re-learnt", the re-score's best
+  move (depth 14, h1024-3m), and the old move with its loss ("was",
+  "was_why", "was_loss"). A copy of the rows goes to
+  bot\books\ours-relearnt-<date>.jsonl, and ours.bin is rebuilt with the
+  learner's own write_book. The learner keeps the latest row per position,
+  so nothing is deleted. A second run adds nothing, and removing the copy's
+  lines undoes it. Without --apply it only lists them. The dry run on the
+  real book with the 200-position sample: 20 to re-learn, the largest 239 cp
+  (f4g3 -> Be2).
+- **scripts/learner/test_relearn.py**, 12 checks on a temporary bot folder
+  (80, 20, exactly 50, a position the learner has moved on from, castling as
+  the new move): green. It goes red on three mutants: > for >=, no moved-on
+  check, and no ours.bin rebuild (that one crashes the test).
+- rescore.py takes `--learnt-with eval-sf1` (the net's own rows don't need
+  it) and `--part i --parts k`, for two processes. learn.py's `--summary`
+  counts re-learnt rows.
+- **Waiting**: a slot from the ponder-scope queue for the re-score of the
+  other 1,456 positions (~4.5 core-hours, ~2.3 h on two cores), and Session
+  context's word on applying it to the live ours.jsonl. Applying it is safe
+  with the bot off, since the learner only writes after a game.

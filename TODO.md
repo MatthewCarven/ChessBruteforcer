@@ -817,9 +817,11 @@ Sessions, in order:
       - [ ] **Restart the learner after the merge** (Matthew's;
             bot\learn.cmd, or start.cmd): its start line in
             bot\logs\learn-<date>.log should say "with h1024-3m".
-      - [ ] (c), not chosen: replace or drop the ~166 entries the net
-            thinks lose 50 cp or more (~5 h of one core to find them).
-            Only worth it once O3 (a), the replay, is built.
+      - [ ] **(c), chosen by Matthew 2026-10-22** ("when the orchestrator
+            asks"): replace the ~166 entries the net thinks lose 50 cp or
+            more. scripts/learner/relearn.py and its test are ready. Waiting
+            for a CPU slot for the re-score of the other 1,456 (~4.5
+            core-hours), then the apply to the live ours.jsonl (the bot off).
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
