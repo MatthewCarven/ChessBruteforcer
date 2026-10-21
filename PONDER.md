@@ -839,6 +839,106 @@ clearing its own as before; the option never reaching the search; halving whatev
 build before P5 here too) and `CutDepthTests.StoppedAsAFailHighIsSearchedAgainItKeepsWhatWasProved` (Ranges on 4
 threads, a fresh search each time: it passed 8 of 8 alone, on both builds).
 
+### P6: a table that keeps its deep entries (2026-10-22)
+
+**Verdict: at the bot's Hash, a ponder miss no longer costs the next search extra work.** After an 8-thread ponder on
+the wrong reply, the search of the position really reached does **1.03, 0.87 and 0.91x** the work it does with no
+ponder (misses of 0.75, 1.5 and 3x the move's planned time S), against **1.23, 1.22 and 1.16x** on the old table the
+same morning (1.08, 1.24 and 1.33x the day before, "Misses" above). A search with no ponder before it is unchanged
+(0.99x the nodes), and the speed per node too (0.993x, within noise). The match: **pending** (the SPRT below).
+
+A side session, branch `claude/p6-tt-buckets-f4c01d`, on compression e1868ae (P1-P5 in).
+
+**The change** (`TranspositionTable`). The table is the search's memory of positions it has already searched: for each,
+the best move found, a score and how deep the search under it went. Before P6, each position had exactly one place
+(slot) it could go, and a new position always took that slot from whatever was there. So an 8-thread ponder on the
+wrong reply, filling a quarter to half of the table with shallow entries, threw out the deep entries our own search
+had just left for the position the game then reached. Now:
+
+- **Buckets of four.** A position may go in any of four slots (one bucket, 64 bytes: one cache line, so reading all
+  four costs about what one did).
+- **An age.** Each entry carries the number of the search that stored it (6 bits that were spare). Every `go` and
+  every `go ponder` is a new search; a ponderhit carries on in the ponder's own.
+- **Who is replaced.** A position already in its bucket is updated in place, as before. Otherwise the new entry
+  takes the slot worth least: an empty one, else the one with the lowest *depth less 2 for each search since its
+  own*. A ponder's flood is mostly entries of depth 1-2, so our own search's entries of depth 4 and more outlast it,
+  and an entry nothing uses again falls behind any new one within a few moves. An old entry the current search finds
+  and uses counts as new again.
+- Unchanged: the lockless check on every slot (threads share the table with no locks; a slot two threads wrote at
+  once reads as a miss). `hashfull` now counts only the current search's entries, so it reads lower than before and
+  starts again each move.
+- **Hash means megabytes** (Matthew's (a), 2026-10-22). The table used to be sized at 24 bytes a 16-byte slot, only
+  so that a given Hash kept the same search as before the table went lockless. P6 changes the search anyway, so Hash
+  256 is now 256 MB and 16.8 M slots (was ~171 MB and 11.2 M). **The bot's engine commits 85 MB more.**
+
+**The lab** (`scripts/ponder-scope/p6.py`, `results/p6/`): the 8 positions of the "Misses" lab, the ponder on 8
+threads, as before. Three arms rotated position by position (07:54-08:14, the bot off, nothing else running): the old
+build (e1868ae, Hash 256), P6 at Hash 256 (what the bot gets), and P6 at Hash 171, the old table's 11.2 M slots: the
+replacement rule alone. Each arm's search at B goes to its own depth D (where a search from scratch gets in 3 s, median
+13), so each row is against the same arm's search with no ponder:
+
+| search at B, to depth D: nodes against no ponder (geometric mean, 8 positions) | old, 10-21 ("Misses") | old, today | **P6, Hash 256** | P6, Hash 171 |
+|---|---:|---:|---:|---:|
+| from scratch (`ucinewgame` first) | 1.18 | 1.19 | 1.22 | 1.22 |
+| after our own search, no ponder | 1.00 | 1.00 | 1.00 | 1.00 |
+| ... then 0.75 S pondering the wrong reply | 1.08 | 1.23 | **1.03** | 0.90 |
+| ... 1.5 S | 1.24 | 1.22 | **0.87** | 0.95 |
+| ... 3 S | 1.33 | 1.16 | **0.91** | 1.15 |
+
+The old build's two days differ by up to 0.15 at the same row, so read each figure as give or take that much (8
+positions, and an 8-thread ponder runs differently every time). On the 5 positions where both builds searched to the
+same D, build against build:
+
+| search at B, to depth D | P6 (Hash 256) / old: nodes (geometric mean) | range | P6 (Hash 171) / old | range |
+|---|---:|---|---:|---|
+| after our own search, no ponder | 0.99 | 0.69-1.44 | 0.99 | 0.69-1.44 |
+| after a 0.75 S miss | 1.04 | 0.70-1.60 | 1.00 | 0.74-1.45 |
+| after a 1.5 S miss | **0.73** | 0.47-0.96 | 0.80 | 0.73-0.95 |
+| after a 3 S miss | **0.86** | 0.63-1.18 | 1.18 | 0.76-2.24 |
+
+In the bot a miss ponders a median 0.8 S (p75 1.5 S), where the rule alone (Hash 171) already removes the cost; after
+the longest ponders (3 S) it takes the larger table as well. The move played at B was the same as with no ponder in 8,
+8 and 8 of 8 (P6, Hash 256). Time to depth D-4 after a 3 S miss: 35 ms (P6) against 115 ms (old), where with no ponder
+both take 37. (`hashfull` at the stop isn't comparable across the builds: P6 counts only the ponder's own entries.)
+
+**Speed** (`bench 9`, h1024-3m, one thread, 8 rounds alternating the builds, the machine otherwise idle):
+
+| | nodes to depth 9 (6 positions) | knps, median (clock) | knps, median (CPU time) | time to depth |
+|---|---:|---:|---:|---:|
+| old (e1868ae) | 3,775,600 | 2,728 | 2,584 | 1.38 s |
+| P6 | 3,731,271 (-1.2%) | 2,718 | 2,554 | 1.37 s |
+| P6 / old, round by round (median) | | 0.993 (2 of 8 rounds faster) | 0.988 | 0.996 |
+
+A variant reading the bucket without bounds checks gave 0.995 (CPU 0.999), no better within the noise, so it wasn't
+kept.
+
+**The match.** Pending: P6 against e1868ae at 10+0.1, one thread, Hash 64 each (`scripts/build-match.py`, SPRT [0,
+10]), when the cores are free. Not on 8 threads: two 8-thread engines a game won't fit beside the other work.
+
+**Tests** (TranspositionTableTests, new, 21; and three changed):
+
+| test | what it checks |
+|---|---|
+| EveryEntryInABucketComesBackAsStored, AnEmptySlotIsNoEntryEvenForKeyZero | Four entries in one bucket read back field for field, at a search number past 0; an empty slot never matches, key 0 included |
+| EverySlotHoldsAnEntry, HashIsMegabytesAtSixteenBytesASlot (4), BucketsStartOnACacheLine | 2,000 entries in 500 full buckets all read back; Hash N is N MB at 16 bytes a slot; bucket 0 starts on a 64-byte line |
+| DeepEntriesOutlastAFloodOfShallowOnes | Our search's entries of depth 12, 4 and 2, then 500 depth-1 entries from the next search in the same bucket: the 12 and the 4 stay, the 2 goes |
+| TheLastSearchsEntriesGoBeforeTheCurrentOnesOfTheSameDepth, AnOldEntryIsWorthItsDepthLessTwoForEachSearchSince (2) | Old entries go first; depth 7 three searches old (worth 1) goes before a current depth 2, depth 9 (worth 3) doesn't |
+| AgesCountOnRoundTheWrap, AnEmptySlotIsTakenBeforeAnyEntry, TheSearchCountRunsRoundAtSixtyFourAndClearStartsItAgain | The 6-bit search number wraps from 63 to 0 and ages still count; an empty slot goes first even against an old shallow entry; `Clear` starts the count again |
+| AnEntryInUseIsAsGoodAsNew | An old entry the current search finds counts as new |
+| ThePositionAlreadyThereIsUpdatedInPlace (2) | In the bucket's first slot and a later one, the others untouched |
+| HashfullCountsWhatTheCurrentSearchStoredOrUsed | 500 of the first 1,000 slots: 500; a new search: 0; one entry used again: 1 |
+| EachSearchIsOneGenerationHelpersIncluded (1, 4 threads); PonderTests.GoAndGoPonderEachStartANewTableGenerationAndAHitGoesOnInItsOwn | One search moves the number on once, whatever its threads; `go` and `go ponder` each do, `ponderhit` doesn't, `ucinewgame` starts it again |
+| ThreadTests.ThreadsWritingOneSlotNeverReadAMixedEntry (changed) | 4 threads writing 256 positions into 4 buckets, 4 reading (and writing back ages as the search number moves on): no mixed entry. It now runs until the readers have 10,000 hits (at least 400 ms, at most 30 s), not a flat 400 ms, which failed once under load in the merged suite ("only 0 hits") |
+| CutDepthTests.OnOneThreadACutPlaysWhatTheDepthProvedAndNothingElse (changed) | P4's test needs a position where a cut plays a proved move; on P6's tree "Late" had none at depths 5-10, so it uses "Tactic" at 10 (4 s). Every node-for-node check passed on all of them |
+
+Mutations (`scripts/ponder-scope/p6-mutate.py`): 27, **26 caught**. The one left only changes which of two slots of
+equal worth goes (first or last), which nothing depends on. With the lockless check taken out, the thread test finds
+mixed entries. A 28th, resetting the search number when the table is made, was dead code and is gone. Full suite:
+**629 passed, 2 skipped.**
+
+**What changes in the bot when it's merged**: the search itself (a different tree from the same position: the bench's
+is 1.2% smaller), 85 MB more memory at Hash 256, and `hashfull` reading lower. No option: P6 is always on.
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's
@@ -871,3 +971,7 @@ python):
   (`results/p5-samples.json`: 40 runs of 8), searched to a fixed depth on one thread by every arm at once (HistoryKept
   values, and `--old <exe>`, an earlier build that must match the cleared arm node for node); the summary compares each
   arm's nodes with the cleared arm's, search by search (`results/p5-d12.jsonl`: depth 12).
+- `p6.py run <old exe> <new exe> <out dir>|summary <dir>` (P6): the misses lab with an 8-thread ponder, old build
+  against new at Hash 256 and 171, rotated position by position, and its tables (`results/p6/`). `experiment.py` takes
+  `PONDER_SCOPE_HASH` (default 256) for it. `p6-mutate.py`: the table's mutation battery (each mutant built and run
+  against the 43 table, thread and UCI generation tests; the source restored after each).

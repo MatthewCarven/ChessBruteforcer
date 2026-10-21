@@ -983,10 +983,18 @@ Sessions, in order:
                   Matthew: (a) merge, option off (my pick), or (b) drop the
                   src change, keep the write-up and the bench.** PONDER.md,
                   "P5".)
-            - [ ] P6: a table that keeps its deep entries (buckets of 2-4
+            - [x] P6: a table that keeps its deep entries (buckets of 2-4
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's
                   entries. TranspositionTable, about half a day.
+                  (2026-10-22, branch claude/p6-tt-buckets-f4c01d on
+                  e1868ae: buckets of four, a search number, the lowest
+                  depth less 2 a search goes. After an 8-thread ponder
+                  miss the next search does 1.03 / 0.87 / 0.91x the work
+                  of no ponder, was 1.23 / 1.22 / 1.16x; speed 0.993x.
+                  Hash is megabytes now: the bot's 256 commits 85 MB more
+                  (Matthew's (a)). Suite 629 passed. The SPRT against
+                  e1868ae at 10+0.1 waits for the cores. PONDER.md, "P6".)
             - [ ] (Turned up by P4, not part of decision M; Matthew's call
                   whether.) **Lazy SMP: answer from the thread that got
                   deepest** (Stockfish's best-thread choice, "thread
@@ -1050,8 +1058,6 @@ Sessions, in order:
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);
-      the table holds 16-byte slots but is sized at 24 a slot (Hash 256 uses
-      ~171 MB; sizing it at 16 changes the one-thread search, so measure);
       the hash keying en passant only when a capture is legal (now it keys
       it after every double push, so a repetition through one can be missed:
       WORKLOG 2026-10-15);

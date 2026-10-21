@@ -5573,3 +5573,56 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   8 of 8 alone on both builds).
 - Decision P5 for Matthew: (a) merge, the option off (my pick); (b) drop
   the src change and keep the write-up and the bench. PONDER.md, "P5".
+
+## 2026-10-22 (06:00-08:30): P6, a table that keeps its deep entries (a side session)
+
+- Decision M's P6 (PONDER.md), branch claude/p6-tt-buckets-f4c01d, rebased
+  onto compression e1868ae (P1-P5, P8 and the 2048 nets in). Built and
+  tested on the orchestrator's word that Matthew wanted the work to go on
+  (he had said "wait before testing"); the heavy runs went in the slots it
+  gave.
+- **TranspositionTable**: buckets of four 16-byte slots (one 64-byte line,
+  the array pinned so bucket 0 starts on one); a 6-bit search number in the
+  bound's byte, moved on once a search in Search.Run (`go` and `go ponder`
+  each; a hit is the ponder's own search). The same position updates in
+  place; otherwise the new entry takes an empty slot, else the lowest depth
+  less 2 a search since its own (AgePenalty). A probe that finds an old
+  entry marks it current. The lockless XOR check on every slot. hashfull
+  counts the current search's entries only. The bucket comes from the key's
+  high bits (Math.BigMul).
+- **Sizing**: Hash is megabytes now (64 bytes a bucket). The 24-bytes-a-slot
+  sizing only kept the one-thread search as it was, and P6 changes it
+  anyway. Matthew's (a): the bot's Hash 256 is 256 MB and 16.8 M slots (was
+  ~171 MB, 11.2 M), 85 MB more commit; its config unchanged.
+- **The lab** (scripts/ponder-scope/p6.py, results/p6/; 07:54-08:14, the
+  bot off): the 8 "Misses" positions, ponder on 8 threads, arms rotated by
+  position. Next search's nodes against no ponder (geometric means):
+
+  | miss of | old, 10-21 | old, today | P6, Hash 256 | P6, Hash 171 (old's slots) |
+  |---|---:|---:|---:|---:|
+  | 0.75 S | 1.08 | 1.23 | **1.03** | 0.90 |
+  | 1.5 S | 1.24 | 1.22 | **0.87** | 0.95 |
+  | 3 S | 1.33 | 1.16 | **0.91** | 1.15 |
+
+  Build against build where both reached the same depth (5 positions): no
+  ponder 0.99x the nodes, after misses 1.04 / 0.73 / 0.86x. The old build's
+  two days differ by up to 0.15, so that's the noise. The rule alone (Hash
+  171) covers the bot's usual misses (median 0.8 S, p75 1.5 S); the 3 S
+  ones want the bigger table too.
+- **Speed**: bench 9, h1024-3m, 8 alternated rounds: P6's tree 1.2% smaller
+  (3,731,271 against 3,775,600 nodes), 0.993x the knps (0.988 by CPU time;
+  2 of 8 rounds faster), time to depth 0.996x. A variant reading the bucket
+  without bounds checks: 0.995x, no better, not kept.
+- **Tests**: TranspositionTableTests 21, a PonderTests test (go and go
+  ponder each a new search number, a hit not, ucinewgame back to 0).
+  ThreadTests' torn-slot test on buckets, readers writing back ages, and it
+  now runs to 10,000 hits (400 ms to 30 s) instead of a flat 400 ms, which
+  failed once in the merged suite under load ("only 0 hits"; the
+  orchestrator's report). CutDepthTests' one-thread cut test: on P6's tree
+  "Late" had no proved move to play at depths 5-10, so it uses "Tactic" at
+  10. Mutations (scripts/ponder-scope/p6-mutate.py): 27, 26 caught; the one
+  left picks which of two equal slots goes. **Full suite 629 passed, 2
+  skipped.** A build straight after the battery held the last mutant's DLL
+  in the test folder: rebuild `--no-incremental` before the suite.
+- **The SPRT** (P6 against e1868ae, 10+0.1, one thread, Hash 64): waiting
+  for the cores (after nnue-deep-layers' h1536-3m match).
