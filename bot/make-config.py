@@ -45,7 +45,10 @@ engine["uci_options"] = {
 # Stockfish's verdicts on Lichess's analysed games (2026-10-14: +208 Elo [+130, +311] over the built-in ones, 69
 # games at 10+0.1, SPRT decided). Delete h1024-3m.nnue to go back to h512-3m, h512-3m.nnue as well for nnue1-h512,
 # nnue1-h512.nnue as well for nnue1, nnue1.nnue as well for sf1, and eval-sf1.txt as well for the built-in numbers.
-for name in ("h1024-3m.nnue", "h512-3m.nnue", "nnue1-h512.nnue", "nnue1.nnue", "eval-sf1.txt"):
+# Ahead of them for a game or two (Matthew, 2026-10-22, before its match): h1024-3m-l16-32, the newest deep net
+# (768 -> 1024 x2 -> 16 -> 32 -> 1, .nnue version 2; NNUE.md session 6): held back -6.8% against h1024-3m, but
+# -44% knps in bench 9 and ~1.7x the time to depth 9. Delete bot\eval\h1024-3m-l16-32.nnue to go back to h1024-3m.
+for name in ("h1024-3m-l16-32.nnue", "h1024-3m.nnue", "h512-3m.nnue", "nnue1-h512.nnue", "nnue1.nnue", "eval-sf1.txt"):
     evaluation = os.path.join(here, "eval", name)
     if os.path.exists(evaluation):
         engine["uci_options"]["EvalFile"] = evaluation
@@ -81,10 +84,11 @@ for kind in ("syzygy", "gaviota"):
 engine["draw_or_resign"]["resign_enabled"] = False            # play every game out (for now)
 
 challenge = config["challenge"]
-challenge["concurrency"] = 2                                  # two games at once (Matthew, 2026-10-18); a challenge
-                                                              # that comes while both run is declined "later" at once
-                                                              # (bot\lichess-bot-busy.patch), not queued to go stale
-challenge["max_simultaneous_games_per_user"] = 1              # the two games are against two different people
+challenge["concurrency"] = 1                                  # one game at a time (Matthew, 2026-10-22; two from
+                                                              # 2026-10-18); a challenge that comes while it plays is
+                                                              # declined "later" at once (bot\lichess-bot-busy.patch),
+                                                              # not queued to go stale
+challenge["max_simultaneous_games_per_user"] = 1              # with two at once, against two different people
 challenge["modes"] = ["casual", "rated"]                      # rated from 2026-10-13 (six clean casual games first)
 challenge["time_controls"] = ["bullet", "blitz", "rapid", "classical"]
 
