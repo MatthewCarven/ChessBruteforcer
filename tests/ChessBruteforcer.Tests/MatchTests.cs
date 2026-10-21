@@ -88,6 +88,16 @@ public class MatchStatsTests
     {
         Assert.Equal(new TimeControl(baseMs, incMs, moveTime), TimeControl.Parse(text));
     }
+
+    [Fact]
+    public void AFixedDepthIsATimeControlAndAnEngineCanHaveItsOwn()
+    {
+        Assert.Equal(new TimeControl(0, 0, Depth: 9), TimeControl.Parse("depth=9"));
+        Assert.Equal("depth 9", TimeControl.Parse("depth=9").ToString());
+        var spec = EngineSpec.Parse(["name=deep", "cmd=engine.exe", "tc=depth=9"]);
+        Assert.Equal(new TimeControl(0, 0, Depth: 9), spec.Clock);
+        Assert.Null(EngineSpec.Parse(["cmd=engine.exe"]).Clock);
+    }
 }
 
 public class GamePlayerTests
@@ -107,11 +117,13 @@ public class GamePlayerTests
 
         public string Name { get; }
         public int Games { get; private set; }
+        public List<MoveRequest> Requests { get; } = new();
 
         public void NewGame() => Games++;
 
         public string? ChooseMove(MoveRequest request, TimeSpan timeout)
         {
+            Requests.Add(request);
             if (_delayMs > 0)
                 Thread.Sleep(_delayMs);
             if (_script.TryDequeue(out string? scripted))
@@ -152,6 +164,23 @@ public class GamePlayerTests
                                      Array.Empty<string>(), new TimeControl(200, 0), 1);
         Assert.Equal(GameResult.WhiteWins, record.Result);
         Assert.Contains("lost on time", record.Termination);
+    }
+
+    [Fact]
+    public void EachSideCanHaveItsOwnClockAndAFixedDepthNeverLosesOnTime()
+    {
+        // White searches to depth 5 and takes 300 ms a move with no time on its clock; Black has 60+0.3.
+        var white = new ScriptedPlayer("W", new[] { "f2f3", "g2g4" }, delayMs: 300);
+        var black = new ScriptedPlayer("B", new[] { "e7e5", "d8h4" });
+        var record = GamePlayer.Play(white, black, Array.Empty<string>(), TimeControl.Parse("depth=5"), 1,
+                                     blackClock: new TimeControl(60_000, 300));
+        Assert.Equal("checkmate", record.Termination);
+        Assert.All(white.Requests, r => Assert.Equal(5, r.Depth));
+        Assert.All(black.Requests, r => Assert.Null(r.Depth));
+        Assert.Equal(300, black.Requests[0].BlackIncrementMs);
+        Assert.Equal(0, black.Requests[0].WhiteIncrementMs);
+        Assert.Contains("[WhiteTimeControl \"depth 5\"]", record.ToPgn("Test", DateTime.Today));
+        Assert.Contains("[BlackTimeControl \"60+0.3\"]", record.ToPgn("Test", DateTime.Today));
     }
 
     [Fact]

@@ -48,24 +48,20 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 "768 -> 512 x2 -> 1, sha256 8a6cd3aff627"). The desktop trains two levers
 overnight (NNUE, below).
 
-**2026-10-20, 03:30: the bot is OFF; it switches to h1024-3m** (Matthew's
-call at game 188 of its match: +52 [+14, +91] over h512-3m, LOS 99.6%;
-"battle testing 1024", the statistics later, which he does want for clean
-footing next time). bot\eval\h1024-3m.nnue, which make-config.py tries
-first (delete it to go back to h512-3m). It went down at 21:23 on
-2026-10-19 to a Ctrl+C held in its window, not memory as first thought
-(lichess-bot's TypeError, below; commit was tight that evening all the same,
-0.45 GB free at 23:22: the Cowork VM 4.0 GB, h768-3m's training 3.5 GB,
-eight Claude sessions ~0.5 GB each). **Back on**:
-close the match window (h1024-3m's match, then h768-3m's, queued in one
-window), fast-forward compression to branch `claude/nnue-desktop-8d5f2a`,
-reboot (the only way to close the Cowork VM), then `bot\start-bot.cmd`, then
-the learner with `bot\learn.cmd` once the bot's window has built the engine
-(two builds at once trip over each other). Not `start.cmd`: it would start
-the month queue too, which is off. Its log should then say "768 -> 1024 x2
--> 1, sha256 510a8d0e6c43". **To finish later**, the bot off: h1024-3m's
-SPRT against h512-3m (rename its .log and .pgn first, or the launcher
-refuses) and h768-3m's match.
+**2026-10-20, 03:28: the bot is back, on h1024-3m** (Matthew's call at game
+188 of its match against h512-3m, "battle testing 1024"; its log: "768 ->
+1024 x2 -> 1, sha256 510a8d0e6c43"). bot\eval\h1024-3m.nnue, which
+make-config.py tries first (delete it to go back to h512-3m). **The match
+then finished beside the bot: SPRT accepted H1, +41 [+19, +63] in 584
+games** (MATCHES.md; 34 time losses in the part beside the bot, the clean
+part agreeing). h768-3m's match started by itself at 04:01, also beside
+the bot (Matthew's (b): he wants the data), and was stopped at 04:54 with
+27% of its games lost on time: to play again with the bot off (NNUE, below). Earlier: the bot went down at
+21:23 on 2026-10-19 to a Ctrl+C held in its window, not memory as first thought
+(lichess-bot's TypeError, below);
+after a restart of the laptop, `bot\start-bot.cmd`, then `bot\learn.cmd`
+once the bot's window has built the engine (two builds at once trip over
+each other); not `start.cmd` (the month queue is off).
 
 **Running right now, each in its own window (check them, don't start them):**
 - **The bot: OFF since 21:23 on 2026-10-19** (above). From its next start it
@@ -81,8 +77,8 @@ refuses) and h768-3m's match.
   KB/s. Log games\month-queue.log; counts logs
   bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
 - The book learner (bot\learn.py, restarted 23:26).
-- On the desktop: nothing (h1024-3m finished 02:47 on 2026-10-20, desktop
-  clock).
+- On the desktop: task "nnue h1024-3m-l32 then h1024-3m-l16-32", from
+  00:30 on 2026-10-21 to ~19:50 (NNUE, below).
 
 **Tonight's two matches, both with the bot off:**
 
@@ -140,14 +136,29 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     | h1024-3m | 0.012659 (-7.2%) | 0.012432 (-7.5%) | 1,470 (-15.8%) |
 
     **Their matches against h512-3m** (Matthew's (a), from 03:04 on
-    2026-10-20, back to back in one window): h1024-3m +52 [+14, +91] at
-    game 188, LOS 99.6%; **the bot switches to it** (decision I). The
-    SPRT's verdict and h768-3m's match: later, the bot off.
+    2026-10-20, back to back in one window): **h1024-3m +41 [+19, +63],
+    SPRT accepted H1** at game ~579 (584 games, the last 264 beside the
+    bot); **the bot plays on it** (decision I). **h768-3m's match: play
+    it again with the bot off** (`scripts\nnue-match.cmd h768-3m h512-3m`,
+    30 min to 3.5 h): the run beside the bot was stopped at game 525 with
+    135 time losses (MATCHES.md), its files kept as
+    games\nnue\match-h768-3m-h512-3m-beside-bot.*.
     **Order (Matthew, 2026-10-21): h768-3m's match is re-run after the
-    six ponder sessions (P1-P6) are done**, with the bot off (beside it,
-    27% of its games were lost on time). When is his call. First comes the
-    engine change for the deeper nets (h1024-3m-l32, then -l16-32), with
-    each matched against h1024-3m.
+    six ponder sessions (P1-P6) are done**, with the bot off. When is his
+    call. First comes the engine change for the deeper nets
+    (h1024-3m-l32, then -l16-32), with each matched against h1024-3m.
+  - **h1536-3m trained** (the desktop, 2026-10-20 04:45-18:34): held back
+    0.012193 at K 1, 0.011952 at its own K: **-3.7% / -3.9% against
+    h1024-3m**. In games\nnue\nets\. Before its match against h1024-3m
+    (the bot off) the engine's MaxHidden must rise from 1024 (a C# change:
+    Matthew's word; best on top of the engine-speed chain, which changes
+    Network.cs). **On hold** (Matthew, 2026-10-20 ~18:50): he tests the
+    engine speed upgrade first, before the next upgrade.
+  - **Deeper nets training on the desktop** (Matthew's (a), 2026-10-21):
+    h1024-3m-l32 (1024 x2 -> 32 -> 1) from 00:30, then h1024-3m-l16-32
+    (-> 16 -> 32 -> 1), ~9.5 h each: **done ~10:10 and ~19:50** (desktop
+    clock). Float held-back error against h1024-3m's 0.012394 decides
+    whether the engine work to play one (format, forward pass) is worth it.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
@@ -161,9 +172,15 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     AVX-512 with 64-byte alignment (+16.7% `bench 9` at 1024), then the lazy
     update (+23.7% in all). **In compression** since 2026-10-20 ~21:50,
     with K(a) and the bitboards below (not pushed). It takes effect when the
-    bot restarts between games (`bot\start-bot.cmd` builds the engine); then
-    compare its Speed lines with today's for the 8-thread effect
-    (`CB_NNUE_SIMD=256` is the fallback if AVX-512's clock cost shows).
+    bot restarts between games (`bot\start-bot.cmd` builds the engine).
+    **8 threads, measured** (22:03, the bot off; NNUE.md "Speed at 1024"):
+    compression's engine searches **+101.6%** faster than the bot's
+    morning engine over UCI as the bot runs it (10.1 to 20.3 M nodes a
+    second, a ply deeper in 2 s), all of today's work together; AVX-512's
+    own share +12.1% on 8 threads (+12.6% on one), so no clock cost: keep
+    512 bits. **In play** (5 games after the 22:33 restart): its Speed
+    lines are about 2x the morning's, alone (1.8-2.1x) and with two games
+    at once (1.9-2.0x); WORKLOG has the table.
   - **The rest of a node, measured** (2026-10-20, a side session, branch
     `claude/friendly-cray-e85e18` on top of the speed branch; NNUE.md "The
     rest of a node"): outside the network is 74-76% of a node now. Ordering
@@ -460,6 +477,80 @@ Sessions, in order:
 
 ### 2. The engine's strength
 
+- [x] **The repetition rule** (TURNS.md, "The false draw"; done 2026-10-22,
+      WORKLOG): `Search.IsRepetition` called a position seen once before
+      anywhere since the last capture or pawn move (the game before the
+      search too) a draw, so a losing bot "drew" by going back to a position
+      from a few moves ago, with a one-move line and no ponder move. Now
+      Stockfish's rule: a draw if the earlier time is inside the search, or
+      on the third time; and a position the game has had before gets no
+      table cutoff (its entry predates the repeat, and hid threefolds the
+      other side could make). Lab, the bot's own positions: where Stockfish
+      had us at -1.50 or worse, the old rule said 0.00 in 43 of 68, the new
+      one in none. Self-play A/B, 10+0.1, both pondering: the rule alone
+      -16 [-32, +1] (642 games); with the table fix +1 [-12, +13] over 1,245 games (2,000 by ~04:15), even. **On
+      by default, Matthew's call** ("I'd rather be right because error
+      compounds on pondering"); `RepetitionRule` Twofold brings the old rule
+      back (UCI, or bot/make-config.py's uci_options).
+- [ ] **Re-run TURNS on a week of the bot's games with the new rule**
+      (scripts/turning-points.py, which reads lichess-bot's DEBUG logs; they
+      keep 7 days): the false draws (7% of the lost points that week) should
+      be gone, and no "thrown-away lead by repetition" kind should appear in
+      its place. This is Matthew's (c) in "3. Findings for the thesis". The
+      bot has run the new rule since 2026-10-22 02:25 (c297601), so
+      `extract --since "2026-10-22 02:25"`, from about 10-29.
+- [ ] **A push to make progress** (from the repetition rule's matches,
+      2026-10-22): under the new rule a winning side may step back to an
+      earlier position, and nothing pushes it on. Its +3.00 leads converted
+      89% against the old rule's 91%, and 50-move draws doubled (3% to 6%
+      of games). Stockfish's answer: the evaluation shrinks as the 50-move
+      count rises (v x (200 - count) / 214 or so), so lines with a capture
+      or pawn move score better than shuffling. One change in
+      Evaluation.Evaluate (both the network and the hand-written numbers),
+      then an A/B match against the bot's engine. A session of its own.
+- [ ] **Two nets, switched by the clock** (Matthew's idea, 2026-10-21, "feel
+      free to push back"): keep a smaller, faster net loaded beside the big
+      one, and play on it when time runs short (to build some time up, then
+      back to the big net), or for bullet. Test before building. What our
+      numbers say so far (they lean against it, but one cheap match
+      decides):
+      - The nets differ a lot in strength and little in speed. 256 -> 1024
+        hidden won ~+128 Elo in matches (+76, then +11 for more data, then
+        +41) for ~19% fewer nodes a second (`bench 9`: -4%, then -16%;
+        likely less since AVX-512). 19% more speed is worth roughly +15-20
+        Elo, so the small net gives up far more than it gains.
+      - Our matches already play fast: 10+0.1 is ~0.25 s a move, faster than
+        Lichess bullet (1+0, ~0.85 s a move over ~70 moves) and far faster
+        than a 3+2 scramble (the 2 s increment keeps every move at ~2 s).
+        The bigger net still won there.
+      - A faster net doesn't bank time by itself: the time manager decides
+        how long a move takes, and the net only changes the depth reached
+        in it. Time trouble is the time manager's to fix first.
+      - **The test**: h1024-3m against h512-3m (or nnue1) at a much faster
+        clock, e.g. 2+0.02 (~0.05 s a move), the bot off, ~30 min. If the
+        small net wins there, build it: one engine holding both nets (a few
+        MB), accumulators refreshed at the switch, a switch point by time
+        left. If the big net still wins, the idea is answered.
+- [ ] **16 threads while only one game is on** (Matthew, 2026-10-21): the
+      laptop has 8 cores / 16 threads. With two games at once each engine
+      has 8 (and pondering keeps both busy), but while one game plays alone,
+      8 threads sit idle. Let a lone game use 16, back to 8 when a second
+      game starts. To weigh first:
+      - **Measure**: 16 threads were never timed. On 2026-10-15
+        (scripts/threads-bench-d12.txt) Lazy SMP on 8 gave 12.9 M nodes a
+        second, 6.9x one thread. The extra 8 are hyperthreads on the same 8
+        cores: chess engines usually gain +15-30% nodes a second from them,
+        not 2x, and a bit less in depth. Then a match, 16 v 8 threads,
+        nearer the bot's 3+2.
+      - **How often it applies**: the share of the bot's time with one game
+        on, from its logs (if it's mostly two games, the gain is small).
+      - **Heat**: the CPU sat at 88-92 C with 5 busy threads (2026-10-20);
+        16 busy threads may throttle the clocks and give part of it back.
+      - **How**: lichess-bot fixes Threads when it starts an engine.
+        Switching means a `setoption Threads` between moves, not while the
+        engine ponders: a lichess-bot patch that counts active games (16
+        alone, 8 each when a second starts), like the busy and one-player
+        patches.
 - [ ] **Texel tuning** (WORKLOG has it all; step 1, human results, gained
       nothing; step 2a, Stockfish's verdicts, +208 Elo [+130, +311], the bot
       uses bot/eval/eval-sf1.txt via EvalFile):
@@ -689,6 +780,24 @@ Sessions, in order:
         that size, and 4-byte block offsets (~55 MB in memory at 8 KB).
         Recompress from the compressed files, one at a time, each checked
         against the old before it replaces it.
+- [ ] **Does depth win games?** (Matthew, 2026-10-21; MATCHES.md "More search
+      against less", branch claude/gallant-nash-c4b034, not merged yet.) Yes:
+      one more ply is worth +165, +132, +105 Elo at depths 6-7, 8-9, 10-11
+      (600 games each; 20% less every two plies), and twice the clock at
+      10+0.1 +87 [+68, +106] (a ply costs ~2.2x the time, so the two agree).
+      The match tool takes `tc=` per engine now (a clock, or `depth=N`);
+      `scripts/depth-match.py` plays a list of pairs.
+      - [ ] Depth 13 v 12, 300 games (~4 h with the machine to itself;
+            stopped at game 3 on Matthew's word so the bot could play):
+            `python scripts/depth-match.py 13v12/300`. Fixed depths give the
+            same games beside other work, so it can run beside the bot if
+            he's happy to share the cores.
+      - [ ] 4x time odds, `40+0.4v10+0.1/400` (~1 h 45 min, the machine to
+            itself). Matthew's, after P3.
+      - [ ] Optional: "think long early", an arm that spends much more of
+            its clock on its first moves out of book, against normal time
+            use (needs an engine option; the effect is likely under 20 Elo,
+            so ~2,000 games).
 - [ ] **Pondering** (2026-10-15, branch claude/vigilant-murdock-d223f5, built on
       the threads branch; WORKLOG "pondering, and what it's worth"): the engine
       thinks on the opponent's time (`go ponder`, `ponderhit`, `bestmove ...
@@ -735,9 +844,39 @@ Sessions, in order:
                   484 passed. After the bot's next restart, ponderlog.py
                   should show 0 hits with no info after ponderhit; PONDER.md,
                   "Results".)
-            - [ ] P2: a hit may finish the depth it would drop, within the
+            - [x] P2: a hit may finish the depth it would drop, within the
                   move's planned time, and stops by then. Search.PonderHit,
-                  ~2 h.
+                  ~2 h. (Done 2026-10-21 on claude/p2-finish-depth-246981,
+                  not merged yet. **Measured, and off: it doesn't win
+                  games.** In the lab a ply more on 6-9 of 12 hits at
+                  0.75-2 S, as the replay said, never more than S after the
+                  hit, every depth node for node as before. But at 10+0.1,
+                  both sides pondering: both rules -41 [-65, -17] (360
+                  games), the cap alone -22 [-41, -3] (575), finish alone
+                  -7 [-24, +11] (614). Two UCI options, PonderFinish and
+                  PonderCap, both default off, so merging changes nothing
+                  in the bot. PonderTests 20 → 65, 53 mutations caught,
+                  suite 529 passed. The slower control was skipped (a null
+                  would need ~11 h); measure P2 again after P4. PONDER.md,
+                  "P2".)
+            - [ ] **Matthew's "dirty trick"** (2026-10-21, beside p2.1's
+                  "think long early"): think a full minute on the first move
+                  out of book, then let a smaller, faster network carry the
+                  rest of the game. An A/B match through python-chess
+                  (scripts/ponder-match.py's loop) needs no engine change:
+                  arm A's first move out of book gets `Limit(time=60)`, then
+                  the script sends `setoption EvalFile` with the small net
+                  (h512-3m or nnue1, ~9-13% more nodes a second, MATCHES.md);
+                  arm B plays normally on h1024-3m. It needs a clock where a
+                  minute is affordable, e.g. the bot's 3+2 (a third of the
+                  clock) or 5+3: ~3-5 min a game, so ~300 games is 5-8 h at
+                  3 at a time. What to expect: a minute is ~10x a move's
+                  time, about +3 plies on that one move (p2.1: a ply costs
+                  ~2.2x the time); the table keeps that work only while the
+                  opponent follows our line (56.5% of replies on Lichess, so
+                  ~6% for five moves running); and every later move has less
+                  clock and a weaker net. Measure the halves apart too (the
+                  minute alone, the small net alone), as P2's split was.
             - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
                   Search.TimeBudget and the Ponder option, ~1 h.
             - [ ] P4: play an unfinished depth's better move instead of
@@ -749,8 +888,11 @@ Sessions, in order:
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's
                   entries. TranspositionTable, about half a day.
-            - [ ] An A/B mode for scripts/ponder-match.py (both sides
+            - [x] An A/B mode for scripts/ponder-match.py (both sides
                   ponder, the arms differ by a UCI option), which P2-P4 need.
+                  (With P2: `--arms "PonderFinish=true;PonderFinish=false"`,
+                  `--sprt 0,10`; the summary gives each side's clock left
+                  at the end.)
             After the src work in flight lands (AVX-512 and the lazy update,
             the bitboard sessions).
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
@@ -775,15 +917,21 @@ Sessions, in order:
       0.00 for Stockfish. Misjudged is 23% of the lost points. Still to do:
       the by-material split. games/turns/curves.jsonl has ours v Stockfish's
       for 7,035 positions of those games.
-- [ ] **The repetition rule** (TURNS.md, "The false draw"):
-      `Search.IsRepetition` counts a position seen once before, anywhere
-      since the last capture or pawn move (the game before the search too), as
-      a draw, and `Negamax` scores it 0. So a move back to a position from a
-      few moves ago scores 0.00, and a winning opponent just plays on. In lost
-      games 94 of our moves scored 0.00 that way, 67 of them at -1.50 or worse
-      for Stockfish; 13 games (7% of the lost points) turned on it. Stockfish's
-      rule: a draw if the earlier occurrence is inside the search, or on the
-      third occurrence. Small change, then an A/B match (ponder-match.py).
+- [ ] **Later, should the other levers run out: the piece-pair options**
+      (Matthew, 2026-10-21: b and c on the long-term list, "the closer we fit
+      to real life"; [scripts/piece-pairs-2026-09.md](scripts/piece-pairs-2026-09.md)).
+      Stockfish: bishop pair +48 cp, knight pair ~0, second rook -27.
+      h1024-3m already leans by only -1, 0 and +2 cp on them (+4 on all
+      three), so neither is worth a match yet. Before either, re-measure the
+      lean on whatever net plays then (`scripts/nnue/piece-pairs.py`, ~8 min).
+      - [ ] (b) A pair bonus beside the net, or pair flags as extra inputs:
+            at most ~2 cp to correct (~5 for all three, in 2.4% of
+            positions). A bonus: an engine change, tests, a match (~2 h, the
+            bot off). Inputs: a new input layout in the trainer and the
+            engine, a ~12 h retrain on the 1660, and the match.
+      - [ ] (c) A rook-pair term in sf1, which overvalues the second rook by
+            +26 cp [+21, +32] (it has none): a Texel round (~1 h) and a match
+            against sf1 (~2 h, the bot off). Only if sf1 plays again.
 
 ### 3. Findings for the thesis
 
@@ -799,9 +947,10 @@ Sessions, in order:
       `table` then adds its own table. Overnight, with nothing else
       running: ~50 core-hours (three workers of 4 threads, CPUs 2-13, the
       second and third with `--reverse`; TURNS.md "Next runs").
-      (c) a fresh week, once the repetition fix (and P1-P6) is in the bot:
-      move games/turns aside first (`extract` overwrites games.json), then
-      extract, search, stretches, curves, calibrate, table. Did the fixes
+      (c) a fresh week with the repetition fix in the bot (since 2026-10-22
+      02:25; "Re-run TURNS" in section 2): move games/turns aside first
+      (`extract` overwrites games.json), then `extract --since "2026-10-22
+      02:25"`, search, stretches, curves, calibrate, table. Did the fix
       change how we lose? lichess-bot keeps 7 days of DEBUG logs.
       Not (a), a plain re-run: only 5 turns lacked full depth.
 - [ ] New examples for "Endgames Thrown Away" from the month
@@ -821,16 +970,19 @@ Sessions, in order:
 ### 4. Matthew's (flagged, his to do)
 
 - [x] Push `compression` (GitHub matched d13b55c at 00:47 on 2026-10-15).
-- [ ] A second pull request from `compression` into `main` (PR #1 took only
-      the first commit).
+- [x] A second pull request from `compression` into `main` (PR #1 took only
+      the first commit). (Done: PRs #2-#4, and #6 on 2026-10-21, merged by
+      Matthew at 11:02, 91503ab: compression up to e419168.)
 - [x] Pondering for the bot, if wanted (section 2): merge
       claude/vigilant-murdock-d223f5 (it carries the threads branch too), build
       the engine into bot/lichess-bot/engines/bruteforcer, and set `ponder:
       true` in bot/lichess-bot/config.yml; restart the bot between games. The
       ponder search takes a core for the whole game, from the learner and any
       index run. (Done 2026-10-16: merged, and on in bot/make-config.py.)
-- [ ] Decision M (pondering, [PONDER.md](PONDER.md)): pick an option, (a) to
-      (e), at the end of PONDER.md.
+- [x] Decision M (pondering, [PONDER.md](PONDER.md)): pick an option, (a) to
+      (e), at the end of PONDER.md. (2026-10-21: Matthew chose all six, P1 to
+      P6, one session each, in sequence; the steps are ticked under
+      "Decision M" in section 2. P1 is in compression, 7cb0adb.)
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;
@@ -846,6 +998,9 @@ Sessions, in order:
 
 ### Done lately (details in WORKLOG)
 
+- 2026-10-21: **does depth win games?** One more ply +165 / +132 / +105 Elo
+  at depths 6-7 / 8-9 / 10-11; twice the clock at 10+0.1 +87 [+68, +106]
+  (2,400 games; MATCHES.md).
 - 2026-10-17 (night): **nnue1-h512 +76 Elo [+45, +107] over nnue1** (285
   games, SPRT accepted H1), after the bot beat Stockfish-2500 10-0 at 3+2;
   Matthew chose to switch the bot to it at its next start.

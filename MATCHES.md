@@ -63,6 +63,8 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-18 | h512-blend25 | nnue1-h512 | 1,252 | +311 -349 =592 | 48.5% | -11 [-25, +3] | SPRT [0, 10] **accepted H0** (LLR -3.06): the result blend doesn't help; bot stopped |
 | 2026-10-18 | h512-mates | nnue1-h512 | 1,212 | +310 -349 =553 | 48.4% | -11 [-26, +3] | SPRT [0, 10] **accepted H0** (LLR -2.99): mates in training don't help; bot stopped |
 | 2026-10-19 | h512-3m | nnue1-h512 | 2,000 | +583 -521 =896 | 51.5% | **+11 [-1, +22]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 1.73), LOS 96.9%: three months' data, a small gain; bot stopped |
+| 2026-10-20 | h1024-3m | h512-3m | 584 | +211 -143 =230 | 55.8% | **+41 [+19, +63]** | SPRT [0, 10] **accepted H1** at game ~579 (LLR 2.95); games 321-584 beside the bot, 34 time losses there (see below) |
+| 2026-10-20 | h768-3m | h512-3m | 525 | +200 -189 =136 | 51.0% | +7 [-18, +33] | **stopped, not a result**: all beside the bot, 135 games lost on time (78 by h768-3m); to be played again with the bot off |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -131,6 +133,113 @@ repetitions, 344 table draws, 85 by the 50-move rule, 2 stalemates; no time
 losses, crashes or illegal moves. Equal speed (2,091 against 2,078 knps,
 depth 10.2 each). On Matthew's word (2026-10-19, ~14:35) the bot plays on
 it from its next start (`bot\eval\h512-3m.nnue`).
+
+**h1024-3m against h512-3m** (2026-10-20, 03:04-04:01): h512-3m's recipe at
+1024 hidden (NNUE.md, session 5). The SPRT accepted H1 at game ~579 (LLR
+2.95); 584 games in all: **+41 Elo [+19, +63]**, LOS 100.0%. As white +116
+-68, as black +95 -75. Ends: 175 checkmates, 145 by the tables, 131
+repetitions, 82 table draws, 34 on time, 16 by the 50-move rule, 1
+stalemate; no crashes or illegal moves. **Not all of it was clean**: the bot
+came back on h1024-3m at 03:28 (Matthew's call at game 188) and from about
+game 320 the match played beside it, at below-normal priority. Speeds there
+swung from ~1,700 down to 80-500 knps a side while the bot thought, and
+**all 34 time losses came after game 420** (h512-3m 18, h1024-3m 16). The
+two halves agree: games 1-320, +109 -74 =137, 55.5%, no time losses; games
+321-584, +102 -69 =93, 56.2%. In the clean half h1024-3m searched 1,600-1,790
+knps against h512-3m's ~2,000-2,110 (-16%), depth ~0.2 shallower. The bot
+plays on it (decision I in NNUE.md).
+
+**h768-3m against h512-3m, stopped** (2026-10-20, 04:01-04:54, all of it
+beside the bot): 525 games, +200 -189 =136, +7 [-18, +33], LLR 0.13.
+**135 games were lost on time** (games 139-437; h768-3m 78, h512-3m 57):
+with five match engines below the bot's priority, each side dropped to
+80-1,100 knps at times, and the slower net reached the clock more often.
+Without the time losses: +143 -111 =136 in 390 games, 54.1%. So the clock
+pulled h768-3m's score down by about 20 Elo: the match measured the
+crowding, not the nets. Matthew stopped it to play it again with the bot
+off; the games are kept as games\nnue\match-h768-3m-h512-3m-beside-bot.*.
+The lesson for matches beside the bot: at 10+0.1, five games at a time is
+too many while the bot plays; h1024-3m's last 264 games were near the
+edge too.
+
+## Pondering (2026-10-16 on)
+
+Our engine against itself through python-chess, as lichess-bot drives it
+(`scripts/ponder-match.py`): each engine pinned to a physical core of its
+own, one thread, Hash 64, below-normal priority, the 300 book openings in
+colour-reversed pairs, no endgame tables. Plain mode: one side ponders, the
+other doesn't. A/B mode: both ponder, and they differ by a UCI option.
+Results from the first-named side's point of view; "clock left" is at the
+end of the game. Details in PONDER.md.
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-16 | ponder on | ponder off | 119 | +48 -20 =51 | 61.8% | +83 [+37, +133] | 10+0.1, sf1 numbers; hit rate 71.5%; clock left 48% v 20% |
+| 2026-10-21 | P2 (PonderFinish on) | P2 off, both pondering | 360 | +61 -103 =196 | 44.2% | **-41 [-65, -17]** | 10+0.1, h1024-3m, 3 at a time, the bot stopped; SPRT [0, 10] **accepted H0** at game 358 (LLR -3.07); hit rate 69%; clock left 34% v 43%; no time losses |
+| 2026-10-21 | P2's cap only (PonderCap on) | both off | 575 | +106 -142 =327 | 46.9% | **-22 [-41, -3]** | 10+0.1, as above; SPRT [0, 10] **accepted H0** at game 571; clock left 46% v 40%; no time losses |
+| 2026-10-21 | P2's finish only (PonderFinish on) | both off | 614 | +117 -129 =368 | 49.0% | -7 [-24, +11] | 10+0.1, as above; SPRT [0, 10] undecided (LLR -1.50), stopped at a fixed count; clock left 28% v 44%; no time losses |
+
+## The repetition rule (2026-10-21/22)
+
+Stockfish's repetition rule (a draw if the earlier time is inside the
+search, or on the third time) against the old one (any position seen once
+before is a draw), as `RepetitionRule=Threefold;RepetitionRule=Twofold` in
+`scripts/ponder-match.py`'s A/B mode: 10+0.1, both pondering, h1024-3m,
+one thread and one core each, 3 games at a time on CPUs 2-12, the bot off.
+`--draws occurred`: a game is drawn when a position is there for the third
+time, not when the side to move could make it so (python-chess's
+claim_draw, which would hold a winner that let a position come round twice
+to a draw it was avoiding). Results from the new rule's point of view.
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-21 | new rule (95a231c) | old rule | 642 | +107 -136 =399 | 47.7% | **-16 [-32, +1]** | SPRT [0, 10] **accepted H0** at game 638 (LLR -3.00); won 79% of its +3.00 leads against 93%: a stale table entry hid threefolds the other side could make |
+| 2026-10-22 | new rule + no table cutoff at positions seen before (b5061ed) | old rule | 1,245 | +259 -256 =730 | 50.1% | **+1 [-12, +13]** | SPRT [0, 10] undecided (LLR -1.04) at 1,245 games; playing on to 2,000 | |
+
+Both got ahead equally often in each match. The table fix took the leads
+lost to the other side's repetitions from 25 (in 642 games) to 9 (in
+1,245). WORKLOG (2026-10-21, the repetition rule) has the tables.
+
+## More search against less (2026-10-21)
+
+Does depth win games? (Matthew, 2026-10-21.) Our engine against itself,
+the same build on both sides, with more search on one: a fixed depth
+against one ply less (`go depth N`, no clock), or twice the clock. Matthew's
+laptop with the bot stopped, the bot's network (h1024-3m), one thread and
+Hash 64 each, no tables in the engines (ours adjudicate), the 300 openings
+of games/tune/openings-300.txt in colour-reversed pairs, below-normal
+priority. Depth pairs ran 7 at a time (a one-thread search to a fixed depth
+plays the same game however busy the machine is), the clock pair 5 at a
+time, as the matches above did. `scripts/depth-match.py` on branch
+claude/gallant-nash-c4b034 (the match tool's per-engine `tc=`, commit
+793d71d); `scripts/depth-summary.py` reads the logs (games\depth\).
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-21 | depth 7 | depth 6 | 600 | +321 -56 =223 | 72.1% | **+165 [+143, +188]** | 4 min |
+| 2026-10-21 | depth 9 | depth 8 | 600 | +261 -43 =296 | 68.2% | **+132 [+113, +152]** | 18 min |
+| 2026-10-21 | depth 11 | depth 10 | 600 | +207 -31 =362 | 64.7% | **+105 [+88, +122]** | 1 h 41 min |
+| 2026-10-21 | 20+0.2 | 10+0.1 | 600 | +212 -65 =323 | 62.3% | **+87 [+68, +106]** | 1 h 26 min; mean depth 12.0 v 10.8 |
+| 2026-10-21 | depth 13 | depth 12 | 14 | +3 -0 =11 | 60.7% | +76 [0, +159] | smoke test only; the 300-game run stopped at game 3 so the bot could play |
+
+**One more ply is worth about 20% less for every two plies deeper**:
++165, +132, +105 (each 0.80 of the one before). At that rate depth 13
+against 12 would be about +84, which the smoke test's +76 fits. **A ply
+costs about 2.2x the time** (the mean time a move over both sides: 21 ms at
+depths 6-7, 104 ms at 8-9, 554 ms at 10-11, or 475 ms at the speed of the
+other pairs; that pair ran 14% slower in nodes a second). So at depths
+10-11, one doubling of time buys 1/log2(2.2) = 0.88 of a ply, about +92
+Elo by the depth matches, and **doubling the clock measured +87 [+68,
++106]**: the two methods agree. At 10+0.1 on one thread the engine
+reached depth 10.8 on average; at 20+0.2, 12.0.
+
+For scale: 8 threads against 1 (+215, above) is worth about two and a half
+doublings, and pondering (+83, 2026-10-15) about one. Draws rise with
+depth: 37% of games at depths 6-7, 49% at 8-9, 60% at 10-11, 54% with
+double time. Counting each opening's two games together (pentanomial) gave
+the same intervals to within 2 Elo. Ends over the 2,400 games: 733
+repetitions, 705 by the tables, 491 checkmates, 418 table draws, 50 by the
+50-move rule, 3 stalemates; no time losses, crashes or illegal moves.
 
 ## Versions
 

@@ -243,6 +243,123 @@ public class SearchTests : IClassFixture<RookEndgame>
             .Run(position, new SearchLimits { Depth = 5 }, history);
         Assert.True(result.Score > 500);
     }
+
+    // The repetition rule (TURNS.md, "The false draw"): Stockfish's, a draw if the position came before inside
+    // the search, or on its third time.  The old rule called any position seen once before a draw, the game
+    // before the search included, so a losing side "drew" by going back to where it was a few moves ago.
+
+    /// <summary>
+    /// K+Q v K.  After <see cref="QueenUpMoves"/> (Qd1+ Ke8, then the queen d1-d2-d1 and the king e8-f8), Black is
+    /// to move, and Kf8-e8 brings back the position after Ke8, the game's third (not its first, so a search that
+    /// lost track of where the root is in the game's list would be caught).
+    /// </summary>
+    private const string QueenUp = "3k4/8/8/8/8/8/8/2Q1K3 w - - 0 1";
+    private const string QueenUpMoves = "c1d1 d8e8 d1d2 e8f8 d2d1";
+
+    /// <summary>White to move, a rook and a pawn down, with a perpetual check: Qe8+ Kh7 Qh5+ Kg8, again and again.</summary>
+    private const string Perpetual = "6k1/6p1/8/7Q/8/6K1/r7/q7 w - - 0 1";
+
+    /// <summary>The position after <paramref name="moves"/> from <paramref name="fen"/>, and the game's positions before it.</summary>
+    private static (Position Root, List<ulong> Earlier) Game(string fen, string moves)
+    {
+        var position = Position.FromFen(fen);
+        var earlier = new List<ulong>();
+        foreach (string uci in moves.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            earlier.Add(position.Hash);
+            position.MakeMove(position.ParseUciMove(uci) ?? throw new ArgumentException($"Illegal move {uci}."));
+        }
+        return (position, earlier);
+    }
+
+    private static SearchResult Think(Position root, List<ulong> earlier, int depth, int threads = 1, bool twofold = false) =>
+        new Search(new TranspositionTable(8)) { Threads = threads, TwofoldRepetitions = twofold }
+            .Run(root, new SearchLimits { Depth = depth }, earlier);
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public void APositionSeenOnceBeforeInTheGameIsNotADrawYet(int threads)
+    {
+        // Kf8-e8 makes the position after Ke8 come round a second time.  White just plays on, so Black is still
+        // a queen down; the old rule scored it 0 and played it.
+        var (root, earlier) = Game(QueenUp, QueenUpMoves);
+        var result = Think(root, earlier, 6, threads);
+        Assert.True(result.Score < -500, $"scored {result.Score} with {result.BestMove?.ToUci()}");
+
+        var old = Think(root, earlier, 6, threads, twofold: true);
+        Assert.Equal(0, old.Score);
+        Assert.Equal("f8e8", old.BestMove?.ToUci());
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    public void ThePositionsThirdTimeIsADraw(int threads)
+    {
+        // The same dance twice: Kf8-e8 now makes that position's third time, a draw Black can take.
+        var (root, earlier) = Game(QueenUp, QueenUpMoves + " f8e8 d1d2 e8f8 d2d1");
+        var result = Think(root, earlier, 6, threads);
+        Assert.Equal(0, result.Score);
+        Assert.Equal("f8e8", result.BestMove?.ToUci());
+    }
+
+    [Theory]
+    [InlineData("", 3, 1)]
+    [InlineData("", 3, 4)]
+    [InlineData("h5e8", 2, 1)]
+    [InlineData("h5e8", 2, 4)]
+    public void ARepetitionInsideTheSearchIsADraw(string moves, int depth, int threads)
+    {
+        // Qe8+ Kh7 Qh5+ Kg8 (the root again: not a draw yet) Qe8+, the first check's position a second time,
+        // inside the search: a draw (ply 5).  At depth 3 the search reaches that, but not the root's third time
+        // (ply 8), which would be a draw by any rule.  And from Black's side, after Qe8+ (in check at the root,
+        // so a ply deeper): Kh7 is forced and the checks go round, Kh7's position a second time at ply 5.
+        // (Each needs the search to look past the root's return, not take the root's table entry for it.)
+        var (root, earlier) = Game(Perpetual, moves);
+        var result = Think(root, earlier, depth, threads);
+        Assert.Equal(0, result.Score);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HelpersSearchByTheRuleOfTheSearchTheyWorkFor(bool twofold)
+    {
+        var (root, earlier) = Game(QueenUp, QueenUpMoves);
+        var search = new Search(new TranspositionTable(8)) { Threads = 4, TwofoldRepetitions = twofold };
+        search.Run(root, new SearchLimits { Depth = 4 }, earlier);
+        Assert.Equal(new[] { twofold, twofold, twofold }, search.HelperRules);
+    }
+
+    [Fact]
+    public void ATableEntryStoredBeforeAPositionCameRoundAgainIsNotTrusted()
+    {
+        // White, a queen up, and both kings shuffling: Kb1-a1 now brings back a position the game has had once
+        // (Black to move), and from there Kh8 makes another position's third time, a draw.  An entry for that
+        // position stored before it came round (here a made-up one: Black lost by far) mustn't stand in for
+        // searching it, or Kb1-a1 looks best and lets Black draw.  (In the A/B match the new rule's leads were
+        // thrown away like this: in 16 of 25 replayed, it played the move that let the other side repeat.)
+        const string start = "7k/8/8/8/8/3Q4/8/K7 w - - 0 1", shuffle = "a1b1 h8g8 b1a1 g8h8 a1b1 h8g8";
+        var (root, earlier) = Game(start, shuffle);
+        var table = new TranspositionTable(8);
+        table.Store(Game(start, shuffle + " b1a1").Root.Hash, default, -5000, 100, Bound.Exact);
+        var result = new Search(table) { TwofoldRepetitions = false }.Run(root, new SearchLimits { Depth = 4 }, earlier);
+        Assert.NotEqual("b1a1", result.BestMove?.ToUci());
+        Assert.InRange(result.Score, 500, 4000);
+    }
+
+    [Fact]
+    public void ComingBackToTheRootOnceIsNotADraw()
+    {
+        // At depth 2 the perpetual reaches Kg8, the root's position a second time (ply 4), but not the check
+        // after it: the root was in the game before the search, so that alone is no draw, and White, a rook
+        // down, has nothing better.  The old rule saw a draw there.
+        var (root, earlier) = Game(Perpetual, "");
+        var result = Think(root, earlier, 2);
+        Assert.True(result.Score < -300, $"scored {result.Score} with {result.BestMove?.ToUci()}");
+        Assert.Equal(0, Think(root, earlier, 2, twofold: true).Score);
+    }
 }
 
 /// <summary>
@@ -494,5 +611,35 @@ public class UciTests
         engine.Handle("position startpos moves e2e5");
         Assert.Contains("info string error", output.ToString());
         Assert.True(engine.Handle("isready"));
+    }
+
+    [Fact]
+    public void TheGamesMovesCountForRepetitionsAndRepetitionRuleChoosesTheRule()
+    {
+        // Black, a queen down, can bring the position after Ke8 round again with Kf8-e8: no draw (Threefold,
+        // the default), a draw by the old rule (Twofold).
+        var (engine, output) = Start();
+        (int Score, string Move) Go()
+        {
+            output.GetStringBuilder().Clear();
+            engine.Handle("position fen 3k4/8/8/8/8/8/8/2Q1K3 w - - 0 1 moves c1d1 d8e8 d1d2 e8f8 d2d1");
+            engine.Handle("go depth 5");
+            engine.WaitForSearch();
+            var lines = output.ToString().Split('\n');
+            string info = lines.Last(l => l.StartsWith("info depth 5 "));
+            var words = info.Split(' ');
+            int score = int.Parse(words[Array.IndexOf(words, "cp") + 1]);
+            return (score, lines.Last(l => l.StartsWith("bestmove")).Split(' ')[1].Trim());
+        }
+
+        engine.Handle("uci");
+        Assert.Contains("option name RepetitionRule type combo default Threefold var Threefold var Twofold", output.ToString());
+        Assert.True(Go().Score < -500);
+        engine.Handle("setoption name RepetitionRule value Twofold");
+        Assert.Equal((0, "f8e8"), Go());
+        engine.Handle("setoption name RepetitionRule value Threefold");
+        Assert.True(Go().Score < -500);
+        engine.Handle("setoption name RepetitionRule value Sometimes");
+        Assert.Contains("info string error: RepetitionRule is Threefold or Twofold", output.ToString());
     }
 }

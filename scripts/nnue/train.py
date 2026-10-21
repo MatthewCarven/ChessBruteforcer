@@ -12,6 +12,7 @@ Run it with the venv's python (scripts/nnue/.venv, PyTorch with CUDA). Options o
                             stays --data's alone, so it compares with nets trained before
     --out <dir>             where the net, checkpoint and log go (default games\\nnue\\nets)
     --hidden 256            hidden numbers per perspective
+    --layers 32             small hidden layers after it (32, or 16/32): a float experiment, no .nnue written
     --passes 20             passes over the training buckets
     --batch 16384           positions a step
     --lr 0.001              AdamW's learning rate, times --lr-gamma after each pass in --lr-drops
@@ -139,21 +140,30 @@ def targets(batch, btm, score, blend=0.0):
     return t
 
 
-def make_net(hidden):
+def make_net(hidden, layers=()):
     import torch
 
     class Net(torch.nn.Module):
-        """768 -> hidden x2 -> 1, SCReLU. y = sum of clamp(a, 0, 1)^2 x w + b; the score is 400 y centipawns."""
+        """768 -> hidden x2 -> 1, SCReLU. y = sum of clamp(a, 0, 1)^2 x w + b; the score is 400 y centipawns.
+        With layers (--layers 32, or 16/32): 768 -> hidden x2 -> 32 [-> ...] -> 1 instead, each small layer a
+        torch.nn.Linear then clamp(0, 1). A float experiment (2026-10-21, Matthew: does a deeper net fit the data
+        better?): the export and the engine know only the one output layer, so such a net isn't exported."""
 
         def __init__(self):
             super().__init__()
             bound = 1 / math.sqrt(INPUTS)   # torch.nn.Linear's own initial range, for both layers
             self.hidden = hidden
+            self.layers = tuple(layers)
             self.fw = torch.nn.Parameter(torch.empty(INPUTS + 1, hidden).uniform_(-bound, bound))   # row PAD unused
             self.fb = torch.nn.Parameter(torch.empty(hidden).uniform_(-bound, bound))
-            out = 1 / math.sqrt(2 * hidden)
-            self.ow = torch.nn.Parameter(torch.empty(2 * hidden).uniform_(-out, out))
-            self.ob = torch.nn.Parameter(torch.zeros(()))
+            if not self.layers:
+                out = 1 / math.sqrt(2 * hidden)
+                self.ow = torch.nn.Parameter(torch.empty(2 * hidden).uniform_(-out, out))
+                self.ob = torch.nn.Parameter(torch.zeros(()))
+            else:
+                sizes = (2 * hidden,) + self.layers
+                self.dense = torch.nn.ModuleList(torch.nn.Linear(a, b) for a, b in zip(sizes, sizes[1:]))
+                self.final = torch.nn.Linear(sizes[-1], 1)
 
         def accumulators(self, white, black):
             f = torch.nn.functional.embedding_bag
@@ -164,11 +174,16 @@ def make_net(hidden):
             aw, ab = self.accumulators(white, black)
             b = black_to_move[:, None]
             h = torch.cat((torch.where(b, ab, aw), torch.where(b, aw, ab)), 1).clamp(0, 1).square()
-            return (h * self.ow).sum(1) + self.ob   # not h @ ow: that loads cuBLAS, ~350 MB more host commit
+            if not self.layers:
+                return (h * self.ow).sum(1) + self.ob   # not h @ ow: that loads cuBLAS, ~350 MB more host commit
+            for layer in self.dense:
+                h = layer(h).clamp(0, 1)
+            return self.final(h).squeeze(1)
 
         @torch.no_grad()
         def clamp_(self):
-            for p in (self.fw, self.fb, self.ow):
+            # The feature layer keeps the export's clamp either way; the small layers, a float experiment, go free.
+            for p in (self.fw, self.fb) + ((self.ow,) if not self.layers else ()):
                 p.clamp_(-CLAMP, CLAMP)
 
     return Net()
@@ -456,7 +471,8 @@ def train(args):
     gen = torch.Generator(device=dev)
     gen.manual_seed(args.seed)
 
-    net = make_net(args.hidden).to(dev)
+    layers = tuple(int(x) for x in args.layers.replace("/", ",").split(",") if x)
+    net = make_net(args.hidden, layers).to(dev)
     opt = torch.optim.AdamW(net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     drops = [int(x) for x in args.lr_drops.replace("/", ",").split(",") if x]   # 4/7/9 too (see --lr-drops)
     checkpoint = out / f"{args.run}.pt"
@@ -563,12 +579,16 @@ def train(args):
         state = {k: v.detach().cpu().numpy() for k, v in net.state_dict().items()}
         tmp = str(checkpoint) + ".tmp"
         torch.save({"state": state, "optimizer": opt.state_dict(), "pass": p, "hidden": args.hidden,
-                    "args": vars(args) | {"data": str(args.data), "out": str(args.out)}}, tmp)
+                    "layers": layers, "args": vars(args) | {"data": str(args.data), "out": str(args.out)}}, tmp)
         os.replace(tmp, checkpoint)
     pool.shutdown()
     ws, priv = host_memory()
     log(f"GPU peak allocated {torch.cuda.max_memory_allocated() / 2**20:,.0f} MB, reserved "
         f"{torch.cuda.max_memory_reserved() / 2**20:,.0f} MB; host {ws:,.0f} MB working set, {priv:,.0f} MB commit")
+    if layers:
+        log(f"no .nnue: the export and the engine know one output layer only (this net: {args.hidden} x2 -> "
+            f"{' -> '.join(map(str, layers))} -> 1); its float held-back error above is the measure")
+        return 0
     state = {k: v.detach().cpu().numpy() for k, v in net.state_dict().items()}
     path = out / f"{args.run}.nnue"
     sha, qb = export(state, path)
@@ -592,6 +612,9 @@ def main(argv):
                         "--data's, so it compares with earlier nets")
     t.add_argument("--out", type=pathlib.Path, default=NETS)
     t.add_argument("--hidden", type=int, default=256)
+    t.add_argument("--layers", default="",
+                   help="small hidden layers after the feature layer, e.g. 32 or 16/32 (a float experiment, not "
+                        "exported)")
     t.add_argument("--passes", type=int, default=20)
     t.add_argument("--batch", type=int, default=16384)
     t.add_argument("--lr", type=float, default=0.001)

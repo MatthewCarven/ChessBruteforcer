@@ -89,7 +89,9 @@ public sealed class Search
     private readonly int[] _pvLength = new int[MaxPly];
     private readonly Move[,] _killers = new Move[MaxPly, 2];
     private readonly int[,,] _history = new int[2, 64, 64];
-    private readonly List<ulong> _hashes = new();
+    private readonly List<ulong> _hashes = new();   // the game before the root, the root, then the line being searched
+    private int _rootIndex;                          // the root's place in _hashes: what comes after it is the search's own
+    private bool _twofold;                           // TwofoldRepetitions, as the search this one works for has it
 
     private Stopwatch _clock = new();
     private long _nodes;
@@ -153,26 +155,87 @@ public sealed class Search
     }
 
     /// <summary>
+    /// What a ponder hit does with a depth begun past half the planned time S
+    /// (PONDER.md, P2, "finish").  On: the depth may finish if it does so
+    /// within S of the hit, and no depth starts after it.  Off (the default,
+    /// since it didn't win games at 10+0.1): the depth is dropped at once.
+    /// Set between searches.
+    /// </summary>
+    public bool PonderFinish { get; set; }
+
+    /// <summary>
+    /// After a ponder hit, whether a depth that goes on as in a plain search
+    /// (begun before S/2) stops by the hit + S (PONDER.md, P2, the "cap"), or
+    /// may run to the hard limit, 3S from "go ponder" (off, the default: the
+    /// cap lost games at 10+0.1).  Set between searches.
+    /// </summary>
+    public bool PonderCap { get; set; }
+
+    /// <summary>
+    /// The old repetition rule, kept for A/B matches: a position seen once
+    /// before since the last capture or pawn move, the game before the search
+    /// included, is a draw.  Off (the default): Stockfish's rule
+    /// (<see cref="Repetition"/>).  In self-play the two came out even, but the
+    /// old one is wrong in the lost positions where the bot meets it (a 0.00
+    /// with no line, so no ponder move), and Matthew would rather the engine
+    /// be right (WORKLOG, 2026-10-21, the repetition rule).  Set between searches.
+    /// </summary>
+    public bool TwofoldRepetitions { get; set; }
+
+    /// <summary>
     /// The opponent played the move a <see cref="SearchLimits.Ponder"/> search
     /// was pondering on, so that search becomes the real one (thread-safe),
     /// keeping its tree, table and depth.  From now on the clock in its limits
     /// applies, with the time spent pondering counted, as if the search had
     /// begun on our own time at "go ponder": no new depth past half the
-    /// planned time, none at all if pondering is already past it, and a depth
-    /// begun past it (which the clock would never have started) is dropped.
-    /// So a ponder hit plays as deep as our own time would have taken us, and
-    /// usually at once, banking the clock for the moves we didn't foresee.
+    /// planned time, and none at all if pondering is already past it.  A depth
+    /// begun past it (which the clock would never have started) is given the
+    /// planned time from the hit to finish (<see cref="PonderFinish"/>; off, it
+    /// is dropped), and anything else stops by then too (<see cref="PonderCap"/>;
+    /// off, at the hard limit).  So a ponder hit plays at least as deep as our own time
+    /// would have taken us, and often at once, banking the clock for the moves
+    /// we didn't foresee.
     /// </summary>
     public void PonderHit()
     {
         if (!_pondering)
             return;
-        Interlocked.Exchange(ref _hardLimitMs, _plannedHardMs);
+        long hitMs = _clock.ElapsedMilliseconds;
         Interlocked.Exchange(ref _softLimitMs, _plannedSoftMs);
+        var (hardMs, stopNow) = AfterPonderHit(hitMs, Interlocked.Read(ref _iterationStartMs),
+                                               _plannedSoftMs, _plannedHardMs, PonderFinish, PonderCap);
+        Interlocked.Exchange(ref _hardLimitMs, hardMs);
         _pondering = false;
-        if (_plannedSoftMs > 0 && Interlocked.Read(ref _iterationStartMs) > _plannedSoftMs / 2)
+        if (stopNow)
             Stop();
         _ponderOver.Set();
+    }
+
+    /// <summary>
+    /// The hard limit (ms on the search's clock, from "go ponder") that a
+    /// ponder hit at <paramref name="hitMs"/> sets, and whether it stops the
+    /// search at once, for a depth in progress begun at
+    /// <paramref name="iterationStartMs"/> and a planned soft and hard time
+    /// of <paramref name="softMs"/> and <paramref name="hardMs"/>.  With no
+    /// soft time (movetime), the hard limit stays.  With
+    /// <paramref name="finish"/>, a depth begun past half the soft time, or
+    /// one still running when the hit comes past the hard limit, has the soft
+    /// time from the hit to finish (no new depth starts after it, since one
+    /// would begin past half the soft time); without it, a depth begun past
+    /// half the soft time is stopped.  Any other depth goes on to the hard
+    /// limit, or with <paramref name="cap"/> to the hit plus the soft time if
+    /// that comes first.  With both, the hit spends at most the soft time of
+    /// real clock.
+    /// </summary>
+    internal static (long HardMs, bool StopNow) AfterPonderHit(long hitMs, long iterationStartMs, long softMs, long hardMs,
+                                                              bool finish, bool cap)
+    {
+        bool lateDepth = softMs > 0 && iterationStartMs > softMs / 2;
+        if (softMs <= 0)
+            return (hardMs, false);
+        if (finish && (lateDepth || hitMs >= hardMs))
+            return (hitMs + softMs, false);
+        return (cap ? Math.Min(hardMs, hitMs + softMs) : hardMs, lateDepth);
     }
 
     /// <summary>
@@ -220,7 +283,8 @@ public sealed class Search
             for (int depth = 1; depth <= maxDepth; depth++)
             {
                 // (A full fence each side, here and in PonderHit: if a ponderhit lands just as this
-                // depth begins, this check or PonderHit's sees the other's write, so it isn't searched.)
+                // depth begins, this check or PonderHit's sees the other's write, so the depth is either
+                // not searched or known to PonderHit as begun past half the planned time.)
                 long started = _clock.ElapsedMilliseconds;
                 Interlocked.Exchange(ref _iterationStartMs, started);
                 long softLimitMs = Interlocked.Read(ref _softLimitMs);
@@ -271,8 +335,14 @@ public sealed class Search
     /// <summary>Time since the current or last search began ("go", or "go ponder" for a ponder search).</summary>
     public TimeSpan Elapsed => _clock.Elapsed;
 
+    /// <summary>The hard limit in force now, ms on the search's clock (0: none; for tests).</summary>
+    internal long HardLimitMs => Interlocked.Read(ref _hardLimitMs);
+
     /// <summary>The positions the current or last search's helpers searched from (each thread's own copy of the root).</summary>
     internal IEnumerable<Position?> HelperRoots => _helpers.Take(_activeHelpers).Select(helper => helper._root);
+
+    /// <summary>The repetition rule the current or last search's helpers searched by (true: <see cref="TwofoldRepetitions"/>; for tests).</summary>
+    internal IEnumerable<bool> HelperRules => _helpers.Take(_activeHelpers).Select(helper => helper._twofold);
 
     private long TotalNodes
     {
@@ -331,7 +401,9 @@ public sealed class Search
         _hashes.Clear();
         if (previousHashes is not null)
             _hashes.AddRange(previousHashes);
+        _rootIndex = _hashes.Count;
         _hashes.Add(root.Hash);
+        _twofold = (_main ?? this).TwofoldRepetitions;   // (a helper is prepared by the search it works for)
     }
 
     /// <summary>At least <paramref name="count"/> helpers, made once and kept: each holds ~250 KB of move lists and tables.</summary>
@@ -551,10 +623,15 @@ public sealed class Search
             return 0;
 
         bool root = ply == 0;
+        bool seenInGame = false;
         if (!root)
         {
-            if (position.HalfmoveClock >= 100 || IsRepetition(position))
+            if (position.HalfmoveClock >= 100)
                 return 0;
+            var repeat = Repetition(position);
+            if (repeat == Repeat.Draw)
+                return 0;
+            seenInGame = repeat == Repeat.SeenInGame;
             // Mate-distance pruning: no line from here can beat a mate already found nearer the root.
             alpha = Math.Max(alpha, -Mate + ply);
             beta = Math.Min(beta, Mate - ply - 1);
@@ -581,7 +658,11 @@ public sealed class Search
         if (_table.TryGet(position.Hash, out var entry))
         {
             ttMove = entry.Move;
-            if (!root && entry.Depth >= depth)
+            // (Not at a position the game has had before, the root included: its entry was stored before it came
+            // round again, so it can't know that the reply which makes a position's third time is a draw now.  At
+            // a return to the root it's the root's own entry from the depth before, which would hide a perpetual
+            // check through the root; elsewhere, an entry from an earlier move's search that still says "winning".)
+            if (!root && entry.Depth >= depth && !seenInGame)
             {
                 int ttScore = FromTable(entry.Score, ply);
                 if (entry.Bound == Bound.Exact
@@ -819,15 +900,33 @@ public sealed class Search
         return moves[start];
     }
 
-    /// <summary>Has this position occurred before, since the last capture or pawn move?</summary>
-    private bool IsRepetition(Position position)
+    /// <summary>
+    /// Is this position a draw by repetition, or one the game has had once
+    /// before (not a draw yet)?  Stockfish's rule: a draw if it
+    /// occurred before inside this search, after the root (the line that came
+    /// back to it can go round again, for ever), or if it is here for the
+    /// third time.  Seen once before in the game, the root itself included,
+    /// it isn't a draw yet: the game goes on from it, and the side who would
+    /// rather not draw plays something else.  (Only since the last capture or
+    /// pawn move: nothing earlier can come back.)
+    /// </summary>
+    private Repeat Repetition(Position position)
     {
         int top = _hashes.Count - 1;
         int oldest = Math.Max(0, top - position.HalfmoveClock);
+        bool seenInGame = false;   // once already, at the root or before it
         for (int i = top - 2; i >= oldest; i -= 2)
-            if (_hashes[i] == position.Hash) return true;
-        return false;
+        {
+            if (_hashes[i] != position.Hash)
+                continue;
+            if (i > _rootIndex || seenInGame || _twofold)
+                return Repeat.Draw;
+            seenInGame = true;
+        }
+        return seenInGame ? Repeat.SeenInGame : Repeat.No;
     }
+
+    private enum Repeat { No, SeenInGame, Draw }
 
     private void CheckLimits()
     {

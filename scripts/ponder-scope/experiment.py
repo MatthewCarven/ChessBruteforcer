@@ -8,7 +8,12 @@ misses: per (A, P, B): own@A, then
         coldB - ucinewgame, B, go movetime 3000        (sets D, the depth compared)
         noponder - own@A, B, go depth D
         miss f   - own@A, P, go ponder <clock>, f*S, stop, B, go depth D
-usage: python experiment.py hits|misses <first> <last> <out.jsonl> [threads_ponder]
+trace:  per (A, P): own@A, P, go ponder <clock>, 4*S, stop: every depth's finish time, for simulate.py
+p2:     per (A, P), with K (own@A's depth) taken from results/trace.jsonl, so each ponder starts from the table the
+        trace's did: for each hit time f*S, f in 0.75 1.0 1.5 2.0 (simulate.py's rows), and PonderFinish true and false,
+        own@A, P, go ponder <clock>, f*S, ponderhit.  On one thread every depth has the trace's node count.
+        PONDER_SCOPE_ARMS=old for a build without the option (no setoption).
+usage: python experiment.py hits|misses|trace|p2 <first> <last> <out.jsonl> [threads_ponder]
 """
 import json
 import subprocess
@@ -82,7 +87,13 @@ def ponder(e, position, seconds, end, threads_ponder=None):
 def main():
     which, first, last, out = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
     threads_ponder = int(sys.argv[5]) if len(sys.argv) > 5 else None
-    samples = json.load(open(os.path.join(HERE, "samples.json"), encoding="utf-8"))["hits" if which == "trace" else which]
+    samples = json.load(open(os.path.join(HERE, "samples.json"), encoding="utf-8"))["hits" if which in ("trace", "p2") else which]
+    traced = {}
+    if which == "p2":
+        for line in open(os.path.join(HERE, "results", "trace.jsonl"), encoding="utf-8"):
+            if line.strip():
+                r = json.loads(line)
+                traced[r["n"]] = r["K"]
     e = Low(EXE, {"Hash": 256, "Threads": 1, "Move Overhead": 100, "EvalFile": NET})
     # JIT warm-up on a position of no interest
     fresh(e)
@@ -91,12 +102,25 @@ def main():
         for n in range(first, min(last, len(samples) - 1) + 1):
             s = samples[n]
             rec = {"which": which, "n": n, "soft": SOFT, "hard": HARD, "sample": s, "threads_ponder": threads_ponder}
-            fresh(e)
-            cal = search(e, s["A"], "go movetime 2500")
-            k = cal["infos"][-1]["depth"]
+            if which == "p2":
+                k = traced[n]
+            else:
+                fresh(e)
+                cal = search(e, s["A"], "go movetime 2500")
+                k = cal["infos"][-1]["depth"]
             rec["K"] = k
             rec["own"] = own(e, s["A"], k)
-            if which == "trace":
+            if which == "p2":
+                arms = ["old"] if os.environ.get("PONDER_SCOPE_ARMS") == "old" else ["true", "false"]
+                for frac in (0.75, 1.0, 1.5, 2.0):
+                    for arm in arms:
+                        if arm != "old":
+                            e.send(f"setoption name PonderFinish value {arm}")
+                        own(e, s["A"], k)
+                        rec[f"hit{frac}-{arm}"] = ponder(e, s["P"], frac * SOFT / 1000, "ponderhit")
+                if arms != ["old"]:
+                    e.send("setoption name PonderFinish value true")
+            elif which == "trace":
                 # one long ponder (4 x soft), every depth's finish time: replay any hit time under any rule
                 own(e, s["A"], k)
                 rec["trace"] = ponder(e, s["P"], 4 * SOFT / 1000, "stop")

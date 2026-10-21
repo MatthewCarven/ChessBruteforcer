@@ -93,8 +93,11 @@ public sealed class MatchRunner
             // Games 2k and 2k+1 share an opening with colours reversed.
             var opening = _settings.Openings[(game / 2) % _settings.Openings.Count];
             bool aIsWhite = game % 2 == 0;
-            var record = GamePlayer.Play(aIsWhite ? a : b, aIsWhite ? b : a, opening, _settings.Clock,
-                                         game + 1, adjudicator);
+            // Each engine on its own time control when it has one (time odds, fixed depths).
+            var clockA = _a.Clock ?? _settings.Clock;
+            var clockB = _b.Clock ?? _settings.Clock;
+            var record = GamePlayer.Play(aIsWhite ? a : b, aIsWhite ? b : a, opening, aIsWhite ? clockA : clockB,
+                                         game + 1, adjudicator, blackClock: aIsWhite ? clockB : clockA);
 
             double scoreForA = record.Result switch
             {
