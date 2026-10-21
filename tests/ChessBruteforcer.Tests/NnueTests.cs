@@ -317,8 +317,8 @@ public class NnueTests
     /// <summary>The SIMD widths this CPU runs: the forward pass and every kernel are checked at each.</summary>
     private static readonly int[] SimdWidths = new[] { 256, 512 }.Where(width => width <= Kernels.Widest).ToArray();
 
-    private static int ForwardAt(int width, Network network, ReadOnlySpan<short> us, ReadOnlySpan<short> them) =>
-        width == 512 ? network.Forward512(us, them) : network.Forward256(us, them);
+    private static int ForwardAt(int width, Network network, ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket = 0) =>
+        width == 512 ? network.Forward512(us, them, bucket) : network.Forward256(us, them, bucket);
 
     [Theory]
     [InlineData(16)]
@@ -343,8 +343,8 @@ public class NnueTests
             Assert.True(white.AsSpan().SequenceEqual(whiteScalar) && black.AsSpan().SequenceEqual(blackScalar));
             foreach (int width in SimdWidths)
             {
-                Assert.Equal(network.ForwardScalar(white, black), ForwardAt(width, network, white, black));
-                Assert.Equal(network.ForwardScalar(black, white), ForwardAt(width, network, black, white));
+                Assert.Equal(network.ForwardScalar(white, black, 0), ForwardAt(width, network, white, black));
+                Assert.Equal(network.ForwardScalar(black, white, 0), ForwardAt(width, network, black, white));
             }
         }
 
@@ -358,7 +358,7 @@ public class NnueTests
                 black[i] = (short)(trial % 2 == 0 ? rng.Next(-300, 300) : rng.Next(short.MinValue, short.MaxValue + 1));
             }
             foreach (int width in SimdWidths)
-                Assert.Equal(network.ForwardScalar(white, black), ForwardAt(width, network, white, black));
+                Assert.Equal(network.ForwardScalar(white, black, 0), ForwardAt(width, network, white, black));
         }
     }
 
@@ -374,10 +374,10 @@ public class NnueTests
         var network = Network.Read(Craft(hidden, f: _ => 0, b: _ => 0, o: i => i % 3 == 0 ? (short)-128 : (short)128, outputBias: 0));
         var full = Enumerable.Repeat((short)1000, hidden).ToArray();
         var limited = Network.Read(Craft(hidden, f: _ => 0, b: _ => 0, o: _ => 128, outputBias: 0));
-        Assert.Equal(Network.MaxScore, limited.ForwardScalar(full, full));
+        Assert.Equal(Network.MaxScore, limited.ForwardScalar(full, full, 0));
         foreach (int width in SimdWidths)
         {
-            Assert.Equal(network.ForwardScalar(full, full), ForwardAt(width, network, full, full));
+            Assert.Equal(network.ForwardScalar(full, full, 0), ForwardAt(width, network, full, full));
             Assert.Equal(Network.MaxScore, ForwardAt(width, limited, full, full));
         }
     }
@@ -501,8 +501,8 @@ public class NnueTests
                 Assert.Fail($"{parts[0]}: numpy {expected}, C# {score}");
             Assert.Equal(expected, network.Evaluate(Position.FromFen(parts[0])));   // with no accumulators attached
             Assert.Equal(expected, position.SideToMove == Colour.White
-                ? network.ForwardScalar(position.Accumulators!.White, position.Accumulators.Black)
-                : network.ForwardScalar(position.Accumulators!.Black, position.Accumulators.White));
+                ? network.ForwardScalar(position.Accumulators!.White, position.Accumulators.Black, 0)
+                : network.ForwardScalar(position.Accumulators!.Black, position.Accumulators.White, 0));
             if (score != Evaluation.Evaluate(position, Evaluation.Parameters)) differentFromBuiltIn++;
             checkedPositions++;
         }
@@ -594,8 +594,9 @@ public class NnueTests
     public void TheLoaderRefusesWhatItCannotRun()
     {
         Func<int, short> zero = _ => 0;
-        // (Version 2 is the deeper nets' now, which NnueDeepTests covers; 3 is no version at all.)
-        Assert.Contains("version", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, version: 3))).Message);
+        // (Versions 2 and 3 are the deeper nets' and the bucketed ones' now, which NnueDeepTests and NnueBucketTests
+        // cover; 4 is no version at all.)
+        Assert.Contains("version", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, version: 4))).Message);
         Assert.Contains("inputs", Assert.Throws<FormatException>(() => Network.Read(Craft(16, zero, zero, zero, 0, inputs: 640))).Message);
         Assert.Contains("hidden size", Assert.Throws<FormatException>(() => Network.Read(Craft(24, zero, zero, zero, 0))).Message);
         Assert.Contains("hidden size", Assert.Throws<FormatException>(() => Network.Read(Craft(Network.MaxHidden + 16, zero, zero, zero, 0))).Message);
