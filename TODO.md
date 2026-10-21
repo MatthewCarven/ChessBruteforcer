@@ -148,6 +148,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     six ponder sessions (P1-P6) are done**, with the bot off. When is his
     call. First comes the engine change for the deeper nets
     (h1024-3m-l32, then -l16-32), with each matched against h1024-3m.
+    **Run by the nnue-deep-layers session too** (Matthew, ~11:55: "move
+    the h768 test into nnue"), on his go, like the deep nets' matches.
   - **h1536-3m trained** (the desktop, 2026-10-20 04:45-18:34): held back
     0.012193 at K 1, 0.011952 at its own K: **-3.7% / -3.9% against
     h1024-3m**. In games\nnue\nets\. Before its match against h1024-3m
