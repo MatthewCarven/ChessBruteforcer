@@ -13,6 +13,10 @@ Run it with the venv's python (scripts/nnue/.venv, PyTorch with CUDA). Options o
     --out <dir>             where the net, checkpoint and log go (default games\\nnue\\nets)
     --hidden 256            hidden numbers per perspective
     --layers 32             small hidden layers after it (32, or 16/32), exported as .nnue version 2
+    --output-buckets K      K output rows instead of one (1-16), each position using the row of its piece count's
+                            bucket, (n - 1) K / 32, n the pieces on the board, kings included: .nnue version 3.
+                            A bucket no training position used (at K 8, bucket 0: the records have 6+ pieces) is
+                            exported with its nearest trained neighbour's row. Not with --layers
     --passes 20             passes over the training buckets
     --batch 16384           positions a step
     --lr 0.001              AdamW's learning rate, times --lr-gamma after each pass in --lr-drops
@@ -140,23 +144,37 @@ def targets(batch, btm, score, blend=0.0):
     return t
 
 
-def make_net(hidden, layers=()):
+def output_bucket(white, buckets):
+    """Each position's output bucket (version 3), from unpack's feature indices: (n - 1) x K / 32, n the pieces on
+    the board, kings included (nnue_reference.bucket)."""
+    return ((white != PAD).sum(1) - 1) * buckets // nnue_reference.MAX_PIECES
+
+
+def make_net(hidden, layers=(), buckets=0):
     import torch
 
     class Net(torch.nn.Module):
         """768 -> hidden x2 -> 1, SCReLU. y = sum of clamp(a, 0, 1)^2 x w + b; the score is 400 y centipawns.
         With layers (--layers 32, or 16/32): 768 -> hidden x2 -> 32 [-> ...] -> 1 instead, each small layer a
         torch.nn.Linear then clamp(0, 1) (2026-10-21, Matthew: does a deeper net fit the data better?). Exported
-        as .nnue version 2 (nnue_reference's docstring has the format), each small layer at its own scale."""
+        as .nnue version 2 (nnue_reference's docstring has the format), each small layer at its own scale.
+        With buckets (--output-buckets K): the output layer is 2 x hidden -> K, ow [K][2 hidden] and ob [K], and
+        each position takes the output of its piece count's bucket (output_bucket); version 3 (2026-10-22,
+        Matthew's B: Stockfish's output buckets, free at evaluation time). Each row starts as version 1's one."""
 
         def __init__(self):
             super().__init__()
             bound = 1 / math.sqrt(INPUTS)   # torch.nn.Linear's own initial range, for both layers
             self.hidden = hidden
             self.layers = tuple(layers)
+            self.buckets = buckets
             self.fw = torch.nn.Parameter(torch.empty(INPUTS + 1, hidden).uniform_(-bound, bound))   # row PAD unused
             self.fb = torch.nn.Parameter(torch.empty(hidden).uniform_(-bound, bound))
-            if not self.layers:
+            if self.buckets:
+                out = 1 / math.sqrt(2 * hidden)
+                self.ow = torch.nn.Parameter(torch.empty(self.buckets, 2 * hidden).uniform_(-out, out))
+                self.ob = torch.nn.Parameter(torch.zeros(self.buckets))
+            elif not self.layers:
                 out = 1 / math.sqrt(2 * hidden)
                 self.ow = torch.nn.Parameter(torch.empty(2 * hidden).uniform_(-out, out))
                 self.ob = torch.nn.Parameter(torch.zeros(()))
@@ -174,6 +192,9 @@ def make_net(hidden, layers=()):
             aw, ab = self.accumulators(white, black)
             b = black_to_move[:, None]
             h = torch.cat((torch.where(b, ab, aw), torch.where(b, aw, ab)), 1).clamp(0, 1).square()
+            if self.buckets:   # every bucket's output (a small matrix product: cuBLAS, unlike version 1), then its own
+                y = torch.nn.functional.linear(h, self.ow, self.ob)
+                return y.gather(1, output_bucket(white, self.buckets)[:, None]).squeeze(1)
             if not self.layers:
                 return (h * self.ow).sum(1) + self.ob   # not h @ ow: that loads cuBLAS, ~350 MB more host commit
             for layer in self.dense:
@@ -357,6 +378,45 @@ def feature_layer(state):
     return fwq, fbq
 
 
+def fill_untrained(ow, ob, trained):
+    """Rows of buckets that no training position used, replaced by the nearest bucket's that one did (the higher
+    piece count on a tie). The records hold more than 5 pieces only (the tuner's quiet rule; the tables settle the
+    rest), so at K = 8 bucket 0 (2-4 pieces) is never trained, but quiescence, which doesn't probe the tables,
+    still evaluates such positions after captures. Returns (ow, ob, [(bucket, the bucket it took)])."""
+    used = np.nonzero(np.asarray(trained) > 0)[0]
+    if not len(used) or len(used) == len(trained):
+        return ow, ob, []
+    ow, ob, filled = ow.copy(), ob.copy(), []
+    for k in range(len(trained)):
+        if trained[k] == 0:
+            near = int(min(used, key=lambda u: (abs(u - k), -u)))
+            ow[k], ob[k] = ow[near], ob[near]
+            filled.append((k, near))
+    return ow, ob, filled
+
+
+def quantise_buckets(state, trained=None):
+    """Version 3's numbers from an --output-buckets checkpoint: the feature layer as version 1's, and each bucket's
+    output row and bias as version 1 quantises its one, at one QB for all (output_qb over every bucket's weights).
+    With trained (positions per bucket in training), untrained buckets take a trained neighbour's row
+    (fill_untrained). Returns version 3's numbers, QB and the filled buckets."""
+    fwq, fbq = feature_layer(state)
+    ow, ob = np.asarray(state["ow"], np.float64), np.asarray(state["ob"], np.float64)
+    ow, ob, filled = fill_untrained(ow, ob, trained) if trained is not None else (ow, ob, [])
+    qb = output_qb(ow)
+    owq, obq = np.round(ow * qb), np.round(ob * QA * qb)
+    if np.abs(owq).max() * QA > 32767:
+        raise ValueError("an output weight times QA doesn't fit in 16 bits")
+    if np.abs(obq).max() >= 2**31:
+        raise ValueError("an output bias doesn't fit in 32 bits")
+    return fwq, fbq, owq.astype(np.int16), obq.astype(np.int32), qb, filled
+
+
+def has_buckets(state):
+    """True for an --output-buckets checkpoint's weights: one output row per bucket."""
+    return "ow" in state and np.ndim(state["ow"]) == 2
+
+
 def layer_q(w, b):
     """A small layer's scale Q (version 2): the largest power of two up to 2^14 with every weight x Q within int16
     and every output's sum within int32 at any inputs, QA x sum|w x Q| + |b x QA x Q| + Q / 2 (Network.Read's
@@ -386,11 +446,17 @@ def quantise_deep(state, layers):
     return fwq, fbq, quantised, (q, wq[0], int(bq[0]))
 
 
-def export(state, path, layers=()):
-    """Writes the .nnue (version 2 for a net with --layers); returns (the engine's Network.Sha256, a note of its
+def export(state, path, layers=(), trained=None):
+    """Writes the .nnue (version 2 for a net with --layers, 3 for one with --output-buckets: trained, the positions
+    each bucket had in training, fills the untrained ones); returns (the engine's Network.Sha256, a note of its
     scales: QB, or each layer's Q)."""
     tmp = str(path) + ".tmp"
-    if layers:
+    if has_buckets(state):
+        fwq, fbq, owq, obq, qb, filled = quantise_buckets(state, trained)
+        nnue_reference.write_nnue_buckets(tmp, fwq, fbq, owq, obq, QA, qb, SCALE)
+        note = f"QB {qb}, {owq.shape[0]} output buckets" + "".join(
+            f", bucket {k} untrained: bucket {near}'s row" for k, near in filled)
+    elif layers:
         fwq, fbq, quantised, final = quantise_deep(state, layers)
         nnue_reference.write_nnue_deep(tmp, fwq, fbq, quantised, final, QA, SCALE)
         note = "Q " + " / ".join(str(q) for q, _, _ in quantised + [final])
@@ -422,6 +488,9 @@ def int_scores(net_file, raw, chunk=None):
         fwt = torch.from_numpy(fwt.astype(np.float64)).to(dev)
     else:
         ow = torch.from_numpy(q["ow"].astype(np.float64)).to(dev)
+    buckets = q.get("buckets")
+    if buckets:   # version 3: [K][2H] rows and K biases, each position its bucket's
+        ob = torch.from_numpy(q["ob"].astype(np.int64)).to(dev)
     out = []
     with torch.no_grad():
         for at in range(0, raw.shape[0], chunk):
@@ -437,6 +506,11 @@ def int_scores(net_file, raw, chunk=None):
                     x = torch.div(x @ lw.T + lb + lq // 2, lq, rounding_mode="trunc").clamp(0, q["qa"])
                 total = (x @ fwt).to(torch.int64) + fbias
                 s = torch.div(total * q["scale"], q["qa"] * fq, rounding_mode="trunc")
+            elif buckets:
+                k = output_bucket(w, buckets)
+                total = (v * v * ow[k]).sum(1).to(torch.int64)
+                s = torch.div(total, q["qa"], rounding_mode="trunc") + ob[k]
+                s = torch.div(s * q["scale"], q["qa"] * q["qb"], rounding_mode="trunc")
             else:
                 total = (v * v * ow).sum(1).to(torch.int64)
                 s = torch.div(total, q["qa"], rounding_mode="trunc") + q["ob"]
@@ -538,16 +612,20 @@ def train(args):
     gen.manual_seed(args.seed)
 
     layers = tuple(int(x) for x in args.layers.replace("/", ",").split(",") if x)
-    net = make_net(args.hidden, layers).to(dev)
+    net = make_net(args.hidden, layers, args.output_buckets).to(dev)
     opt = torch.optim.AdamW(net.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     drops = [int(x) for x in args.lr_drops.replace("/", ",").split(",") if x]   # 4/7/9 too (see --lr-drops)
     checkpoint = out / f"{args.run}.pt"
     first = 1
+    # --output-buckets: the training positions each bucket has had, over the run (export fills the untrained)
+    trained = torch.zeros(args.output_buckets, dtype=torch.int64, device=dev)
     if args.resume:
         saved = torch.load(checkpoint, map_location=dev, weights_only=False)
         net.load_state_dict({k: torch.as_tensor(v, device=dev) for k, v in saved["state"].items()})
         opt.load_state_dict(saved["optimizer"])
         first = saved["pass"] + 1
+        if args.output_buckets and "bucket_positions" in saved:
+            trained = torch.as_tensor(saved["bucket_positions"], dtype=torch.int64, device=dev)
         rng = np.random.default_rng([args.seed, first])
         gen.manual_seed(args.seed + first)
         log(f"resumed after pass {saved['pass']}")
@@ -609,6 +687,8 @@ def train(args):
             for k, at in enumerate(range(0, raw.shape[0], args.batch)):
                 batch = raw[perm[at:at + args.batch]]
                 w, b, btm, score, _ = unpack(batch)
+                if args.output_buckets:
+                    trained += torch.bincount(output_bucket(w, args.output_buckets), minlength=args.output_buckets)
                 y = net(w, b, btm)
                 loss = ((torch.sigmoid(y * LN10) - targets(batch, btm, score, args.result_blend)) ** 2).mean()
                 opt.zero_grad(set_to_none=True)
@@ -642,10 +722,13 @@ def train(args):
             del e
             torch.cuda.empty_cache()
         log(line)
+        if args.output_buckets:
+            log(f"  training positions by output bucket, so far: {' '.join(f'{c:,}' for c in trained.tolist())}")
         state = {k: v.detach().cpu().numpy() for k, v in net.state_dict().items()}
         tmp = str(checkpoint) + ".tmp"
         torch.save({"state": state, "optimizer": opt.state_dict(), "pass": p, "hidden": args.hidden,
-                    "layers": layers, "args": vars(args) | {"data": str(args.data), "out": str(args.out)}}, tmp)
+                    "layers": layers, "output_buckets": args.output_buckets, "bucket_positions": trained.tolist(),
+                    "args": vars(args) | {"data": str(args.data), "out": str(args.out)}}, tmp)
         os.replace(tmp, checkpoint)
     pool.shutdown()
     ws, priv = host_memory()
@@ -653,7 +736,8 @@ def train(args):
         f"{torch.cuda.max_memory_reserved() / 2**20:,.0f} MB; host {ws:,.0f} MB working set, {priv:,.0f} MB commit")
     state = {k: v.detach().cpu().numpy() for k, v in net.state_dict().items()}
     path = out / f"{args.run}.nnue"
-    sha, note = export(state, path, layers)   # version 2 for a net with --layers
+    # version 2 for a net with --layers, 3 with --output-buckets (its untrained buckets filled)
+    sha, note = export(state, path, layers, trained.tolist() if args.output_buckets else None)
     log(f"wrote {path} (QA {QA}, {note}; network sha256 {sha})")
     if held is not None:
         e = int_scores(path, held)
@@ -676,6 +760,9 @@ def main(argv):
     t.add_argument("--hidden", type=int, default=256)
     t.add_argument("--layers", default="",
                    help="small hidden layers after the feature layer, e.g. 32 or 16/32 (exported as .nnue version 2)")
+    t.add_argument("--output-buckets", type=int, default=0, metavar="K",
+                   help="K output rows (1-16), each position its piece count's, (n - 1) K / 32 (.nnue version 3); "
+                        "not with --layers")
     t.add_argument("--passes", type=int, default=20)
     t.add_argument("--batch", type=int, default=16384)
     t.add_argument("--lr", type=float, default=0.001)
@@ -709,11 +796,15 @@ def main(argv):
     v.add_argument("--data", type=pathlib.Path, default=DATA)
     args = ap.parse_args(argv)
     if args.command == "train":
+        if args.output_buckets and args.layers:
+            ap.error("--output-buckets and --layers don't go together: no .nnue version has both")
+        if not 0 <= args.output_buckets <= nnue_reference.MAX_BUCKETS:
+            ap.error(f"--output-buckets takes 1 to {nnue_reference.MAX_BUCKETS}")
         return train(args)
     if args.command == "export":
         import torch
         saved = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
-        sha, note = export(saved["state"], args.nnue, tuple(saved.get("layers", ())))
+        sha, note = export(saved["state"], args.nnue, tuple(saved.get("layers", ())), saved.get("bucket_positions"))
         print(f"QA {QA}, {note}; network sha256 {sha}")
         return 0
     if args.command == "evaluate":
