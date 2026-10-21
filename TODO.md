@@ -167,10 +167,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     nets against h1024-3m at 10+0.1, back to back, the bot off; then the
     better at 30+0.3 if it's close** (the bot thinks ~20x longer a move
     than 10+0.1, and p2.1 found double time worth +87 at 10+0.1, about
-    what the deep net's speed costs). From this branch's engine, by NNUE
-    session 2b (a session made for the same matches stands down). More
-    speed work (int8 weights; the small layers trained clamped) if they
-    lose on speed.
+    what the deep net's speed costs). **Run by the nnue-deep-layers
+    session** (Matthew's word, ~11:40), from this branch's engine
+    (`set NNUE_TC=30+0.3` for the slower clock), after his go and with the
+    bot off; NNUE session 2b handed them over. More speed work (int8
+    weights; the small layers trained clamped) if they lose on speed.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
