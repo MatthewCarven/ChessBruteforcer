@@ -129,19 +129,21 @@ Each link opens the game at the position before the move in question.
 
 ## Every fall, not only the turns
 
-All 304 falls in the 225 games, each re-searched the same way. (The run was still going when this was written: 135
-of 304 are in; the rest are falls in games already lost, and this table is updated when it ends.)
+All 304 falls in the 225 games, each re-searched the same way, the turns among them:
 
 | kind | falls from -2.00 or better | falls from below -2.00 (already lost) |
 |---|---:|---:|
-| mistake | 15 | 1 |
-| out-calculated | 33 | 11 |
-| seen late (our predicted line) | 4 | 3 |
-| misjudged | 28 | 4 |
-| unexplained | 1 | 0 |
-| phantom (Stockfish sees no fall) | 5 | 2 |
-| false draw | 28 | 0 |
-| not searched yet | 30 | 139 |
+| mistake | 21 | 9 |
+| out-calculated | 34 | 46 |
+| seen late (our predicted line) | 9 | 12 |
+| misjudged | 36 | 32 |
+| unexplained | 2 | 8 |
+| phantom (Stockfish sees no fall) | 6 | 53 |
+| false draw | 36 | 0 |
+| all | 144 | 160 |
+
+From -2.00 or better the falls split much as the turns do, but false draws are a quarter of them (36 of 144). Once
+lost, a third are "phantom" (53 of 160): our score dropping to a mate score where Stockfish moves much less.
 
 ## How it was done
 
@@ -155,8 +157,9 @@ of 304 are in; the rest are falls in games already lost, and this table is updat
   22:11) with the game's own evaluation file, endgame tables on, Hash 256, 2 threads on CPUs 14-15 at below-normal
   priority. It searches to the depth the bot reached + 2 (capped at 90 s), on the position, then on our move alone.
   Then Stockfish 16 (WSL, 1 thread) to depth 20 on the position, on our move alone, and on the position after the
-  reply. Of the falls searched so far, 83 reached +2 plies, 20 +1, and 32 the same depth or less. Those 32 are mostly
-  the false draws, where the bot's own depth was inflated by the repetition cutting its search short.
+  reply. Of the 304 falls, 200 reached +2 plies, 52 +1, and 52 the same depth or less. Of those 52, 32 are false
+  draws, where the bot's own depth was inflated by the repetition cutting its search short; the other 20 hit the
+  90 s cap.
 - **The kinds**, with s0 our score before the fall and "half" half the fall below it, tested in this order:
   - mistake: our deeper search prefers another move by 0.50 or more, and Stockfish says ours cost 0.05+ of expected
     score;

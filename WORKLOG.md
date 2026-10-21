@@ -4610,10 +4610,12 @@ scripts/turning-points.py. Nothing in src changed.
   re-search (from a FEN, no history) can't see repetitions. So these were
   first sorted as "out-calculated" (two plies deeper "saw" the loss), and are
   now told apart by the repetition itself.
-- **Not done when this was written**: the every-fall table (TURNS.md) had 135
-  of 304 falls re-searched. The rest are mostly falls in games already lost,
-  and the run carries on (games/turns/search-run3.log). The turns, and so all
-  the main tables, were complete.
+- **Every fall** (all 304, done 15:57; the turns were in by 12:40, so the
+  main tables didn't move): from -2.00 or better, mistakes 21, out-calculated
+  34, seen late 9, misjudged 36, false draws 36, phantom 6, unexplained 2.
+  Already lost: 160, a third of them "phantom" (our score going to a mate
+  score). The re-search reached the bot's depth +2 on 200 of the falls, +1 on
+  52, and no deeper on 52: 32 false draws and 20 that hit the 90 s cap.
 - P3's A/B match (CPUs 2-12, even) ran throughout, so the re-search kept to
   CPUs 14-15, plus Stockfish's WSL thread. Commit free stayed 4.9-8 GB; the bot
   wasn't running.
