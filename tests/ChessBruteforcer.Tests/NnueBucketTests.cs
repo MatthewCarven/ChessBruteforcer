@@ -73,6 +73,45 @@ public class NnueBucketTests
         }
     }
 
+    // ---- against the numpy reference ----
+
+    [Fact]
+    public void MatchesTheNumpyReference()
+    {
+        // ob-trainer's fixture (7e5f283): a random K 8 net at H 256 and 1,000 boards of 2-32 pieces, every bucket used.
+        var network = Network.Load(DataPath("nnue-random-ob8.nnue"));
+        Assert.Equal("a5b712fad416e75c237be267a93cfc2a100a30c9c56a841a1214140b8b820a37", network.Sha256);   // (a guard against the fixture being regenerated without its scores)
+        Assert.Equal((Network.BucketVersion, 8, 256, 255, 64, 400), (network.FileVersion, network.Buckets, network.Hidden, network.QA, network.QB, network.Scale));
+        int checkedPositions = 0, otherBucketsDiffer = 0;
+        var perBucket = new int[8];
+        foreach (string line in File.ReadLines(DataPath("nnue-random-ob8.tsv")))
+        {
+            if (line.StartsWith('#'))
+                continue;
+            string[] parts = line.Split('\t');
+            int expected = int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
+            var position = Position.FromFen(parts[0], network);
+            int score = Evaluation.Evaluate(position);
+            if (score != expected)
+                Assert.Fail($"{parts[0]}: numpy {expected}, C# {score}");
+            Assert.Equal(expected, network.Evaluate(Position.FromFen(parts[0])));   // with no accumulators attached
+            int bucket = BucketOf(BitOperations.PopCount(position.Occupied), 8);
+            var accumulators = position.Accumulators!;
+            short[] white = accumulators.White.ToArray(), black = accumulators.Black.ToArray();
+            short[] us = position.SideToMove == Colour.White ? white : black;
+            short[] them = position.SideToMove == Colour.White ? black : white;
+            foreach (int width in Widths)
+                Assert.Equal(expected, ForwardAt(width, network, us, them, bucket));
+            if (Enumerable.Range(0, 8).All(other => other == bucket || network.ForwardScalar(us, them, other) != expected))
+                otherBucketsDiffer++;
+            perBucket[bucket]++;
+            checkedPositions++;
+        }
+        Assert.Equal(1_000, checkedPositions);
+        Assert.All(perBucket, count => Assert.True(count > 50, $"positions per bucket: {string.Join(", ", perBucket)}"));
+        Assert.True(otherBucketsDiffer > 990, $"{otherBucketsDiffer} of 1,000 score otherwise in every other bucket");
+    }
+
     // ---- the bucket ----
 
     [Theory]
@@ -552,6 +591,14 @@ public class NnueBucketTests
             engine.Handle("go depth 3");
             engine.WaitForSearch();
             Assert.Contains("bestmove ", output.ToString());
+
+            // ob-trainer's fixture, and the numpy reference's score for the start.
+            engine.Handle($"setoption name EvalFile value {DataPath("nnue-random-ob8.nnue")}");
+            Assert.Contains("768 -> 256 x2 -> 1, 8 output buckets, sha256 a5b712fad416", output.ToString());
+            engine.Handle("position startpos");
+            engine.Handle("eval");
+            string expected = File.ReadLines(DataPath("nnue-random-ob8.tsv")).Skip(1).First().Split('\t')[1];
+            Assert.Contains($"eval {expected} cp", output.ToString());
         }
         finally
         {
