@@ -152,11 +152,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     the h768 test into nnue"), on his go, like the deep nets' matches.
   - **h1536-3m trained** (the desktop, 2026-10-20 04:45-18:34): held back
     0.012193 at K 1, 0.011952 at its own K: **-3.7% / -3.9% against
-    h1024-3m**. In games\nnue\nets\. Before its match against h1024-3m
-    (the bot off) the engine's MaxHidden must rise from 1024 (a C# change:
-    Matthew's word; best on top of the engine-speed chain, which changes
-    Network.cs). **On hold** (Matthew, 2026-10-20 ~18:50): he tests the
-    engine speed upgrade first, before the next upgrade.
+    h1024-3m**. In games\nnue\nets\. The engine loads it since 662a810
+    (MaxHidden 2048); its match is A, below.
   - **Deeper nets** (Matthew's (a), 2026-10-21; NNUE.md session 6):
     h1024-3m-l32 (1024 x2 -> 32 -> 1) trained 00:30-09:48 and **plays now**
     (branch `claude/nnue-deep-layers`: .nnue version 2, the trainer's
@@ -171,28 +168,29 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     -30]**, SPRT accepted H0, each at about half the speed (MATCHES.md). Not
     close, so no 30+0.3 run. The bot played l16-32 for a game or two, then
     went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32 training on
-    the desktop, done ~12:30 on 10-22; the engine can't load 1536 hidden
-    yet, and it will be slower than l32.
-  - [ ] **Decision: the desktop's next job after 12:30, and the speed work**
-    (NNUE.md session 6, "The speed work, weighed"): int8 can't reach the
-    ~4x the small layers need on this laptop (no VNNI from .NET here), so
-    it isn't the next lever. Options in the report of 2026-10-22.
-    **Matthew's (c), 2026-10-21 ~11:10: once l16-32 is done, both deep
-    nets against h1024-3m at 10+0.1, back to back, the bot off; then the
-    better at 30+0.3 if it's close** (the bot thinks ~20x longer a move
-    than 10+0.1, and p2.1 found double time worth +87 at 10+0.1, about
-    what the deep net's speed costs). **Run by the nnue-deep-layers
-    session** (Matthew's word, ~11:40), from this branch's engine
-    (`set NNUE_TC=30+0.3` for the slower clock), after his go and with the
-    bot off; NNUE session 2b handed them over. More speed work (int8
-    weights; the small layers trained clamped) if they lose on speed.
-  - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
-    passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
-    3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
-    held-back scoring needs smaller chunks at 2048 (it ran out of GPU
-    memory there), and the engine's MaxHidden 1024 must rise (a C# change:
-    Matthew's word). Its speed cost is unmeasured (1024 cost 15.8% a node,
-    not the probe's 23%), so wait for h1024-3m's match first.
+    the desktop, done ~12:10 on 10-22 by its clock (-11% held back after
+    pass 6); the engine loads 1536 hidden since 662a810, but it will be
+    slower than l32.
+  - [x] **Decision: the next jobs, and the speed work** (Matthew, 2026-10-22
+    ~07:10; WORKLOG): not int8 (it can't reach the ~4x the small layers need
+    on this laptop: no VNNI from .NET here; NNUE.md session 6). Instead,
+    levers that cost no speed: **A** h1536-3m into play; **B** output
+    buckets (side sessions ob-trainer and ob-engine, .nnue version 3;
+    h1024-3m-ob8 on the desktop after h1536-3m-l32); **C** April-June's
+    records (on the desktop since 06:55), then 6 months; **E** h2048-3m on
+    the laptop's GPU when the bot is off. h1536-3m-l32 runs to its end
+    (-11% held back after pass 6, the best yet). Later: king buckets (D),
+    on whichever wins, with 6 months' data.
+  - [ ] **A: h1536-3m against h1024-3m** (the bot off, `scripts\nnue-match.cmd
+    h1536-3m h1024-3m`). The engine takes 2048 hidden since 662a810;
+    `bench 9` -12.8% knps, 1.10x the time to depth 9; about +16 Elo expected.
+    Waits for the laptop's cores (the core queue).
+  - [ ] **E: h2048-3m on the laptop's GPU** (2026-10-19's estimate: September
+    at 20 passes ~7.5 h on the 3070; three months at 10 passes ~11-12 h),
+    the bot off, after A's match: the laptop's power is shared, so no laptop
+    match or bench meanwhile. Nothing to build: the engine takes 2048
+    (662a810), and train.py's held-back scoring shrinks its chunks with the
+    net (d62f955).
   - **Speed at 1024, measured and built** (2026-10-20, a side session,
     branch `claude/stoic-goodall-ecc132`; NNUE.md "Speed at 1024"): the
     updates took 27-28% of a node, the forward pass 12-13%. Matthew's J(c):
@@ -992,8 +990,23 @@ Sessions, in order:
                   Matthew chose (a), merge it as it is** (2026-10-22); it is
                   in compression since 4ebe998, so on in the bot from its
                   next start on compression. PONDER.md, "P4".)
-            - [ ] P5: keep the history table between moves (halve it, not
-                  clear it). Search.Prepare, ~30 min, a bench first.
+            - [x] P5: keep the history table between moves (halve it, not
+                  clear it). Search.Prepare, ~30 min, a bench first. (Done
+                  2026-10-22 on claude/p5-keep-history-7a2c68, on
+                  compression, not merged yet. **Benched, and off: it
+                  saves no nodes.** 40 runs of 8 searches as the bot met
+                  them (2026-10-19/20), depth 12, one thread: keeping 25%,
+                  50% or 100% took 1.04x, 1.07x and 1.06x the cleared
+                  search's nodes (geometric means, 95% intervals all
+                  reaching 1.0), after misses too; the old build matched
+                  the cleared arm node for node. No match played (the
+                  brief: under 3% fewer, stop). UCI option HistoryKept
+                  (0-100), default 0, so merging changes nothing in the
+                  bot; ucinewgame clears the history. KeptHistoryTests 10,
+                  6 mutations caught, suite 601 passed. **Decision P5 for
+                  Matthew: (a) merge, option off (my pick), or (b) drop the
+                  src change, keep the write-up and the bench.** PONDER.md,
+                  "P5".)
             - [ ] P6: a table that keeps its deep entries (buckets of 2-4
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's
@@ -1017,6 +1030,43 @@ Sessions, in order:
                   at the end.)
             After the src work in flight lands (AVX-512 and the lazy update,
             the bitboard sessions).
+- [ ] **Decision O (P8): the setup per opponent** ([OPPONENTS.md](OPPONENTS.md),
+      scoped 2026-10-22 along Matthew's steer: 1 log first, 2 explore
+      cheaply, 3 vary the opening; nothing built). No bot is weak against us
+      beyond its rating (the networks' games: 0 Elo [0, 100]), and no bot's
+      results follow the net or the opening (0 [0, 100] each); the bot meets
+      most bots 1-4 times, and one game measures a bot to +-320 Elo.
+      Simulated over the next 3,000 games: the steered explorer (5%) -2.3 Elo
+      and it never switches, Thompson -7 to -16, Matthew's rule -18 to -23.
+      The learner's book played 3 moves in 617 games: we wander off our own
+      lines; replaying ours against a bot met before would bring last game's
+      position back ~23% of the time against 5%. Three parts, Matthew's call:
+      O1 the log ((a) on, my pick; (b) by hand), O2 the net per bot ((a) none
+      for now, my pick; (b) steered; (c) Thompson; (d) his rule), O3 the
+      opening per bot ((a) a replay trial; (b) the learner onto the net
+      first, my pick, then (a); (c) leave it). **Matthew chose O1 (a), O2
+      (a), O3 (b) then (a)** (2026-10-22).
+      - [x] O1 (a), built 2026-10-22: bot/start-bot.cmd runs
+            scripts/opponents/collect.py into bot\games\record.csv at every
+            start (a failure leaves the old record and the bot starts
+            anyway); scripts/opponents/test_collect.py, 9 of 9 mutants
+            caught. On from the bot's first start on a compression with it.
+      - [x] O3 (b): the learner onto the bot's net, built 2026-10-22
+            (claude/gifted-heyrovsky-8b2f7e; bot/learn.py takes
+            make-config.py's first evaluation present, bot/test-learn.py).
+            On from the learner's next restart (Matthew's). The re-score:
+            h1024-3m's best move differs from 50% of the learnt ones (the
+            book learner item above).
+      - [ ] O3 (a), after (b): the replay trial. bot/lichess-bot-replay.patch
+            in get_book_move (engine_wrapper.py 756-799, clear of the
+            ponder-note patch): against a bot met before with the same
+            colours, our book moves from the last game unless it was lost;
+            logs which games replayed; bot/test-replay.py on a copy through
+            LICHESS_BOT; a setting in make-config.py. ~half a day.
+      - [ ] O2: rerun scripts/opponents/analyze.py on the record after
+            ~3,000 more games (~6 weeks), or when a setup comes within ~10
+            Elo of the best (the deep nets didn't: -85 and about -55), and
+            look again.
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);
@@ -1054,6 +1104,29 @@ Sessions, in order:
       - [ ] (c) A rook-pair term in sf1, which overvalues the second rook by
             +26 cp [+21, +32] (it has none): a Texel round (~1 h) and a match
             against sf1 (~2 h, the bot off). Only if sf1 plays again.
+- [x] **Decision N: draw offers in level games** (P7; Matthew's idea, 2026-10-22:
+      offer a draw when the PV has sat at ~0.00 for a long time against a
+      player of similar strength; [DRAWS.md](DRAWS.md), scoped the same day,
+      nothing changed). lichess-bot already offers and accepts at exactly
+      0.00 for 10 moves with 10 pieces or fewer: offers in 34 games, 4
+      accepted. On the networks (240 games), 30 games had 10 of our moves in
+      a row within +-0.15, and they ended 1 / 29 / 0, so an offer changes the
+      rating by ~0 and saves only time: 66 minutes of 43 hours if every
+      offer were taken, ~8 at the 1-in-8 rate bots accept. Options (a) leave
+      it, (b) draws off, (c) a tuned setting in make-config.py, (d) a
+      rating-aware lichess-bot patch. **Chosen: (a), leave it** (Matthew,
+      2026-10-22); the line below stays open.
+      - [ ] Look again if humans start playing the bot (in the tables they
+            go wrong 1 game in 4-5; never offering a human would be part of
+            (d)), or if level games start being lost again, as on the old
+            evaluation (4 of 8 lost against bots within 50; (d) would have
+            been +40 points over those 356 games).
+- [ ] A flaky test: ThreadTests.ThreadsWritingOneSlotNeverReadAMixedEntry
+      gives its 8 threads 400 ms and wants 1,000 hits. In the full suite on a
+      loaded machine it got 0 (2026-10-22 07:36, other sessions holding cores);
+      alone it passed 3 of 3. Count operations instead of a time window, or
+      start the clock once all threads are running. P6 changes the table it
+      tests, so P6 should know.
 
 ### 3. Findings for the thesis
 
@@ -1112,6 +1185,17 @@ Sessions, in order:
       (e), at the end of PONDER.md. (2026-10-21: Matthew chose all six, P1 to
       P6, one session each, in sequence; the steps are ticked under
       "Decision M" in section 2. P1 is in compression, 7cb0adb.)
+- [x] Decision N (P7, draw offers, [DRAWS.md](DRAWS.md)): pick (a) to (d) at the
+      end of "The options". (2026-10-22: Matthew chose (a), leave it as it is:
+      nothing to build.)
+- [x] Decision O (P8, the setup per opponent, [OPPONENTS.md](OPPONENTS.md)):
+      pick an option in each of O1 (the log), O2 (the net per bot) and O3
+      (the opening per bot). (2026-10-22: O1 (a), O2 (a), O3 (b) then (a);
+      O1 built, section 2.)
+- [ ] Restart the bot (between games, `bot\quit-soon.cmd`) once the P8
+      branch is in compression, so start-bot.cmd's game record line runs.
+      It changes bot\start-bot.cmd, so stop the bot before merging (cmd.exe
+      reads a running batch file line by line).
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;

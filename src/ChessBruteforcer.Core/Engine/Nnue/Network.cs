@@ -21,7 +21,7 @@ namespace ChessBruteforcer.Core.Engine.Nnue;
 ///   8 bytes   "CBNNUE01"
 ///   u32       version (1)
 ///   u32       inputs (768)
-///   u32       hidden H (a multiple of 16, 16 to 1024)
+///   u32       hidden H (a multiple of 16, 16 to 2048)
 ///   i32       QA (255), QB (64), scale (400)
 ///   int16     feature weights [768][H], feature-major: one feature's column of H is contiguous
 ///   int16     feature biases [H]
@@ -55,7 +55,7 @@ public sealed class Network
     public const int Version = 1;
     public const int DeepVersion = 2;
     public const int Inputs = 768;
-    public const int MaxHidden = 1024;
+    public const int MaxHidden = 2048;      // 1024 to 2026-10-22; 2048 still can't overflow Forward256 (see there)
     public const int MaxLayers = 4;
     public const int MaxLayerSize = 256;
     public const int MaxLayerQ = 1 << 24;
@@ -1017,7 +1017,8 @@ public sealed class Network
     /// <summary>
     /// SCReLU 16 lanes at a time: v = clamp(a, 0, QA); (v x w) in 16 bits (|w| x QA fits, checked on
     /// load), then x v and pairs summed into int32 by <see cref="Avx2.MultiplyAddAdjacent(Vector256{short}, Vector256{short})"/>.
-    /// A lane collects H / 8 products of at most 255 x 32,767, so it can't overflow for H up to 1024.
+    /// A lane collects H / 8 products of at most 255 x 32,767 = 8,355,585, so it can't overflow for H up to
+    /// 2048: 256 of them are 2,138,909,760, under 2^31 (2,056 is the last H that fits).
     /// </summary>
     internal int Forward256(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
     {

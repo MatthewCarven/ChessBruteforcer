@@ -752,6 +752,93 @@ depth, those sitting the depth out too, instead of counting only the first `wind
 order, so the two agree unless two windows contradict each other. (It was "caught" once, by a timing test that then
 passed it three times running.) Full suite: 558 passed, 2 skipped.
 
+### P5: keep the move-ordering history between moves (2026-10-22)
+
+**Verdict: no gain. Keeping the history took 4-7% more nodes to the same depth, not fewer.** So it is off by default
+(`HistoryKept` 0, every search starts it from nothing as before), and merging changes nothing in the bot. No match was
+played: the brief was to stop at the bench if it saved under 3%.
+
+A side session, branch `claude/p5-keep-history-7a2c68`, on compression (5fc8a61: P1-P4 in). The search tries the most
+promising moves first, because a good move found early lets it skip the rest of a position's moves (a cutoff). For
+quiet moves (not captures or promotions) its guide is the **history**: a tally, by side and by from and to square, of
+how often a move caused a cutoff, weighted by depth². Every search cleared it (`Search.Prepare`), the ponder after a
+hit's move and the search after a miss included, while the transposition table carries over. P5 lets a new search keep
+a share of it instead: `HistoryKept` percent of each entry, on every thread (each helper has its own). `ucinewgame`
+clears it. The killers (the last two moves that cut off at each ply) are still cleared: they belong to a ply of the old
+tree.
+
+**The bench** (`scripts/ponder-scope/p5.py`): 40 runs of 8 searches from the bot's games of 2026-10-19 and 10-20,
+picked evenly from the 1,041 such runs in 142 games. Each run is 8 searches one game's engine ran one after another,
+as it met them: a search two plies on from the one before (our move and the reply: a hit, or our own move), or, after a
+miss, the search of the move really played, beside the ponder on the wrong one. Every position has 10 pieces or more,
+and none was a table move. Each run starts with `ucinewgame`, then every search goes to **depth 12 on one thread**
+(median 3.4 M nodes, 1.06 s), with the bot's Hash 256 and h1024-3m and no endgame tables. The table carries over
+between searches in every arm, so the history is the only difference. On one thread a search to a fixed depth is the
+same node for node every time, so each arm's node count differs from the cleared arm's only because of the history.
+
+| history kept | searches (after a run's first) | nodes against cleared: geometric mean (95% interval) | median | middle half | searches with fewer nodes | total nodes against cleared | a different move |
+|---|---:|---|---:|---|---:|---:|---:|
+| 25% | 280 | 1.038 (0.965-1.130) | 1.030 | 0.74-1.37 | 46% | 1.042 | 24% |
+| 50% (P5 as proposed) | 280 | 1.073 (0.994-1.170) | 1.035 | 0.78-1.37 | 47% | 1.095 | 24% |
+| 100% | 280 | 1.062 (0.990-1.154) | 1.046 | 0.78-1.42 | 45% | 1.106 | 23% |
+
+By what came just before the search, 50% kept:
+
+| search | searches | nodes against cleared (95% interval) |
+|---|---:|---|
+| two plies on from the last (a hit, or our own move) | 206 | 1.080 (0.974-1.205) |
+| after a miss, beside the ponder | 74 | 1.056 (0.927-1.215) |
+| a run's 2nd search | 40 | 1.073 (0.946-1.227) |
+| 3rd-4th | 80 | 1.064 (0.936-1.227) |
+| 5th on | 160 | 1.078 (0.957-1.230) |
+
+The only figure under 1 anywhere is 25% kept after a miss, 0.949 (0.828-1.102) on 74 searches, well inside the noise.
+The interval is from resampling whole runs, since a run's searches share a game. One search at a time, the counts swing
+widely both ways (the middle half from about 0.75x to 1.4x), because any change in order sends a fixed-depth search
+down a different tree: one search in four ends on a different move (whether better or worse isn't measured here).
+Only the average over 280 searches says anything, and it says "no fewer nodes", whichever share is
+kept.
+
+Checks: every run's first search (nothing to carry yet) matched the cleared arm node for node, 40 of 40, in every arm.
+The build before P5 (5fc8a61) matched the cleared arm at every depth of all 320 searches.
+
+Why it doesn't help is not measured. A guess: this history only grows (depth² for each cutoff, nothing taken off for a
+move that was tried and failed), and move ordering caps it at 700,000. So kept tallies pile up evidence from earlier
+positions on top of the new one's, and many moves sit at the cap together, where the tally can't order them. Stockfish
+does keep its history between moves, but its updates have a penalty for moves that failed and pull every entry back
+toward a bounded range ("history gravity"), so old evidence fades by itself. That would be a change to how the history
+is updated, not to pondering. It isn't proposed here. Two other limits: the bot searches to depth 14-16 on 8 threads,
+not 12 on one, and shifting the killers two plies (the brief's other idea) wasn't tried.
+
+**What's left in the code**: the UCI option `HistoryKept` (0-100, default 0) and `Search.HistoryKept`, which keep that
+share at each new search, every helper's too. `Search.ClearHistory()` forgets it: `ucinewgame`, `SearchPlayer.NewGame`
+and `bench-threads` (before each search, as it clears the table) call it. With the default 0, every search is node for
+node as before. The option is there so the bench can be run again on any later change to the history.
+
+**For Matthew (decision P5).**
+
+- **(a)** Merge as it is: the option, off. Nothing changes in the bot, as for P2 and P3, and the bench stays runnable.
+  *My pick.*
+- **(b)** Drop P5's code: merge only the write-up and the bench (the docs and `scripts/` from the branch's last commit)
+  and leave `src` as it was. Equally fine: with the option off, the code does nothing.
+
+**Tests** (KeptHistoryTests, new, 10):
+
+| test | what it checks |
+|---|---|
+| ANewSearchKeepsItsShareOfTheHistoryOnEveryThread (0, 25, 50, 100) | Every thread's history (the search's and two helpers'), after a search that adds nothing to it, is the old one times the share kept, rounded down, entry for entry |
+| UcinewgameForgetsTheHistoryOnEveryThread | After searches on 3 threads and then 1, all three histories are empty after `ucinewgame` |
+| AFirstSearchIsTheSameNodeForNodeAsOneThatKeepsNothing (25, 50, 100) | With nothing before it, a search's every depth (score, nodes, line) is the cleared engine's |
+| AfterUcinewgameASearchIsAFreshEnginesNodeForNode | A search after another search and `ucinewgame` is a fresh engine's, line for line; after a new table alone (Hash), with the history kept, it isn't |
+| TheHistoryKeptOptionReachesTheSearch | `uci` lists the option; 25, 0, 150 (taken as 100) and -5 (taken as 0) reach the search |
+
+Mutations: 6, all caught (`ucinewgame` keeping the history; `ClearHistory` or the aging skipping the helpers; the search
+clearing its own as before; the option never reaching the search; halving whatever the share). Full suite: **601 passed,
+2 skipped**. Two older tests failed once each in four full runs on this busy laptop, neither one touching the history:
+`PonderTests.AHitAtOnceStopsAsAPlainSearchWouldNotAtTheCap` (one thread, a wall-clock test: it failed 2 of 2 on the
+build before P5 here too) and `CutDepthTests.StoppedAsAFailHighIsSearchedAgainItKeepsWhatWasProved` (Ranges on 4
+threads, a fresh search each time: it passed 8 of 8 alone, on both builds).
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's
@@ -780,3 +867,7 @@ python):
   `lowerbound` line since P4, and don't count it, nor P1's line sent again, as a finished depth.
 - `scripts/build-match.py <tag> <old commit>`: this checkout's engine against an earlier commit's, as the evaluation
   SPRTs were played (10+0.1, 5 at a time, SPRT [0, 10]); P4's match. Logs in `games/builds/` in the main checkout.
+- `p5.py sample|bench|summary` (P5): runs of searches one game's engine ran in a row, from the bot's logs
+  (`results/p5-samples.json`: 40 runs of 8), searched to a fixed depth on one thread by every arm at once (HistoryKept
+  values, and `--old <exe>`, an earlier build that must match the cleared arm node for node); the summary compares each
+  arm's nodes with the cleared arm's, search by search (`results/p5-d12.jsonl`: depth 12).

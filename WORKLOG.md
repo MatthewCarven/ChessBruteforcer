@@ -5312,6 +5312,268 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   (filter 4.1-4.3 h, import 4.4-4.6, nnue data 2.3-2.5, check ~20 min), two
   side by side.
 
+## 2026-10-22 (06:30-07:10): April-June's records started on the desktop; h1536-3m-l32 held (the nnue-deep-layers session)
+
+- Matthew: (a) output buckets and (b) more data, so (c) both, and (d) stop
+  h1536-3m-l32; then plan with him how to scale the network, and training
+  on both GPUs.
+- **(b) started**: `scripts\nnue-desktop.ps1 data 2026-04`, `-05`, `-06`, three
+  tasks side by side from ~06:55 by the desktop's clock (each ~11 h at July
+  and August's pace; three at once may run longer). The share's cli is the
+  2026-10-18 build: nothing in Records/ or `nnue data` has changed since, so
+  the records match July's and August's. D: has 1,182 GB free; the desktop's
+  CPU was at 12% with the trainer running, 11.7 GB of memory free. The
+  trainer held 136.5 k positions a second as they started.
+- **(d) held, asked again**: h1536-3m-l32 (1536 x2 -> 32 -> 1) turned out the
+  best held-back error of any net so far: by pass at its K 0.012574,
+  0.012092, 0.011877, 0.011731, 0.011123, **0.011012 after pass 6 (-11%
+  against h1024-3m's 0.012394 float; l32 had 0.011608 there)**, ~83 min a
+  pass at 136 k a second, done ~12:10 by the desktop's clock. A stop keeps
+  the pass-6 checkpoint (`train ... --resume`), and the GPU's next job
+  (output buckets) isn't written yet, so stopping it now gains little.
+- The laptop holds July-September's records (games\nnue\2026-07..09), 53 GB
+  free on C:, an RTX 3070 Laptop GPU (8 GB).
+
+## 2026-10-22 (04:40-05:20): P7, draw offers in level games, scoped (a side session)
+
+- Matthew's idea: "if all moves are 0 gain on the main predicted path for a
+  long time maybe we should offer draw if we have a similar strength to our
+  opponent?" Scoped with data first, nothing built. Write-up in DRAWS.md,
+  scripts and outputs in scripts/draw-scope/. Branch
+  `claude/draw-offer-scope-6f8c39`, on compression's 882d45c.
+- **What happens now**: lichess-bot's default rule, unchanged by
+  make-config.py (config.yml read by a script that skips the token): offer
+  when the last 10 engine scores are all exactly 0.00 and there are 10
+  pieces or fewer. An offer is `offeringDraw=true` on the move. The same rule
+  accepts: a standing offer is agreed by a flagged move and declined by any
+  other. No ratings, no bot-or-human. A search with no score (a ponder hit
+  before P1, about a quarter of moves from 2026-10-16) broke the run.
+  Lichess passes on one offer per player per 10 moves (52 of 55 gaps between
+  ours were 11 moves).
+- **The data**: 617 records (596 finished, 2026-10-12 to 10-21 UTC), every
+  opponent a bot; the logs cover all 596. Split at nnue1's start on the bot
+  (2026-10-16 17:50 UTC): early 356 games, networks 240.
+- **Level stretches** (N of our moves in a row within +-0.15): N = 10 in 12%
+  of games in both eras. Early they ended 13 / 16 / 13, 20 of the 42 in a
+  full middlegame: "level" on the old evaluation often wasn't. Networks:
+  **1 / 29 / 0** (N = 20: 0 / 13 / 0); 14 by repetition, 6 insufficient
+  material, 6 agreement, 2 the 50-move rule.
+- **Rating** (Glicko-2 expectation, K 11.5, the bot's established blitz
+  median): a draw at the stretch would have changed the networks era by -6
+  (its one win), the early era by +40 for "similar strength or stronger"
+  (it lost 4 of 8 level games within 50 points, 5 of 13 against stronger).
+- **Time**: after a networks-era stretch, a median 0.1-8.6 minutes of play
+  were left by piece count, 66 minutes in all of 43 hours (2.6%). The other
+  bots accepted 4 of our 89 offers (4 of 34 games, 1 in 8), so ~8 minutes
+  per 240 games is what any rule can save.
+- **Their offers**: 48 in 21 games; we accepted 3. Our evaluation was above
+  +0.15 at 28 of them. The 18 games where we declined went 3 / 14 / 1:
+  accepting their first offer would have cost ~12 points for ~49 minutes.
+- **Decision N** (DRAWS.md): (a) leave it, (b) draws off, (c) a tuned
+  setting (+-0.15, 20 moves, any pieces), (d) a rating-aware patch (offer
+  and accept only against bots rated at least ours - 50; clear of the
+  ponder-note patch's lines in engine_wrapper.py). My pick (a): with the
+  networks, every option changes the rating by ~0 and saves 0-5 minutes per
+  240 games. Look again if humans play the bot or level games start being
+  lost.
+- **Matthew chose (a)**, leave the draw rule as it is: nothing built,
+  make-config.py unchanged. The TODO line to look again stays open.
+
+## 2026-10-22 (07:10-07:40): the plan (A, B, E); the engine takes 2048 hidden; h1536-3m benched (the nnue-deep-layers session)
+
+- **Matthew's plan** (~07:10): A, h1536-3m into play now; B, output buckets
+  on the desktop from ~12:30; E, h2048-3m on the laptop's GPU when the bot is
+  off; h1536-3m-l32 runs to its end. Then B in two side sessions (his word):
+  **ob-trainer** (local_185b41a1: `train.py --output-buckets`, the export,
+  the reference, a fixture, then h1024-3m-ob8 on the desktop) and
+  **ob-engine** (local_c66c8c06: the C# loader, tests, a battery), both from
+  662a810 on their own branches, both to the same spec: **.nnue version 3**
+  = version 1 plus u32 K after the header, output weights [K][2H] and biases
+  [K]; bucket (n - 1) x K / 32, n every piece on the board, kings included
+  (K 8: Stockfish's (n - 1) / 4).
+- **The engine takes nets up to 2048 hidden** (662a810, was 1024).
+  Forward256's int32 lanes collect H / 8 products of at most 255 x 32,767,
+  so at 2048 they reach 2,138,909,760, under 2^31 (2,056 is the last H that
+  fits; Forward512 has room to 4,096). New tests: SimdEqualsScalar at 1536
+  and 2048, the largest-sums test at 1024/1536/2048 (the all-positive net's
+  lanes 0.8% under 2^31 at 2048), the deep definition at 1536 (h1536-3m-l32's
+  shape) and 2048, MaxHidden loads and MaxHidden + 16 is refused. Network
+  tests 75 of 75. E needs no trainer change: train.py's held-back scoring
+  already shrinks its chunks with the net (d62f955).
+- **h1536-3m benched** (`bench 9`, one thread, 6 rounds alternated after a
+  warm-up; the book learner's two engines running alongside, ~2 cores):
+
+  | net | nodes | knps | v h1024-3m | time to depth 9 |
+  |---|---|---|---|---|
+  | h1024-3m | 3,775,600 | 2,703 | - | 1.00x |
+  | h1536-3m | 3,623,557 | 2,356 | **-12.8%** | 1.10x |
+  | h512-3m | 3,752,874 | 3,309 | +22.4% | 0.81x |
+
+  h1536-3m loads (network sha256 50bedcc21898, as its training log says). By
+  the rule from our own matches (+8 Elo for each 1% of held-back error, -87
+  for each halving of speed): -3.9% error +33, -12.8% speed -17, **about +16
+  expected**. Its match against h1024-3m waits for the laptop's cores (the
+  book learner's run; asked it and the core queue, local_469cca7a).
+- Session context (local_20f56c49) now orchestrates: it merges finished
+  branches into compression; this session no longer fast-forwards the main
+  checkout.
+
+## 2026-10-22 (05:15-06:15): P8, the setup per opponent, scoped (a side session)
+
+- Matthew's P8: keep a record per game, and choose which of our best three
+  setups plays each bot before the game starts, the least-used one for each
+  bot's first 3-10 games, then whichever did best against it, a heavy loss
+  counting against. Scoped with the bot's games first; nothing in src or
+  bot/lichess-bot changed. Write-up: [OPPONENTS.md](OPPONENTS.md); scripts
+  and outputs in scripts/opponents/.
+- **The record**: scripts/opponents/collect.py gives one row a game from
+  bot/games/*.pgn and bot/logs/bot-*.log (the net comes from the engine's
+  "info string evaluation" line at each start; who challenged; book moves
+  by book; games beside it; the first 20 plies). Backfilled into the main
+  checkout's bot\games\record.csv (out of git): all 617 games matched to
+  one of 49 starts: built-in 145, sf1 229, nnue1 19, nnue1-h512 154,
+  h512-3m 26, h1024-3m 44 (h1024-3m-l16-32's one game, KDKKzauD, has no
+  PGN: the bot stopped at 03:26 with it in progress).
+- **Few repeats**: 196 bots, 68 met once, 36 twice, three 10+ times (most
+  16).
+- **Opponent offsets** (analyze.py: BayesElo-style draws, one strength a
+  net, each bot's offset integrated out, profile intervals): all 596 games
+  with a result, tau 80 Elo [0, 120], p 0.05 against none; the networks'
+  240 games, tau 0 [0, 100]. Net x opponent, sigma 0 [0, 100] both ways.
+  Bot by bot: |z| > 1.96 for 3 of 90 bots (chance 3.8), 1 of 37 on the
+  networks (chance 1.5); the largest |z| 3.00 against chance's median
+  2.68. Matthew's sums hold (0.19 a game at even strength; our lopsided
+  games 0.13); one game measures a bot's offset to +-320 Elo.
+- **Openings**: from a position met before, the bots played another move
+  30% of the time, we 60% (the weighted-random book); 14 of 50 bots never
+  varied. Only 3% of same-bot same-colour pairs agree for 8 plies.
+- **Simulated** (simulate.py; a 300-bot pool fitted to the repeat
+  pattern; h1024-3m 0, h512-3m -41, nnue1-h512 -52), Elo played against
+  always h1024-3m over the next 3,000 games, weighted by how well each
+  sigma fits: Matthew's rule -18 (3 games exploring) to -23 (9), Thompson
+  sampling -7 to -16, a cautious learner +0.2; the ceiling (knowing each
+  bot's best net) +16. Matthew's rule pays only at sigma 100+ over
+  thousands of games (+12 to +18 at 20,000 games, sigma 100).
+- lichess-bot: create_engine(config, game) per game (engine_wrapper.py:35,
+  clear of the ponder-note patch); engine start to `+++` ~60 ms, the net
+  loaded ~25 ms in, so a per-game net is free in time and memory (nets
+  0.4-1.6 MB, one engine at a time). The startup check only loads the
+  default net.
+- Turned up: bot/learn.py still thinks with eval-sf1.txt, not the bot's
+  net (TODO).
+- **Decision O** (OPPONENTS.md, the end): (a) log only (my pick), (b) a
+  cautious learner, (c) Thompson sampling, (d) Matthew's rule as stated,
+  (e) per-bot openings instead (scope first). Matthew's call.
+
+## 2026-10-22 (06:20-07:00): P8 again, along Matthew's steer (the same side session)
+
+- Matthew's steer, through the session that started this one ("advise the
+  p8 session of 1,2 & 3"): 1 log first and test the history; 2 explore
+  cheaply (Thompson with priors from overall strength; his rule beside
+  it); 3 vary the opening too. OPPONENTS.md rewritten around the three.
+- **1. The record** now has the build and options: collect.py reads the
+  main checkout's HEAD reflog at each start (the last commit to touch src;
+  Threads, Hash and pondering from that commit's make-config.py). The
+  network era was one build: 232 of 243 games on 8c3a396, 8 threads,
+  Hash 256, pondering on. bot\games\record.csv rewritten.
+- **3. Openings in the model**: offsets per (bot, opening family) and per
+  (bot, ECO volume), as for nets: all games 0 [0, 75] Elo each, the
+  networks' 0 [0, 100]. Without a model (two games against one bot,
+  the covariance of their surprises): same opening minus other +17.9
+  [-13.4, +51.2] x 1e-3, same net minus other +13.0 [-6.3, +36.4]. The
+  data can't say whether results follow the opening more than the net.
+- **The learner's book played 3 moves in 617 games** (main 4,302, wide
+  291; learner_hits.py: 3 of our 7,254 opening positions were learnt
+  before the game, all in one game on 10-16). Against a bot met before
+  with the same colours (319 games), last game's first out-of-book
+  position came back 16 times, and 15 of those are in today's main book.
+  We wander off our own lines (60% a move against the bots' 30%).
+  Replaying our line against a bot met before would bring that position
+  back in ~23% of those games (72 of 317, from each bot's repeat rate).
+- **2. Cheap exploring, simulated**: the steered explorer (the best
+  setup; another in 5% or 10% of a bot's games; a switch once 95% ahead)
+  costs -2.3 / -4.6 Elo and never switches, even at sigma 150 over 20,000
+  games: a 50-Elo edge needs ~220 games a setup against one bot to be 95%
+  clear. Thompson with prior SD 10 costs -0.1 because it never explores.
+- Decision O is now three parts: O1 the log ((a) on, my pick), O2 the net
+  per bot ((a) none for now, my pick), O3 the opening per bot ((b) the
+  learner onto the net first, my pick, then (a) a replay trial).
+
+## 2026-10-22 (07:10-07:45): decision O taken; O1, the game record at each start, built (the P8 side session)
+
+- Matthew: "O1 (a) switch the log on, O2 (a) no per-bot net for now, O3
+  (b) the learner onto the net first, then (a) a replay trial. Build O1
+  now."
+- Compression merged into the P8 branch first (WORKLOG the only conflict:
+  both sides adding entries, compression's first).
+- **bot/start-bot.cmd** runs `scripts\opponents\collect.py bot
+  bot\games\record.csv` with lichess-bot's Python after make-config.py and
+  the token check; on a failure it prints "The game record wasn't updated:
+  starting anyway." and carries on. collect.py now prints one line ("game
+  record: N games in ..."), lists the starts only with --starts, writes
+  to a .tmp and replaces the record in one step, and refuses with a
+  message when there are no games or the record is held open (Excel).
+- **Tests**: scripts/opponents/test_collect.py builds a bot folder in
+  lichess-bot's formats (two starts, a network and the built-in numbers;
+  our challenge and theirs; book moves from two books; a line naming the
+  token that would change a row if read) and checks both rows, a second
+  run giving the same file, and the no-games refusal. 9 of 9 mutants of
+  collect.py caught (three lived at first: a drawn game hid the black-
+  score flip, one main-book move hid the count, and the token line
+  matched nothing; the test now has a black win, two main-book moves and
+  a token line that would mark a game ours). The start-bot.cmd lines
+  themselves, verbatim, in a scratch copy with real logs and games: a
+  normal run (12 games), the record held open (left as it was, no .tmp
+  left behind, the bot carries on) and no games (the same).
+- On from the bot's first start on a compression with this branch in it.
+  bot\games\record.csv in the main checkout is already the 617-game
+  backfill. The OPPONENTS.md note on a close second is updated: the deep
+  nets lost (l32 -85, l16-32 about -55), so O2 waits for a net within ~10
+  Elo, or for ~3,000 more games.
+
+## 2026-10-22 (05:30-06:40): P5, keep the move-ordering history between moves (a side session)
+
+- Decision M's P5 (PONDER.md), branch claude/p5-keep-history-7a2c68 on
+  compression (5fc8a61, P1-P4 in). Every search cleared the history (the
+  quiet moves' cutoff tallies that order moves) in Search.Prepare; now a new
+  search keeps `HistoryKept` percent of it, the helpers' too (each aged once
+  a search, from the main search's Prepare), and `ucinewgame`,
+  SearchPlayer.NewGame and bench-threads clear it (Search.ClearHistory).
+  Killers still cleared. UCI option HistoryKept, 0-100.
+- **The bench** (scripts/ponder-scope/p5.py): 40 runs of 8 searches from
+  the bot's logs of 2026-10-19/20 (1,041 runs in 142 games; 206 searches
+  two plies on, 74 after a miss), `ucinewgame` then each to depth 12 on one
+  thread, Hash 256, h1024-3m, no tables, the table carried over. Five arms
+  at once (nodes to a fixed depth don't depend on the machine's load):
+
+  | history kept | nodes against cleared, 280 searches (95% interval) | total nodes |
+  |---|---|---|
+  | 25% | 1.038 (0.965-1.130) | 1.042 |
+  | 50% | 1.073 (0.994-1.170) | 1.095 |
+  | 100% | 1.062 (0.990-1.154) | 1.106 |
+
+  No gain anywhere (after misses, 50%: 1.056). The middle half of the
+  searches ran 0.75-1.4x either way, and a quarter ended on another move.
+  Every run's first search matched node for node, and the build before P5
+  matched the cleared arm at every depth of all 320 searches. **So P5
+  stops at the bench: HistoryKept defaults to 0, and merging changes
+  nothing in the bot.** No match. A guess why, not measured: the history
+  only grows (no penalty for moves that failed) and ordering caps it at
+  700,000, so old tallies pile up; Stockfish's "gravity" updates let old
+  entries fade. Not proposed.
+- KeptHistoryTests 10; 6 mutations caught. My first version expected every
+  thread to have history after a 3-thread search and failed in the full
+  suite: the main thread can find everything in the table its helpers fill
+  and cut off nothing itself. The tests now fill it on one thread after.
+  **Full suite 601 passed, 2 skipped.** In four full runs two older tests
+  failed once each, neither touching the history:
+  PonderTests.AHitAtOnceStopsAsAPlainSearchWouldNotAtTheCap (one thread,
+  wall-clock; it failed 2 of 2 on the build before P5 here too) and
+  CutDepthTests.StoppedAsAFailHighIsSearchedAgainItKeepsWhatWasProved (R4;
+  8 of 8 alone on both builds).
+- Decision P5 for Matthew: (a) merge, the option off (my pick); (b) drop
+  the src change and keep the write-up and the bench. PONDER.md, "P5".
+
 ## 2026-10-22 (06:00-08:05): the book learner's evaluation, sf1 or the bot's net? (a side session from P8)
 
 - **The question** (P8, OPPONENTS.md section 4): bot/learn.py thinks with
