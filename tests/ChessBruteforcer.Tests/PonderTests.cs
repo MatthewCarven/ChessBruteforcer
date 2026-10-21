@@ -628,9 +628,9 @@ public class PonderTests
         Assert.Equal(Play(false), on);
     }
 
-    // When the GUI may ponder (UCI's Ponder option), every move plans PonderTimeBonus percent more (Stockfish's
+    // P3: when the GUI may ponder (UCI's Ponder option), every move plans PonderTimeBonus percent more (Stockfish's
     // quarter): hits answer before the planned time is up, and this spends the clock they save.  The hard limit
-    // stays where it was.
+    // stays where it was.  The option is 0 by default: 25 didn't win games at 10+0.1 (PONDER.md, "P3").
 
     [Theory]
     // our clock, increment, Move Overhead -> planned and hard limit with no bonus; planned with 25%
@@ -676,7 +676,9 @@ public class PonderTests
 
         Assert.Equal((98L, 294L), Planned($"go ponder {Clock}"));   // Ponder off, as a GUI that never ponders leaves it
         engine.Handle("setoption name Ponder value true");
-        Assert.Equal((122L, 294L), Planned($"go ponder {Clock}"));   // a quarter more by default
+        Assert.Equal((98L, 294L), Planned($"go ponder {Clock}"));    // no bonus by default
+        engine.Handle("setoption name PonderTimeBonus value 25");
+        Assert.Equal((122L, 294L), Planned($"go ponder {Clock}"));   // a quarter more
         Assert.Equal((122L, 294L), Planned($"go {Clock}"));          // and on our own time too, as after a miss
         Assert.Equal((0L, 975L), Planned("go movetime 1000"));         // (a fixed time is a fixed time)
         engine.Handle("setoption name PonderTimeBonus value 100");
@@ -694,7 +696,7 @@ public class PonderTests
     {
         var (engine, output) = Start();
         engine.Handle("uci");
-        Assert.Contains("option name PonderTimeBonus type spin default 25 min 0 max 100", output.Lines());
+        Assert.Contains("option name PonderTimeBonus type spin default 0 min 0 max 100", output.Lines());
         engine.Handle("setoption name Ponder value true");
         // A minute on the clock: 1,998 ms planned (59,950 / 30), 5,994 at most, so 1% is 19 ms.
         (long, long) Planned()
@@ -730,6 +732,7 @@ public class PonderTests
     {
         var (engine, output) = Start(threads, split);
         engine.Handle("setoption name Ponder value true");
+        engine.Handle("setoption name PonderTimeBonus value 25");
         engine.Handle(Pondered);
 
         // A hit at once: the clock decides, with 122 ms planned and still 294 at most.

@@ -26,7 +26,7 @@ public sealed class UciEngine
     private Position _position = Position.Start();
     private int _moveOverheadMs = 50;
     private bool _ponder;              // the GUI may send "go ponder" (UCI's Ponder option)
-    private int _ponderTimeBonus = 25;   // percent more planned time a move when it may
+    private int _ponderTimeBonus;      // percent more planned time a move when it may (0: P3's 25 didn't win games)
     private int _threads = 1;
     private ParallelMode _split = ParallelMode.LazySmp;
     private bool _ponderFinish, _ponderCap;   // (P2's two rules, off: neither won games; PONDER.md)
@@ -88,7 +88,7 @@ public sealed class UciEngine
                     Send("option name Ponder type check default false");
                     Send("option name PonderFinish type check default false");
                     Send("option name PonderCap type check default false");
-                    Send("option name PonderTimeBonus type spin default 25 min 0 max 100");
+                    Send("option name PonderTimeBonus type spin default 0 min 0 max 100");
                     Send("uciok");
                     break;
                 case "isready":

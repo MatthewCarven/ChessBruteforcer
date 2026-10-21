@@ -178,6 +178,7 @@ end of the game. Details in PONDER.md.
 | 2026-10-21 | P2 (PonderFinish on) | P2 off, both pondering | 360 | +61 -103 =196 | 44.2% | **-41 [-65, -17]** | 10+0.1, h1024-3m, 3 at a time, the bot stopped; SPRT [0, 10] **accepted H0** at game 358 (LLR -3.07); hit rate 69%; clock left 34% v 43%; no time losses |
 | 2026-10-21 | P2's cap only (PonderCap on) | both off | 575 | +106 -142 =327 | 46.9% | **-22 [-41, -3]** | 10+0.1, as above; SPRT [0, 10] **accepted H0** at game 571; clock left 46% v 40%; no time losses |
 | 2026-10-21 | P2's finish only (PonderFinish on) | both off | 614 | +117 -129 =368 | 49.0% | -7 [-24, +11] | 10+0.1, as above; SPRT [0, 10] undecided (LLR -1.50), stopped at a fixed count; clock left 28% v 44%; no time losses |
+| 2026-10-21 | P3 (PonderTimeBonus 25) | 0, both pondering | 2000 | +408 -410 =1182 | 50.0% | -0 [-10, +9] | 10+0.1, as above (P2's rules off); SPRT [0, 10] undecided (LLR -2.17) at the 2,000-game cap; 8.5% more clock spent (11% after hits, 5% otherwise); clock left 29% v 40%; no time losses. The option's default is 0 since then |
 
 ## More search against less (2026-10-21)
 

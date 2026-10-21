@@ -494,6 +494,86 @@ Mutations: 26, all caught. Two lived at first, and the tests above catch them no
 3S given only to H, and a hit that forgot the soft limit, which runs on to h + S on every hit. Then 23 more for the
 split (all caught) and 4 for the defaults turned off (all caught). Full suite: 529 passed, 2 skipped.
 
+### P3: plan more time a move when pondering (2026-10-21)
+
+**Verdict: built, measured, and off. A quarter more planned time a move neither wins nor loses at 10+0.1: Elo -0
+[-10, +9] over 2,000 games.** The option stays, at 0 by default, so merging changes nothing in the bot.
+
+A side session, branch `claude/p3-ponder-time-254cad`, on compression with P2 (e92ac2e; first written on P1 alone,
+7cb0adb, while P2's match ran, and rebased). **When the GUI sets the UCI option `Ponder`, every move plans
+`PonderTimeBonus` percent more time: the soft limit S becomes S + S x bonus / 100.** Stockfish does this with a
+quarter (`optimumTime += optimumTime / 4` when Ponder is on). python-chess sends `setoption name Ponder value true`
+before every `play(..., ponder=True)` (chess/engine.py, `play`), so lichess-bot turns it on whenever it ponders, and
+the bonus would reach the bot. Unlike P2, it spends the bank on every move, misses included, not only after hits.
+
+- **The hard limit H keeps its rule**: three times the *plain* S, at most a third of the clock (plus the increment).
+  Stockfish too works out its maximum before adding the ponder bonus. S never passes H. With 25%, H is 2.4 S'
+  rather than 3 S, which still leaves room for a depth begun before S'/2 to finish.
+- `PonderTimeBonus`: a spin, 0-100. **Default 0** since the match below (it was 25 while measured). With Ponder off
+  it counts for nothing. `movetime` and `infinite` searches are unchanged. The Ponder option, ignored until now, is
+  read: true or false, anything else an error.
+- Where: `Search.TimeBudget` (now internal, for tests) and `SearchLimits.PonderTimeBonusPercent`, which `UciEngine`
+  fills on every `go` from the two options. P2's options (PonderFinish, PonderCap) are separate and stay off.
+
+What 25% means for a move (Move Overhead as in each setting):
+
+| clock | S plain | S + 25% | H (both) |
+|---|---:|---:|---:|
+| 10+0.1, 10 s left (the A/B match) | 406 ms | 507 ms | 1,218 ms |
+| 3+2, 3 min left (the bot, Move Overhead 100) | 7,496 ms | 9,370 ms | 22,488 ms |
+
+**The A/B match.** `ponder-match.py --arms "PonderTimeBonus=25;PonderTimeBonus=0" --sprt 0,10`, 10+0.1, both sides
+pondering (so both have Ponder on, and P2's rules off), the bot's network (h1024-3m), one thread and one physical
+core each, 3 games at a time, the 300 openings in colour-reversed pairs, the bot not running. The SPRT never decided
+(LLR -2.17 at the end), so the run went to its cap of 2,000 games (10:45-15:51):
+
+| A (25%) v B (0), 2,000 games | A | B |
+|---|---:|---:|
+| won / lost / drawn, A's point of view | +408 -410 =1182 | |
+| score, Elo [95%] | 50.0%, **-0 [-10, +9]** | |
+| ponder hit rate | 69.3% | 69.2% |
+| clock a move: all / after a hit / otherwise | 199 / 165 / 274 ms | 184 / 148 / 261 ms |
+| clock spent in all, after hits / otherwise | 16,235 s / 12,329 s | 14,567 s / 11,755 s |
+| clock left at the end of the game | 2.89 s (29%) | 4.01 s (40%) |
+| games ended with under 1 s left | 158 | 45 |
+| games lost on time | 0 | 0 |
+
+The halves agree (games 1-1000 +6 [-8, +20], 1001-2000 -7 [-20, +7]), and so does every game length (100-150 plies
+-2, 150-200 -6, past 200 +1; under 100 plies +10 [+1, +20], one bucket in four, likely chance).
+
+**What the quarter bought.** 25% more planned time came out as 8.5% more clock spent (28,564 s against 26,322):
+11% more after hits, 5% more otherwise. A search starts a new depth only before S/2, and a depth takes about twice
+the last, so more S often changes nothing; and as the clock runs down, later budgets shrink. So most of the extra
+went where P2 found it buys least, after hits. The bank shrank (40% → 29%), and 158 games against 45 ended with
+under a second left, with no time losses.
+
+What 8.5% more time should be worth, if it cost nothing: p2.1 measured twice the time at 10+0.1 as +87
+[+68, +106] (MATCHES.md, "More search against less"), so 8.5% (0.12 of a doubling) is about +10. The match's top end
+is +9. So the extra clock was worth at most what free time is worth, and likely less: it isn't free, since spending
+it early leaves less for the moves after.
+
+**Not run: the slower control** (30+0.3, "like 3+2"). As for P2: telling a few Elo from zero would take thousands of
+games, about 11 hours. The bot's own setting is less promising than 10+0.1, not more: deeper searches gain less a
+ply (p2.1: +165 for depth 7 over 6, +105 for 11 over 10), and on Lichess hits are rarer (56.5% against 69% here), so the bank
+is smaller.
+
+**For Matthew.** Off as merged. To try it in the bot anyway, add `"PonderTimeBonus": 25` to `engine["uci_options"]`
+in bot/make-config.py and restart the bot. Worth measuring again after P4 (an unfinished depth's better move gets
+played, so time that ends mid-depth buys something) and P6.
+
+**Tests** (PonderTests 65 → 75):
+
+| test | threads | what it checks |
+|---|---|---|
+| TheTimeBudgetPlansAQuarterMoreWhenPondering | | S and H at 3 s, 10+0.1, the bot's 3+2 and a nearly empty clock (where H caps S), with 0, 25 and 100%: S grows, H doesn't |
+| ThePonderTimeBonusLeavesMovetimeAndMovesToGoAlone | | `movetime` and `infinite` unchanged; `movestogo` 10 gets the bonus on its own S |
+| WithPonderOnEveryMovePlansTheBonus | | Through UCI: no bonus with Ponder off, none by default with it on; 25 and 100 on `go ponder` and on a plain `go` (a miss); none for `movetime` |
+| UciOffersAPonderTimeBonusFrom0To100 | | `option name PonderTimeBonus type spin default 0 min 0 max 100`; 150 → 100, -5 → 0, 1 and 50 exact (a minute's clock, so 1% shows); a bad Ponder value is an error and changes nothing |
+| WithPonderOnHitsStillAnswerWithinTheClock | 1, L4, R4 | With 25%: a hit at once within H (+300 ms), a hit past the budget at once (200 ms), and a plain `go` within H |
+
+Mutations: 17 over the new lines while the default was 25, and 2 for the default turned to 0: all caught. Full suite:
+541 passed, 2 skipped.
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's

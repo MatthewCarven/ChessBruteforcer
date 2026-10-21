@@ -4858,3 +4858,51 @@ first; it had no commits of its own.
 - **New**: scripts/nnue/piece-pairs.py (features, net, report: like-for-like
   means and squashed-scale regressions, intervals by game, sandwich checked
   against 20 bootstrap refits); scripts/piece-pairs-2026-09-full.md its output.
+
+## 2026-10-21 (02:30-16:30): P3, plan more time a move when pondering (a side session)
+
+Decision M's third step, on branch claude/p3-ponder-time-254cad. Not merged.
+
+- **Base.** Matthew started P3 while P2's A/B match was still running, then
+  had it wait for that match (and P2's split after it). P2 lost, so P3 was
+  written on compression with P1 (7cb0adb), with P2's ponder-match.py taken
+  alone for its A/B mode. Once P2 (both options off) and p2.1 were in
+  compression, P3 was rebased onto it (e92ac2e): conflicts only where both
+  appended (UciEngine's options, PonderTests), kept both; the script copy
+  dropped out as identical. P2 and P3 share one test hook, P2's
+  `UciEngine.Search`.
+- **The change.** `Search.TimeBudget`: with
+  `SearchLimits.PonderTimeBonusPercent`, the planned time S grows by that
+  percent, after the hard limit H is worked out from the plain S (as
+  Stockfish adds its quarter after its maximum), and S never passes H.
+  UciEngine reads the Ponder option (ignored until now; true or false, else
+  an error) and a new spin PonderTimeBonus, 0-100, and passes the bonus on
+  every `go` when Ponder is on. python-chess sends Ponder true before each
+  `play(..., ponder=True)`, so the bot would get it.
+- **The match** (10+0.1, both pondering, 25% v 0, CPUs 2-12 even, 3 at a
+  time, 10:45-15:51): **-0 [-10, +9] over 2,000 games**, +408 -410 =1182;
+  SPRT [0, 10] undecided at the cap (LLR -2.17). The quarter more planned
+  came out as 8.5% more clock spent (11% after hits, 5% otherwise: a new
+  depth starts only before S/2, so more S often changes nothing); clock left
+  at the end 29% v 40%; 158 games v 45 ended under a second; no time
+  losses. p2.1's +87 for double time puts free time worth 8.5% at about +10,
+  the match's top end.
+- **So the default is 0** (it was 25 while measured): merging changes
+  nothing in the bot, as with P2. Matthew can turn it on with
+  `"PonderTimeBonus": 25` in bot/make-config.py's uci_options. The slower
+  control (30+0.3) was skipped, as for P2 (a few Elo from zero needs ~11 h);
+  measure again after P4 and P6.
+- **Tests**: PonderTests 65 → 75 (on compression; 20 → 30 before the
+  rebase). Mutations: 17 with the default at 25 and 2 for the default at 0,
+  all caught. Full suite: 541 passed, 2 skipped.
+- **A flaky test beside a match**: a full-suite run squeezed onto CPUs
+  0,1,14,15 while the match held the rest failed
+  ThreadTests.ThreadsWritingOneSlotNeverReadAMixedEntry ("only 0 hits": its
+  8 threads starved while other classes ran in parallel). It passed 3 of 3
+  alone on the same CPUs, and the run on 14 CPUs passed. Not P3's: give the
+  suite more than 4 CPUs.
+- The engine for the match was built into the scratchpad (and rebuilt with
+  `--no-incremental` after the mutation battery, to be sure of its source),
+  so the worktree stayed free to edit. 6.7-10.5 GB of commit free
+  throughout; the bot wasn't running; p2.2's analysis engine had CPUs 14-15
+  from 11:53, so later test runs kept to CPUs 0-13.
