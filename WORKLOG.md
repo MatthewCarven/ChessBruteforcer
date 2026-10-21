@@ -5318,3 +5318,5 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   networks, every option changes the rating by ~0 and saves 0-5 minutes per
   240 games. Look again if humans play the bot or level games start being
   lost.
+- **Matthew chose (a)**, leave the draw rule as it is: nothing built,
+  make-config.py unchanged. The TODO line to look again stays open.

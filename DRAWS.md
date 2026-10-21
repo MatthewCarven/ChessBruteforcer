@@ -18,7 +18,7 @@ opponent is about as strong, offer a draw.
 - **What an offer could save is time, and not much of it.** If every offer had been accepted at once, the
   bot would have saved about 66 minutes of 43 hours of play (2.6%). The other bots accept in about 1 game in 8
   (4 of 34), which leaves about 8 minutes per 240 games.
-- **Recommendation: (a), leave it as it is.** Look again if humans start playing the bot, or if the bot
+- **Matthew chose (a), leave it as it is** (my recommendation too). Look again if humans start playing the bot, or if the bot
   starts losing level games again. In its first days, on the old evaluation, it did (below).
 
 ## How draws work now
@@ -165,7 +165,7 @@ The rules simulated on the networks era's 240 games. "Fires in" counts the games
   in. On all 596 games it fires in 43, and would have been worth +40 points if all were accepted, nearly all
   of it in the early era. A variant could also never offer a human, whose mistakes are worth waiting for.
 
-**My pick: (a).** The bots decide, and they mostly say no. Today's bot draws its level games anyway. So the
+**Chosen: (a), leave it as it is** (Matthew, 2026-10-22). It was my pick too. The bots decide, and they mostly say no. Today's bot draws its level games anyway. So the
 best rule saves about 5 minutes per 240 games. Worth a TODO line to look again if humans play the bot, or if
 level games start being lost (the early era's pattern). Then (d) is the one to build.
 
