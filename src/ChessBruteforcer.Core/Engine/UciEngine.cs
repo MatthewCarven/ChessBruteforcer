@@ -31,6 +31,7 @@ public sealed class UciEngine
     private ParallelMode _split = ParallelMode.LazySmp;
     private bool _ponderFinish, _ponderCap;   // (P2's two rules, off: neither won games; PONDER.md)
     private bool _twofoldRepetitions;         // RepetitionRule Twofold: the old rule, for A/B matches
+    private int _historyKept = Search.DefaultHistoryKept;   // percent of the move-ordering history a new search keeps (P5)
     private bool _tablesLoaded;
     private int _tableCacheMegabytes = BlockCache.DefaultMegabytes;
     private List<ulong> _previousHashes = new();
@@ -91,6 +92,7 @@ public sealed class UciEngine
                     Send("option name PonderCap type check default false");
                     Send("option name PonderTimeBonus type spin default 0 min 0 max 100");
                     Send("option name RepetitionRule type combo default Threefold var Threefold var Twofold");
+                    Send($"option name HistoryKept type spin default {Search.DefaultHistoryKept} min 0 max 100");
                     Send("uciok");
                     break;
                 case "isready":
@@ -100,6 +102,7 @@ public sealed class UciEngine
                 case "ucinewgame":
                     StopSearch();
                     _table.Clear();
+                    _search.ClearHistory();
                     break;
                 case "setoption":
                     SetOption(words);
@@ -213,6 +216,11 @@ public sealed class UciEngine
                     "twofold" => true,
                     _ => throw new ArgumentException($"RepetitionRule is Threefold or Twofold, not {value}."),
                 };
+                break;
+            case "historykept":
+                // Percent of the move-ordering history a new search keeps from the one before (Search.HistoryKept;
+                // 0: from nothing, as before P5).  "ucinewgame" clears it either way.
+                _historyKept = Math.Clamp(int.Parse(value, CultureInfo.InvariantCulture), 0, 100);
                 break;
             case "evalfile":
                 // A network (.nnue, told apart by its magic), this engine's own; or tuned evaluation numbers
@@ -350,6 +358,7 @@ public sealed class UciEngine
         search.PonderFinish = _ponderFinish;
         search.PonderCap = _ponderCap;
         search.TwofoldRepetitions = _twofoldRepetitions;
+        search.HistoryKept = _historyKept;
         lock (_infoLock)
             (_lastInfo, _ponderHit, _infoSinceHit) = (null, false, false);
         // "go" returns once the search is ready, so a "stop" or "ponderhit" straight after it isn't lost.

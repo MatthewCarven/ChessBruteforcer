@@ -223,6 +223,50 @@ public sealed class Search
     /// </summary>
     public bool TwofoldRepetitions { get; set; }
 
+    /// <summary>The <see cref="HistoryKept"/> a search starts with.</summary>
+    public const int DefaultHistoryKept = 50;
+
+    /// <summary>
+    /// Percent of the move-ordering history (each quiet move's tally of
+    /// cutoffs, by side, from and to square) that a new search keeps from the
+    /// searches before it, on every thread (PONDER.md, P5).  0: each search
+    /// starts it from nothing, as before P5.  The killers, which belong to a
+    /// ply of the old tree, are cleared either way.  <see cref="ClearHistory"/>
+    /// forgets it outright (a new game).  Set between searches.
+    /// </summary>
+    public int HistoryKept { get; set; } = DefaultHistoryKept;
+
+    /// <summary>
+    /// Forget the move-ordering history of the searches so far, this one's and
+    /// every helper's, so that the next search starts it from nothing (a new
+    /// game: "ucinewgame").  Not while a search runs.
+    /// </summary>
+    public void ClearHistory()
+    {
+        Array.Clear(_history);
+        foreach (var helper in _helpers)
+            Array.Clear(helper._history);
+    }
+
+    /// <summary>The history tables, this search's and then each helper's, as copies (for tests).</summary>
+    internal IEnumerable<int[]> Histories => _helpers.Prepend(this).Select(search => search._history.Cast<int>().ToArray());
+
+    /// <summary>Keep <paramref name="percent"/> of each entry in <paramref name="history"/> (rounded down).</summary>
+    private static void AgeHistory(int[,,] history, int percent)
+    {
+        if (percent <= 0)
+        {
+            Array.Clear(history);
+            return;
+        }
+        if (percent >= 100)
+            return;
+        for (int side = 0; side < 2; side++)
+            for (int from = 0; from < 64; from++)
+                for (int to = 0; to < 64; to++)
+                    history[side, from, to] = (int)((long)history[side, from, to] * percent / 100);
+    }
+
     /// <summary>
     /// The opponent played the move a <see cref="SearchLimits.Ponder"/> search
     /// was pondering on, so that search becomes the real one (thread-safe),
@@ -486,8 +530,15 @@ public sealed class Search
             _ponderOver.Reset();
         else
             _ponderOver.Set();
-        Array.Clear(_history);
         Array.Clear(_killers);
+        if (_main is null)
+        {
+            // A new root: the history is kept in part, every helper's here too (each has its own), whether this
+            // search uses that helper or not, so each is aged once a search.  (A helper is prepared after this.)
+            AgeHistory(_history, HistoryKept);
+            foreach (var helper in _helpers)
+                AgeHistory(helper._history, HistoryKept);
+        }
 
         _hashes.Clear();
         if (previousHashes is not null)
