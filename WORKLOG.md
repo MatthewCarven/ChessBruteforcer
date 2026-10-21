@@ -5282,3 +5282,32 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   Deleting bot\eval\h1024-3m-l16-32.nnue goes back to h1024-3m.
 - Still to come, on Matthew's word: the repetition match's last 613 games,
   then the deep nets' two matches (the bot off).
+
+## 2026-10-22 (05:09-06:30): the deep nets' matches: both lost on speed (the nnue-deep-layers session)
+
+- The repetition match ended 05:04 (its session: the cores free, the bot
+  off). Both matches back to back from 05:09, `scripts\nnue-match.cmd` per
+  net through a wrapper in this session's scratchpad (the `echo. |` answers
+  each one's closing pause), from this branch's engine (compression merged,
+  so the new repetition rule plays on both sides). Nothing else running:
+  a 4 s CPU sample showed only a Windows download under a core.
+- **h1024-3m-l32 -85 [-121, -51]** (191 games, +25 -71 =95, SPRT H0 at
+  game 187, 05:09-05:29) and **h1024-3m-l16-32 -58 [-88, -30]** (276 games,
+  +45 -91 =140, H0 at game 272, 05:29-05:58). No time losses. Searches:
+  l32 1,344 knps, depth 9.4, against 2,982 and 10.7; l16-32 1,597 and 9.8
+  against 3,112 and 10.8. Not close, so no 30+0.3 run (Matthew's rule).
+  MATCHES.md has the table.
+- **The bot back on h1024-3m** (Matthew's (a)): bot/make-config.py's list
+  without l16-32, bot\eval\h1024-3m-l16-32.nnue removed from git (the net
+  stays in games\nnue\nets), 5fc8a61; compression first fast-forwarded to
+  60cc6a1 (another session's TODO commits, PR #7 to main among them).
+- **The speed work, weighed** (NNUE.md session 6): break-even needs the small
+  layers ~4x cheaper; halving their arithmetic saved ~50 of ~285 ns a node;
+  and a probe found **no AVX-512 VNNI reachable from .NET 8 or .NET 10 on
+  the i9-11900H** (AvxVnni is the VEX form, false here; no Avx512Vnni class;
+  Avx10v1 false). So int8 isn't the next lever on this laptop.
+- The desktop's records: July, August, September (nnue\ on the share); April,
+  May and June 2026 are downloaded there as month files (27-28 GB each,
+  Z:\lichess), March part-way. A month's records took ~11 h on the desktop
+  (filter 4.1-4.3 h, import 4.4-4.6, nnue data 2.3-2.5, check ~20 min), two
+  side by side.

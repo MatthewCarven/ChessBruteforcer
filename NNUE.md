@@ -1483,8 +1483,31 @@ code, the trainer and the reference, clear of the ponder sessions' files).
 
   The first layer's 16 outputs halve the pairs' arithmetic but not the
   listing, so the speed gains only 4 points on l32. Its tree came out
-  smaller than l32's (six positions, so rough). The bot plays it for a game
-  or two from 2026-10-22 (Matthew), before the two matches.
+  smaller than l32's (six positions, so rough). The bot played it for a game
+  or two on 2026-10-22 (Matthew), before the two matches, then went back
+  to h1024-3m.
+- **The matches** (2026-10-22, 10+0.1, the bot off; MATCHES.md): **l32 -85
+  [-121, -51]** in 191 games, **l16-32 -58 [-88, -30]** in 276, SPRT [0, 10]
+  accepted H0 for both. Each searched at about half h1024-3m's speed, 1.0 to
+  1.3 plies shallower. At p2.1's +87 a doubling of time, the evaluations
+  themselves are worth roughly +15 to +25 at equal speed (+-35).
+- **The speed work, weighed** (the lever named above):
+  - What it must reach: l16-32 breaks even at ~1.23x h1024-3m's time a node
+    (now ~1.95x), so the small layers' extra ~285 ns a node must fall about
+    **4x**, to ~70 ns. At full speed the prize is the +15 to +25 above.
+  - Int8 can't get there on this laptop: **neither .NET 8 nor .NET 10 can
+    use the i9-11900H's AVX-512 VNNI** (a probe, 2026-10-22: `AvxVnni` is
+    the VEX form, which Tiger Lake lacks; .NET has no `Avx512Vnni` class;
+    `Avx10v1` needs AVX10). Without VNNI, int8 is vpmaddubsw then
+    vpmaddwd, two instructions a 4 inputs, the same count as int16's one a
+    pair. And halving the arithmetic (32 -> 16 outputs) saved only ~50 ns of
+    the ~285: most of the cost is the fixed per-evaluation work (2,048
+    activations computed and stored, the pairs listed), not the sums.
+  - So int8 alone might win back 10-25% of the extra, and a 4x cut would
+    take a different design (Stockfish fuses the activations into the
+    feature layer's output and lists non-zero 4-byte chunks on it).
+    Measured first, if at all: switch the parts off one at a time, as
+    session 6 did.
 
 ## Risks
 

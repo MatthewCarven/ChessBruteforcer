@@ -65,6 +65,8 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-19 | h512-3m | nnue1-h512 | 2,000 | +583 -521 =896 | 51.5% | **+11 [-1, +22]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 1.73), LOS 96.9%: three months' data, a small gain; bot stopped |
 | 2026-10-20 | h1024-3m | h512-3m | 584 | +211 -143 =230 | 55.8% | **+41 [+19, +63]** | SPRT [0, 10] **accepted H1** at game ~579 (LLR 2.95); games 321-584 beside the bot, 34 time losses there (see below) |
 | 2026-10-20 | h768-3m | h512-3m | 525 | +200 -189 =136 | 51.0% | +7 [-18, +33] | **stopped, not a result**: all beside the bot, 135 games lost on time (78 by h768-3m); to be played again with the bot off |
+| 2026-10-22 | h1024-3m-l32 | h1024-3m | 191 | +25 -71 =95 | 38.0% | **-85 [-121, -51]** | SPRT [0, 10] **accepted H0** at game 187 (LLR -3.09); a deep net at half the speed (see below); bot stopped |
+| 2026-10-22 | h1024-3m-l16-32 | h1024-3m | 276 | +45 -91 =140 | 41.7% | **-58 [-88, -30]** | SPRT [0, 10] **accepted H0** at game 272 (LLR -3.09); bot stopped |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -161,6 +163,24 @@ off; the games are kept as games\nnue\match-h768-3m-h512-3m-beside-bot.*.
 The lesson for matches beside the bot: at 10+0.1, five games at a time is
 too many while the bot plays; h1024-3m's last 264 games were near the
 edge too.
+
+**The deeper nets against h1024-3m** (2026-10-22, 05:09-05:58, back to back,
+the bot stopped and nothing else running; NNUE.md session 6): small layers
+between h1024-3m's feature layer and the output, .nnue version 2, from the
+nnue-deep-layers branch's engine (the new repetition rule in, both sides
+alike). Both judge the held-back positions better and both lost, on speed:
+
+| net | held back v h1024-3m | games | Elo [95%] | knps, it v h1024-3m | depth, it v h1024-3m |
+|---|---|---|---|---|---|
+| h1024-3m-l32 (-> 32 -> 1) | -8.4% | 191 | **-85 [-121, -51]** | 1,344 v 2,982 (-55%) | 9.4 v 10.7 |
+| h1024-3m-l16-32 (-> 16 -> 32 -> 1) | -6.8% | 276 | **-58 [-88, -30]** | 1,597 v 3,112 (-49%) | 9.8 v 10.8 |
+
+No time losses. At p2.1's +87 Elo a doubling of time, half the speed costs
+~85-100 Elo, so at equal speed these evaluations would be worth roughly +15
+to +25 (with +-35 of noise): the extra judgement is real but small, and the
+speed it costs is not. l32's bigger tree (+37% to depth 9 in `bench 9`)
+cost it another 0.3 ply. Endings: l32 51 mates, 47 threefolds, 86 by the
+tables, 7 fifty-move; l16-32 57, 69, 139, 10 and a stalemate.
 
 ## Pondering (2026-10-16 on)
 

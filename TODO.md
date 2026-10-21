@@ -165,12 +165,18 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     the engine computes it, **but -47.9% knps** in `bench 9` (and a 37%
     bigger tree). **h1024-3m-l16-32** (-> 16 -> 32 -> 1) done 2026-10-21
     19:08, in games\nnue\nets: **held back -6.8%**, -43.9% knps in `bench
-    9` but a smaller tree, ~1.7x the time to depth 9 (l32 2.65x). **In
-    compression since 2026-10-22 (3988dbe), and the bot plays
-    h1024-3m-l16-32 for a game or two** (Matthew; bot/make-config.py lists
-    it first; delete bot\eval\h1024-3m-l16-32.nnue to go back).
-    h1536-3m-l32 training on the desktop, done ~12:30 on 10-22; the engine
-    can't load 1536 hidden yet.
+    9` but a smaller tree, ~1.7x the time to depth 9 (l32 2.65x). In
+    compression since 2026-10-22 (3988dbe). **Both lost to h1024-3m at
+    10+0.1, the bot off (2026-10-22): l32 -85 [-121, -51], l16-32 -58 [-88,
+    -30]**, SPRT accepted H0, each at about half the speed (MATCHES.md). Not
+    close, so no 30+0.3 run. The bot played l16-32 for a game or two, then
+    went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32 training on
+    the desktop, done ~12:30 on 10-22; the engine can't load 1536 hidden
+    yet, and it will be slower than l32.
+  - [ ] **Decision: the desktop's next job after 12:30, and the speed work**
+    (NNUE.md session 6, "The speed work, weighed"): int8 can't reach the
+    ~4x the small layers need on this laptop (no VNNI from .NET here), so
+    it isn't the next lever. Options in the report of 2026-10-22.
     **Matthew's (c), 2026-10-21 ~11:10: once l16-32 is done, both deep
     nets against h1024-3m at 10+0.1, back to back, the bot off; then the
     better at 30+0.3 if it's close** (the bot thinks ~20x longer a move
