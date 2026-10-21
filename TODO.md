@@ -152,11 +152,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     the h768 test into nnue"), on his go, like the deep nets' matches.
   - **h1536-3m trained** (the desktop, 2026-10-20 04:45-18:34): held back
     0.012193 at K 1, 0.011952 at its own K: **-3.7% / -3.9% against
-    h1024-3m**. In games\nnue\nets\. Before its match against h1024-3m
-    (the bot off) the engine's MaxHidden must rise from 1024 (a C# change:
-    Matthew's word; best on top of the engine-speed chain, which changes
-    Network.cs). **On hold** (Matthew, 2026-10-20 ~18:50): he tests the
-    engine speed upgrade first, before the next upgrade.
+    h1024-3m**. In games\nnue\nets\. The engine loads it since 662a810
+    (MaxHidden 2048); its match is A, below.
   - **Deeper nets** (Matthew's (a), 2026-10-21; NNUE.md session 6):
     h1024-3m-l32 (1024 x2 -> 32 -> 1) trained 00:30-09:48 and **plays now**
     (branch `claude/nnue-deep-layers`: .nnue version 2, the trainer's
@@ -171,28 +168,29 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     -30]**, SPRT accepted H0, each at about half the speed (MATCHES.md). Not
     close, so no 30+0.3 run. The bot played l16-32 for a game or two, then
     went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32 training on
-    the desktop, done ~12:30 on 10-22; the engine can't load 1536 hidden
-    yet, and it will be slower than l32.
-  - [ ] **Decision: the desktop's next job after 12:30, and the speed work**
-    (NNUE.md session 6, "The speed work, weighed"): int8 can't reach the
-    ~4x the small layers need on this laptop (no VNNI from .NET here), so
-    it isn't the next lever. Options in the report of 2026-10-22.
-    **Matthew's (c), 2026-10-21 ~11:10: once l16-32 is done, both deep
-    nets against h1024-3m at 10+0.1, back to back, the bot off; then the
-    better at 30+0.3 if it's close** (the bot thinks ~20x longer a move
-    than 10+0.1, and p2.1 found double time worth +87 at 10+0.1, about
-    what the deep net's speed costs). **Run by the nnue-deep-layers
-    session** (Matthew's word, ~11:40), from this branch's engine
-    (`set NNUE_TC=30+0.3` for the slower clock), after his go and with the
-    bot off; NNUE session 2b handed them over. More speed work (int8
-    weights; the small layers trained clamped) if they lose on speed.
-  - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
-    passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
-    3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
-    held-back scoring needs smaller chunks at 2048 (it ran out of GPU
-    memory there), and the engine's MaxHidden 1024 must rise (a C# change:
-    Matthew's word). Its speed cost is unmeasured (1024 cost 15.8% a node,
-    not the probe's 23%), so wait for h1024-3m's match first.
+    the desktop, done ~12:10 on 10-22 by its clock (-11% held back after
+    pass 6); the engine loads 1536 hidden since 662a810, but it will be
+    slower than l32.
+  - [x] **Decision: the next jobs, and the speed work** (Matthew, 2026-10-22
+    ~07:10; WORKLOG): not int8 (it can't reach the ~4x the small layers need
+    on this laptop: no VNNI from .NET here; NNUE.md session 6). Instead,
+    levers that cost no speed: **A** h1536-3m into play; **B** output
+    buckets (side sessions ob-trainer and ob-engine, .nnue version 3;
+    h1024-3m-ob8 on the desktop after h1536-3m-l32); **C** April-June's
+    records (on the desktop since 06:55), then 6 months; **E** h2048-3m on
+    the laptop's GPU when the bot is off. h1536-3m-l32 runs to its end
+    (-11% held back after pass 6, the best yet). Later: king buckets (D),
+    on whichever wins, with 6 months' data.
+  - [ ] **A: h1536-3m against h1024-3m** (the bot off, `scripts\nnue-match.cmd
+    h1536-3m h1024-3m`). The engine takes 2048 hidden since 662a810;
+    `bench 9` -12.8% knps, 1.10x the time to depth 9; about +16 Elo expected.
+    Waits for the laptop's cores (the core queue).
+  - [ ] **E: h2048-3m on the laptop's GPU** (2026-10-19's estimate: September
+    at 20 passes ~7.5 h on the 3070; three months at 10 passes ~11-12 h),
+    the bot off, after A's match: the laptop's power is shared, so no laptop
+    match or bench meanwhile. Nothing to build: the engine takes 2048
+    (662a810), and train.py's held-back scoring shrinks its chunks with the
+    net (d62f955).
   - **Speed at 1024, measured and built** (2026-10-20, a side session,
     branch `claude/stoic-goodall-ecc132`; NNUE.md "Speed at 1024"): the
     updates took 27-28% of a node, the forward pass 12-13%. Matthew's J(c):

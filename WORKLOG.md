@@ -5333,3 +5333,42 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   (output buckets) isn't written yet, so stopping it now gains little.
 - The laptop holds July-September's records (games\nnue\2026-07..09), 53 GB
   free on C:, an RTX 3070 Laptop GPU (8 GB).
+
+## 2026-10-22 (07:10-07:40): the plan (A, B, E); the engine takes 2048 hidden; h1536-3m benched (the nnue-deep-layers session)
+
+- **Matthew's plan** (~07:10): A, h1536-3m into play now; B, output buckets
+  on the desktop from ~12:30; E, h2048-3m on the laptop's GPU when the bot is
+  off; h1536-3m-l32 runs to its end. Then B in two side sessions (his word):
+  **ob-trainer** (local_185b41a1: `train.py --output-buckets`, the export,
+  the reference, a fixture, then h1024-3m-ob8 on the desktop) and
+  **ob-engine** (local_c66c8c06: the C# loader, tests, a battery), both from
+  662a810 on their own branches, both to the same spec: **.nnue version 3**
+  = version 1 plus u32 K after the header, output weights [K][2H] and biases
+  [K]; bucket (n - 1) x K / 32, n every piece on the board, kings included
+  (K 8: Stockfish's (n - 1) / 4).
+- **The engine takes nets up to 2048 hidden** (662a810, was 1024).
+  Forward256's int32 lanes collect H / 8 products of at most 255 x 32,767,
+  so at 2048 they reach 2,138,909,760, under 2^31 (2,056 is the last H that
+  fits; Forward512 has room to 4,096). New tests: SimdEqualsScalar at 1536
+  and 2048, the largest-sums test at 1024/1536/2048 (the all-positive net's
+  lanes 0.8% under 2^31 at 2048), the deep definition at 1536 (h1536-3m-l32's
+  shape) and 2048, MaxHidden loads and MaxHidden + 16 is refused. Network
+  tests 75 of 75. E needs no trainer change: train.py's held-back scoring
+  already shrinks its chunks with the net (d62f955).
+- **h1536-3m benched** (`bench 9`, one thread, 6 rounds alternated after a
+  warm-up; the book learner's two engines running alongside, ~2 cores):
+
+  | net | nodes | knps | v h1024-3m | time to depth 9 |
+  |---|---|---|---|---|
+  | h1024-3m | 3,775,600 | 2,703 | - | 1.00x |
+  | h1536-3m | 3,623,557 | 2,356 | **-12.8%** | 1.10x |
+  | h512-3m | 3,752,874 | 3,309 | +22.4% | 0.81x |
+
+  h1536-3m loads (network sha256 50bedcc21898, as its training log says). By
+  the rule from our own matches (+8 Elo for each 1% of held-back error, -87
+  for each halving of speed): -3.9% error +33, -12.8% speed -17, **about +16
+  expected**. Its match against h1024-3m waits for the laptop's cores (the
+  book learner's run; asked it and the core queue, local_469cca7a).
+- Session context (local_20f56c49) now orchestrates: it merges finished
+  branches into compression; this session no longer fast-forwards the main
+  checkout.
