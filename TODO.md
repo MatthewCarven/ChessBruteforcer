@@ -986,7 +986,7 @@ Sessions, in order:
       - [ ] (c) A rook-pair term in sf1, which overvalues the second rook by
             +26 cp [+21, +32] (it has none): a Texel round (~1 h) and a match
             against sf1 (~2 h, the bot off). Only if sf1 plays again.
-- [ ] **Decision N: draw offers in level games** (Matthew's idea, 2026-10-22:
+- [ ] **Decision N: draw offers in level games** (P7; Matthew's idea, 2026-10-22:
       offer a draw when the PV has sat at ~0.00 for a long time against a
       player of similar strength; [DRAWS.md](DRAWS.md), scoped the same day,
       nothing changed). lichess-bot already offers and accepts at exactly
@@ -1051,7 +1051,7 @@ Sessions, in order:
       (e), at the end of PONDER.md. (2026-10-21: Matthew chose all six, P1 to
       P6, one session each, in sequence; the steps are ticked under
       "Decision M" in section 2. P1 is in compression, 7cb0adb.)
-- [ ] Decision N (draw offers, [DRAWS.md](DRAWS.md)): pick (a) to (d) at the
+- [ ] Decision N (P7, draw offers, [DRAWS.md](DRAWS.md)): pick (a) to (d) at the
       end of "The options". My pick (a), leave it: nothing to build.
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.

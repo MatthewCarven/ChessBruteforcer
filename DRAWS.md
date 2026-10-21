@@ -1,7 +1,7 @@
 # Draw offers: should the bot offer a draw in a level game?
 
-A scoping pass, 2026-10-22 (a side session, branch `claude/draw-offer-scope-6f8c39`, on `compression`'s
-882d45c). Nothing in `src` or in bot/lichess-bot changed. Matthew's idea: *"if all moves are 0 gain on the
+A scoping pass, 2026-10-22: **P7**, after the ponder decisions P1-P6 (a side session, branch
+`claude/draw-offer-scope-6f8c39`, on `compression`'s 882d45c; any code for it goes on `claude/p7-draw-offers`). Nothing in `src` or in bot/lichess-bot changed. Matthew's idea: *"if all moves are 0 gain on the
 main predicted path for a long time maybe we should offer draw if we have a similar strength to our
 opponent?"* In other words: when the bot's evaluation has sat at about 0.00 for many moves in a row, and the
 opponent is about as strong, offer a draw.

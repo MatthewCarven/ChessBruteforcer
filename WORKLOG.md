@@ -5276,7 +5276,7 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - Still to come, on Matthew's word: the repetition match's last 613 games,
   then the deep nets' two matches (the bot off).
 
-## 2026-10-22 (04:40-05:20): draw offers in level games, scoped (a side session)
+## 2026-10-22 (04:40-05:20): P7, draw offers in level games, scoped (a side session)
 
 - Matthew's idea: "if all moves are 0 gain on the main predicted path for a
   long time maybe we should offer draw if we have a similar strength to our
