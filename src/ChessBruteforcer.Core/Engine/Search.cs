@@ -27,6 +27,14 @@ public sealed record SearchLimits
 
     /// <summary>Time kept back on every move for communication and the operating system.</summary>
     public int MoveOverheadMs { get; init; } = 50;
+
+    /// <summary>
+    /// Percent more planned time a move, for a game in which we ponder (the
+    /// UCI engine passes its PonderTimeBonus when the GUI sets Ponder): a ponder
+    /// hit answers sooner than planned, and this spends the clock it saves, on
+    /// every move.  The hard limit stays as it would be without it.
+    /// </summary>
+    public int PonderTimeBonusPercent { get; init; }
 }
 
 /// <summary>Progress after each completed depth.</summary>
@@ -34,6 +42,14 @@ public sealed record SearchInfo(int Depth, int Score, long Nodes, TimeSpan Elaps
 {
     /// <summary>Moves to mate (positive: we mate, negative: we are mated), or null for a centipawn score.</summary>
     public int? MateIn => Search.MateIn(Score);
+
+    /// <summary>
+    /// A depth the search was cut off in, reported because it proved a move
+    /// better than the last finished depth's best, which is the move played
+    /// (PONDER.md, P4).  The score is that move's; for the depth it is a lower
+    /// bound, since the root moves not yet searched might do better still.
+    /// </summary>
+    public bool Partial { get; init; }
 }
 
 public sealed record SearchResult(Move? BestMove, int Score, int Depth, long Nodes, IReadOnlyList<Move> PrincipalVariation);
@@ -89,7 +105,9 @@ public sealed class Search
     private readonly int[] _pvLength = new int[MaxPly];
     private readonly Move[,] _killers = new Move[MaxPly, 2];
     private readonly int[,,] _history = new int[2, 64, 64];
-    private readonly List<ulong> _hashes = new();
+    private readonly List<ulong> _hashes = new();   // the game before the root, the root, then the line being searched
+    private int _rootIndex;                          // the root's place in _hashes: what comes after it is the search's own
+    private bool _twofold;                           // TwofoldRepetitions, as the search this one works for has it
 
     private Stopwatch _clock = new();
     private long _nodes;
@@ -101,6 +119,12 @@ public sealed class Search
     private volatile bool _stop;
     private volatile bool _pondering;
     private readonly ManualResetEventSlim _ponderOver = new(true);
+
+    // The root of the depth being searched, for a depth the limit cuts (ProvedAtCut): the last finished depth's
+    // best move, whether this depth has searched it to the end, and the score of the move now first in _pv[0].
+    private Move _rootPreviousBest;
+    private bool _rootPreviousBestSearched;
+    private int _rootScore;
 
     // Threads: each helper is a Search of its own (move lists, killers, history, repetition
     // list), sharing this one's table.  A helper's _main is the search it works for.
@@ -142,6 +166,25 @@ public sealed class Search
     /// <summary>Depths in the last <see cref="ParallelMode.Ranges"/> search at which no window held the score, so it was searched again on one thread with the full window.</summary>
     public int RangeFallbacks { get; private set; }
 
+    /// <summary>
+    /// For tests: told of every root move as its search at a depth ends (not
+    /// when stopped), and of one that failed high on a null window as it is
+    /// searched again with the full window, by this search and its helpers.
+    /// It runs on the thread that searched the move.
+    /// </summary>
+    internal Action<RootEvent>? RootTrace { get; set; }
+
+    /// <summary>
+    /// A root move at one depth (<see cref="RootTrace"/>), by <paramref name="Thread"/>
+    /// (this search or one of its helpers) after <paramref name="Nodes"/> of
+    /// its own nodes.  <paramref name="Research"/>: it failed high on a null
+    /// window, with <paramref name="Score"/> a lower bound, and is about to be
+    /// searched again.  Otherwise its search ended with that score, and
+    /// <paramref name="Raised"/> says whether it beat the best so far (it is
+    /// now first in the line).
+    /// </summary>
+    internal readonly record struct RootEvent(Search Thread, int Depth, Move Move, int Score, long Nodes, bool Research, bool Raised);
+
     /// <summary>Ask a running search to finish as soon as possible (thread-safe).</summary>
     public void Stop()
     {
@@ -168,6 +211,17 @@ public sealed class Search
     /// cap lost games at 10+0.1).  Set between searches.
     /// </summary>
     public bool PonderCap { get; set; }
+
+    /// <summary>
+    /// The old repetition rule, kept for A/B matches: a position seen once
+    /// before since the last capture or pawn move, the game before the search
+    /// included, is a draw.  Off (the default): Stockfish's rule
+    /// (<see cref="Repetition"/>).  In self-play the two came out even, but the
+    /// old one is wrong in the lost positions where the bot meets it (a 0.00
+    /// with no line, so no ponder move), and Matthew would rather the engine
+    /// be right (WORKLOG, 2026-10-21, the repetition rule).  Set between searches.
+    /// </summary>
+    public bool TwofoldRepetitions { get; set; }
 
     /// <summary>
     /// The opponent played the move a <see cref="SearchLimits.Ponder"/> search
@@ -281,19 +335,33 @@ public sealed class Search
                 int score;
                 Move[] pv;
                 bool complete;
+                var previousBest = result.BestMove!.Value;
                 if (Threads > 1 && Split == ParallelMode.Ranges && depth >= RangesFromDepth)
                 {
                     ranges ??= new RangeWorkers(this, root, previousHashes);
-                    (score, pv, complete) = ranges.SearchDepth(depth, result.Score);
+                    (score, pv, complete) = ranges.SearchDepth(depth, result.Score, previousBest);
                 }
                 else
                 {
+                    (_rootPreviousBest, _rootPreviousBestSearched) = (previousBest, false);
                     score = Negamax(root, depth, -Infinity, Infinity, 0, allowNull: false);
-                    pv = _pv[0].Take(_pvLength[0]).ToArray();
                     complete = !_stop;
+                    if (complete || depth == 1)
+                        pv = _pv[0].Take(_pvLength[0]).ToArray();
+                    else
+                        (pv, score) = ProvedAtCut() ?? (Array.Empty<Move>(), 0);
                 }
                 if (!complete && depth > 1)
-                    break;   // an unfinished iteration can't be trusted; keep the last complete one
+                {
+                    // An unfinished depth can't be trusted, so keep the last complete one, unless this depth has
+                    // proved another move better (P4): then the line is that move's (and otherwise empty).
+                    if (pv.Length > 0)
+                    {
+                        result = new SearchResult(pv[0], score, depth, TotalNodes, pv);
+                        onInfo?.Invoke(new SearchInfo(depth, score, TotalNodes, _clock.Elapsed, pv) { Partial = true });
+                    }
+                    break;
+                }
 
                 if (pv.Length > 0)
                     result = new SearchResult(pv[0], score, depth, TotalNodes, pv);
@@ -316,6 +384,39 @@ public sealed class Search
         return result with { Nodes = TotalNodes };
     }
 
+    /// <summary>
+    /// For a depth this search (or helper) was cut off in: the move it has
+    /// proved best so far, with its line and score, if that's not the last
+    /// finished depth's best and the depth has searched that one to the end.
+    /// It's the move the depth would play if every root move it didn't reach
+    /// did worse.  A move first in the line has beaten all before it in a
+    /// search that ended: one that failed high on a null window gets there
+    /// only once its full-window search ends, so an unconfirmed fail-high
+    /// never counts.  Null when there's no such move.
+    /// </summary>
+    private (Move[] Pv, int Score)? ProvedAtCut()
+    {
+        if (!_rootPreviousBestSearched || _pvLength[0] == 0 || _pv[0][0] == _rootPreviousBest)
+            return null;
+        return (_pv[0].Take(_pvLength[0]).ToArray(), _rootScore);
+    }
+
+    /// <summary>A root move's search ended (see <see cref="ProvedAtCut"/>): before <paramref name="alpha"/> takes its score, if it beat it.</summary>
+    private void NoteRootMove(int depth, Move move, int score, int alpha)
+    {
+        if (move == _rootPreviousBest)
+            _rootPreviousBestSearched = true;
+        if (score > alpha)
+            _rootScore = score;
+        (_main ?? this).RootTrace?.Invoke(new RootEvent(this, depth, move, score, _nodes, Research: false, Raised: score > alpha));
+    }
+
+    private void TraceResearch(int depth, Move move, int score)
+    {
+        if (!_stop)
+            (_main ?? this).RootTrace?.Invoke(new RootEvent(this, depth, move, score, _nodes, Research: true, Raised: false));
+    }
+
     /// <summary>Nodes searched in the current or last search, by this thread and its helpers.</summary>
     public long Nodes => TotalNodes;
 
@@ -327,6 +428,12 @@ public sealed class Search
 
     /// <summary>The positions the current or last search's helpers searched from (each thread's own copy of the root).</summary>
     internal IEnumerable<Position?> HelperRoots => _helpers.Take(_activeHelpers).Select(helper => helper._root);
+
+    /// <summary>The repetition rule the current or last search's helpers searched by (true: <see cref="TwofoldRepetitions"/>; for tests).</summary>
+    internal IEnumerable<bool> HelperRules => _helpers.Take(_activeHelpers).Select(helper => helper._twofold);
+
+    /// <summary>The last search's budget from its clock, in ms (<see cref="TimeBudget"/>; 0: none), pondering or not.</summary>
+    internal (long Soft, long Hard) PlannedBudget => (_plannedSoftMs, _plannedHardMs);
 
     private long TotalNodes
     {
@@ -385,7 +492,9 @@ public sealed class Search
         _hashes.Clear();
         if (previousHashes is not null)
             _hashes.AddRange(previousHashes);
+        _rootIndex = _hashes.Count;
         _hashes.Add(root.Hash);
+        _twofold = (_main ?? this).TwofoldRepetitions;   // (a helper is prepared by the search it works for)
     }
 
     /// <summary>At least <paramref name="count"/> helpers, made once and kept: each holds ~250 KB of move lists and tables.</summary>
@@ -521,12 +630,16 @@ public sealed class Search
         /// <summary>
         /// One depth: every thread its own window, the answer from the one
         /// whose window holds the score.  Not complete if the search was
-        /// stopped before any window settled it.
+        /// stopped before any window settled it; then the line is that of a
+        /// move some thread proved better than <paramref name="previousBest"/>,
+        /// the last depth's best (P4), or empty.
         /// </summary>
-        public (int Score, Move[] Pv, bool Complete) SearchDepth(int depth, int previous)
+        public (int Score, Move[] Pv, bool Complete) SearchDepth(int depth, int previous, Move previousBest)
         {
             int[] bounds = RangeBounds(previous, _workers.Length, _owner.RangeStep);
             int windows = bounds.Length - 1;
+            foreach (var worker in _workers)   // (those that sit this depth out too: nothing they knew counts now)
+                (worker.Helper._rootPreviousBest, worker.Helper._rootPreviousBestSearched) = (previousBest, false);
             for (int i = 0; i < windows; i++)
             {
                 var worker = _workers[i];
@@ -564,13 +677,39 @@ public sealed class Search
 
             _owner.CheckLimits();
             if (_owner._stop)
-                return (0, Array.Empty<Move>(), false);
+                return ProvedAtCut(fallback: false);
             // No window held it: pruning that depends on the window (null move above all) can
             // make neighbouring windows disagree about which side of their boundary the score is.
             // Settle the depth on this thread with the full window.
             _owner.RangeFallbacks++;
+            (_owner._rootPreviousBest, _owner._rootPreviousBestSearched) = (previousBest, false);
             int score = _owner.Negamax(_root, depth, -Infinity, Infinity, 0, allowNull: false);
-            return (score, _owner._pv[0].Take(_owner._pvLength[0]).ToArray(), !_owner._stop);
+            if (!_owner._stop)
+                return (score, _owner._pv[0].Take(_owner._pvLength[0]).ToArray(), true);
+            return ProvedAtCut(fallback: true);
+        }
+
+        /// <summary>
+        /// A depth cut off: of the moves its threads proved better than the
+        /// last depth's best (<see cref="Search.ProvedAtCut"/>), the one with
+        /// the highest score.  A window's score is at least the move's (exact
+        /// in the window, or at least its top on a fail high), so this is the
+        /// move proved best, by the most.  With <paramref name="fallback"/>,
+        /// the owner's full-window search of the depth counts too.  (A worker
+        /// that sat the depth out has proved nothing: its root was reset.)
+        /// </summary>
+        private (int Score, Move[] Pv, bool Complete) ProvedAtCut(bool fallback)
+        {
+            var searches = _workers.Select(worker => worker.Helper);
+            if (fallback)
+                searches = searches.Append(_owner);
+            (Move[] Pv, int Score)? best = null;
+            foreach (var search in searches)
+            {
+                if (search.ProvedAtCut() is { } proved && (best is null || proved.Score > best.Value.Score))
+                    best = proved;
+            }
+            return best is { } chosen ? (chosen.Score, chosen.Pv, false) : (0, Array.Empty<Move>(), false);
         }
 
         private void StopAll()
@@ -605,10 +744,15 @@ public sealed class Search
             return 0;
 
         bool root = ply == 0;
+        bool seenInGame = false;
         if (!root)
         {
-            if (position.HalfmoveClock >= 100 || IsRepetition(position))
+            if (position.HalfmoveClock >= 100)
                 return 0;
+            var repeat = Repetition(position);
+            if (repeat == Repeat.Draw)
+                return 0;
+            seenInGame = repeat == Repeat.SeenInGame;
             // Mate-distance pruning: no line from here can beat a mate already found nearer the root.
             alpha = Math.Max(alpha, -Mate + ply);
             beta = Math.Min(beta, Mate - ply - 1);
@@ -635,7 +779,11 @@ public sealed class Search
         if (_table.TryGet(position.Hash, out var entry))
         {
             ttMove = entry.Move;
-            if (!root && entry.Depth >= depth)
+            // (Not at a position the game has had before, the root included: its entry was stored before it came
+            // round again, so it can't know that the reply which makes a position's third time is a draw now.  At
+            // a return to the root it's the root's own entry from the depth before, which would hide a perpetual
+            // check through the root; elsewhere, an entry from an earlier move's search that still says "winning".)
+            if (!root && entry.Depth >= depth && !seenInGame)
             {
                 int ttScore = FromTable(entry.Score, ply);
                 if (entry.Bound == Bound.Exact
@@ -699,13 +847,19 @@ public sealed class Search
                 if (score > alpha && reduction > 0)
                     score = -Negamax(position, depth - 1, -alpha - 1, -alpha, ply + 1, allowNull: true);
                 if (score > alpha && score < beta)
+                {
+                    if (root)
+                        TraceResearch(depth - (inCheck ? 1 : 0), move, score);
                     score = -Negamax(position, depth - 1, -beta, -alpha, ply + 1, allowNull: true);
+                }
             }
 
             _hashes.RemoveAt(_hashes.Count - 1);
             position.UnmakeMove(move, undo);
             if (_stop)
                 return 0;
+            if (root)
+                NoteRootMove(depth - (inCheck ? 1 : 0), move, score, alpha);
 
             if (score > best)
             {
@@ -873,15 +1027,33 @@ public sealed class Search
         return moves[start];
     }
 
-    /// <summary>Has this position occurred before, since the last capture or pawn move?</summary>
-    private bool IsRepetition(Position position)
+    /// <summary>
+    /// Is this position a draw by repetition, or one the game has had once
+    /// before (not a draw yet)?  Stockfish's rule: a draw if it
+    /// occurred before inside this search, after the root (the line that came
+    /// back to it can go round again, for ever), or if it is here for the
+    /// third time.  Seen once before in the game, the root itself included,
+    /// it isn't a draw yet: the game goes on from it, and the side who would
+    /// rather not draw plays something else.  (Only since the last capture or
+    /// pawn move: nothing earlier can come back.)
+    /// </summary>
+    private Repeat Repetition(Position position)
     {
         int top = _hashes.Count - 1;
         int oldest = Math.Max(0, top - position.HalfmoveClock);
+        bool seenInGame = false;   // once already, at the root or before it
         for (int i = top - 2; i >= oldest; i -= 2)
-            if (_hashes[i] == position.Hash) return true;
-        return false;
+        {
+            if (_hashes[i] != position.Hash)
+                continue;
+            if (i > _rootIndex || seenInGame || _twofold)
+                return Repeat.Draw;
+            seenInGame = true;
+        }
+        return seenInGame ? Repeat.SeenInGame : Repeat.No;
     }
+
+    private enum Repeat { No, SeenInGame, Draw }
 
     private void CheckLimits()
     {
@@ -896,8 +1068,11 @@ public sealed class Search
     /// Soft limit: the planned time for this move (no new depth is started
     /// past half of it, since the next depth usually takes longer than all
     /// the previous ones).  Hard limit: abort mid-search.  Zero means none.
+    /// Pondering, the soft limit gets <see cref="SearchLimits.PonderTimeBonusPercent"/>
+    /// more, as Stockfish plans a quarter more when Ponder is on; the hard
+    /// limit comes from the plain soft limit, as in Stockfish.
     /// </summary>
-    private static (long Soft, long Hard) TimeBudget(Position root, SearchLimits limits)
+    internal static (long Soft, long Hard) TimeBudget(Position root, SearchLimits limits)
     {
         if (limits.Infinite)
             return (0, 0);
@@ -912,6 +1087,7 @@ public sealed class Search
         long soft = remaining / movesToGo + increment * 3L / 4;
         long hard = Math.Min(soft * 3, remaining / 3 + increment);
         hard = Math.Max(5, Math.Min(hard, remaining - 20));
+        soft += soft * limits.PonderTimeBonusPercent / 100;
         return (Math.Min(soft, hard), hard);
     }
 

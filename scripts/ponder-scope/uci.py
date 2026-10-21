@@ -5,7 +5,8 @@ import subprocess
 import threading
 import time
 
-INFO = re.compile(r"^info depth (\d+) score (cp -?\d+|mate -?\d+) nodes (\d+) nps \d+ time (\d+) hashfull (\d+) pv (.*)$")
+# (" lowerbound": since P4, a depth the clock cut, sent because it proved the move played better)
+INFO = re.compile(r"^info depth (\d+) score (cp -?\d+|mate -?\d+)( lowerbound)? nodes (\d+) nps \d+ time (\d+) hashfull (\d+) pv (.*)$")
 
 
 class Engine:
@@ -67,8 +68,9 @@ def infos(lines):
     for t, line in lines:
         m = INFO.match(line)
         if m:
-            out.append({"t": t, "depth": int(m.group(1)), "score": m.group(2), "nodes": int(m.group(3)),
-                        "ms": int(m.group(4)), "hashfull": int(m.group(5)), "pv": m.group(6).split()})
+            out.append({"t": t, "depth": int(m.group(1)), "score": m.group(2), "nodes": int(m.group(4)),
+                        "ms": int(m.group(5)), "hashfull": int(m.group(6)), "pv": m.group(7).split(),
+                        "partial": m.group(3) is not None})
     return out
 
 

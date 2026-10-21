@@ -25,9 +25,12 @@ public sealed class UciEngine
 
     private Position _position = Position.Start();
     private int _moveOverheadMs = 50;
+    private bool _ponder;              // the GUI may send "go ponder" (UCI's Ponder option)
+    private int _ponderTimeBonus;      // percent more planned time a move when it may (0: P3's 25 didn't win games)
     private int _threads = 1;
     private ParallelMode _split = ParallelMode.LazySmp;
     private bool _ponderFinish, _ponderCap;   // (P2's two rules, off: neither won games; PONDER.md)
+    private bool _twofoldRepetitions;         // RepetitionRule Twofold: the old rule, for A/B matches
     private bool _tablesLoaded;
     private int _tableCacheMegabytes = BlockCache.DefaultMegabytes;
     private List<ulong> _previousHashes = new();
@@ -86,6 +89,8 @@ public sealed class UciEngine
                     Send("option name Ponder type check default false");
                     Send("option name PonderFinish type check default false");
                     Send("option name PonderCap type check default false");
+                    Send("option name PonderTimeBonus type spin default 0 min 0 max 100");
+                    Send("option name RepetitionRule type combo default Threefold var Threefold var Twofold");
                     Send("uciok");
                     break;
                 case "isready":
@@ -106,7 +111,11 @@ public sealed class UciEngine
                 case "go":
                     StopSearch();
                     EnsureTablesLoaded();
-                    StartSearch(ParseGo(words) with { MoveOverheadMs = _moveOverheadMs });
+                    StartSearch(ParseGo(words) with
+                    {
+                        MoveOverheadMs = _moveOverheadMs,
+                        PonderTimeBonusPercent = _ponder ? _ponderTimeBonus : 0,
+                    });
                     break;
                 case "ponderhit":
                     // The opponent played the move we were pondering on: the search goes on, on our clock.
@@ -178,8 +187,12 @@ public sealed class UciEngine
                 };
                 break;
             case "ponder":
-                // Only tells us the GUI may send "go ponder", which works either way.  (UCI lets an
-                // engine plan its time differently when it may ponder; this one doesn't, yet.)
+                // The GUI may send "go ponder" (which works either way).  If it may, every move plans
+                // PonderTimeBonus percent more time: hits answer early, and this spends what they save.
+                _ponder = bool.Parse(value);
+                break;
+            case "pondertimebonus":
+                _ponderTimeBonus = Math.Clamp(int.Parse(value, CultureInfo.InvariantCulture), 0, 100);
                 break;
             case "ponderfinish":
                 // A ponder hit lets a depth begun past half the planned time finish, within that time from the
@@ -190,6 +203,16 @@ public sealed class UciEngine
                 // After a ponder hit, a depth that goes on stops by the hit + the planned time (Search.PonderCap;
                 // off: at the hard limit, as before).
                 _ponderCap = Check("PonderCap", value);
+                break;
+            case "repetitionrule":
+                // Threefold: a repeated position is a draw if it came before inside the search, or on its third
+                // time. Twofold: the old rule, a draw on its second time, the game before the search included.
+                _twofoldRepetitions = value.ToLowerInvariant() switch
+                {
+                    "threefold" => false,
+                    "twofold" => true,
+                    _ => throw new ArgumentException($"RepetitionRule is Threefold or Twofold, not {value}."),
+                };
                 break;
             case "evalfile":
                 // A network (.nnue, told apart by its magic), this engine's own; or tuned evaluation numbers
@@ -326,6 +349,7 @@ public sealed class UciEngine
         search.Split = _split;
         search.PonderFinish = _ponderFinish;
         search.PonderCap = _ponderCap;
+        search.TwofoldRepetitions = _twofoldRepetitions;
         lock (_infoLock)
             (_lastInfo, _ponderHit, _infoSinceHit) = (null, false, false);
         // "go" returns once the search is ready, so a "stop" or "ponderhit" straight after it isn't lost.
@@ -387,6 +411,8 @@ public sealed class UciEngine
     {
         long ms = Math.Max(1, (long)info.Elapsed.TotalMilliseconds);
         string score = info.MateIn is int mate ? $"mate {mate}" : $"cp {info.Score}";
+        if (info.Partial)
+            score += " lowerbound";   // (a depth cut off: its best move so far, the one played; P4)
         string pv = string.Join(' ', info.PrincipalVariation.Select(m => m.ToUci()));
         lock (_infoLock)
         {

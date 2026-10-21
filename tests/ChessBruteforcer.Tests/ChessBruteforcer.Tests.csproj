@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Fixtures written by scripts (Data\nnue-random-256.*: scripts/nnue-reference/nnue_reference.py). -->
+    <!-- Fixtures written by scripts (Data\nnue-random-256.* and nnue-random-deep-*.*: scripts/nnue-reference/nnue_reference.py). -->
     <None Include="Data\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

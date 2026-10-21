@@ -5,11 +5,18 @@ sends "go ponder" on the position after that reply, then "ponderhit" if the repl
     bot\\lichess-bot\\.venv\\Scripts\\python.exe -I scripts/ponder-match.py <engine .exe> <results .jsonl>
         [--games 140] [--tc 10+0.1] [--concurrency 2] [--cpus 2,4,6,8] [--openings games/tune/openings-300.txt]
         [--eval bot/eval/eval-sf1.txt] [--hash 64] [--threads 1]
-        [--arms "PonderFinish=true;PonderFinish=false"] [--sprt 0,10]
+        [--arms "PonderFinish=true;PonderFinish=false"] [--sprt 0,10] [--draws claim]
 
 Both sides are the same build with the same evaluation (the bot's, --eval) and no endgame tables. Openings come in
 colour-reversed pairs, so each opening is played once with each side as white. Real clocks: a side whose time runs
 out loses.
+
+Draws by repetition and the 50-move rule, --draws: "claim" (the default, python-chess's claim_draw) ends the game as
+soon as the side to move could claim one, which includes having a move that would make a position's third time or the
+100th ply, wanted or not. "occurred" ends it only once that has happened on the board: a position there for the third
+time, or 100 plies with no capture or pawn move (as the C# match tool and Lichess count them). A change to the
+repetition rule needs "occurred": under "claim", a side that lets a position come round twice while winning is held to
+claim the draw it was avoiding.
 
 Two modes. Plain: side A ponders and side B doesn't. --arms (an A/B match, for changes to pondering itself): both
 sides ponder, and they differ only by the UCI options given for each arm, A's before the ";" and B's after it (an
@@ -93,6 +100,20 @@ def parse_arms(text):
     return arms
 
 
+def outcome(board, draws):
+    """The game's end as (points for White or None, termination), or None while it goes on (see --draws)."""
+    if draws == "claim":
+        result = board.outcome(claim_draw=True)
+    else:
+        result = board.outcome()   # (mates, stalemates, bare kings, and the fivefold and 75-move rules)
+        if result is None and (board.is_repetition(3) or board.is_fifty_moves()):
+            return 0.5, "threefold_repetition" if board.is_repetition(3) else "fifty_moves"
+    if result is None:
+        return None
+    return (0.5 if result.winner is None else 1.0 if result.winner == chess.WHITE else 0.0,
+            result.termination.name.lower())
+
+
 def label(arm):
     return ", ".join(f"{k}={str(v).lower() if isinstance(v, bool) else v}" for k, v in arm.items()) or "(defaults)"
 
@@ -145,7 +166,7 @@ def summary(path, sprt=None):
     first = games[0]
     tc = first["tc"]
     base = float(tc.split("+")[0])
-    print(f"{len(games)} games in {path} ({tc}), from A's point of view")
+    print(f"{len(games)} games in {path} ({tc}, draws: {first.get('draws', 'claim')}), from A's point of view")
     print(f"  A: {first['arms'][0]}")
     print(f"  B: {first['arms'][1]}" + ("" if first["mode"] == "ab" else " (not pondering)"))
     points = [g["points"] for g in games]
@@ -191,8 +212,10 @@ def main():
         "games": (140, int), "tc": ("10+0.1", str), "concurrency": (2, int), "cpus": ("2,4,6,8", str),
         "openings": (os.path.join(REPO, "games", "tune", "openings-300.txt"), str),
         "eval": (os.path.join(REPO, "bot", "eval", "eval-sf1.txt"), str), "hash": (64, int), "threads": (1, int),
-        "arms": ("", str), "sprt": ("", str), "summary": (False, bool)})
+        "arms": ("", str), "sprt": ("", str), "draws": ("claim", str), "summary": (False, bool)})
     sprt = tuple(float(x) for x in opts["sprt"].split(",")) if opts["sprt"] else None
+    if opts["draws"] not in ("claim", "occurred"):
+        raise SystemExit(f"--draws is claim or occurred, not {opts['draws']!r}")
     if opts["summary"]:
         summary(args[0], sprt)
         return
@@ -211,6 +234,8 @@ def main():
         if os.path.exists(path) else []
     if earlier and (earlier[0]["mode"], earlier[0]["arms"], earlier[0]["tc"]) != (mode, labels, opts["tc"]):
         raise SystemExit(f"{path} holds games of {earlier[0]['arms']} at {earlier[0]['tc']}, not {labels} at {opts['tc']}")
+    if earlier and earlier[0].get("draws", "claim") != opts["draws"]:
+        raise SystemExit(f"{path} holds games with --draws {earlier[0].get('draws', 'claim')}, not {opts['draws']}")
     done = len(earlier)
     points = [g["points"] for g in earlier]   # every game so far, for the SPRT
     below_normal()
@@ -256,7 +281,7 @@ def main():
         stats.update({f"{k}_{s}": 0.0 for s in ("a", "b") for k in ("used", "used_hits")})
         expected = {"a": None, "b": None}   # the reply each side named with its last move
         hit = {"a": False, "b": False}      # whether the move each side now answers is the one it named
-        while not board.is_game_over(claim_draw=True) and board.ply() < 600:
+        while outcome(board, opts["draws"]) is None and board.ply() < 600:
             side = "a" if board.turn == colour["a"] else "b"
             other = "b" if side == "a" else "a"
             limit = chess.engine.Limit(white_clock=max(0.01, clock[chess.WHITE]), black_clock=max(0.01, clock[chess.BLACK]),
@@ -293,10 +318,14 @@ def main():
         if termination == "time":
             points = 0.0 if board.turn == colour["a"] else 1.0
         else:
-            outcome = board.outcome(claim_draw=True)
-            points = 0.5 if outcome is None or outcome.winner is None else 1.0 if outcome.winner == colour["a"] else 0.0
-            termination = outcome.termination.name.lower() if outcome else "move limit"
-        row = {"game": number, "mode": mode, "arms": labels, "a": "white" if a_white else "black", "points": points,
+            ended = outcome(board, opts["draws"])
+            if ended is None:
+                points, termination = 0.5, "move limit"
+            else:
+                white_points, termination = ended
+                points = white_points if a_white else 1.0 - white_points
+        row = {"game": number, "mode": mode, "arms": labels, "draws": opts["draws"],
+               "a": "white" if a_white else "black", "points": points,
                "termination": termination, "plies": board.ply(), "opening": " ".join(opening),
                "clock_a_end": round(clock[colour["a"]], 2), "clock_b_end": round(clock[colour["b"]], 2),
                "tc": opts["tc"], **{k: round(v, 3) if isinstance(v, float) else v for k, v in stats.items()},

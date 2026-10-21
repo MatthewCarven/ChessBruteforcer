@@ -10,12 +10,16 @@ rem runs from a worktree too. The match tool splits its engine command at the fi
 rem tool and both evaluations are copied to %TEMP%\cb-match first (and the repo stays buildable). Below-normal
 rem priority, which the engines inherit, so the bot's games come first.
 rem Logs: games\nnue\match-<net>-<old>.log and .pgn (match-<net>-<old>-<games>.* when [games] isn't 2000, and
-rem -fixed after that when fixed).
+rem -fixed after that when fixed, and -<clock> after that when the clock isn't 10+0.1).
+rem The clock: NNUE_TC if it's set (set NNUE_TC=30+0.3, say: the bot online thinks ~20x longer a move than 10+0.1),
+rem else 10+0.1.
 setlocal
 set NET=%1
 set OLD=%2
 set GAMES=%3
 set CONC=%4
+set TC=%NNUE_TC%
+if "%TC%"=="" set TC=10+0.1
 if "%OLD%"=="" (
     echo usage: scripts\nnue-match.cmd nnue1 sf1 [games] [concurrency] [fixed]
     exit /b 1
@@ -32,6 +36,7 @@ set NETS=%MAIN%\games\nnue\nets
 set TAG=%NET%-%OLD%
 if not "%GAMES%"=="2000" set TAG=%NET%-%OLD%-%GAMES%
 if "%SPRT%"=="" set TAG=%TAG%-fixed
+if not "%TC%"=="10+0.1" set TAG=%TAG%-%TC%
 set MLOG=%MAIN%\games\nnue\match-%TAG%.log
 set PGN=%MAIN%\games\nnue\match-%TAG%.pgn
 set COPY=%TEMP%\cb-match
@@ -83,11 +88,11 @@ for %%e in (%NET%.nnue %OLDCOPY%) do (
 )
 certutil -hashfile "%COPY%\%NET%.nnue" SHA256 | findstr /v /c:"hash" >> "%MLOG%"
 
-echo %date% %time%: match %NET% v %OLD%, %GAMES% games, %CONC% at a time, %SPRT% (progress in %MLOG%)
+echo %date% %time%: match %NET% v %OLD%, %GAMES% games at %TC%, %CONC% at a time, %SPRT% (progress in %MLOG%)
 start "" /b /wait /belownormal dotnet "%COPY%\match\ChessBruteforcer.Match.dll" ^
     --engine name=%NET% cmd="dotnet %COPY%\engine\ChessBruteforcer.Engine.dll" option.EvalFile=%COPY%\%NET%.nnue ^
     --engine name=%OLD% cmd="dotnet %COPY%\engine\ChessBruteforcer.Engine.dll" option.EvalFile=%COPY%\%OLDCOPY% ^
-    --games %GAMES% --tc 10+0.1 --concurrency %CONC% --tables "%MAIN%\tables" %SPRT% ^
+    --games %GAMES% --tc %TC% --concurrency %CONC% --tables "%MAIN%\tables" %SPRT% ^
     --openings "%MAIN%\games\tune\openings-300.txt" --pgn "%PGN%" >> "%MLOG%" 2>&1
 echo %date% %time%: finished, exit %errorlevel% >> "%MLOG%"
 echo %date% %time%: finished; the last lines of %MLOG%:
