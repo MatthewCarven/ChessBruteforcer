@@ -89,7 +89,10 @@ public sealed class Search
     private readonly int[] _pvLength = new int[MaxPly];
     private readonly Move[,] _killers = new Move[MaxPly, 2];
     private readonly int[,,] _history = new int[2, 64, 64];
-    private readonly List<ulong> _hashes = new();
+    private readonly List<ulong> _hashes = new();   // the game before the root, the root, then the line being searched
+    private int _rootIndex;                          // the root's place in _hashes: what comes after it is the search's own
+    private ulong _rootHash;
+    private bool _twofold;                           // TwofoldRepetitions, as the search this one works for has it
 
     private Stopwatch _clock = new();
     private long _nodes;
@@ -168,6 +171,14 @@ public sealed class Search
     /// cap lost games at 10+0.1).  Set between searches.
     /// </summary>
     public bool PonderCap { get; set; }
+
+    /// <summary>
+    /// The old repetition rule, kept for an A/B match against the new one: a
+    /// position seen once before since the last capture or pawn move, the game
+    /// before the search included, is a draw.  Off (the default): Stockfish's
+    /// rule (<see cref="IsRepetition"/>).  Set between searches.
+    /// </summary>
+    public bool TwofoldRepetitions { get; set; }
 
     /// <summary>
     /// The opponent played the move a <see cref="SearchLimits.Ponder"/> search
@@ -385,7 +396,10 @@ public sealed class Search
         _hashes.Clear();
         if (previousHashes is not null)
             _hashes.AddRange(previousHashes);
+        _rootIndex = _hashes.Count;
+        _rootHash = root.Hash;
         _hashes.Add(root.Hash);
+        _twofold = (_main ?? this).TwofoldRepetitions;   // (a helper is prepared by the search it works for)
     }
 
     /// <summary>At least <paramref name="count"/> helpers, made once and kept: each holds ~250 KB of move lists and tables.</summary>
@@ -635,7 +649,9 @@ public sealed class Search
         if (_table.TryGet(position.Hash, out var entry))
         {
             ttMove = entry.Move;
-            if (!root && entry.Depth >= depth)
+            // (Not at a return to the root: the root's own entry, from the depth before, would answer for the
+            // line that came back, and a perpetual check through the root, a draw one ply on, would never be seen.)
+            if (!root && entry.Depth >= depth && position.Hash != _rootHash)
             {
                 int ttScore = FromTable(entry.Score, ply);
                 if (entry.Bound == Bound.Exact
@@ -873,13 +889,28 @@ public sealed class Search
         return moves[start];
     }
 
-    /// <summary>Has this position occurred before, since the last capture or pawn move?</summary>
+    /// <summary>
+    /// Is this position a draw by repetition?  Stockfish's rule: yes if it
+    /// occurred before inside this search, after the root (the line that came
+    /// back to it can go round again, for ever), or if it is here for the
+    /// third time.  Seen once before in the game, the root itself included,
+    /// it isn't a draw yet: the game goes on from it, and the side who would
+    /// rather not draw plays something else.  (Only since the last capture or
+    /// pawn move: nothing earlier can come back.)
+    /// </summary>
     private bool IsRepetition(Position position)
     {
         int top = _hashes.Count - 1;
         int oldest = Math.Max(0, top - position.HalfmoveClock);
+        bool seenInGame = false;   // once already, at the root or before it
         for (int i = top - 2; i >= oldest; i -= 2)
-            if (_hashes[i] == position.Hash) return true;
+        {
+            if (_hashes[i] != position.Hash)
+                continue;
+            if (i > _rootIndex || seenInGame || _twofold)
+                return true;
+            seenInGame = true;
+        }
         return false;
     }
 
