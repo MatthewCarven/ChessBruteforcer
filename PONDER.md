@@ -655,8 +655,11 @@ bot, then the answer:
 | the same, the table warm: our own search two plies earlier first, as in a game | 297 | 2 (1%) | | 2 (1.0 s) | **0** |
 | all | 1,044 | 163 | 150 | 13 | **1** |
 
-(The one-thread hits ran 17:33-17:48 beside other sessions' test runs and builds, so their first samples may have been
-searched more slowly than the rest; the 8-thread run, 16:55-17:30, had the machine to itself.)
+(Not all of it on a quiet machine, by the other sessions' notes. The 8-thread run, 16:55-17:32, had no company
+reported. The cold 10+0.1 run, 17:33-17:35, ran beside two other sessions' test suites. The one-thread hits, 17:35-17:53,
+shared the CPUs with another session's builds and tests until 17:48. The warm 10+0.1 run, 21:06-21:09, ran beside a
+match pinned to CPUs 2-12. A crowded search is a slower one, and reaches less deep in its time, but no run changed
+more than one move, so the conclusion stands.)
 
 So **1 changed move in 1,044 searches, from 163 cut depths.** The one: a hit at 4.7 s (S 5.2 s) whose depth 14, begun
 at 1.9 s, ran 13.7 s to the hard limit, and played f4e3 (-7) where depth 13 had e1e2 (+17). A search four times as long

@@ -4969,7 +4969,8 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - 9.7-11.5 GB of commit free throughout; the bot wasn't running. Another
   session's repetition lab (heuristic-poincare-2d9fec, pinned to CPU 14)
   ran beside the match from 17:57; the match's speed held at 3,140-3,240
-  knps every quarter hour. The one-thread hits lab (17:33-17:48) shared the
-  CPUs with two other sessions' test runs and builds (they said so), so its
-  first samples may have been searched slower; it found no changed move
-  either way.
+  knps every quarter hour. Three lab runs had company, by the other
+  sessions' notes: the cold 10+0.1 run (17:33-17:35) two test suites, the
+  one-thread hits (17:35-17:53) builds and tests until 17:48, the warm
+  10+0.1 run (21:06-21:09) the repetition-rule match on CPUs 2-12. Their
+  searches may have been slower; none changed a move either way.
