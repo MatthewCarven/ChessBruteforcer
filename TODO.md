@@ -48,24 +48,20 @@ the learner and the queue restarted at 23:26, the bot on nnue1-h512 (its log:
 "768 -> 512 x2 -> 1, sha256 8a6cd3aff627"). The desktop trains two levers
 overnight (NNUE, below).
 
-**2026-10-20, 03:30: the bot is OFF; it switches to h1024-3m** (Matthew's
-call at game 188 of its match: +52 [+14, +91] over h512-3m, LOS 99.6%;
-"battle testing 1024", the statistics later, which he does want for clean
-footing next time). bot\eval\h1024-3m.nnue, which make-config.py tries
-first (delete it to go back to h512-3m). It went down at 21:23 on
-2026-10-19 to a Ctrl+C held in its window, not memory as first thought
-(lichess-bot's TypeError, below; commit was tight that evening all the same,
-0.45 GB free at 23:22: the Cowork VM 4.0 GB, h768-3m's training 3.5 GB,
-eight Claude sessions ~0.5 GB each). **Back on**:
-close the match window (h1024-3m's match, then h768-3m's, queued in one
-window), fast-forward compression to branch `claude/nnue-desktop-8d5f2a`,
-reboot (the only way to close the Cowork VM), then `bot\start-bot.cmd`, then
-the learner with `bot\learn.cmd` once the bot's window has built the engine
-(two builds at once trip over each other). Not `start.cmd`: it would start
-the month queue too, which is off. Its log should then say "768 -> 1024 x2
--> 1, sha256 510a8d0e6c43". **To finish later**, the bot off: h1024-3m's
-SPRT against h512-3m (rename its .log and .pgn first, or the launcher
-refuses) and h768-3m's match.
+**2026-10-20, 03:28: the bot is back, on h1024-3m** (Matthew's call at game
+188 of its match against h512-3m, "battle testing 1024"; its log: "768 ->
+1024 x2 -> 1, sha256 510a8d0e6c43"). bot\eval\h1024-3m.nnue, which
+make-config.py tries first (delete it to go back to h512-3m). **The match
+then finished beside the bot: SPRT accepted H1, +41 [+19, +63] in 584
+games** (MATCHES.md; 34 time losses in the part beside the bot, the clean
+part agreeing). h768-3m's match started by itself at 04:01, also beside
+the bot (Matthew's (b): he wants the data), and was stopped at 04:54 with
+27% of its games lost on time: to play again with the bot off (NNUE, below). Earlier: the bot went down at
+21:23 on 2026-10-19 to a Ctrl+C held in its window, not memory as first thought
+(lichess-bot's TypeError, below);
+after a restart of the laptop, `bot\start-bot.cmd`, then `bot\learn.cmd`
+once the bot's window has built the engine (two builds at once trip over
+each other); not `start.cmd` (the month queue is off).
 
 **Running right now, each in its own window (check them, don't start them):**
 - **The bot: OFF since 21:23 on 2026-10-19** (above). From its next start it
@@ -81,8 +77,8 @@ refuses) and h768-3m's match.
   KB/s. Log games\month-queue.log; counts logs
   bot\books\month-book-<month>.log. Share reads are capped at 8 MB/s.
 - The book learner (bot\learn.py, restarted 23:26).
-- On the desktop: nothing (h1024-3m finished 02:47 on 2026-10-20, desktop
-  clock).
+- On the desktop: task "nnue h1024-3m-l32 then h1024-3m-l16-32", from
+  00:30 on 2026-10-21 to ~19:50 (NNUE, below).
 
 **Tonight's two matches, both with the bot off:**
 
@@ -140,14 +136,29 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     | h1024-3m | 0.012659 (-7.2%) | 0.012432 (-7.5%) | 1,470 (-15.8%) |
 
     **Their matches against h512-3m** (Matthew's (a), from 03:04 on
-    2026-10-20, back to back in one window): h1024-3m +52 [+14, +91] at
-    game 188, LOS 99.6%; **the bot switches to it** (decision I). The
-    SPRT's verdict and h768-3m's match: later, the bot off.
+    2026-10-20, back to back in one window): **h1024-3m +41 [+19, +63],
+    SPRT accepted H1** at game ~579 (584 games, the last 264 beside the
+    bot); **the bot plays on it** (decision I). **h768-3m's match: play
+    it again with the bot off** (`scripts\nnue-match.cmd h768-3m h512-3m`,
+    30 min to 3.5 h): the run beside the bot was stopped at game 525 with
+    135 time losses (MATCHES.md), its files kept as
+    games\nnue\match-h768-3m-h512-3m-beside-bot.*.
     **Order (Matthew, 2026-10-21): h768-3m's match is re-run after the
-    six ponder sessions (P1-P6) are done**, with the bot off (beside it,
-    27% of its games were lost on time). When is his call. First comes the
-    engine change for the deeper nets (h1024-3m-l32, then -l16-32), with
-    each matched against h1024-3m.
+    six ponder sessions (P1-P6) are done**, with the bot off. When is his
+    call. First comes the engine change for the deeper nets
+    (h1024-3m-l32, then -l16-32), with each matched against h1024-3m.
+  - **h1536-3m trained** (the desktop, 2026-10-20 04:45-18:34): held back
+    0.012193 at K 1, 0.011952 at its own K: **-3.7% / -3.9% against
+    h1024-3m**. In games\nnue\nets\. Before its match against h1024-3m
+    (the bot off) the engine's MaxHidden must rise from 1024 (a C# change:
+    Matthew's word; best on top of the engine-speed chain, which changes
+    Network.cs). **On hold** (Matthew, 2026-10-20 ~18:50): he tests the
+    engine speed upgrade first, before the next upgrade.
+  - **Deeper nets training on the desktop** (Matthew's (a), 2026-10-21):
+    h1024-3m-l32 (1024 x2 -> 32 -> 1) from 00:30, then h1024-3m-l16-32
+    (-> 16 -> 32 -> 1), ~9.5 h each: **done ~10:10 and ~19:50** (desktop
+    clock). Float held-back error against h1024-3m's 0.012394 decides
+    whether the engine work to play one (format, forward pass) is worth it.
   - **2048 hidden, weighed** (2026-10-19, WORKLOG): September at 20
     passes is ~7.5 h on the 3070 (the bot off) or ~11 h on the 1660; the
     3070 is ~1.5x the 1660 at every size. Before such a run: train.py's
@@ -466,6 +477,49 @@ Sessions, in order:
 
 ### 2. The engine's strength
 
+- [ ] **Two nets, switched by the clock** (Matthew's idea, 2026-10-21, "feel
+      free to push back"): keep a smaller, faster net loaded beside the big
+      one, and play on it when time runs short (to build some time up, then
+      back to the big net), or for bullet. Test before building. What our
+      numbers say so far (they lean against it, but one cheap match
+      decides):
+      - The nets differ a lot in strength and little in speed. 256 -> 1024
+        hidden won ~+128 Elo in matches (+76, then +11 for more data, then
+        +41) for ~19% fewer nodes a second (`bench 9`: -4%, then -16%;
+        likely less since AVX-512). 19% more speed is worth roughly +15-20
+        Elo, so the small net gives up far more than it gains.
+      - Our matches already play fast: 10+0.1 is ~0.25 s a move, faster than
+        Lichess bullet (1+0, ~0.85 s a move over ~70 moves) and far faster
+        than a 3+2 scramble (the 2 s increment keeps every move at ~2 s).
+        The bigger net still won there.
+      - A faster net doesn't bank time by itself: the time manager decides
+        how long a move takes, and the net only changes the depth reached
+        in it. Time trouble is the time manager's to fix first.
+      - **The test**: h1024-3m against h512-3m (or nnue1) at a much faster
+        clock, e.g. 2+0.02 (~0.05 s a move), the bot off, ~30 min. If the
+        small net wins there, build it: one engine holding both nets (a few
+        MB), accumulators refreshed at the switch, a switch point by time
+        left. If the big net still wins, the idea is answered.
+- [ ] **16 threads while only one game is on** (Matthew, 2026-10-21): the
+      laptop has 8 cores / 16 threads. With two games at once each engine
+      has 8 (and pondering keeps both busy), but while one game plays alone,
+      8 threads sit idle. Let a lone game use 16, back to 8 when a second
+      game starts. To weigh first:
+      - **Measure**: 16 threads were never timed. On 2026-10-15
+        (scripts/threads-bench-d12.txt) Lazy SMP on 8 gave 12.9 M nodes a
+        second, 6.9x one thread. The extra 8 are hyperthreads on the same 8
+        cores: chess engines usually gain +15-30% nodes a second from them,
+        not 2x, and a bit less in depth. Then a match, 16 v 8 threads,
+        nearer the bot's 3+2.
+      - **How often it applies**: the share of the bot's time with one game
+        on, from its logs (if it's mostly two games, the gain is small).
+      - **Heat**: the CPU sat at 88-92 C with 5 busy threads (2026-10-20);
+        16 busy threads may throttle the clocks and give part of it back.
+      - **How**: lichess-bot fixes Threads when it starts an engine.
+        Switching means a `setoption Threads` between moves, not while the
+        engine ponders: a lichess-bot patch that counts active games (16
+        alone, 8 each when a second starts), like the busy and one-player
+        patches.
 - [ ] **Texel tuning** (WORKLOG has it all; step 1, human results, gained
       nothing; step 2a, Stockfish's verdicts, +208 Elo [+130, +311], the bot
       uses bot/eval/eval-sf1.txt via EvalFile):

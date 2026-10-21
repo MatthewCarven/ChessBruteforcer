@@ -3742,9 +3742,10 @@ has the tables; this is the story.
 
 - Matthew asked how long a 2048 net on September (nnue1-h512's recipe, 20
   passes) would take, and whether the laptop's 3070 beats the 1660. His (a):
-  a speed race on the laptop with the bot off (it had gone down at 21:23;
-  I took its TypeError for his stopping it, but memory had run out: the
-  23:20-00:45 entry). On the charger, 4.1 GB
+  a speed race on the laptop with the bot off (it had gone down at 21:23:
+  "i stopped it", he said; the TypeError on the way out is what a held
+  Ctrl+C does, as a side session found on 2026-10-20, not memory running
+  out as the 23:20-00:45 entry first thought). On the charger, 4.1 GB
   of commit free, the book learner beside it.
 - `train speed-<H> --hidden <H> --buckets 16 --passes 1 --held-back-max
   200000 --out <scratchpad>`, a quarter of September each:
@@ -3878,6 +3879,52 @@ has the tables; this is the story.
   tries it first (its loop picks it here), EvalFile loads it from bot\eval
   (sha256 510a8d0e6c43). Takes effect when he closes the match window,
   fast-forwards compression and runs `bot\start-bot.cmd`.
+
+## 2026-10-20 (03:28-04:15): the bot back on h1024-3m; its match decided beside it
+
+- Matthew fast-forwarded compression and started the bot (its log from
+  03:27:57: "768 -> 1024 x2 -> 1, sha256 510a8d0e6c43"; the Cowork VM gone,
+  6.6 GB of commit free at 03:52). The match window was still running, so
+  from ~03:36 the match played beside the bot. Asked, he chose (b): let both
+  matches run beside it, "only that i want the data".
+- **h1024-3m against h512-3m: SPRT accepted H1 at game ~579 (LLR 2.95)**;
+  584 games, +211 -143 =230, 55.8%, **+41 Elo [+19, +63]**, finished 04:01.
+  Beside the bot the engines' speeds swung from ~1,700 down to 80-500 knps
+  a side and 34 games were lost on time, all after game 420 (h512-3m 18,
+  h1024-3m 16). Games 1-320 (clean): +109 -74 =137, 55.5%; games 321-584:
+  +102 -69 =93, 56.2%. MATCHES.md and NNUE.md have it.
+- h768-3m's match started by itself at 04:01:54, beside the bot: 340-380
+  knps a side, depth ~7.5, in its first games.
+
+## 2026-10-20 (04:30-04:55): h1536-3m on the desktop; GPU evaluation weighed
+
+- Matthew asked whether to go up to 1536 hidden, or down. My read: each
+  step up roughly halves the gain (+76, then +41) while the speed cost
+  grows, so 1536 (half a doubling) is a wash to +20; going sideways (more
+  months of data for 1024) or faster (the engine) are the other ways. He
+  chose 1536, "on the desktop".
+- train.py's held-back chunk fix (d62f955) copied to the share first (the
+  .py files only; hashes equal), the desktop idle (300 MHz, no
+  PySynthRack). `train h1536-3m --hidden 1536 --add-data 2026-07 2026-08
+  --passes 10 --lr-drops 4/7/9` from 04:45:06 (desktop clock): 135 k
+  positions a second, 1,920 MHz, 90 W, 71 C, 1.5 GB peak on the card;
+  ~83 min a pass, **done ~18:45**. Its match needs the engine's
+  MaxHidden raised (C#, his word).
+- He also asked about scoring positions on the GPU and leaving the CPU to
+  search. Not a speed-up for this engine: alpha-beta asks for one position
+  at a time, each answer deciding the next, so every evaluation would be a
+  round trip of ~5-20 µs against ~0.1-0.4 µs on the CPU (the GPU wins only
+  on big batches, as Leela's search does). The CPU route instead: measure
+  at 1024, AVX-512, then bitboards. He said that can wait; a session card
+  ("Engine speed: profile at 1024 hidden, then AVX-512") holds it, which
+  he then started.
+- **h768-3m's match beside the bot, stopped**: at game 502, 135 games lost
+  on time (78 by h768-3m, 57 by h512-3m), +7 Elo as played but 54.1% with
+  the time losses left out: the crowding was deciding games, against the
+  slower net. Matthew closed the window at 04:54 (525 games). Its files
+  renamed to games\nnue\match-h768-3m-h512-3m-beside-bot.log/.pgn so the
+  launcher will take a fresh run; to play again with the bot off.
+  MATCHES.md has the numbers.
 
 ## 2026-10-20 (04:45-05:40): speed at 1024, measured (a side session)
 
@@ -4216,6 +4263,24 @@ has the tables; this is the story.
   showed a fifth from a kind of mutant I'd ruled out. Read the log before
   reassuring, and warn before a battery whose mutants break what the solver
   leans on.
+
+## 2026-10-20 (18:34-18:50): h1536-3m done, -3.9% against h1024-3m
+
+- **h1536-3m finished 18:34:13** (desktop clock), exit 0: 10 passes at
+  135-138 k positions a second (13 h 48 min); training error 0.010613;
+  held back as the engine computes it **0.012193 at K 1, 0.011952 at K
+  1.1158: -3.7% / -3.9% against h1024-3m**, inside the -3 to -4% guessed.
+  The trainer's commit stayed at ~2.5 GB (h1024-3m's run, before the
+  chunk fix, held 5.9 GB). Fetched into games\nnue\nets\ (file sha256
+  8c9a7a4e..., network 50bedcc21898).
+- Not loadable yet: MaxHidden is 1024 on every branch, the engine-speed
+  chain (stoic-goodall, friendly-cray, affectionate-hugle, busy-newton:
+  AVX-512 and the lazy update, quiescence, bitboards session 1; awaiting
+  Matthew's merge) included. Raising it to 2048 is safe for both forward
+  passes there (AVX2: H / 8 products a lane, 2.14 billion at 2048; AVX-512:
+  H / 16). The question for Matthew: where and when (C#, his word).
+- compression merged into the branch again (the ponder-note work; WORKLOG
+  in time order).
 
 ## 2026-10-20 (21:10-21:50): bitboards session 2, generation from the sets (Matthew's L(b))
 
@@ -4577,6 +4642,26 @@ pondering, and was moved to compression's 81173f8 before any commit.
   results are in scripts/ponder-scope/. The bot wasn't running (no
   lichess-bot or engine process from 00:05). There was 4.0 GB of commit
   free before the build and 5.9 GB during the runs.
+
+## 2026-10-21 (00:15-00:40): one last training test, a deeper net
+
+- Matthew: "call up the chain ... we're unfinished here: one last training
+  test to see if it fits the data better, maybe a hidden row or two". The
+  session that started this one (local_e943bf5b) was told, with where
+  things stand.
+- **train.py `--layers`** (a194fc0): small layers between the feature layer
+  and the output (32, or 16/32), each a torch Linear then clamp(0, 1); the
+  feature layer keeps its clamp; no .nnue for such a net. Checked on the
+  laptop (the bot off, 1 bucket, 2 passes): without --layers the errors and
+  the .nnue are byte-identical to before; 256 x2 -> 32 -> 1 and -> 16 -> 32
+  -> 1 both train at the same speed.
+- His (a): both on the desktop, one task (`nnue-desktop.ps1 train
+  h1024-3m-l32 --hidden 1024 --layers 32 ... + h1024-3m-l16-32 --hidden
+  1024 --layers 16/32 ...`, h1024-3m's three months, 10 passes, drops after
+  4/7/9). train.py copied to the share first (hashes equal). From 00:30:27
+  (desktop clock): 196-200 k positions a second, 1,920 MHz, 85 W, 70 C;
+  ~9.5 h each, done ~10:10 and ~19:50. The yardstick: h1024-3m's float
+  held-back error, 0.012394.
 
 ## 2026-10-21 (00:48-01:10): P1, a final info line after ponderhit (a side session)
 

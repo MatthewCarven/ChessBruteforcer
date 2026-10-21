@@ -931,6 +931,54 @@ then plays nnue1-h512 as nnue1-h512 played nnue1.
   h512-3m's 2,000-2,110 (-16%). **Matthew chose to play the bot on it from
   there** (decision I, below): `bot\eval\h1024-3m.nnue`, which
   make-config.py tries first.
+- **The SPRT accepted H1 at game ~579**: 584 games, +211 -143 =230,
+  **+41 Elo [+19, +63]** over h512-3m. From about game 320 it ran beside
+  the bot (Matthew's (b): he wants the data), with 34 time losses after
+  game 420 split 18/16, but the clean first 320 games say the same (55.5%
+  against 56.2%). So 1024 hidden won by about half of what 512 did over
+  256, at four times the speed cost a node: the better evaluation still
+  more than pays. MATCHES.md has the detail.
+- **h1536-3m started 04:45** (2026-10-20, desktop clock; Matthew: "on the
+  desktop"): the same recipe at 1536 hidden, with train.py's smaller
+  held-back chunks synced to the share first. 135 k positions a second
+  (1,920 MHz, 90 W, 71 C, 1.5 GB peak on the card), ~83 min a pass:
+  **done ~18:45**. The guess beforehand: about -3 to -4% in error against
+  h1024-3m, -12 to -20% a node, so anywhere from a wash to +20. The engine
+  loads at most 1024 hidden (Network.MaxHidden): its match needs that
+  raised first, a small C# change on Matthew's word (the int32 sums fit at
+  1536: 192 x 255 x 32,640 = 1.6 billion).
+- **h1536-3m done 18:34** (desktop clock; 13 h 48 min, 135-138 k positions
+  a second, commit flat at ~2.5 GB with the smaller held-back chunks):
+  `games\nnue\nets\h1536-3m.nnue`, 2,368,580 bytes, QB 64, network sha256
+  50bedcc21898... As the engine computes it on September's held-back
+  positions:
+
+  | net | at K 1 | at its own K |
+  |---|---|---|
+  | h512-3m | 0.013640 | 0.013437 (K 1.10) |
+  | h768-3m | 0.013038 | 0.012795 (K 1.12) |
+  | h1024-3m (the bot's) | 0.012659 | 0.012432 (K 1.11) |
+  | **h1536-3m** | **0.012193 (-3.7%)** | **0.011952 (-3.9%, K 1.12)** |
+
+  As guessed beforehand (-3 to -4% against h1024-3m). Not yet loadable:
+  MaxHidden is still 1024 on every branch, including the engine-speed
+  chain (AVX-512, quiescence, bitboards; awaiting Matthew's merge). Its
+  AVX2 forward pass sums H / 8 products a lane, which fits up to 2048
+  (256 x 255 x 32,767 = 2.14 billion against 2.147); the AVX-512 one H /
+  16, up to 4096.
+- **Deeper, not wider** (Matthew, 2026-10-21: "a hidden row or two"):
+  train.py's `--layers` puts small layers between the feature layer and
+  the output, each a Linear then clamp(0, 1), in float (no export: the
+  format and the engine know one output layer). Without it nothing
+  changes (a byte-identical .nnue on a 1-bucket check). His (a): both on
+  the desktop in one task, h1024-3m's recipe otherwise: **h1024-3m-l32**
+  (1024 x2 -> 32 -> 1) from 00:30, then **h1024-3m-l16-32** (-> 16 -> 32
+  -> 1). 196-200 k positions a second, as h1024-3m: ~9.5 h each, done
+  ~10:10 and ~19:50 (desktop clock). The measure: float held-back error
+  against h1024-3m's float one, 0.012394 (K 1.11; 0.012626 at K 1). If a
+  deeper net fits clearly better, playing it means a new file format and
+  forward pass in C#, and a 32-wide layer is 32 times the output step's
+  multiply-adds: worth it only for a clear gain.
 
 ### Speed at 1024 (2026-10-20): where a node's time goes
 
