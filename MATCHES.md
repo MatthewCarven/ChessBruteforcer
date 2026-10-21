@@ -178,6 +178,7 @@ end of the game. Details in PONDER.md.
 | 2026-10-21 | P2 (PonderFinish on) | P2 off, both pondering | 360 | +61 -103 =196 | 44.2% | **-41 [-65, -17]** | 10+0.1, h1024-3m, 3 at a time, the bot stopped; SPRT [0, 10] **accepted H0** at game 358 (LLR -3.07); hit rate 69%; clock left 34% v 43%; no time losses |
 | 2026-10-21 | P2's cap only (PonderCap on) | both off | 575 | +106 -142 =327 | 46.9% | **-22 [-41, -3]** | 10+0.1, as above; SPRT [0, 10] **accepted H0** at game 571; clock left 46% v 40%; no time losses |
 | 2026-10-21 | P2's finish only (PonderFinish on) | both off | 614 | +117 -129 =368 | 49.0% | -7 [-24, +11] | 10+0.1, as above; SPRT [0, 10] undecided (LLR -1.50), stopped at a fixed count; clock left 28% v 44%; no time losses |
+| 2026-10-21 | P3 (PonderTimeBonus 25) | 0, both pondering | 2000 | +408 -410 =1182 | 50.0% | -0 [-10, +9] | 10+0.1, as above (P2's rules off); SPRT [0, 10] undecided (LLR -2.17) at the 2,000-game cap; 8.5% more clock spent (11% after hits, 5% otherwise); clock left 29% v 40%; no time losses. The option's default is 0 since then |
 
 ## The repetition rule (2026-10-21/22)
 
@@ -240,6 +241,18 @@ double time. Counting each opening's two games together (pentanomial) gave
 the same intervals to within 2 Elo. Ends over the 2,400 games: 733
 repetitions, 705 by the tables, 491 checkmates, 418 table draws, 50 by the
 50-move rule, 3 stalemates; no time losses, crashes or illegal moves.
+
+## Builds against builds (2026-10-21 on)
+
+Our engine against an earlier commit's build, for a change to the search itself (no option to switch it, so both
+sides are builds): `scripts/build-match.py`, played as the evaluation matches above were. 10+0.1, the bot's network
+(h1024-3m) on both sides, one thread and Hash 64 each, no tables in the engines (ours adjudicate), the 300 openings
+of games/tune/openings-300.txt in colour-reversed pairs, 5 at a time, below-normal priority, SPRT [0, 10] (at most
+2,000 games), no pondering. Logs in games\builds\. Results from the new build's point of view.
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-21 | P4 (a cut depth plays the move it proved better), 477d0f8 | P3's tip, 08a4118 | 2,000 | +442 -404 =1154 | 50.9% | +7 [-3, +17] | 5 at a time, the bot stopped; SPRT [0, 10] undecided at the cap (LLR 0.63), LOS 90.4%; halves +14 and -0; equal depth (10.9) and speed; no time losses. The lab saw P4 change no move at this clock, so most likely noise (PONDER.md, "P4") |
 
 ## Versions
 

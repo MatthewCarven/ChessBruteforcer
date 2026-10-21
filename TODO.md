@@ -801,11 +801,14 @@ Sessions, in order:
             on time, the bot's log free of ponder errors, the clock it banks.
       - [ ] A clean re-run (the harness lost one game to a script bug, since
             fixed), or longer (~400 games, ~1 h), once no index run is going.
-      - [ ] Spend the banked clock: the pondering side ended games with 4.8 s
+      - [x] Spend the banked clock: the pondering side ended games with 4.8 s
             of 10 left, the other 2.1. Stockfish plans 25% more time a move
             when Ponder is on; try that, measured the same way. (2026-10-21:
             on Lichess too, 3+2 games end with 41% of the clock left v 22%
-            before pondering; PONDER.md P3.)
+            before pondering; PONDER.md P3.) (Tried 2026-10-21 as P3: -0
+            [-10, +9] over 2,000 games at 10+0.1; off by default. Neither
+            P2's way of spending it, after hits, nor P3's, on every move,
+            won games.)
       - [ ] A Lichess-like hit rate: ponder on and off each against a third
             engine (Stockfish, as book-match.py does), not each other. (The
             bot's own rate on 2026-10-20: 56.5%, from its log.)
@@ -866,11 +869,38 @@ Sessions, in order:
                   ~6% for five moves running); and every later move has less
                   clock and a weaker net. Measure the halves apart too (the
                   minute alone, the small net alone), as P2's split was.
-            - [ ] P3: plan more time a move when pondering (Stockfish's +25%).
-                  Search.TimeBudget and the Ponder option, ~1 h.
-            - [ ] P4: play an unfinished depth's better move instead of
+            - [x] P3: plan more time a move when pondering (Stockfish's +25%).
+                  Search.TimeBudget and the Ponder option, ~1 h. (Done
+                  2026-10-21 on claude/p3-ponder-time-254cad, on compression
+                  with P2, not merged yet. **Measured, and off: it doesn't win
+                  games.** At 10+0.1, both sides pondering, 25% against 0:
+                  -0 [-10, +9] over 2,000 games (SPRT undecided at the cap).
+                  25% more planned time came out as 8.5% more clock spent,
+                  mostly after hits; the bank went from 40% to 29%, no time
+                  losses. UCI option PonderTimeBonus (0-100), default 0, so
+                  merging changes nothing in the bot. PonderTests 65 → 75,
+                  19 mutations caught, suite 541 passed. The slower control
+                  was skipped, as for P2. Measure again after P4 and P6.
+                  PONDER.md, "P3".)
+            - [x] P4: play an unfinished depth's better move instead of
                   throwing it away (all searches, not only pondering).
-                  Search.IterativeDeepening, about half a day.
+                  Search.IterativeDeepening, about half a day. (Done
+                  2026-10-21 on claude/p4-partial-depth-081e28, on P3's
+                  branch, not merged yet. A cut depth that searched the
+                  last best to the end and then saw another move's full
+                  search end above it plays that move, its line sent with
+                  `lowerbound`; an unconfirmed fail-high never counts.
+                  Always on. **It almost never fires**: 1 changed move in
+                  1,044 lab searches of the bot's positions (163 cut
+                  depths), since most cuts come before the last best's own
+                  search has ended. Against P3 at 10+0.1, no pondering:
+                  +7 [-3, +17] over 2,000 games (SPRT undecided at the
+                  cap), so no loss and likely no gain; P2's A/B not run
+                  again. Uncut searches node for node as before (60
+                  positions, depth 11). CutDepthTests 17, 31 of 32
+                  mutations caught, suite 558 passed. **Decision P4,
+                  Matthew's**: (a) merge as it is (my pick), (b) behind an
+                  option, off, (c) leave it. PONDER.md, "P4".)
             - [ ] P5: keep the history table between moves (halve it, not
                   clear it). Search.Prepare, ~30 min, a bench first.
             - [ ] P6: a table that keeps its deep entries (buckets of 2-4

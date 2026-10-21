@@ -10,7 +10,9 @@ import statistics as st
 from datetime import datetime
 
 LINE = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d,\d{3}) chess\.engine .*?<UciProtocol \(pid=(\d+)\)>: (<<|>>) (.*)$")
-INFO = re.compile(r"^info depth (\d+) score (cp -?\d+|mate -?\d+) nodes (\d+) nps \d+ time (\d+)")
+# (" lowerbound": since P4, a depth the clock cut, sent because it proved the move played better than the last
+# finished depth's; an info tuple's sixth field says so)
+INFO = re.compile(r"^info depth (\d+) score (cp -?\d+|mate -?\d+)(?: lowerbound)? nodes (\d+) nps \d+ time (\d+)")
 
 
 def ts(text):
@@ -80,7 +82,8 @@ def parse(paths):
                         continue
                     mi = INFO.match(text)
                     if mi:
-                        s["infos"].append((t, int(mi.group(1)), int(mi.group(4)), int(mi.group(3)), mi.group(2)))
+                        s["infos"].append((t, int(mi.group(1)), int(mi.group(4)), int(mi.group(3)), mi.group(2),
+                                           " lowerbound " in text))
                     elif text.startswith("bestmove"):
                         s["end"] = t
                         s["bestmove"] = text
@@ -90,12 +93,18 @@ def parse(paths):
 
 def new_infos_after_hit(s):
     """A hit's info lines after ponderhit that report a depth of their own. Since P1 (2026-10-21) a hit that answers
-    with no new depth finished sends its last line again, so python-chess has its stats; that one isn't counted."""
+    with no new depth finished sends its last line again, so python-chess has its stats; that one isn't counted.
+    Nor is a cut depth's line (P4, "lowerbound"): no depth finished there either (cut_depth_after_hit has it)."""
     k = s["infos_before_hit"]
-    after = s["infos"][k:]
+    after = [i for i in s["infos"][k:] if not i[5]]
     if len(after) == 1 and k and after[0][1] == s["infos"][k - 1][1]:
         return []
     return after
+
+
+def cut_depth_after_hit(s):
+    """Whether a hit's answer came from a depth the clock cut, which had proved the move played (P4)."""
+    return any(i[5] for i in s["infos"][s["infos_before_hit"]:])
 
 
 def q(values, p):
@@ -137,9 +146,13 @@ def main():
     row("hit: pondered / soft budget", frac, "{:.2f}")
     no_info_after = [s for s in hits if len(s["infos"]) == s["infos_before_hit"]]
     print(f"\nhits with no info after ponderhit: {len(no_info_after)} of {len(hits)} ({len(no_info_after)/max(1,len(hits)):.1%})")
-    sent_again = [s for s in hits if len(s["infos"]) > s["infos_before_hit"] and not new_infos_after_hit(s)]
+    cut = [s for s in hits if cut_depth_after_hit(s)]
+    sent_again = [s for s in hits if len(s["infos"]) > s["infos_before_hit"] and not new_infos_after_hit(s)
+                  and not cut_depth_after_hit(s)]
     print(f"hits whose only info after ponderhit is the last one sent again (P1): {len(sent_again)} of {len(hits)} "
           f"({len(sent_again)/max(1,len(hits)):.1%})")
+    print(f"hits answered by a cut depth's move, proved better there (P4): {len(cut)} of {len(hits)} "
+          f"({len(cut)/max(1,len(hits)):.1%})")
     d_before = [s["infos"][s["infos_before_hit"] - 1][1] for s in hits if s["infos_before_hit"] > 0]
     d_final = [s["infos"][-1][1] for s in hits if s["infos"]]
     print("\n| quantity (ms or plies) | n | p25 | median | p75 | mean |\n|---|---:|---:|---:|---:|---:|")

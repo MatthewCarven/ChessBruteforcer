@@ -494,6 +494,261 @@ Mutations: 26, all caught. Two lived at first, and the tests above catch them no
 3S given only to H, and a hit that forgot the soft limit, which runs on to h + S on every hit. Then 23 more for the
 split (all caught) and 4 for the defaults turned off (all caught). Full suite: 529 passed, 2 skipped.
 
+### P3: plan more time a move when pondering (2026-10-21)
+
+**Verdict: built, measured, and off. A quarter more planned time a move neither wins nor loses at 10+0.1: Elo -0
+[-10, +9] over 2,000 games.** The option stays, at 0 by default, so merging changes nothing in the bot.
+
+A side session, branch `claude/p3-ponder-time-254cad`, on compression with P2 (e92ac2e; first written on P1 alone,
+7cb0adb, while P2's match ran, and rebased). **When the GUI sets the UCI option `Ponder`, every move plans
+`PonderTimeBonus` percent more time: the soft limit S becomes S + S x bonus / 100.** Stockfish does this with a
+quarter (`optimumTime += optimumTime / 4` when Ponder is on). python-chess sends `setoption name Ponder value true`
+before every `play(..., ponder=True)` (chess/engine.py, `play`), so lichess-bot turns it on whenever it ponders, and
+the bonus would reach the bot. Unlike P2, it spends the bank on every move, misses included, not only after hits.
+
+- **The hard limit H keeps its rule**: three times the *plain* S, at most a third of the clock (plus the increment).
+  Stockfish too works out its maximum before adding the ponder bonus. S never passes H. With 25%, H is 2.4 S'
+  rather than 3 S, which still leaves room for a depth begun before S'/2 to finish.
+- `PonderTimeBonus`: a spin, 0-100. **Default 0** since the match below (it was 25 while measured). With Ponder off
+  it counts for nothing. `movetime` and `infinite` searches are unchanged. The Ponder option, ignored until now, is
+  read: true or false, anything else an error.
+- Where: `Search.TimeBudget` (now internal, for tests) and `SearchLimits.PonderTimeBonusPercent`, which `UciEngine`
+  fills on every `go` from the two options. P2's options (PonderFinish, PonderCap) are separate and stay off.
+
+What 25% means for a move (Move Overhead as in each setting):
+
+| clock | S plain | S + 25% | H (both) |
+|---|---:|---:|---:|
+| 10+0.1, 10 s left (the A/B match) | 406 ms | 507 ms | 1,218 ms |
+| 3+2, 3 min left (the bot, Move Overhead 100) | 7,496 ms | 9,370 ms | 22,488 ms |
+
+**The A/B match.** `ponder-match.py --arms "PonderTimeBonus=25;PonderTimeBonus=0" --sprt 0,10`, 10+0.1, both sides
+pondering (so both have Ponder on, and P2's rules off), the bot's network (h1024-3m), one thread and one physical
+core each, 3 games at a time, the 300 openings in colour-reversed pairs, the bot not running. The SPRT never decided
+(LLR -2.17 at the end), so the run went to its cap of 2,000 games (10:45-15:51):
+
+| A (25%) v B (0), 2,000 games | A | B |
+|---|---:|---:|
+| won / lost / drawn, A's point of view | +408 -410 =1182 | |
+| score, Elo [95%] | 50.0%, **-0 [-10, +9]** | |
+| ponder hit rate | 69.3% | 69.2% |
+| clock a move: all / after a hit / otherwise | 199 / 165 / 274 ms | 184 / 148 / 261 ms |
+| clock spent in all, after hits / otherwise | 16,235 s / 12,329 s | 14,567 s / 11,755 s |
+| clock left at the end of the game | 2.89 s (29%) | 4.01 s (40%) |
+| games ended with under 1 s left | 158 | 45 |
+| games lost on time | 0 | 0 |
+
+The halves agree (games 1-1000 +6 [-8, +20], 1001-2000 -7 [-20, +7]), and so does every game length (100-150 plies
+-2, 150-200 -6, past 200 +1; under 100 plies +10 [+1, +20], one bucket in four, likely chance).
+
+**What the quarter bought.** 25% more planned time came out as 8.5% more clock spent (28,564 s against 26,322):
+11% more after hits, 5% more otherwise. A search starts a new depth only before S/2, and a depth takes about twice
+the last, so more S often changes nothing; and as the clock runs down, later budgets shrink. So most of the extra
+went where P2 found it buys least, after hits. The bank shrank (40% → 29%), and 158 games against 45 ended with
+under a second left, with no time losses.
+
+What 8.5% more time should be worth, if it cost nothing: p2.1 measured twice the time at 10+0.1 as +87
+[+68, +106] (MATCHES.md, "More search against less"), so 8.5% (0.12 of a doubling) is about +10. The match's top end
+is +9. So the extra clock was worth at most what free time is worth, and likely less: it isn't free, since spending
+it early leaves less for the moves after.
+
+**Not run: the slower control** (30+0.3, "like 3+2"). As for P2: telling a few Elo from zero would take thousands of
+games, about 11 hours. The bot's own setting is less promising than 10+0.1, not more: deeper searches gain less a
+ply (p2.1: +165 for depth 7 over 6, +105 for 11 over 10), and on Lichess hits are rarer (56.5% against 69% here), so the bank
+is smaller.
+
+**For Matthew.** Off as merged. To try it in the bot anyway, add `"PonderTimeBonus": 25` to `engine["uci_options"]`
+in bot/make-config.py and restart the bot. Worth measuring again after P4 (an unfinished depth's better move gets
+played, so time that ends mid-depth buys something) and P6.
+
+**Tests** (PonderTests 65 → 75):
+
+| test | threads | what it checks |
+|---|---|---|
+| TheTimeBudgetPlansAQuarterMoreWhenPondering | | S and H at 3 s, 10+0.1, the bot's 3+2 and a nearly empty clock (where H caps S), with 0, 25 and 100%: S grows, H doesn't |
+| ThePonderTimeBonusLeavesMovetimeAndMovesToGoAlone | | `movetime` and `infinite` unchanged; `movestogo` 10 gets the bonus on its own S |
+| WithPonderOnEveryMovePlansTheBonus | | Through UCI: no bonus with Ponder off, none by default with it on; 25 and 100 on `go ponder` and on a plain `go` (a miss); none for `movetime` |
+| UciOffersAPonderTimeBonusFrom0To100 | | `option name PonderTimeBonus type spin default 0 min 0 max 100`; 150 → 100, -5 → 0, 1 and 50 exact (a minute's clock, so 1% shows); a bad Ponder value is an error and changes nothing |
+| WithPonderOnHitsStillAnswerWithinTheClock | 1, L4, R4 | With 25%: a hit at once within H (+300 ms), a hit past the budget at once (200 ms), and a plain `go` within H |
+
+Mutations: 17 over the new lines while the default was 25, and 2 for the default turned to 0: all caught. Full suite:
+541 passed, 2 skipped.
+
+### P4: play the move a cut depth proved better (2026-10-21)
+
+**Verdict: built, correct, and it almost never fires.** It changed 1 move in 1,044 lab searches of the bot's own
+positions. Against P3's build at 10+0.1, no pondering: **+7 Elo [-3, +17] over 2,000 games** (SPRT [0, 10] undecided at
+the cap, LOS 90%). That's no loss, and most likely no gain either: at that clock the lab saw it change no move at all.
+
+A side session, branch `claude/p4-partial-depth-081e28`, on P3's branch (08a4118: compression with P1-P3). **When a
+depth is cut off part way (the hard limit, a node limit, `stop`, or a ponder hit that stops it at once), the engine
+threw the whole depth away and played the last finished depth's move. Now, if the cut depth had already searched the
+last depth's best move to the end, and another root move then did better in a search that also ended, that other move
+is played**, with the cut depth's score and line. It's the move the depth would have played had every root move it
+didn't reach done worse. Engines commonly do this (Stockfish keeps a stopped iteration's best move the same way). There
+is no option: it's always on.
+
+What a cut plays:
+
+| the depth in progress, when it was cut | before P4 | P4 |
+|---|---|---|
+| hadn't finished searching the last depth's best move | the last finished depth's move | the same |
+| had searched it, and no other move had done better | the same | the same |
+| a move had "failed high" (looked better on a quick test, `score > alpha` on a null window) and was being searched again in full | the same | the same: an unconfirmed fail-high never counts |
+| a move's full search had ended above the best so far | the same | **that move** (the latest such) |
+
+One thread searches the last depth's best first, always: the table's move at the root is the one the last depth
+stored. On Lazy SMP the main thread's table move can be a helper's, since half the helpers run a depth ahead and store
+the root too. Then the main thread may search that move before the last best, and a cut between the two keeps the last
+best (row 1), however well the helper's move did.
+
+**Where.** One thread and Lazy SMP's main thread (whose answer is the search's): at the root, each move's search that
+ends notes whether it was the last best, and the score of a move that beat the best so far (`NoteRootMove`);
+`ProvedAtCut` reads them. Ranges: each window's thread notes the same in its own window. A move that beats the best in
+a window has beaten the last best too (which scored at most the window's floor, or exactly the best before it), so a
+cut gathers from every window's thread, and from the calling thread if it was searching the depth again with the full
+window, and plays the move with the highest score. Depth 1 is cut as before (it has no finished depth before it: its
+best so far is played). `Search.RootTrace` is a test hook that reports each root move's end and each search again.
+
+**The `info` line (the brief asked whether to send one): yes, when the cut depth changes the move, and only then.**
+
+Kiwipete (a test position), the built-in evaluation, one thread, Hash 8, `go nodes 425984`, which cuts depth 7 just
+after d5e6 has beaten depth 6's e2a6 there:
+
+```
+info depth 6 score cp 60 nodes 140429 nps 422978 time 332 hashfull 10 pv e2a6 e6d5 c3d5 f6d5 e5d3 d7d6
+info depth 7 score cp 45 lowerbound nodes 425984 nps 930096 time 458 hashfull 32 pv d5e6 a6e2 c3e2 e7e6 d2f4 d7d5 e2d4
+bestmove d5e6 ponder a6e2
+```
+
+(Before P4: the same depth 6 line, then `bestmove e2a6`. The new score, 45, is below depth 6's 60: a deeper depth
+often scores every move differently, so the comparison is always within the cut depth, against the last best's
+score there, never against the depth before.)
+
+- python-chess keeps the last `info` line's score and line as the move's stats. lichess-bot logs them, and its
+  draw-offer and resign rules read the score. Without this line they would be the last finished depth's, whose line
+  starts with a different move from the one played. After a hit, P1 would even send that line again just before a
+  `bestmove` naming another move.
+- The ponder move comes from the line (`bestmove ... ponder <its second move>`), so the line must be the played move's.
+- `lowerbound`: the score is exact for the move played, but for the depth it's only a lower bound, since root moves
+  not yet searched might do better. That's what UCI's `lowerbound` says. It also lets the log scripts tell a cut
+  depth from a finished one. python-chess reads it (`info["lowerbound"]`); lichess-bot and the match tool ignore it
+  (the match tool's depth tally counts the line as the move's depth). Stockfish sends its stopped iteration's line
+  without the flag.
+- When the cut depth proved nothing, nothing extra goes out, as before (and after a hit, P1's line).
+
+**Searches that aren't cut are unchanged.** 60 of the bot's positions to depth 11 on one thread, P3's build (08a4118)
+against P4's: every depth's line the same (depth, score, nodes, line) and the same move, 148 M nodes in all. A fixed
+depth is never cut, so this is all a search with no limit does.
+
+**How often it fires (the lab, `p4.py`).** 297 of the bot's searches from 2026-10-19 and 10-20 (144 plain `go`,
+153 ponder hits, every 24th and 28th), each from an empty table, with the bot's settings (Hash 256, Move Overhead 100,
+h1024-3m, no tables). A plain `go` on its own clock; a hit as `go ponder`, `ponderhit` after the time it pondered in the
+bot, then the answer:
+
+| run | searches | a depth cut | of them: stopped at once at the hit (the depth had run, median) | ran on to the end of their time (median) | **the cut changed the move** |
+|---|---:|---:|---:|---:|---:|
+| 8 threads (the bot), plain `go` | 144 | 2 (1%) | | 2 (6.5 s) | **0** |
+| 8 threads (the bot), ponder hits | 153 | 74 (48%) | 68 (1.2 s) | 6 (18.6 s) | **1**, one that ran on |
+| 1 thread, the same hits | 153 | 83 (54%) | 82 (1.1 s) | 1 (12.0 s) | **0** |
+| 1 thread, every position at 10+0.1 (the match's clock) | 297 | 2 (1%) | | 2 (0.6 s) | **0** |
+| the same, the table warm: our own search two plies earlier first, as in a game | 297 | 2 (1%) | | 2 (1.0 s) | **0** |
+| all | 1,044 | 163 | 150 | 13 | **1** |
+
+(Not all of it on a quiet machine, by the other sessions' notes. The 8-thread run, 16:55-17:32, had no company
+reported. The cold 10+0.1 run, 17:33-17:35, ran beside two other sessions' test suites. The one-thread hits, 17:35-17:53,
+shared the CPUs with another session's builds and tests until 17:48. The warm 10+0.1 run, 21:06-21:09, ran beside a
+match pinned to CPUs 2-12. A crowded search is a slower one, and reaches less deep in its time, but no run changed
+more than one move, so the conclusion stands.)
+
+So **1 changed move in 1,044 searches, from 163 cut depths.** The one: a hit at 4.7 s (S 5.2 s) whose depth 14, begun
+at 1.9 s, ran 13.7 s to the hard limit, and played f4e3 (-7) where depth 13 had e1e2 (+17). A search four times as long
+(depth 15, from an empty table) preferred a third move, f2g1, so even that one isn't clearly a gain.
+
+**Why so rarely.** A cut depth can change the move only once the last best's search there has ended, and that first
+move takes a large share of a depth: it's searched with the full window, the others mostly with a null one (on
+Kiwipete's depths 3-8, from a quarter to three fifths of the depth's nodes). Most cuts come early in the depth. A hit
+that stops at once drops a depth begun past half the planned time, which has run about half as long as the depth
+before it (the scoping's 0.52), so about a quarter of its own way: 150 such cuts in the lab, none changed. P4 can only
+fire on depths cut late, those that run on to the hard limit, and they're few: 13 of 1,044 in the lab, 1 changed. In
+the bot they carry most of the clock ponderlog3.py counts (14% of plain searches' clock, 37% after hits; "What's
+lost", item 2), but they buy a move very seldom. A plain search is rarely cut at all: a depth begun before half the
+planned time S nearly always ends well before the hard limit 3S, since a depth takes about twice the one before. The
+bot's log has a tail of over 1 s after the last finished depth in 5% of plain searches and 9% of hits, more than the
+lab, so the bot may see a little more than the lab: still around a move in a few hundred, by the hits above.
+
+**The match.** `scripts/build-match.py p4-v-p3-10+0.1 08a4118`: P4 (477d0f8) against P3's tip (08a4118), 10+0.1, no
+pondering, h1024-3m on both sides, one thread and Hash 64 each, 5 at a time, the 300 openings in colour-reversed pairs,
+our tables adjudicating, 17:53-21:05. The bot wasn't running; another session's fixed-depth lab held CPU 14 from 17:57.
+Nothing crowded it: both sides searched 3,140-3,240 knps (median) in every quarter hour.
+The SPRT never decided (LLR 0.63 at the cap; its high was 1.63 at game ~1,000):
+
+| P4 v P3, 2,000 games | |
+|---|---|
+| won / lost / drawn, P4's point of view | +442 -404 =1154 |
+| score, Elo [95%] | 50.9%, **+7 [-3, +17]**, LOS 90% |
+| first 1,000 games / last 1,000 | +14 [0, +27] / -0 [-14, +14] |
+| depth and speed in play | 10.9, 3,188 knps / 10.9, 3,185 knps |
+| games lost on time | 0 |
+
+Ends: 698 repetitions, 540 by the tables, 401 table draws, 306 checkmates, 54 by the 50-move rule, 1 stalemate.
+
+**Reading it.** The two builds play the same move in every search P4 doesn't change (node for node, above), and at
+this clock the lab saw P4 change none of 594 searches, with the table cold or warm. Even at one search in 200 (about
+the most that zero in 594 allows), a game of ~65 moves a side gets about 0.3 changed moves. To move the score by 0.9%,
+each would have to swing about 3% of a game, a lot for a move the cut depth rates a few centipawns better. So the +7 is
+most likely noise around zero: the first half's +14 and the second's 0 fit that. The firm part is the bottom of the
+interval: it costs at most about 3 Elo, and likely nothing. The guess in "Proposed changes" (+5 to +20) assumed a cut
+depth often had a better move ready; it seldom does.
+
+**What it means for the others.** P2's and P3's pages asked for their A/B matches again after P4, on the idea that an
+unfinished depth would no longer be wasted. It still is, nearly always: P4 rescues about 1 in 13 of the depths cut
+late, and none of those cut early. So their sums don't change, and the matches aren't worth playing again for P4. (The
+brief: "if it gains, also P2's ponder A/B". It didn't, so that wasn't run.)
+
+**Confirming it in the bot**, if it's merged and the bot restarts on it: `ponderlog.py` prints "hits answered by a cut
+depth's move, proved better there (P4)", and `ponderlog3.py` has a column for the clock on cut depths whose move was
+played. By the lab (1 of 153 hits on 8 threads), expect roughly ten a day: the bot had 1,364 hits on 2026-10-20.
+
+**For Matthew (decision P4).** P4 has no option: merged, it is on in the bot.
+
+- **(a)** Merge it as it is. It's what engines do, it's correct by the tests, and the match says it costs nothing. The
+  bot's logs then say how often it fires. *My pick.*
+- **(b)** Merge it behind a UCI option, off by default, as P2 and P3 are: no change in the bot until you turn it on.
+- **(c)** Leave it unmerged: an unfinished depth stays thrown away, as before.
+
+One idea it turned up, not part of decision M: on the bot's 8 threads, half the helpers run a depth ahead and often
+finish a depth the main thread hasn't. Their move is in the table, and the main thread's answer ignores it. Engines
+commonly pick the answer from the thread that got deepest ("thread voting", Stockfish's best-thread choice). That
+would use far more of the work a cut throws away than P4 can. It isn't measured here.
+
+**Tests** (CutDepthTests, new, 17):
+
+| test | threads | what it checks |
+|---|---|---|
+| OnOneThreadACutPlaysWhatTheDepthProvedAndNothingElse | 1 | Kiwipete, the start position and another to depth 8, then the same search cut by node limits at points through the depths where a move was searched again (after the last best's search, after each fail-high, after each move proved better and the two moves after it): what's played is what the rule says from the uncut search's trace; every finished depth and every root event before the cut is the uncut search's, node for node; a cut during a search again doesn't play that move |
+| StoppedJustAfterAMoveIsProvedBetterItPlaysThatMove | 1, L4, R4 | Stopped from the trace the moment a thread whose answer counts proves a better move: that move is played, at the cut depth, with its line (Ranges: the highest score any window's thread proved) |
+| StoppedAsAFailHighIsSearchedAgainItKeepsWhatWasProved | 1, L4, R4 | Stopped as a fail-high is about to be searched again: that move isn't played, and what was proved before is |
+| ARangesDepthCutInItsFallbackCountsWhatEveryThreadProved | R4 | Each window's thread stopped at its first move, so the calling thread searches the depth again with the full window; stopped there, as it proves a move or at its first move: the calling thread's proof counts, with the windows' |
+| ADepthThatHasNotSearchedTheLastBestMoveYetKeepsIt | 1 | Another move put in the table at the root: stopped after it, the last best is kept; stopped after the last best too, which did worse, the other move is played |
+| ARangesThreadThatHasNotSearchedTheLastBestMoveYetProvesNothing | R4, in the windows and in the fallback | The same, on Ranges' threads |
+| ACutInTheFirstDepthPlaysTheBestMoveItHasFound | 1 | Depth 1 as before P4 |
+| UncutSearchesAreTheSameWithTheRootTraced | 1 | The hook changes nothing, node for node |
+| TheCutDepthsLineNamesTheMovePlayedAsALowerBound | 1 | Through UCI: `info depth 7 score cp ... lowerbound ... pv <move>` and `bestmove <move> ponder <its reply>`; no other line has `lowerbound` |
+
+Changed: three ponder tests (`APonderHitAnsweredAtOnceSendsItsLastInfoAgain`,
+`WithPonderFinishOffAHitDropsTheDepthBegunPastHalfThePlannedTime`, `APonderHitLetsTheDepthItWouldDropFinish`) expected
+P1's line sent again (or a finished depth) after a hit. A depth the hit stops may now send its own line instead, if it
+proved a better move, so they accept that too (`AssertCutDepthAnswered`).
+
+Mutations: 32 over the new lines. The first battery caught 26. Five of the six that lived showed gaps in the tests,
+filled since (the score kept for every move, not just the best; a cut in depth 1; Ranges threads that search another
+move first, in the windows and in the fallback), and one meant a change: Ranges now resets every thread's notes at each
+depth, those sitting the depth out too, instead of counting only the first `windows`. The second battery caught 31 of
+32. The one that lives plays the last Ranges thread's move instead of the highest score's; the windows run in score
+order, so the two agree unless two windows contradict each other. (It was "caught" once, by a timing test that then
+passed it three times running.) Full suite: 558 passed, 2 skipped.
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's
@@ -516,3 +771,9 @@ python):
 - `scripts/ponder-match.py`: a match through python-chess, as lichess-bot plays. Plain: ponder on
   against off. `--arms "<A options>;<B options>"`: both sides ponder, differing by UCI options (P2's
   `PonderFinish=true;PonderFinish=false`). `--sprt 0,10` stops once the SPRT decides.
+- `p4.py sample|run|summary|same` (P4): the bot's own searches (`results/p4-samples.json`, 297 of them) searched as it
+  searched them, counting the cut depths and the moves they changed (`results/p4*.jsonl`); `same` checks two builds
+  search a fixed depth node for node alike. The parsers (`uci.py`, `ponderlog.py`, `ponderlog3.py`) read the
+  `lowerbound` line since P4, and don't count it, nor P1's line sent again, as a finished depth.
+- `scripts/build-match.py <tag> <old commit>`: this checkout's engine against an earlier commit's, as the evaluation
+  SPRTs were played (10+0.1, 5 at a time, SPRT [0, 10]); P4's match. Logs in `games/builds/` in the main checkout.
