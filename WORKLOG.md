@@ -5414,3 +5414,35 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - Decision O is now three parts: O1 the log ((a) on, my pick), O2 the net
   per bot ((a) none for now, my pick), O3 the opening per bot ((b) the
   learner onto the net first, my pick, then (a) a replay trial).
+
+## 2026-10-22 (07:10-07:45): decision O taken; O1, the game record at each start, built (the P8 side session)
+
+- Matthew: "O1 (a) switch the log on, O2 (a) no per-bot net for now, O3
+  (b) the learner onto the net first, then (a) a replay trial. Build O1
+  now."
+- Compression merged into the P8 branch first (WORKLOG the only conflict:
+  both sides adding entries, compression's first).
+- **bot/start-bot.cmd** runs `scripts\opponents\collect.py bot
+  bot\games\record.csv` with lichess-bot's Python after make-config.py and
+  the token check; on a failure it prints "The game record wasn't updated:
+  starting anyway." and carries on. collect.py now prints one line ("game
+  record: N games in ..."), lists the starts only with --starts, writes
+  to a .tmp and replaces the record in one step, and refuses with a
+  message when there are no games or the record is held open (Excel).
+- **Tests**: scripts/opponents/test_collect.py builds a bot folder in
+  lichess-bot's formats (two starts, a network and the built-in numbers;
+  our challenge and theirs; book moves from two books; a line naming the
+  token that would change a row if read) and checks both rows, a second
+  run giving the same file, and the no-games refusal. 9 of 9 mutants of
+  collect.py caught (three lived at first: a drawn game hid the black-
+  score flip, one main-book move hid the count, and the token line
+  matched nothing; the test now has a black win, two main-book moves and
+  a token line that would mark a game ours). The start-bot.cmd lines
+  themselves, verbatim, in a scratch copy with real logs and games: a
+  normal run (12 games), the record held open (left as it was, no .tmp
+  left behind, the bot carries on) and no games (the same).
+- On from the bot's first start on a compression with this branch in it.
+  bot\games\record.csv in the main checkout is already the 617-game
+  backfill. The OPPONENTS.md note on a close second is updated: the deep
+  nets lost (l32 -85, l16-32 about -55), so O2 waits for a net within ~10
+  Elo, or for ~3,000 more games.

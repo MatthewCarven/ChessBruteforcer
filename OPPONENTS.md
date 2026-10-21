@@ -91,8 +91,8 @@ Before the networks the setup moved under a single "net" (sf1 went from 1 thread
 network era 232 of 243 games were on one build with the same options, so the nets differ there by the net, by
 the opponents (the rating rose) and by two games at once from 10-18.
 
-**Going forward** (O1): start-bot.cmd runs collect.py at each start (stdlib and git, any Python), so the record is
-one start behind at most. If a setup ever changes per game (O2 (b)-(d)), the patch also logs one INFO line a game
+**Going forward** (O1, built): start-bot.cmd runs collect.py at each start (stdlib and git, any Python), so the
+record is one start behind at most. It is rebuilt whole each time, so it can't drift from the PGNs and logs. If a setup ever changes per game (O2 (b)-(d)), the patch also logs one INFO line a game
 ("setup for game X: ...") and collect.py reads that instead of the start's net.
 
 ## 2. Do opponent-specific weaknesses exist?
@@ -216,8 +216,9 @@ one to three games a setup, which is mostly luck, so the weaker setups keep gett
 really differ by 100+ Elo between nets and the bot meets each one dozens of times.
 
 **When it would change.** If two setups were within ~10 Elo overall, exploring would be cheap and the cautious
-learner would make +3 (weighted) to +14 (σ 100). Today's nets aren't that close. The deep nets' matches (the
-nnue-deep-layers session) may produce one, which is the time to look again.
+learner would make +3 (weighted) to +14 (σ 100). Today's nets aren't that close, and the deep nets
+weren't either: both lost to h1024-3m at 10+0.1 the same day (h1024-3m-l32 -85, h1024-3m-l16-32 about -55,
+MATCHES.md). The next net that comes within ~10 Elo is the time to look again.
 
 ## 4. Vary the opening
 
@@ -278,6 +279,12 @@ it should think with the net first. A separate check (TODO).
   --check`).
 
 ## Decision O (P8): what to do
+
+**Taken 2026-10-22: O1 (a), O2 (a), O3 (b) then (a)** (Matthew: "Build O1 now"). O1 is built: bot/start-bot.cmd runs
+collect.py at every start, from the bot's first start on a compression with this in it. A failure (the record open
+in Excel, say) only leaves the old record, with a line in the window, and the bot starts anyway.
+scripts/opponents/test_collect.py checks collect.py on a made-up bot folder (9 of 9 mutants caught). O3 (b) is the
+session "Book learner: think with the bot's net, not sf1?", waiting for the cores.
 
 **O1. The log (step 1)**
 - **(a) Switch it on** (my pick): one line in bot/start-bot.cmd runs collect.py into bot\games\record.csv at each

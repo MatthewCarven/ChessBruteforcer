@@ -1,6 +1,10 @@
-"""One row per game the bot has played, with the setup that played it: the backfill of P8's game record.
+"""One row per game the bot has played, with the setup that played it: P8's game record (OPPONENTS.md).
 
-    python -I collect.py <bot folder> <out.csv>
+    python -I collect.py <bot folder> <out.csv> [--starts]
+
+bot/start-bot.cmd runs it at every start (Matthew's O1 (a), 2026-10-22), into bot/games/record.csv, so the record is
+one start behind at most; it is rebuilt whole each time (a few seconds), so it never drifts. --starts lists each bot
+start with its net, build and options.
 
 From bot/games/*.pgn (lichess-bot's records, headers only): the game, the opponent, the ratings, the result.
 From bot/logs/bot-*.log (lichess-bot's INFO log, read in order): which evaluation the engine loaded at each start
@@ -204,10 +208,20 @@ for path in sorted(glob.glob(os.path.join(bot, "games", "*.pgn"))):
         "line": " ".join(sans[:20]),                    # the first 20 plies, to see who repeats an opening
     })
 rows.sort(key=lambda r: r["utc"])
-with open(out, "w", newline="", encoding="utf-8") as f:
+if not rows:
+    sys.exit("no games found in " + os.path.join(bot, "games"))
+tmp = out + ".tmp"                           # a whole file or the old one, never half of one
+with open(tmp, "w", newline="", encoding="utf-8") as f:
     w = csv.DictWriter(f, fieldnames=list(rows[0]))
     w.writeheader()
     w.writerows(rows)
-print(len(rows), "games;", sum(1 for r in rows if r["net"]), "matched to a start;", len(starts), "starts")
-for s in starts:
-    print("  start", *s, *setup_at(s[0]))
+try:
+    os.replace(tmp, out)
+except PermissionError:                      # open in Excel, say: keep the old one, say so
+    os.remove(tmp)
+    sys.exit(f"{out} is in use (open somewhere?): not updated")
+unmatched = sum(1 for r in rows if not r["net"])
+print(f"game record: {len(rows)} games in {out}" + (f", {unmatched} without a known setup" if unmatched else ""))
+if "--starts" in sys.argv:
+    for s in starts:
+        print("  start", *s, *setup_at(s[0]))

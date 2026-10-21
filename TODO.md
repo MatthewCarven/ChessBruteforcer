@@ -1007,16 +1007,25 @@ Sessions, in order:
       O1 the log ((a) on, my pick; (b) by hand), O2 the net per bot ((a) none
       for now, my pick; (b) steered; (c) Thompson; (d) his rule), O3 the
       opening per bot ((a) a replay trial; (b) the learner onto the net
-      first, my pick, then (a); (c) leave it).
-      - [ ] Once chosen: O1 (a) one line in bot/start-bot.cmd running
-            scripts/opponents/collect.py into bot\games\record.csv; O2
-            (b)-(d) bot/lichess-bot-opponent.patch in create_engine; O3 (a)
-            bot/lichess-bot-replay.patch in get_book_move (both clear of the
-            ponder-note patch), each with bot/test-<name>.py on a copy
-            through LICHESS_BOT and settings in make-config.py.
-      - [ ] Rerun scripts/opponents/analyze.py after ~3,000 more games (or
-            when two setups come within ~10 Elo: the deep nets' matches),
-            and look again.
+      first, my pick, then (a); (c) leave it). **Matthew chose O1 (a), O2
+      (a), O3 (b) then (a)** (2026-10-22).
+      - [x] O1 (a), built 2026-10-22: bot/start-bot.cmd runs
+            scripts/opponents/collect.py into bot\games\record.csv at every
+            start (a failure leaves the old record and the bot starts
+            anyway); scripts/opponents/test_collect.py, 9 of 9 mutants
+            caught. On from the bot's first start on a compression with it.
+      - [ ] O3 (b): the learner onto the bot's net (the item below; its
+            session waits for the cores).
+      - [ ] O3 (a), after (b): the replay trial. bot/lichess-bot-replay.patch
+            in get_book_move (engine_wrapper.py 756-799, clear of the
+            ponder-note patch): against a bot met before with the same
+            colours, our book moves from the last game unless it was lost;
+            logs which games replayed; bot/test-replay.py on a copy through
+            LICHESS_BOT; a setting in make-config.py. ~half a day.
+      - [ ] O2: rerun scripts/opponents/analyze.py on the record after
+            ~3,000 more games (~6 weeks), or when a setup comes within ~10
+            Elo of the best (the deep nets didn't: -85 and about -55), and
+            look again.
 - [ ] The book learner (bot/learn.py) thinks with eval-sf1.txt, set when sf1
       was our best evaluation (2026-10-14); the bot plays its moves
       instantly from ours.bin, ahead of its own thinking with h1024-3m.
@@ -1120,9 +1129,14 @@ Sessions, in order:
       (e), at the end of PONDER.md. (2026-10-21: Matthew chose all six, P1 to
       P6, one session each, in sequence; the steps are ticked under
       "Decision M" in section 2. P1 is in compression, 7cb0adb.)
-- [ ] Decision O (P8, the setup per opponent, [OPPONENTS.md](OPPONENTS.md)):
+- [x] Decision O (P8, the setup per opponent, [OPPONENTS.md](OPPONENTS.md)):
       pick an option in each of O1 (the log), O2 (the net per bot) and O3
-      (the opening per bot), at the end of OPPONENTS.md.
+      (the opening per bot). (2026-10-22: O1 (a), O2 (a), O3 (b) then (a);
+      O1 built, section 2.)
+- [ ] Restart the bot (between games, `bot\quit-soon.cmd`) once the P8
+      branch is in compression, so start-bot.cmd's game record line runs.
+      It changes bot\start-bot.cmd, so stop the bot before merging (cmd.exe
+      reads a running batch file line by line).
 - [x] Push `prefix-range` in ..\Lookuptables and merge it: done 2026-10-15,
       CSharp-Lookuptables PR #1 (b9ca823); his local main brought up to it.
 - [ ] games/2026-09-part.cbg (1.28 GB) can go now the whole month is done;
