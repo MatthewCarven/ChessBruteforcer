@@ -1083,7 +1083,13 @@ Sessions, in order:
       - [ ] O2: rerun scripts/opponents/analyze.py on the record after
             ~3,000 more games (~6 weeks), or when a setup comes within ~10
             Elo of the best (the deep nets didn't: -85 and about -55), and
-            look again.
+            look again. Then also Matthew's other reason for a per-bot
+            setup (2026-10-22): "be nicer to some of the players like FPGA
+            Chess", a gentler setup for bots we'd like to keep playing.
+            fpga-chess so far (bot\games\record.csv): 4 games, all its own
+            challenges, all won by us (2336-2368 against our 2391-2548). The
+            same create_engine patch would serve both, from a list of named
+            bots in make-config.py.
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);
