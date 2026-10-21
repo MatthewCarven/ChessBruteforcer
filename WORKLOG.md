@@ -5333,3 +5333,48 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   (output buckets) isn't written yet, so stopping it now gains little.
 - The laptop holds July-September's records (games\nnue\2026-07..09), 53 GB
   free on C:, an RTX 3070 Laptop GPU (8 GB).
+
+## 2026-10-22 (04:40-05:20): P7, draw offers in level games, scoped (a side session)
+
+- Matthew's idea: "if all moves are 0 gain on the main predicted path for a
+  long time maybe we should offer draw if we have a similar strength to our
+  opponent?" Scoped with data first, nothing built. Write-up in DRAWS.md,
+  scripts and outputs in scripts/draw-scope/. Branch
+  `claude/draw-offer-scope-6f8c39`, on compression's 882d45c.
+- **What happens now**: lichess-bot's default rule, unchanged by
+  make-config.py (config.yml read by a script that skips the token): offer
+  when the last 10 engine scores are all exactly 0.00 and there are 10
+  pieces or fewer. An offer is `offeringDraw=true` on the move. The same rule
+  accepts: a standing offer is agreed by a flagged move and declined by any
+  other. No ratings, no bot-or-human. A search with no score (a ponder hit
+  before P1, about a quarter of moves from 2026-10-16) broke the run.
+  Lichess passes on one offer per player per 10 moves (52 of 55 gaps between
+  ours were 11 moves).
+- **The data**: 617 records (596 finished, 2026-10-12 to 10-21 UTC), every
+  opponent a bot; the logs cover all 596. Split at nnue1's start on the bot
+  (2026-10-16 17:50 UTC): early 356 games, networks 240.
+- **Level stretches** (N of our moves in a row within +-0.15): N = 10 in 12%
+  of games in both eras. Early they ended 13 / 16 / 13, 20 of the 42 in a
+  full middlegame: "level" on the old evaluation often wasn't. Networks:
+  **1 / 29 / 0** (N = 20: 0 / 13 / 0); 14 by repetition, 6 insufficient
+  material, 6 agreement, 2 the 50-move rule.
+- **Rating** (Glicko-2 expectation, K 11.5, the bot's established blitz
+  median): a draw at the stretch would have changed the networks era by -6
+  (its one win), the early era by +40 for "similar strength or stronger"
+  (it lost 4 of 8 level games within 50 points, 5 of 13 against stronger).
+- **Time**: after a networks-era stretch, a median 0.1-8.6 minutes of play
+  were left by piece count, 66 minutes in all of 43 hours (2.6%). The other
+  bots accepted 4 of our 89 offers (4 of 34 games, 1 in 8), so ~8 minutes
+  per 240 games is what any rule can save.
+- **Their offers**: 48 in 21 games; we accepted 3. Our evaluation was above
+  +0.15 at 28 of them. The 18 games where we declined went 3 / 14 / 1:
+  accepting their first offer would have cost ~12 points for ~49 minutes.
+- **Decision N** (DRAWS.md): (a) leave it, (b) draws off, (c) a tuned
+  setting (+-0.15, 20 moves, any pieces), (d) a rating-aware patch (offer
+  and accept only against bots rated at least ours - 50; clear of the
+  ponder-note patch's lines in engine_wrapper.py). My pick (a): with the
+  networks, every option changes the rating by ~0 and saves 0-5 minutes per
+  240 games. Look again if humans play the bot or level games start being
+  lost.
+- **Matthew chose (a)**, leave the draw rule as it is: nothing built,
+  make-config.py unchanged. The TODO line to look again stays open.
