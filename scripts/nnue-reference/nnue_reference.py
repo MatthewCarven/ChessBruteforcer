@@ -5,9 +5,10 @@ feature index and the forward pass. numpy and the standard library only. The tra
 take write_nnue and feature from here; the format and the index are the contract.
 
 Run as a script, it writes the C# tests' fixtures: a net with random weights and 1,000 positions with
-the scores this code gives them (tests/ChessBruteforcer.Tests/Data/nnue-random-256.*), and two deeper nets
-the same way (nnue-random-deep-32.*, nnue-random-deep-16-32.*). The C# tests MatchesTheNumpyReference and
-MatchesTheNumpyReferenceDeep must give every one of them exactly.
+the scores this code gives them (tests/ChessBruteforcer.Tests/Data/nnue-random-256.*), two deeper nets
+the same way (nnue-random-deep-32.*, nnue-random-deep-16-32.*) and one with 8 output buckets
+(nnue-random-ob8.*). The C# tests MatchesTheNumpyReference and MatchesTheNumpyReferenceDeep must give
+every one of them exactly.
 
     python scripts/nnue-reference/nnue_reference.py
 
@@ -29,6 +30,22 @@ checks QA x sum|w| + |bias| + Q / 2 per output), then x = clamp((s + Q / 2) / Q,
 score: (bias + sum of x x w) x scale / (QA x Q), clamped as version 1's. Every division truncates towards zero
 (C#'s); the + half steps round the layers' numbers to the nearest, which truncation alone would pull low by half
 a step each, a few centipawns against the side to move in all.
+
+Version 3 (2026-10-22, output buckets: NNUE.md, session 7) is version 1 with K output rows instead of one, the
+row picked by how many pieces are on the board, as Stockfish does. Little-endian throughout:
+
+    8 bytes   "CBNNUE01"
+    u32       version (3), inputs (768), hidden H (a multiple of 16, 16 to 2048)
+    i32       QA (255), QB, scale (400)
+    u32       K, the number of output buckets (1-16)
+    int16     feature weights [768][H], feature biases [H]          (as version 1)
+    int16     output weights [K][2H], bucket by bucket; within a bucket the side to move's H, then the other's
+    i32       output biases [K]
+    32 bytes  SHA-256 of everything above
+
+The bucket: b = (n - 1) x K / 32 (integer division), n every piece on the board, kings included (2 to 32); at
+K = 8 that is Stockfish's (n - 1) / 4. The score is version 1's with bucket b's weights and bias, and every
+bucket's weights pass version 1's check (|w| x QA within int16).
 """
 
 import hashlib
@@ -41,10 +58,14 @@ import numpy as np
 MAGIC = b"CBNNUE01"
 VERSION = 1
 VERSION_DEEP = 2
+VERSION_BUCKETS = 3
 INPUTS = 768
 HEADER = struct.Struct("<IIIiii")   # version, inputs, hidden, QA, QB, scale (after the magic)
 HEADER_DEEP = struct.Struct("<IIIiiI")   # version 2: version, inputs, hidden, QA, scale, layer count
+HEADER_BUCKETS = struct.Struct("<IIIiiiI")   # version 3: version, inputs, hidden, QA, QB, scale, buckets
 MAX_LAYERS, MAX_LAYER_SIZE = 4, 256
+MAX_BUCKETS = 16
+MAX_PIECES = 32
 MAX_SCORE = 28_999                  # Search.MateBound - 1: no network score may read as a mate
 KINDS = "pnbrqk"                    # kind 1..6, as the engine's PieceType
 
@@ -62,6 +83,17 @@ def write_nnue(path, fw, fb, ow, ob, qa=255, qb=64, scale=400):
     body = (MAGIC + HEADER.pack(VERSION, INPUTS, hidden, qa, qb, scale)
             + fw.astype("<i2").tobytes() + fb.astype("<i2").tobytes() + ow.astype("<i2").tobytes()
             + struct.pack("<i", ob))
+    pathlib.Path(path).write_bytes(body + hashlib.sha256(body).digest())
+
+
+def write_nnue_buckets(path, fw, fb, ow, ob, qa=255, qb=64, scale=400):
+    """Version 3. fw [768][H], fb [H], ow [K][2H] (each bucket's side to move's half first) as int16; ob [K] i32."""
+    hidden, buckets = fb.shape[0], ow.shape[0]
+    assert fw.shape == (INPUTS, hidden) and ow.shape == (buckets, 2 * hidden) and ob.shape == (buckets,)
+    assert 1 <= buckets <= MAX_BUCKETS
+    body = (MAGIC + HEADER_BUCKETS.pack(VERSION_BUCKETS, INPUTS, hidden, qa, qb, scale, buckets)
+            + fw.astype("<i2").tobytes() + fb.astype("<i2").tobytes() + ow.astype("<i2").tobytes()
+            + ob.astype("<i4").tobytes())
     pathlib.Path(path).write_bytes(body + hashlib.sha256(body).digest())
 
 
@@ -93,6 +125,8 @@ def read_nnue(path):
     (version,) = struct.unpack_from("<I", data, 8)
     if version == VERSION_DEEP:
         return read_deep(path, data)
+    if version == VERSION_BUCKETS:
+        return read_buckets(path, data)
     version, inputs, hidden, qa, qb, scale = HEADER.unpack_from(data, 8)
     if version != VERSION or inputs != INPUTS:
         raise ValueError(f"{path}: version {version}, {inputs} inputs")
@@ -107,6 +141,32 @@ def read_nnue(path):
     if at + 4 + 32 != len(data):
         raise ValueError(f"{path}: {len(data)} bytes, expected {at + 4 + 32}")
     return dict(hidden=hidden, qa=qa, qb=qb, scale=scale, fw=fw, fb=fb, ow=ow, ob=ob, layers=None)
+
+
+def read_buckets(path, data):
+    """Version 3: as version 1's dict, with ow [K][2H], ob [K] and buckets K."""
+    version, inputs, hidden, qa, qb, scale, buckets = HEADER_BUCKETS.unpack_from(data, 8)
+    if inputs != INPUTS or not 1 <= buckets <= MAX_BUCKETS:
+        raise ValueError(f"{path}: {inputs} inputs, {buckets} output buckets")
+    at = 8 + HEADER_BUCKETS.size
+    fw = np.frombuffer(data, "<i2", INPUTS * hidden, at).reshape(INPUTS, hidden)
+    at += 2 * INPUTS * hidden
+    fb = np.frombuffer(data, "<i2", hidden, at)
+    at += 2 * hidden
+    ow = np.frombuffer(data, "<i2", buckets * 2 * hidden, at).reshape(buckets, 2 * hidden)
+    at += 4 * hidden * buckets
+    ob = np.frombuffer(data, "<i4", buckets, at)
+    at += 4 * buckets
+    if at + 32 != len(data):
+        raise ValueError(f"{path}: {len(data)} bytes, expected {at + 32}")
+    return dict(hidden=hidden, qa=qa, qb=qb, scale=scale, fw=fw, fb=fb, ow=ow, ob=ob, layers=None, buckets=buckets)
+
+
+def bucket(pieces, buckets):
+    """Version 3's output bucket for a board of `pieces` pieces, kings included: (n - 1) x K / 32."""
+    if not 2 <= pieces <= MAX_PIECES:
+        raise ValueError(f"{pieces} pieces: buckets are defined for 2 to {MAX_PIECES}")
+    return (pieces - 1) * buckets // MAX_PIECES
 
 
 def read_deep(path, data):
@@ -188,9 +248,12 @@ def evaluate(net, fen):
         total = int(w.astype(np.int64) @ x) + int(b)
         score = truncating_div(total * net["scale"], qa * q)
         return max(-MAX_SCORE, min(MAX_SCORE, score))
-    ow = net["ow"].astype(np.int64)
+    ow, ob = net["ow"].astype(np.int64), net["ob"]
+    if net.get("buckets"):   # version 3: bucket b's row and bias, then version 1's arithmetic
+        b = bucket(len(pieces), net["buckets"])
+        ow, ob = ow[b], int(ob[b])
     total = int((us * us * ow[:h]).sum() + (them * them * ow[h:]).sum())
-    score = truncating_div((truncating_div(total, qa) + net["ob"]) * net["scale"], qa * net["qb"])
+    score = truncating_div((truncating_div(total, qa) + ob) * net["scale"], qa * net["qb"])
     return max(-MAX_SCORE, min(MAX_SCORE, score))
 
 
@@ -276,7 +339,49 @@ def main():
     print(f"sha256 {hashlib.sha256(net_path.read_bytes()[:-32]).hexdigest()}")
     for sizes in ((32,), (16, 32)):
         deep_fixture(out, sizes)
+    buckets_fixture(out, 8)
     return 0
+
+
+def buckets_fixture(out, buckets, hidden=256, count=1000):
+    """A version 3 net with random weights, version 1's fixture's ranges in every bucket, and `count` positions with
+    its scores, every piece count from 2 to 32 among them (random_fen's now-and-then 33rd piece left out: no bucket
+    is defined for it). Reports how often a wrong bucket would have given another score, which is what lets the
+    fixture catch one."""
+    name = f"nnue-random-ob{buckets}"
+    rng = np.random.default_rng(20261022 + buckets)
+    fw = rng.normal(0, 24, (INPUTS, hidden)).round().clip(-90, 90).astype(np.int16)
+    fb = rng.integers(-40, 200, hidden).astype(np.int16)
+    ow = rng.integers(-127, 128, (buckets, 2 * hidden)).astype(np.int16)
+    ob = rng.integers(-50_000, 50_001, buckets).astype(np.int32)
+    net_path = out / f"{name}.nnue"
+    write_nnue_buckets(net_path, fw, fb, ow, ob)
+    net = read_nnue(net_path)
+
+    fens = list(KNOWN)
+    while len(fens) < count:
+        fen = random_fen(rng)
+        if len(parse_fen(fen)[0]) <= MAX_PIECES:
+            fens.append(fen)
+    lines = [f"# {name}.nnue: FEN, then the score for the side to move by scripts/nnue-reference/nnue_reference.py "
+             f"(bucket (n - 1) x {buckets} / 32, n the pieces on the board, kings included)"]
+    scores, per_bucket, telling = [], np.zeros(buckets, np.int64), 0
+    for fen in fens:
+        scores.append(evaluate(net, fen))
+        lines.append(f"{fen}\t{scores[-1]}")
+        n = len(parse_fen(fen)[0])
+        per_bucket[bucket(n, buckets)] += 1
+        # The same position scored with every other bucket's row: does each give another score?
+        others = [evaluate(dict(net, ow=net["ow"][[k]], ob=net["ob"][[k]], buckets=1), fen)
+                  for k in range(buckets) if k != bucket(n, buckets)]
+        telling += all(o != scores[-1] for o in others)
+    (out / f"{name}.tsv").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    s = np.array(scores)
+    print(f"{name}: {len(fens)} positions; scores {s.min()} .. {s.max()}, median |score| {int(np.median(np.abs(s)))}, "
+          f"{int((np.abs(s) == MAX_SCORE).sum())} at the limit, {int((s == 0).sum())} zero; by bucket "
+          + " ".join(str(c) for c in per_bucket)
+          + f"; {telling} of {len(fens)} would score differently in every other bucket"
+          + f"; sha256 {hashlib.sha256(net_path.read_bytes()[:-32]).hexdigest()}")
 
 
 def deep_fixture(out, sizes, hidden=128, count=1000):
