@@ -68,8 +68,11 @@ public class PonderTests
         }
     }
 
-    /// <summary>What an "info depth" line says.</summary>
-    private sealed record Info(int Depth, string Score, long Nodes, long TimeMs, string Pv)
+    /// <summary>
+    /// What an "info depth" line says.  <paramref name="Partial"/>: a depth cut off, sent because it proved a
+    /// better move, which is played (its score a lower bound; P4, CutDepthTests).
+    /// </summary>
+    private sealed record Info(int Depth, string Score, long Nodes, long TimeMs, string Pv, bool Partial = false)
     {
         public static Info Parse(string line)
         {
@@ -77,8 +80,21 @@ public class PonderTests
             string After(string word) => words[Array.IndexOf(words, word) + 1];
             int score = Array.IndexOf(words, "score");
             return new Info(int.Parse(After("depth")), $"{words[score + 1]} {words[score + 2]}", long.Parse(After("nodes")),
-                            long.Parse(After("time")), line[(line.IndexOf(" pv ") + 4)..]);
+                            long.Parse(After("time")), line[(line.IndexOf(" pv ") + 4)..], words[score + 3] == "lowerbound");
         }
+
+        public string Move => Pv.Split(' ')[0];
+    }
+
+    /// <summary>
+    /// A hit stopped a depth that had proved a better move (P4): instead of the last line sent again, that depth's
+    /// line comes after the hit, and its move is played.
+    /// </summary>
+    private static void AssertCutDepthAnswered(Info last, Info line, string best)
+    {
+        Assert.True(line.Partial);
+        Assert.Equal(last.Depth + 1, line.Depth);
+        Assert.Equal(line.Move, best.Split(' ')[1]);
     }
 
     /// <summary>No depth was reported twice: nothing was sent again after the search's own lines.</summary>
@@ -245,12 +261,19 @@ public class PonderTests
             Thread.Sleep(HardLimitMs + 300);   // past the whole budget, so the hit answers at once, with no new depth
             var clock = Stopwatch.StartNew();
             engine.Handle("ponderhit");
-            Assert.NotNull(output.WaitForBestMove(round, 5000));
+            string? best = output.WaitForBestMove(round, 5000);
+            Assert.NotNull(best);
             Assert.InRange(clock.ElapsedMilliseconds, 0, 200);
 
             var infos = output.InfosBefore(round);
             Assert.True(infos.Length >= 2, $"{infos.Length} info lines");
             var (pondered, sentAgain) = (infos[^2], infos[^1]);
+            if (sentAgain.Partial)   // (the depth dropped had proved a better move, so its line is the hit's: P4)
+            {
+                AssertCutDepthAnswered(pondered, sentAgain, best!);
+                AssertNoRepeat(infos);
+                continue;
+            }
             Assert.Equal(pondered.Depth, sentAgain.Depth);
             Assert.Equal(pondered.Score, sentAgain.Score);
             Assert.Equal(pondered.Pv, sentAgain.Pv);
@@ -514,7 +537,12 @@ public class PonderTests
             var lastBefore = before[^1];
             log.Add($"{Lines()}, hit at {hitMs} after {before.Length}");
             var line = Assert.Single(after);   // one depth at most, and the line sent again (P1) only if none
-            if (line.Depth == lastBefore.Depth + 1)
+            if (line.Partial)
+            {
+                // Stopped by the hit + S, but the depth had proved a better move: its line, and its move played (P4).
+                AssertCutDepthAnswered(lastBefore, line, best!);
+            }
+            else if (line.Depth == lastBefore.Depth + 1)
             {
                 // It finished within S of the hit, and it's the move played.
                 finished++;
@@ -600,10 +628,14 @@ public class PonderTests
         var before = output.InfosBefore(1);
         var clock = Stopwatch.StartNew();
         engine.Handle("ponderhit");
-        Assert.NotNull(output.WaitForBestMove(1, 5000));
+        string? best = output.WaitForBestMove(1, 5000);
+        Assert.NotNull(best);
         Assert.InRange(clock.ElapsedMilliseconds, 0, 200);   // at once, as before P2
         var line = Assert.Single(output.InfosBefore(1)[before.Length..]);   // no new depth: the last line sent again
-        Assert.Equal((before[^1].Depth, before[^1].Pv), (line.Depth, line.Pv));
+        if (line.Partial)   // (or, if the depth dropped had proved a better move, its line: P4)
+            AssertCutDepthAnswered(before[^1], line, best!);
+        else
+            Assert.Equal((before[^1].Depth, before[^1].Pv), (line.Depth, line.Pv));
     }
 
     [Fact]

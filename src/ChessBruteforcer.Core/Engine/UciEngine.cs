@@ -398,6 +398,8 @@ public sealed class UciEngine
     {
         long ms = Math.Max(1, (long)info.Elapsed.TotalMilliseconds);
         string score = info.MateIn is int mate ? $"mate {mate}" : $"cp {info.Score}";
+        if (info.Partial)
+            score += " lowerbound";   // (a depth cut off: its best move so far, the one played; P4)
         string pv = string.Join(' ', info.PrincipalVariation.Select(m => m.ToUci()));
         lock (_infoLock)
         {
