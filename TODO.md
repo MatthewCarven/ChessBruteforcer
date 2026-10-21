@@ -1101,6 +1101,12 @@ Sessions, in order:
             (d)), or if level games start being lost again, as on the old
             evaluation (4 of 8 lost against bots within 50; (d) would have
             been +40 points over those 356 games).
+- [ ] A flaky test: ThreadTests.ThreadsWritingOneSlotNeverReadAMixedEntry
+      gives its 8 threads 400 ms and wants 1,000 hits. In the full suite on a
+      loaded machine it got 0 (2026-10-22 07:36, other sessions holding cores);
+      alone it passed 3 of 3. Count operations instead of a time window, or
+      start the clock once all threads are running. P6 changes the table it
+      tests, so P6 should know.
 
 ### 3. Findings for the thesis
 
