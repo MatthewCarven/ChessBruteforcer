@@ -1,0 +1,4 @@
+T=3 white: our positions by ply [(0, 1), (2, 20), (4, 343)], total 364; their moves blocked 932
+T=3 black: our positions by ply [(1, 20), (3, 370), (5, 6620)], total 7,010; their moves blocked 622
+T=1 white: our positions by ply [(0, 1), (2, 18), (4, 187)], total 206; their moves blocked 1,953
+T=1 black: our positions by ply [(1, 20), (3, 307), (5, 4517)], total 4,844; their moves blocked 1,738

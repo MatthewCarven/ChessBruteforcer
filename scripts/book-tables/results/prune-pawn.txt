@@ -1,0 +1,6 @@
+T=1 ply 1: 20 reached, 0 blocked (0.0%), 20 kept (0 s)
+T=1 ply 2: 400 reached, 19 blocked (4.8%), 381 kept (0 s)
+T=1 ply 3: 5,212 reached, 454 blocked (8.7%), 4,758 kept (1 s)
+T=1 ply 4: 66,509 reached, 9,584 blocked (14.4%), 56,925 kept (14 s)
+T=1 ply 5: 699,826 reached, 144,949 blocked (20.7%), 554,877 kept (223 s)
+T=1: 2200-book positions in random walks (10 plies): 19,607, blocked 1,536 (7.83%)

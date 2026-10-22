@@ -1,0 +1,19 @@
+games 622
+all games 622 mean our book moves 7.41 median 8.0
+  distribution (our book moves: games): {0: 29, 1: 10, 2: 7, 3: 18, 4: 35, 5: 49, 6: 71, 7: 87, 8: 78, 9: 74, 10: 54, 11: 38, 12: 72}
+  score 0.611 n 601
+  book moves 0-4: games 88 score 0.557
+  book moves 5-8: games 279 score 0.613
+  book moves 9-12: games 234 score 0.630
+  draws 95 15.3%
+  speeds {'blitz': 535, 'rapid': 23, 'classical': 9, 'bullet': 53, 'Blitz': 2}
+networks (net startswith nnue or h) games 248 mean our book moves 8.43 median 9.0
+  distribution (our book moves: games): {1: 1, 3: 7, 4: 10, 5: 16, 6: 21, 7: 40, 8: 28, 9: 31, 10: 34, 11: 21, 12: 39}
+  score 0.645 n 245
+  book moves 0-4: games 17 score 0.706
+  book moves 5-8: games 104 score 0.654
+  book moves 9-12: games 124 score 0.629
+  draws 56 22.6%
+  speeds {'bullet': 45, 'blitz': 179, 'rapid': 16, 'classical': 7, 'Blitz': 1}
+lichess-2200.bin entries 804767 positions 531759 moves/position mean 1.51 share with 1 move 73.0% 2 15.6% 3+ 11.4%
+lichess-2200-wide.bin entries 1916968 positions 1330268 moves/position mean 1.44 share with 1 move 76.1% 2 14.2% 3+ 9.6%

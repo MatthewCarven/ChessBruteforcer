@@ -6235,6 +6235,250 @@ is cut short). PONDER.md, "Option (a), scoped"; a TODO item.
 - Options: (a1) as designed (my pick), (a2) plus an info string marking
   where the search's own line ends, (a3) later, the endgame tables' line.
 
+## 2026-10-22 (22:55-23:25): book tables scoped, an opening book brute-forced like the endgame tables (the self-play-book session)
+
+Matthew's idea: "Brute force entry tables, kind of like the matchbook but done
+in the style of the end game tables ... pit the bot against itself". Mid-scope
+he added: "just a test for now", "It may be that the opening book is better
+its up to us to compare", "lets run all the possibilities to 5 deep only the
+moves we can make legally", "a few gb of disk?", "any lost pieces block out
+the entries for up to 5 deep". Scoped only: BOOK-TABLES.md, scripts in
+scripts/book-tables/. No engine run; python-chess counts, the bot's games,
+and 153 Lichess cloud evaluations (network only, 1 a second).
+
+- **Every legal position to 5 plies: 822,518** (counted, matches OEIS
+  A083276). A few MB as a book, not GB. To 5 moves each (10 plies) it is 85
+  billion, the 5-piece tables' size, but every leaf needs a search (0.5 s at
+  depth 10) where a table step takes ~4 us: ~1,300 core-years, 1.4 TB.
+- **Matthew's blocking rule** (a capture-only search finds one side down
+  material): at a piece, 715,940 kept at ply 5 (-13%) and 4 of 19,607 human
+  book positions blocked; at a pawn, 554,877 (-33%), and 7.8% of the book's
+  positions (the gambits) blocked.
+- **"All of theirs, our best"**: the tables' trick for a book. Every
+  possibility in the first 5 half-moves is **754 of our positions to search**
+  (364 as White, 390 as Black), against 715,940 leaves for the full minimax
+  table. Depth 18 for all of them: ~56 core-h, ~85 with a check against the
+  human book's moves; ~11 h on 8 cores, untimed, so a training window fits.
+- **Margins** (Stockfish cloud, depth ~40, 129 positions the bot reached):
+  geometric mean of moves within 20 cp 2.65, 30 cp 3.41, 50 cp 4.0+. A 30 cp
+  "our best" book to 14 plies is ~9,800 positions, ~150 core-h at depth 16.
+  But their side within a margin misses the bots' rare moves, which end the
+  books today.
+- **The human book is weak as Black, by our engine's view.** Our first move
+  out of book, 242 network-era games: median +0.20 as White, **-0.48 as
+  Black**; 48% of Black's exits at -0.50 or worse (8% of White's). The French
+  as Black 11 games, median -0.84 (+0.23 as White against it); the Modern 5,
+  -0.99. Ratings allowed for, a pawn at the exit goes with +0.145 score
+  [0.098, 0.196] (correlation): Black's exits up 0.3 pawn would be at most
+  ~+15 Elo.
+- Book reach: median 9 of our moves from books (network era), 16% of games
+  all 12. Two books 15 Elo apart need ~3,000 games an arm to tell apart.
+- Options: BT1 (a) the full table, (b) all of theirs and our best, 5
+  half-moves at depth 18 (my pick), (c) vet the human book as Black, (d) a 30
+  cp margin book to 14 plies; BT2-BT5 the scoring (searches), the chain
+  (first, keeping to the human book's moves within 20 cp), the measure (a
+  three-arm match against Stockfish with the wide book: current books, the
+  table, no book) and the rebuilds. Waiting for Matthew's pick.
+
+## 2026-10-22 (22:55-23:45): playing the bot at home (the play-the-bot session)
+
+Matthew: "A user interface where I can play against the bot, and it learn
+the games if they are any good like." Scoped first (three questions, lettered
+options; the notes are play-scope.md in the ponder-scope session's notes
+folder). He chose 1(a) a window on the laptop, 2(a) learn only where the bot
+went wrong, 3(a) a book of its own. He added: load a real game and take over
+from any move, "to see if its even possible like". Branch
+claude/play-the-bot-233864. It changes neither the Lichess bot nor the
+learner.
+
+What the scoping found:
+- The learner learns opening moves only (the bot's first 12), and never from
+  the result. By its own count (`learn.py --summary`, 23:00), 1,678 learnt
+  positions have been played again 3 times in 626 games. Positions from
+  Matthew's games would mostly come back only against him, so his moves go
+  to a book of their own, which only the home window plays from.
+- matthewcarven is a BOT account, so playing it on Lichess would take a
+  second, ordinary account. His games there would land in the bot's record
+  and the learner's input.
+- The bot's venv already has tkinter 8.6 and python-chess 1.11.2: nothing to
+  install. PySide6 is in the system Python only, without python-chess.
+
+Built:
+
+| file | what |
+|---|---|
+| bot\play.cmd | builds the engine, copies it to bot\home\engine, opens the window |
+| bot\play.py | the window: board (click a piece, then a square), clocks, move list, New game, Load game (the bot's games, home games, a file, a pasted PGN), step through it, Take over from here, Resign |
+| bot\homegame.py | the rest: what's running and the setup, the books (lichess-bot's order, with home.bin after ours), the clock, the game record, the verdict, the study |
+| bot\test-play.py | 88 checks (92 with PLAY_ENGINE set: the real engine plays on a clock, a search is stopped, a game is studied, the engine runs below normal and the window doesn't) |
+| bot\test-play-window.py | the window plays itself: a game, resign, a real game loaded and taken over at ply 20, both studied; dialogs answer themselves, files go to a temporary folder |
+
+- **The setup**: before each game it reads the process list. With
+  lichess-bot.py running: 2 threads, below normal (set on the engine's
+  process, not the window's), TableCache 128. With the bot off: 8 threads,
+  TableCache 512. Any other engine (a match's dotnet ...Engine.dll, a
+  ponder-match.py) brings a warning and 1 thread. It refuses to start with
+  under 3 GB of commit free (~1 GB for the engine, 2 GB kept).
+- **The bot**: the net from make-config.py's list (learn.bot_evaluation),
+  the tables, Hash 256, Move Overhead 100, and the books for its first 12
+  moves, in the order main, ours, home, wide (weighted at random, min weight
+  1, as lichess-bot does). No pondering, so it's a little weaker than on
+  Lichess.
+- **The games**: bot\home\games\<date time> Matthew v matthewcarven.pgn,
+  saved after every move, with [%clk], [%eval] or "book <file>" on the bot's
+  moves, and the setup in headers (BotEval, BotThreads, BotSetup). A
+  take-over keeps the real game's moves before it (for repetitions and the
+  books) and adds [TakeOverPly] and [Source]. Threefold and 50 moves end a
+  game at once, as on Lichess. A flag with only a bare king left on the
+  other side is a draw. Closing mid-game saves it with result "*"; it's
+  never studied.
+- **The verdict** at a take-over: a 3 s search, in words (you're winning /
+  better / a little better / about level, and the same for the bot), in
+  pawns, and as Lichess's expected score between equal players. With 5
+  pieces or fewer and the tables on, it says so: "The endgame tables know
+  this one exactly".
+- **The study** (2(a)): finished games, 10+ moves a side after any take-over,
+  the usual start, and a take-over by ply 23. Candidates are the bot's
+  positions in its first 12 moves where main, ours and home had no move (the
+  wide book's move is checked like the engine's own), at most 4 a game. It
+  thinks --think 45 s for the best move. If that differs from the bot's
+  move, both are scored by a --check 20 s search of the position after
+  each. The best move is kept only if the bot's was 75 cp or more worse
+  (the same bar as the learner's veto). Rows go to bot\books\home.jsonl, and
+  home.bin is rebuilt (an inert entry first, as ours.bin). The study runs on
+  an engine of its own (1 thread, below normal, Hash 64, no tables) in the
+  background; the window says what it learnt. Games left unstudied are
+  studied at the next start.
+
+Checked: both test scripts pass. The window smoke test ran twice beside the
+live bot (2 threads, h1536-3m, the tables: "loaded 292 endgame tables (796
+MB in memory ...)"), about a minute each. A take-over verdict: "about level
+(+0.7 pawns for you; ... 56% ...)", which led to the bands getting a "little
+better". The clock labels were cut off ("Black (bot) 0"); they were measured
+off screen and widened to 20 characters.
+
+Environment: the window test's screen copies (PowerShell CopyFromScreen of
+the window's rectangle) take whatever is on top. With Matthew at the laptop,
+the second run's first copy caught his browser. All the copies were deleted,
+and none were taken after that. test-play-window.py's --shots is opt-in, and
+its docstring says to use it only when he's away.
+
+## 2026-10-23 (00:40-01:15): the home window learns only when asked, and copies a game to a new window (the play-the-bot session)
+
+Matthew, after 6 home games (relayed by the bt-c session, then confirmed
+here): "maybe only save the human book when i ask like i play a lot of bad
+games in testing". He picked (a), a button. Mid-build he added: "when i play
+a game a want a button to copy the current position into a new window ...
+being able to instance another window for testing is useful ... like the
+current game".
+
+His 6 games had taught the home book nothing: 3 too short, 3 with no bot
+move 0.75+ pawns worse. home.jsonl didn't exist yet, so there was nothing to
+undo.
+
+- **Learn from this game** (bot\play.py): on for a finished home game on
+  screen (one just played, or loaded from bot\home\games). It checks first
+  (homegame.learn_state): already studied, already asked for, unfinished,
+  short or taken over too late each get a "Not this one: ..." box. Otherwise
+  the game goes on bot\home\to-learn.txt and the study starts. pending() now
+  lists only games asked for and not yet studied, in the order asked. A
+  game never asked for is never studied, and end_game no longer starts a
+  study.
+- **Copy to a new window**: writes the game on screen (being played, or
+  loaded) to bot\home\copies\<date time> copy.pgn and starts `play.py --open
+  <file> --ply <n>` (the venv's python, CREATE_NO_WINDOW, the same
+  --engine/--eval/--tables). The new window shows the copy at the position,
+  ready to step through or take over, with no Learn (it isn't a home game).
+  The first window's game goes on, clocks included. Each window has its own
+  engine, started only when a game is played there (~1 GB with the tables;
+  the free-memory check applies to each).
+- Two windows means two possible studies. A lock (bot\home\study.lock,
+  holding the process id) lets one window study at a time. That window goes
+  on until nothing asked for is left, so a game asked for in the other
+  window is studied too. A lock whose process has gone is taken over.
+- The engine starts with CREATE_NO_WINDOW (a console-less window's engine
+  would otherwise get a console). An error in the window goes to the log
+  and a message box, since the copied window has no console.
+
+Tests: bot\test-play.py, 105 checks with the real engine, all passed. That
+includes the asked-for list (in order, each once, a name with a space kept
+whole), learn_state, the lock (another live process holds it; a gone one is
+taken over), copy names and which way up. bot\test-play-window.py passed:
+the copy window, a real second process, started on the copy at the ply
+shown (its line in the log) and was closed (taskkill /T: the venv's
+python.exe is a launcher with the interpreter under it). Nothing was studied
+before Learn; Learn on a short take-over said why not; the game asked for
+was studied, and the lock was let go. The run was beside the bot and bt-c's
+engine job: the window said so and took 1 thread.
+
+## 2026-10-23 (01:40-02:05): Load game picks from a file of many games (the play-the-bot session)
+
+Matthew downloaded the account's games from Lichess and asked whether there
+was "only one game inside". There were two downloads in his Downloads
+folder: 632 games (617 rated, 15 casual, 12-22 October, newest first) and,
+2 minutes later, 612 (rated only; probably a filter on Lichess's export
+page). Load game had shown only the first game of a file. His pick: a list
+to choose from.
+
+- homegame.read_text (UTF-8, dropping a byte-order mark, else cp1252),
+  game_index (each game's offset and headers, through chess.pgn.read_headers:
+  632 games in 0.04 s), game_at, and game_row. A row is when, White, Black,
+  the result in words ("1-0 (White won)") and the clock in minutes ("5+2").
+  Lichess's UTCDate/UTCTime are shown as this laptop's local time; a home
+  game's Date/Time are local already.
+- play.GamePicker: a ttk.Treeview of the rows, in file order (newest first),
+  with a Find box that keeps rows holding every word typed (any case).
+  Double-click, Enter or Open picks. Load game uses it for any file or paste
+  with more than one game. A one-game file loads as before. A file of many
+  isn't a home game, even in bot\home\games, so it gets no Learn.
+
+Tests, run beside the night's SPRT (ob8 v h1024-3m), at below normal on
+CPUs 14-15 with no engine. bot\test-play.py: 110 checks passed (the
+engine's part wasn't re-run tonight; nothing in it changed).
+`bot\test-play-window.py --picker --file <his 632-game download>` passed:
+the list off screen (withdrawn), Find, every word, Open on nothing, Open on
+a game, and the game read back.
+
+## 2026-10-22 (19:47) to 10-23 (02:50): the desktop's restart, h1024-3m-ob8 done and matched, the desktop re-benchmarked (the nnue-deep-layers session)
+
+- **The desktop restarted at 19:47** by its clock, from its Start menu
+  (event 1074, Explorer for Admin). It killed h1024-3m-ob8 in pass 8 of 10.
+  April's and May's record tasks had already been terminated at ~18:51 and
+  ~18:56, in step 3 (LastResult 267014 for all three). June finished at
+  19:27, but its copy to the laptop broke in the same minute
+  (FileNotFoundError: the share went down), and was copied again at 20:50.
+- **Resumed on Matthew's word**, 22:26 by the desktop's clock:
+  h1024-3m-ob8 from its pass-7 checkpoint (train.py --resume reloads the
+  weights, the optimizer and the per-bucket counts, and reseeds for pass 8),
+  and April and May from step 3 (`nnue data` overwrites its files, and
+  data.json comes last). April and May finished at ~01:05 ("all well":
+  255,749,565 and 257,698,447 records), then copied to the laptop by 01:39
+  (8.18 and 8.25 GB at 7.5 MB/s). games\nnue now holds April-September.
+- **The desktop's 15% cap**: quiet running, since Matthew sleeps near it;
+  set to 100% at ~00:30. **Re-benchmarked at full speed** (NNUE.md, "The
+  desktop, re-benchmarked"): `bench 9` 216 knps (h1024-3m), 12.5x slower
+  than the laptop, because the i7-3770 has no AVX2 and the network runs
+  scalar; the filter 2.4x faster than quiet; training 189 k a second, so the
+  GPU sets its pace. Quiet: another day (Matthew). bt-a-desktop then took the
+  desktop for its 5-ply book table (~45 h on 8 engines at ~97 knps each).
+  A 128-bit SSE path is its own session (local_04f33c85, Matthew started it).
+- **h1024-3m-ob8 done** at 01:37 by the desktop's clock: as the engine
+  computes it **0.012272 at K 1.028, -1.3% against h1024-3m's 0.012432**
+  (float 0.012201, -1.6%), file sha256 d0ecafc0..., network 324e4923c157.
+  Its last pass ran at 194 k a second beside the record tasks. Training
+  positions by bucket over the run: 0, 0.20, 0.49, 0.76, 1.02, 1.41, 1.81
+  and 1.07 billion. `bench 9` (one thread, 6 rounds, the learner's engine
+  thinking on the bot's last game in the first of them): 2,576 knps against
+  h1024-3m's 2,713 (-5.0%), but 3,179,201 nodes against 3,731,271, so 0.90x
+  the time to depth 9.
+- **Its match against h1024-3m** from 01:36 (the bot stopped at 01:33,
+  checked: no other engine thinking). At 02:50: 712 games, +6 [-12, +24].
+- **h1024-3m-ob8 v h1024-3m ended 05:03: +8 [-3, +19]** over 2,000 games,
+  +515 -470 =1015, LOS 92.4%, SPRT undecided (LLR 0.95). The same speed in
+  play (3,245 v 3,266 knps) and the same depth (10.9). MATCHES.md has the
+  paragraph. The core queue and Session context told; h1536-3m-l32 v
+  h1536-3m waits for the queue's go.
+
 ## 2026-10-23 (05:05-05:40): option (a1) built, tested and measured (Session context, from the game-plan session's hand-over)
 
 - The game-plan session was archived with (a1) committed unbuilt (a35682c). Session context took it over in the

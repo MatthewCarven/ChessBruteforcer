@@ -1,0 +1,4 @@
+n 241; score per pawn at exit, ratings allowed for: +0.145 [+0.098, +0.196]; mean score over expectation +0.145
+  white: n 109 slope +0.087, over expectation +0.211
+  black: n 132 slope +0.186, over expectation +0.090
+white median +0.20, black median -0.48; a black exit 0.3 pawn better at slope +0.145 -> +0.044 score a black game

@@ -191,10 +191,14 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     error is 0.013851, against h1024-3m's 0.014042 at the same point
     (-1.4%). Bucket 0 (2-4 pieces) has no training positions, so it is
     exported with bucket 1's row.
-    - [ ] When it's done: `scripts\nnue-desktop.ps1 fetch h1024-3m-ob8`, then
-      held back against h1024-3m's 0.012432, `bench 9`, then a match against
-      h1024-3m (the bot off). Both halves are in compression (549a687), so
-      the engine reads version 3.
+    - [x] Done (2026-10-23; the desktop's restart cost it pass 8, resumed
+      from pass 7): held back as the engine computes it **0.012272, -1.3%
+      against h1024-3m**. **Its match: +8 [-3, +19]** over 2,000 games at
+      10+0.1, LOS 92.4%, SPRT undecided; the same speed and depth in play
+      (MATCHES.md). A small gain at no cost, as the error said (~+11).
+    - [ ] Next for buckets, Matthew's call: on the bot's own size
+      (h1536-3m-ob8), and/or with 6 months once h1024-6m says what the data
+      is worth.
   - [x] **The bot on h1536-3m** (Matthew's 1(a), 2026-10-22 ~16:00): +7
     likely (LOS 91%), and at the bot's ~20x longer thinking the speed costs
     less. bot/make-config.py lists h1536-3m.nnue first, the net in bot\eval;
@@ -205,6 +209,27 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     h1024-3m**, the best yet (network sha256 303b409bc49e); in games\nnue\nets.
     Not matched: at 1536 its small layers' pairs are 1.5x l32's, so it would
     be slower than l32 (-55% in the match) and lose on speed too.
+  - [ ] **Re-benchmark the desktop, quiet and full** (Matthew, 2026-10-23
+    ~00:45): its power plan held the i7-3770 at 15% maximum processor state
+    with a frequency cap, on purpose: **quiet running, Matthew sleeps near
+    it**. Set to 100% at ~00:30 on 10-23. Every desktop CPU timing in NNUE.md
+    was taken quiet: the eval-games filter's ~1.8 MB/s, a month's records
+    ~11 h ("~4x slower than the laptop"), and perhaps the trainer's ~200 k a
+    second, if its one loader thread held the GPU back. So measure both
+    settings, for Matthew to choose by job and by hour: `bench 9` on one
+    thread (the engine bt-a-desktop copies to the share), the filter's 20 MB
+    probe, a one-bucket h1024 training smoke for positions a second; plus
+    the April-May records' step-3 times from their logs (full after ~00:30).
+    - [x] **Full, 2026-10-23 01:43-01:58** (NNUE.md "The desktop,
+      re-benchmarked"): `bench 9` 216 knps for h1024-3m, **12.5x slower than
+      the laptop: the i7-3770 has no AVX2, so the network runs scalar**; the
+      filter 2.4x faster than quiet; training 189 k a second, the same as
+      quiet (the GPU sets the pace). Sent to bt-a-desktop.
+    - [ ] **Quiet: another day** (Matthew): `nnue\bench-engine\bench-desktop.ps1
+      -Label quiet` over SSH, with the cap back on; bt-a-desktop's book run
+      stops and resumes for it (it loses at most 8 leaves).
+    - The 128-bit SSE path for CPUs without AVX2: its own session
+      (engine-128-bit-sse-path, local_04f33c85, Matthew started it 10-23).
   - [ ] **C: h1024-6m on the laptop's GPU, tonight** (Matthew's 2(a),
     2026-10-22, instead of E): h1024-3m's recipe (`--hidden 1024 --passes 10
     --lr-drops 4/7/9`) on April-September, held back still September's: what
@@ -822,6 +847,25 @@ Sessions, in order:
       against Lichess bots ~8; if that dilutes it, give Stockfish the book
       too, or a full-strength Stockfish at a short movetime. The bot's own
       rated games: 34% in 19 before the book, 46% in 42 with it (+-10 each).
+      (BT4 (a) in BOOK-TABLES.md does this as its "no book" arm, with
+      Stockfish given the wide book.)
+- [ ] **Decision BT: book tables, an opening book brute-forced like the
+      endgame tables** ([BOOK-TABLES.md](BOOK-TABLES.md), scoped 2026-10-22;
+      Matthew: "just a test for now", "lets run all the possibilities to 5
+      deep only the moves we can make legally", "any lost pieces block out
+      the entries"). Every legal position to 5 plies: 822,518 (a few MB);
+      blocking a lost piece cuts 13%. In the "all of theirs, our best" form,
+      the first 5 half-moves are 754 of our positions to search: ~85 core-h
+      at depth 18, ~11 h on 8 cores, untimed (a training window). The human
+      book leaves us at a median -0.48 as Black against +0.20 as White, by
+      our engine's view (French -0.84, Modern -0.99): at most ~+15 Elo there.
+      Matthew's call: BT1 what to build ((a) the full table; **(b) all of
+      theirs, our best, my pick**; (c) vet the human book as Black; (d) a
+      margin book to 14 plies), BT2 scoring (searches), BT3 the chain (first,
+      keeping to the human book's moves within 20 cp), BT4 the measure (three
+      arms against Stockfish with the wide book, ~3,000 games an arm, bot
+      off), BT5 rebuilds. Searches can run in a training window; the match
+      can't. Ask the core queue first.
 - [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it
@@ -852,11 +896,40 @@ Sessions, in order:
             differ, 177 lose 50 cp or more, 41 lose 100 or more); those 177
             replaced by the net's move (scripts/learner/relearn.py; backups
             bot\books\*.bak-20261022-183845). WORKLOG 2026-10-22 15:32.
-      - [ ] **Matthew: start the learner again** (bot\learn.cmd), off since
-            09:48 for (c). The bot is on h1536-3m now (653254b), and the
-            learner follows make-config.py's list, so its start line should
-            say "with h1536-3m ... 1656 positions in our book". (c)'s 177
-            replacements are h1024-3m's moves; that's fine to leave.
+      - [x] Matthew started the learner again: 20:10 "with h1536-3m ...
+            1656 positions in our book" (the bot's net since 653254b), and
+            again at 20:56. Checked at ~22:40: 1,672 positions; the 177
+            re-learnt rows are still the latest and in ours.bin; all 16 rows
+            since are h1536-3m's; ours.bin plays every latest move. (c)'s
+            replacements stay h1024-3m's moves; that's fine to leave.
+- [ ] **Playing the bot at home** (Matthew, 2026-10-22: "A user interface
+      where I can play against the bot, and it learn the games if they are
+      any good like"; his 1(a) 2(a) 3(a), plus taking over a real game from
+      any move, "to see if its even possible"). Built on
+      claude/play-the-bot-233864: bot\play.cmd starts it; bot\play.py (the
+      window), bot\homegame.py (the rest), bot\test-play.py (passed, the
+      real engine's part too), bot\test-play-window.py (the window plays
+      itself: passed). README "Playing it at home"; WORKLOG 2026-10-22 22:55.
+      It changes neither the Lichess bot nor the learner.
+      - [x] Matthew plays a few games: 6 by 00:30 on 2026-10-23, all
+            studied then, none taught anything (3 short, 3 nothing worse).
+      - [x] **Learn only when asked** (Matthew, 2026-10-23: "maybe only save
+            the human book when i ask like i play a lot of bad games in
+            testing"; his (a)): a Learn from this game button, nothing
+            studied otherwise. And **Copy to a new window** ("being able to
+            instance another window for testing is useful"): the game on
+            screen, at the position shown, in a second window. WORKLOG
+            2026-10-23 00:40.
+      - [x] **A list to pick from** when Load game opens a file of many
+            games (Matthew, 2026-10-23, after downloading the account's
+            export: 632 games). WORKLOG 2026-10-23 01:40.
+      - [ ] In a week or two: what the home book learnt, and whether it was
+            played again (bot\books\home.jsonl, bot\logs\play-<date>.log).
+      - [ ] His call, later: the home book in the Lichess bot too
+            (make-config.py would list home.bin between ours and the wide
+            book). Not done; nothing changes on Lichess until then.
+      - [ ] If the full-strength bot is no fun to play: an easier setting
+            (a cap on its think time or depth). Not built.
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
@@ -1057,6 +1130,22 @@ Sessions, in order:
                   Matthew: (a) merge, option off (my pick), or (b) drop the
                   src change, keep the write-up and the bench.** PONDER.md,
                   "P5".)
+            - [ ] **HistoryKept as a variety setting** (Matthew's (b), in
+                  the P5 session, 2026-10-22): where we're not deliberately
+                  repeating a line against a bot, kept history makes the bot
+                  "at least try something else", which is more human. The
+                  bench backs the variety: with 50% kept, 24% of 280 searches
+                  ended on a different move at depth 12, for 1.04-1.07x the
+                  nodes. Whether those moves are worse isn't measured. The
+                  match, a no-regression test, owned by the ponder-scope
+                  session: `bot\lichess-bot\.venv\Scripts\python.exe -I
+                  scripts/ponder-match.py <engine.exe> <out.jsonl> --arms
+                  "HistoryKept=50;HistoryKept=0" --tc 10+0.1 --games 2000
+                  --sprt -10,0`. Both sides ponder, one build. Accepting 0
+                  means the variety costs nothing measurable; accepting -10
+                  means it costs. Booked after h1024-6m's laptop training
+                  (2026-10-23, ~19:00-20:00). If it's free, the per-bot
+                  chooser (O2) could switch it on per game.
             - [x] P6: a table that keeps its deep entries (buckets of 2-4
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's
@@ -1165,6 +1254,13 @@ Sessions, in order:
             challenges, all won by us (2336-2368 against our 2391-2548). The
             same create_engine patch would serve both, from a list of named
             bots in make-config.py.
+            Matthew, in the P5 session (2026-10-22): "we might enable this
+            option for certain players at a later date". That's HistoryKept
+            (P5, UCI option, 0 = off, today's default). It would go through
+            the same per-bot chooser. Caveat: P5's bench found no saving on
+            average (1.04-1.07x the nodes), and one game measures a bot to
+            only about +-320 Elo (OPPONENTS.md), so a per-player benefit needs
+            its own evidence first.
 - [ ] scripts/depth-match.py's other_engines() (which build-match.py waits
       on before a match) lists only ChessBruteforcer.Engine.exe processes.
       An engine run as `dotnet <...>\ChessBruteforcer.Engine.dll` slips

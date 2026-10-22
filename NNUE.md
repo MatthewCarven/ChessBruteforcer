@@ -1749,6 +1749,36 @@ nothing else of that branch.
   bench-2026-10-22-noon.tsv (the loaded one, kept for the record) and
   bench-2026-10-22-quiet.tsv (15:32).
 
+### The desktop, re-benchmarked at full speed (2026-10-23)
+
+Until ~00:30 on 2026-10-23 the desktop's power plan held its i7-3770 at 15%
+maximum processor state with a frequency cap: Matthew's quiet running, since
+he sleeps near it. Every desktop CPU figure above was taken that way. Set to
+100%, it was measured at 01:43-01:58, with nothing else running (`bench 9` on
+one thread, arms alternated over 6 rounds after a warm-up;
+`nnue\bench-engine\bench-desktop.ps1` on the share, run over SSH):
+
+| measure | desktop, full | the laptop | quiet (earlier) |
+|---|---|---|---|
+| `bench 9`, h1024-3m, one thread | 216 knps (208-220) | 2,713 | not yet |
+| `bench 9`, h1536-3m | 156 knps (154-157) | 2,375 | not yet |
+| the same, bt-a-desktop's self-contained build | 152 knps (150-156) | | |
+| eval-games filter, 20 MB of July | 4.3 s, 4.7 MB/s | | 10.3 s, ~1.9 MB/s |
+| training, h1024, 8 buckets of September | 189 k positions a second | ~1.5x the 1660 | 194-200 k in full runs |
+| a month's `records.py check` | 13 min (April, May) | | 21-22 min (July, August) |
+
+- **The engine is 12-15x slower a thread on the desktop**, far more than the
+  chip's age explains: the i7-3770 (Ivy Bridge) has AVX but no AVX2, and
+  `Kernels.Widest` falls back to the scalar passes without AVX2. A 128-bit
+  path (SSE2's pmaddwd) is a session of its own. bt-a-desktop's sizing
+  sample: 8 engines at ~97 knps each (776 in all, +28% over 4 x 152).
+- **Training isn't held back by the CPU**: 189 k a second at full speed, a
+  short run reading cold buckets, against 194-200 k in the full runs under the
+  cap. The GPU sets the pace, so quiet running costs training nothing.
+- **The CPU steps are ~2.4x faster at full** (the filter; the check 13
+  against 21-22 min). A month's records would take ~5 h instead of ~11.
+- Quiet: another day, with bt-a-desktop's run stopped for it.
+
 ## Risks
 
 | risk | what it would look like | what limits it |
