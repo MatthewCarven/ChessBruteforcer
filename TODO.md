@@ -186,12 +186,15 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     version 3, K output rows picked by the piece count. The trainer's half
     is branch `claude/ob-trainer-56e1a8`; the C# loader is ob-engine's
     `claude/ob-engine-e75e9e`. **h1024-3m-ob8 is training on the desktop**,
-    from 12:19 to ~21:55 by its clock: h1024-3m's recipe plus
-    `--output-buckets 8`, at h1024-3m's speed. Bucket 0 (2-4 pieces) has no
-    training positions, so it is exported with bucket 1's row.
+    from 12:19 to ~21:50 by its clock: h1024-3m's recipe plus
+    `--output-buckets 8`, at h1024-3m's speed. After pass 1 its held-back
+    error is 0.013851, against h1024-3m's 0.014042 at the same point
+    (-1.4%). Bucket 0 (2-4 pieces) has no training positions, so it is
+    exported with bucket 1's row.
     - [ ] When it's done: `scripts\nnue-desktop.ps1 fetch h1024-3m-ob8`, then
-      held back against h1024-3m's 0.012432, then a match against h1024-3m
-      (the bot off), once both branches are merged.
+      held back against h1024-3m's 0.012432, `bench 9`, then a match against
+      h1024-3m (the bot off). Both halves are in compression (549a687), so
+      the engine reads version 3.
   - [ ] **Decision: the bot on h1536-3m?** (a) switch (+7 likely, LOS 91%;
     at the bot's ~20x longer thinking the speed costs less), (b) keep
     h1024-3m, (c) a 30+0.3 match first (~6 h for 1,000 games, laptop cores).
@@ -279,8 +282,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
       queue after P6's SPRT (the 12:11 run shared the laptop with it, so it
       is left out: WORKLOG 2026-10-22, 12:11). Check for `dotnet` processes
       as well as the engine's exe before it starts.
-    - [ ] The first trained version 3 net: held-back error, `bench 9`, then
-      its match against h1024-3m (the bot off).
+    - The first trained version 3 net, h1024-3m-ob8: the NNUE item above
+      ("Output buckets") has its run and its checks.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 

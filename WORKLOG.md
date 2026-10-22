@@ -5867,3 +5867,17 @@ session 7 has the details.
 - Seen on the way: **h1536-3m-l32 finished 12:14:51** (exit 0). Held back
   as the engine computes it: 0.011064 at K 1 and **0.010762 at K 1.1316**,
   against h1024-3m's 0.012432 (-13.4%).
+
+## 2026-10-22 (13:16): h1024-3m-ob8 after pass 1, -1.4% against h1024-3m at the same point (the ob-trainer session)
+
+- Pass 1 of 10 at 13:15:57 by the desktop's clock: 200,004 positions a
+  second (h1024-3m 196,555). Held back 0.013851 at K 1.057 (h1024-3m after
+  its pass 1: 0.014042, **-1.4%**); training error 0.013734 (0.013879).
+  At 56.4 min a pass, done **~21:50** by the desktop's clock (not 21:55).
+- Training positions by bucket, a pass: 0, then 20.3 M, 49.3 M, 76.2 M,
+  102.2 M, 140.6 M, 181.2 M and 107.2 M (3.0% to 26.8%). The table is in
+  NNUE.md session 7.
+- The merge into compression (549a687, Session context) put the engine
+  half's NNUE.md section before the trainer's. Both sides meant the
+  trainer's first, and the engine half says so, so it's moved back with no
+  text changed. TODO's two "first version 3 net" to-dos are now one.
