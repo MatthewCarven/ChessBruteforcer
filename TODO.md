@@ -1162,6 +1162,13 @@ Sessions, in order:
             challenges, all won by us (2336-2368 against our 2391-2548). The
             same create_engine patch would serve both, from a list of named
             bots in make-config.py.
+            Matthew, in the P5 session (2026-10-22): "we might enable this
+            option for certain players at a later date". That's HistoryKept
+            (P5, UCI option, 0 = off, today's default). It would go through
+            the same per-bot chooser. Caveat: P5's bench found no saving on
+            average (1.04-1.07x the nodes), and one game measures a bot to
+            only about +-320 Elo (OPPONENTS.md), so a per-player benefit needs
+            its own evidence first.
 - [ ] scripts/depth-match.py's other_engines() (which build-match.py waits
       on before a match) lists only ChessBruteforcer.Engine.exe processes.
       An engine run as `dotnet <...>\ChessBruteforcer.Engine.dll` slips
