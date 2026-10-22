@@ -852,11 +852,12 @@ Sessions, in order:
             differ, 177 lose 50 cp or more, 41 lose 100 or more); those 177
             replaced by the net's move (scripts/learner/relearn.py; backups
             bot\books\*.bak-20261022-183845). WORKLOG 2026-10-22 15:32.
-      - [ ] **Matthew: start the learner again** (bot\learn.cmd), off since
-            09:48 for (c). The bot is on h1536-3m now (653254b), and the
-            learner follows make-config.py's list, so its start line should
-            say "with h1536-3m ... 1656 positions in our book". (c)'s 177
-            replacements are h1024-3m's moves; that's fine to leave.
+      - [x] Matthew started the learner again: 20:10 "with h1536-3m ...
+            1656 positions in our book" (the bot's net since 653254b), and
+            again at 20:56. Checked at ~22:40: 1,672 positions; the 177
+            re-learnt rows are still the latest and in ours.bin; all 16 rows
+            since are h1536-3m's; ours.bin plays every latest move. (c)'s
+            replacements stay h1024-3m's moves; that's fine to leave.
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
