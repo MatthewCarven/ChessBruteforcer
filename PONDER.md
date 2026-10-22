@@ -1140,8 +1140,40 @@ stopped and the core queue gives it a slot.
 - **(c)** Leave it. Nothing here says the bot loses by changing its mind; it lost by keeping to a plan its
   evaluation overrated.
 
-Not measured: one game is one game. The tables in sections 1-4 are its 85 engine moves, not a sample of the bot's
-play; `plan.py` runs on any game in the DEBUG log (30 days kept) for more.
+### The night's last game, DpEHbqlQ: the same pattern
+
+Matthew asked for the evening's last game the same way: [RustBot2003 (2754) - matthewcarven (Black,
+2546)](https://lichess.org/DpEHbqlQ), blitz 5+3, 20:30. A French (Rubinstein, Fort Knox; C10), book to move 10,
+then 48 engine moves. **Lost: mated at move 59.** It left the book already at **-1.02** (TURNS.md's "worse straight
+out of the book"), and was in the balance only to move 28.
+
+| | 61InZpXn (caiporaBot) | DpEHbqlQ (RustBot2003) |
+|---|---:|---:|
+| engine moves (with one before them) | 85 (84) | 48 (47) |
+| ponder hit rate | 58% (49 of 84) | 55% (26 of 47) |
+| on a hit, played the old line's next move | 34 of 43 (79%) | 19 of 21 (90%) |
+| on a hit, played the table's move | 39 of 49 | 21 of 26 |
+| on a hit, the line at the old depth less 2 had exactly the old score | 34 of 49 | 14 of 26 |
+| new line follows the old, shifted two: plies agreeing / could agree (mean) | 3.2 / 8.9 | 4.7 / 9.6 |
+| time to the old search's depth less 2: hit / miss (median) | 78 / 860 ms | 132 / 2,026 ms |
+| the first search, on an empty table, to depth 13 | 2.7 s | 3.3 s |
+| on a miss, played the move planned for the other reply | 5 of 35 | 3 of 21 |
+| plies of our line the game then followed: 3+ / longest | 34 of 84 / 7 | 19 of 47 / 10 |
+| hits that went back to a shallower depth after `ponderhit` | 0 of 49 | 0 of 26 |
+| in the balance: moves, our score | 8-48, -0.17 to -3.06 | 12-28, -1.02 to -3.52 |
+| in the balance, score change after a hit (moves; fell 0.30+ / rose 0.30+) | **-1.97** (22; 4 / 0) | **-1.86** (8; 3 / 0) |
+| in the balance, score change after a miss | -0.92 (19; 2 / 2) | -0.64 (9; 1 / 0) |
+| plan changed by the deeper search, in the balance | 4 (none a tactic) | 1 (25...Rhf8, -0.08 at the switch; not a tactic) |
+| the endgame tables | the last move only | never (mated with 12 pieces) |
+
+The second game says the same, a little more strongly: the plan is kept through the table (90% of hits), and most of
+the fall comes as the game goes where we expected (17...Bxe5 after 17.dxe5, -0.58; 28...Qe8 after 28.Bd2, -0.77).
+Its one big fall on a miss is the clearest case of a plan we didn't see: twice we expected 26.Rf3 and 27.Rf3, and
+White pushed its h-pawn instead, h5 then h6 (-0.29, -0.74), on to h7 and h8. The lines it did predict came true for
+longer here (8-10 plies on 6 moves), as forced sequences do.
+
+Not measured: two games are two games, both lost to stronger bots. The tables above are their 133 engine moves, not a
+sample of the bot's play; `plan.py` runs on any game in the DEBUG log (30 days kept) for more.
 
 ## Scripts and data
 

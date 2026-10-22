@@ -1,0 +1,139 @@
+game DpEHbqlQ: 117 plies, status mate, winner white; we are Black; searches 70; engine moves 48
+
+| move | src | pcs | played | score | d | pv len | prev pv: reply / our next | inherited (d) | settled at | changes | pv |
+|---:|---|---:|---|---:|---:|---:|---|---|---:|---:|---|
+| 11 | go | 28 | Nd5 | cp -102 | 14 | 11 |  | - | 14 | 3 | 11...Nd5 12.Bg3 Qb6 13.O-O-O Qa5 14.Bb3 b5 15.h4 O-O 16.Kb1 Qb6 |
+| 12 | go | 28 | Qc7 | cp -104 | 15 | 15 | f4g3≠f4d2 / d8b6 | d8c7 (12) | 11 | 2 | 12...Qc7 13.O-O O-O 14.g3 N5f6 15.Rfe1 Rfe8 16.Ne5 Rad8 17.Rad1 g6 18. |
+| 13 | go | 28 | Nf4 | cp -90 | 16 | 16 | e1g1≠h2h4 / e8g8 | d5f4 (13) | 10 | 2 | 13...Nf4 14.Qf1 Nd5 15.O-O-O b5 16.Qe2 a5 17.Rde1 c5 18.Ng5 Ra6 19.Be4 |
+| 14 | go | 28 | Bd6 | cp -91 | 15 | 16 | e2f1≠e2e4 / f4d5 | e7d6 (14) | 14 | 2 | 14...Bd6 15.O-O-O b5 16.h5 h6 17.Ne5 Nxe5 18.dxe5 Bxe5 19.Rhe1 Bd6 20. |
+| 15 | hit | 28 | b5 | cp -107 | 15 | 6 | e1c1= / b7b5 | b7b5 (13) | 2 | 0 | 15...b5 16.Kb1 Nd5 17.h5 a5 18.Rde1 |
+| 16 | go | 28 | Nxe5 | cp -88 | 16 | 17 | c1b1≠f3e5 / f4d5 | d7e5 (13) | 4 | 0 | 16...Nxe5 17.dxe5 Bxe5 18.Rhe1 Bd6 19.Bxf4 Bxf4+ 20.Kb1 Bd6 21.h5 O-O- |
+| 17 | hit | 26 | Bxe5 | cp -146 | 17 | 17 | d4e5= / d6e5 | d6e5 (14) | 1 | 0 | 17...Bxe5 18.Rhe1 Bd6 19.c4 bxc4 20.Ba5 Qd7 21.Qd4 Nd5 22.Qxg7 Rf8 23. |
+| 18 | hit | 25 | Bd6 | cp -130 | 17 | 18 | h1e1= / e5d6 | e5d6 (15) | 1 | 0 | 18...Bd6 19.c4 bxc4 20.Ba5 Qd7 21.Qd4 Nd5 22.Qxg7 Rf8 23.Ba4 Nf4 24.Re |
+| 19 | hit | 25 | bxc4 | cp -163 | 17 | 15 | c3c4= / b5c4 | b5c4 (15) | 1 | 0 | 19...bxc4 20.Ba5 Qd7 21.Ba4 Nd3+ 22.Kb1 O-O 23.Bxc6 Qc8 24.Bxa8 Qxa8 2 |
+| 20 | hit | 24 | Qd7 | cp -175 | 17 | 18 | d2a5= / c7d7 | c7d7 (15) | 1 | 0 | 20...Qd7 21.Ba4 Nd3+ 22.Kb1 O-O 23.Bxc6 Qc8 24.Bxa8 Qxa8 25.Qxa8 Rxa8  |
+| 21 | go | 24 | Nd5 | cp -167 | 15 | 16 | c2a4≠e4d4 / f4d3 | f4d5 (15) | 1 | 0 | 21...Nd5 22.Qxg7 Ke7 23.Bd2 Rag8 24.Bg5+ Ke8 25.Qd4 c3 26.Bb3 Qc7 27.B |
+| 22 | hit | 23 | Ke7 | cp -158 | 14 | 11 | d4g7= / e8e7 | e8e7 (13) | 2 | 0 | 22...Ke7 23.Bd2 Rag8 24.Bg5+ Ke8 25.Qd4 Qc7 26.Ba4 Kf8 27.Kb1 h6 |
+| 23 | go | 22 | c3 | cp -132 | 13 | 2 | a5d2≠c2h7 / a8g8 | c4c3 (12) | 6 | 1 | 23...c3 24.Bxc3 |
+| 24 | go | 22 | cxb2+ | cp -157 | 12 | 11 | a5c3≠d1d3 / - | c3b2 (11) | 1 | 0 | 24...cxb2+ 25.Kb1 Rab8 26.Bd2 Rhf8 27.Bg5+ Ke8 28.Bf5 Ne7 29.Be4 Rg8 |
+| 25 | hit | 21 | Rhf8 | cp -172 | 13 | 13 | c1b1= / a8b8 | a8f8 (10) | 13 | 1 | 25...Rhf8 26.Rf3 Ke8 27.h5 Rb8 28.Bd2 Rb6 29.Bc2 Bb4 30.Bxb4 Rxb4 31.h |
+| 26 | go | 21 | Rab8 | cp -201 | 13 | 5 | d3f3≠h4h5 / e7e8 | a8b8 (11) | 1 | 0 | 26...Rab8 27.Rf3 Rb5 28.Bd2 Kd8 |
+| 27 | go | 21 | Rb5 | cp -275 | 12 | 11 | d3f3≠h5h6 / b8b5 | b8b5 (11) | 6 | 1 | 27...Rb5 28.Bd2 Qe8 29.Bf5 Nc7 30.Bg5+ Kd7 31.Be4 Nd5 32.h7 Kc7 |
+| 28 | hit | 21 | Qe8 | cp -352 | 13 | 12 | a5d2= / d7e8 | d7e8 (10) | 12 | 2 | 28...Qe8 29.Bf5 Kd8 30.h7 Rh8 31.Be4 Kc8 32.Bxd5 Rxd5 33.Bc3 e5 34.Rxd |
+| 29 | go | 21 | Kd8 | cp -379 | 14 | 14 | h7f5≠d3f3 / e7d8 | e7d8 (11) | 5 | 0 | 29...Kd8 30.Bc2 Kc8 31.h7 Rb7 32.Rxe6 fxe6 33.Qxf8 Bxf8 34.h8=Q Rf7 35 |
+| 30 | go | 21 | Rb8 | cp -463 | 14 | 18 | h7c2≠h7d3 / d8c8 | b5b8 (12) | 7 | 1 | 30...Rb8 31.h7 Kc7 32.h8=Q Rxh8 33.Rxf7+ Be7 34.Bf4+ Kd7 35.Bxb8 Qxb8  |
+| 31 | hit | 21 | Kc7 | cp -445 | 14 | 14 | h6h7= / d8c7 | d8c7 (12) | 1 | 0 | 31...Kc7 32.h8=Q Rxh8 33.Rxf7+ Be7 34.Bf4+ Kb7 35.Bxb8 Kxb8 36.Rxe6 Qd |
+| 32 | hit | 21 | Rxh8 | cp -476 | 14 | 14 | h7h8q= / f8h8 | f8h8 (12) | 1 | 0 | 32...Rxh8 33.Rxf7+ Be7 34.Bf4+ Kb7 35.Bxb8 Kxb8 36.Qe5+ Ka8 37.Qxe6 Nc |
+| 33 | hit | 19 | Be7 | cp -475 | 13 | 2 | f3f7= / d6e7 | d6e7 (12) | 1 | 0 | 33...Be7 34.Bf4+ |
+| 34 | hit | 19 | Kb7 | cp -535 | 13 | 1 | d2f4= / - | c7b7 (11) | 1 | 0 | 34...Kb7 |
+| 35 | hit | 18 | Rg8 | cp -518 | 14 | 12 | f4b8= / - | b7b8 (11) | 14 | 3 | 35...Rg8 36.Rxe7+ Nxe7 37.Qxb2+ Ka8 38.Be5 Qd8 39.Be4 Qa5 40.Rc1 Nd5 4 |
+| 36 | hit | 17 | Nxe7 | cp -613 | 15 | 19 | f7e7= / d5e7 | d5e7 (12) | 1 | 0 | 36...Nxe7 37.Qxb2+ Ka8 38.Be5 Qd8 39.Be4 Qa5 40.Re3 Rc8 41.Ka1 Rd8 42. |
+| 37 | hit | 15 | Ka8 | cp -580 | 16 | 18 | g7b2= / b7a8 | b7a8 (13) | 1 | 0 | 37...Ka8 38.Be5 Qd8 39.Be4 Qa5 40.Re3 Rc8 41.Ka1 Rd8 42.Rd3 Qe1+ 43.Qb |
+| 38 | hit | 15 | Qd8 | cp -650 | 16 | 10 | b8e5= / e8d8 | e8d8 (14) | 9 | 1 | 38...Qd8 39.Be4 Qa5 40.Rc1 Qb6 41.Ka1 Qxb2+ 42.Kxb2 Kb7 43.Kc3 |
+| 39 | hit | 15 | Qa5 | cp -707 | 18 | 4 | d3e4= / d8a5 | d8a5 (14) | 11 | 2 | 39...Qa5 40.Rc1 Qb6 41.Qxb6 |
+| 40 | go | 15 | Qa4 | cp -657 | 17 | 17 | e1c1≠e1d1 / a5b6 | a5a4 (16) | 13 | 3 | 40...Qa4 41.Bf3 Nd5 42.Ka1 a5 43.a3 Rd8 44.Rd4 Qb5 45.Qxb5 cxb5 46.g4  |
+| 41 | go | 15 | Qa6 | cp -676 | 18 | 15 | e4f3≠e4c2 / e7d5 | a4a6 (15) | 6 | 1 | 41...Qa6 42.Be4 Nd5 43.Ka1 Rc8 44.g4 Nb6 45.Rb1 Nd7 46.g5 Nxe5 47.Qxe5 |
+| 42 | go | 15 | Nd5 | cp -791 | 19 | 8 | c2e4≠b1a1 / e7d5 | e7d5 (16) | 14 | 2 | 42...Nd5 43.Be4 Rc8 44.g4 Nb6 45.Rb1 Qa4 46.f3 |
+| 43 | hit | 15 | Rc8 | cp -780 | 18 | 8 | c2e4= / g8c8 | g8c8 (17) | 10 | 1 | 43...Rc8 44.g4 Nb6 45.Rb1 Qa4 46.f3 Qa6 47.g5 |
+| 44 | hit | 15 | Nb6 | cp -871 | 17 | 1 | g2g4= / d5b6 | d5b6 (16) | 16 | 1 | 44...Nb6 |
+| 45 | hit | 15 | Qa4 | cp -958 | 16 | 1 | d1b1= / - | a6a5 (15) | 16 | 1 | 45...Qa4 |
+| 46 | hit | 15 | Qa5 | cp -1026 | 17 | 19 | f2f3= / - | a4a6 (14) | 15 | 3 | 46...Qa5 47.g5 Kb7 48.g6 Rg8 49.g7 Rd8 50.Qc3 Qa4 51.Qc5 Rd2 52.Bxc6+  |
+| 47 | hit | 15 | Kb7 | cp -1056 | 16 | 12 | g4g5= / a8b7 | a8b7 (15) | 10 | 1 | 47...Kb7 48.g6 Rg8 49.g7 Rd8 50.Qc3 Qxc3+ 51.Bxc3 Ka6 52.Bf6 Rc8 53.Rg |
+| 48 | hit | 15 | Qc5 | cp -1117 | 15 | 16 | g5g6= / c8g8 | c8g8 (14) | 15 | 3 | 48...Qc5 49.g7 Qe7 50.Bxc6+ Rxc6 51.g8=Q Rc8 52.Qgg2 Ka8 53.f4+ Qb7 54 |
+| 49 | go | 15 | Qe3 | cp -1114 | 15 | 10 | g6g7≠b1c1 / c5e7 | c5e3 (13) | 13 | 2 | 49...Qe3 50.g7 Qg5 51.Rb1 Rg8 52.Qc3 Rc8 53.Qd4 Qd8 54.Qxd8 |
+| 50 | hit | 15 | Qg5 | cp -1521 | 14 | 4 | g6g7= / e3g5 | e3g5 (13) | 3 | 0 | 50...Qg5 51.Qc3 Ka6 52.Bf6 |
+| 51 | go | 15 | Qg3 | cp -1338 | 15 | 13 | b2c3≠f3f4 / b7a6 | g5g3 (12) | 8 | 1 | 51...Qg3 52.Rxc6 Rxc6 53.Bxc6+ Kxc6 54.Qc3+ Qxc3+ 55.Bxc3 e5 56.fxe5 a |
+| 52 | go | 15 | a6 | mate -8 | 14 | 12 | c1c6≠b2b5 / c8c6 | a7a6 (13) | 10 | 3 | 52...a6 53.Bxc6+ Ka7 54.Qc5 Qd3 55.Rb1 Rxc6 56.g8=Q Qd4+ 57.Qxd4 a5 58 |
+| 53 | go | 15 | Qxg7 | mate -6 | 21 | 8 | e4c6≠b5c5 / b7a7 | g3g7 (12) | 7 | 1 | 53...Qxg7 54.Bxg7 Rc7 55.Rb1 Kc8 56.Qxb6 Kd7 57.Rd1+ |
+| 54 | go | 13 | Ka7 | mate -6 | 21 | 8 | e5g7≠e4c6 / c8c7 | b7a7 (19) | 1 | 0 | 54...Ka7 55.Bxg7 Rc7 56.Bd4 Kb8 57.Qf8+ Rc8 58.Qd6+ |
+| 55 | hit | 12 | Rc7 | mate -5 | 23 | 8 | e5g7= / c8c7 | c8c7 (19) | 1 | 0 | 55...Rc7 56.Bd4 Kb8 57.Qf8+ Rc8 58.Qd6+ Ka7 59.Qd7+ |
+| 56 | go | 12 | Rb7 | mate -4 | 19 | 6 | g7d4≠c1b1 / a7b8 | c7b7 (19) | 2 | 0 | 56...Rb7 57.Bxb7 Kxb7 58.Qxb6+ Kc8 59.Qc6+ |
+| 57 | go | 12 | Rb8 | mate -2 | 11 | 1 | c6b7≠g7e5 / a7b7 | b7b8 (11) | 1 | 0 | 57...Rb8 |
+| 58 | hit | 12 | Rb7 | mate -1 | 7 | 1 | c5e7= / - | b8b7 (7) | 1 | 0 | 58...Rb7 |
+
+| group | moves | our move = old PV's 3rd ply | old PV had a 3rd ply | our move = inherited move | plies agreeing (mean, where comparable) |
+|---|---:|---:|---:|---:|---:|
+| ponder hit | 26 | 19 of 21 | 21 | 21 of 26 | 4.67 (n 21) |
+| ponder miss | 21 | 0 of 0 | 0 | 21 of 21 | nan (n 0) |
+| all | 47 | 19 of 21 | 21 | 42 of 47 | 4.67 (n 21) |
+
+| hit | old PV from our next move | new PV | plies that could agree | plies agreeing |
+|---:|---:|---:|---:|---:|
+| 15 | 14 | 6 | 6 | 1 |
+| 17 | 15 | 17 | 15 | 3 |
+| 18 | 15 | 18 | 15 | 10 |
+| 19 | 16 | 15 | 15 | 3 |
+| 20 | 13 | 18 | 13 | 12 |
+| 22 | 14 | 11 | 11 | 6 |
+| 25 | 9 | 13 | 9 | 0 |
+| 28 | 9 | 12 | 9 | 2 |
+| 31 | 16 | 14 | 14 | 6 |
+| 32 | 12 | 14 | 12 | 7 |
+| 33 | 12 | 2 | 2 | 2 |
+| 36 | 10 | 19 | 10 | 7 |
+| 37 | 17 | 18 | 17 | 13 |
+| 38 | 16 | 10 | 10 | 3 |
+| 39 | 8 | 4 | 4 | 3 |
+| 43 | 6 | 8 | 6 | 6 |
+| 44 | 6 | 1 | 1 | 1 |
+| 47 | 17 | 12 | 12 | 6 |
+| 48 | 10 | 16 | 10 | 0 |
+| 50 | 8 | 4 | 4 | 1 |
+| 55 | 6 | 8 | 6 | 6 |
+agree all the way they both go: 4 of 21; plies that could agree: mean 9.57; agreeing 4.67
+PV length: median 12.0; PVs of 1-3 plies: 7 of 48
+
+ponder: 26 hits, 21 misses, hit rate 55%
+
+| | moves | pondered (ms, median) | depth at ponderhit / stop | depth played | after the hit (ms) / own search (ms) | ms to the old search's depth less 2 |
+|---|---:|---:|---:|---:|---:|---:|
+| hits | 26 | 6526 | 14 | 16 | 1382 | 132 |
+| misses | 21 | 7038 | 15 | 15 | 7137 | 2026 |
+depths added after the hit: 0: 8, 1: 16, 2: 2
+hits whose lines after ponderhit went back below the depth at the hit: 0
+first move changed at depth 6+ within the search (mean): hits 0.73, misses 1.05; settled at depth (median): hits 2, misses 6
+
+| plies of our PV the game then followed | moves |
+|---:|---:|
+| 1 | 25 |
+| 2 | 3 |
+| 3 | 7 |
+| 4 | 1 |
+| 5 | 2 |
+| 6 | 2 |
+| 7 | 1 |
+| 8 | 4 |
+| 9 | 1 |
+| 10 | 1 |
+the game followed the whole PV: 7 of 48 (PVs of 1-3 plies among them: 6)
+misses: the stopped ponder's move (for the reply we expected) is the move we then played: 3 of 21
+
+| our move after | while | moves | eval change, sum (cp) | mean | moves it fell 30+ cp | rose 30+ cp |
+|---|---|---:|---:|---:|---:|---:|
+| a hit (the reply we expected) | in the balance | 8 | -186 | -23.2 | 3 | 0 |
+| a miss (another reply) | in the balance | 9 | -64 | -7.1 | 1 | 0 |
+| a hit (the reply we expected) | lost (-3.00 or worse), scores capped at -10.00 | 16 | -453 | -28.3 | 8 | 1 |
+| a miss (another reply) | lost (-3.00 or worse), scores capped at -10.00 | 7 | -195 | -27.9 | 2 | 1 |
+
+| move | kind | played | the plan's move | why | our score before -> after (cp) |
+|---:|---|---|---|---|---|
+| 12 | go | Qc7 | Qb6 | they played Bd2, not Bg3 | -102 -> -104 |
+| 13 | go | Nf4 | O-O | they played h4, not O-O | -104 -> -90 |
+| 14 | go | Bd6 | Nd5 | they played Qe4, not Qf1 | -90 -> -91 |
+| 16 | go | Nxe5 | Nd5 | they played Ne5, not Kb1 | -107 -> -88 |
+| 21 | go | Nd5 | Nd3+ | they played Qd4, not Ba4 | -175 -> -167 |
+| 23 | go | c3 | Rag8 | they played Bxh7 (forcing), not Bd2 | -158 -> -132 |
+| 24 | go | cxb2+ | - | they played Rd3, not Bxc3 | -132 -> -157 |
+| 25 | hit | Rhf8 | Rab8 | took over at depth 13, the score moving -8 there | -157 -> -172 |
+| 26 | go | Rab8 | Ke8 | they played h5, not Rf3 | -172 -> -201 |
+| 27 | go | Rb5 | Rb5 | they played h6, not Rf3; our planned move still played | -201 -> -275 |
+
+| what happened to the plan | moves | in the balance (our score -3.00 or better) |
+|---|---:|---:|
+| kept | 21 | 7 |
+| deeper search | 4 | 1 |
+| deeper search, a tactic | 1 | 0 |
+| already the table's move | 0 | 0 |
+| they deviated, we played our planned move anyway | 3 | 1 |
+| they deviated | 18 | 8 |
+| tables | 0 | 0 |

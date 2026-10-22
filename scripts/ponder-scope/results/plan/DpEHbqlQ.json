@@ -1,0 +1,7523 @@
+{
+ "game": "DpEHbqlQ",
+ "moves": [
+  "d2d4",
+  "e7e6",
+  "b1c3",
+  "d7d5",
+  "e2e4",
+  "d5e4",
+  "c3e4",
+  "c8d7",
+  "g1f3",
+  "d7c6",
+  "f1d3",
+  "c6e4",
+  "d3e4",
+  "c7c6",
+  "c2c3",
+  "g8f6",
+  "e4c2",
+  "b8d7",
+  "c1f4",
+  "f8e7",
+  "d1e2",
+  "f6d5",
+  "f4d2",
+  "d8c7",
+  "h2h4",
+  "d5f4",
+  "e2e4",
+  "e7d6",
+  "e1c1",
+  "b7b5",
+  "f3e5",
+  "d7e5",
+  "d4e5",
+  "d6e5",
+  "h1e1",
+  "e5d6",
+  "c3c4",
+  "b5c4",
+  "d2a5",
+  "c7d7",
+  "e4d4",
+  "f4d5",
+  "d4g7",
+  "e8e7",
+  "c2h7",
+  "c4c3",
+  "d1d3",
+  "c3b2",
+  "c1b1",
+  "h8f8",
+  "h4h5",
+  "a8b8",
+  "h5h6",
+  "b8b5",
+  "a5d2",
+  "d7e8",
+  "d3f3",
+  "e7d8",
+  "h7d3",
+  "b5b8",
+  "h6h7",
+  "d8c7",
+  "h7h8q",
+  "f8h8",
+  "f3f7",
+  "d6e7",
+  "d2f4",
+  "c7b7",
+  "f4b8",
+  "h8g8",
+  "f7e7",
+  "d5e7",
+  "g7b2",
+  "b7a8",
+  "b8e5",
+  "e8d8",
+  "d3e4",
+  "d8a5",
+  "e1d1",
+  "a5a4",
+  "e4c2",
+  "a4a6",
+  "b1a1",
+  "e7d5",
+  "c2e4",
+  "g8c8",
+  "g2g4",
+  "d5b6",
+  "d1b1",
+  "a6a4",
+  "f2f3",
+  "a4a5",
+  "g4g5",
+  "a8b7",
+  "g5g6",
+  "a5c5",
+  "b1c1",
+  "c5e3",
+  "g6g7",
+  "e3g5",
+  "f3f4",
+  "g5g3",
+  "b2b5",
+  "a7a6",
+  "b5c5",
+  "g3g7",
+  "e4c6",
+  "b7a7",
+  "e5g7",
+  "c8c7",
+  "c1b1",
+  "c7b7",
+  "g7e5",
+  "b7b8",
+  "c5e7",
+  "b8b7",
+  "e7b7"
+ ],
+ "state": {
+  "type": "gameState",
+  "wtime": 71490,
+  "btime": 165730,
+  "winc": 3000,
+  "binc": 3000,
+  "status": "mate",
+  "winner": "white"
+ },
+ "rows": [
+  {
+   "ply": 21,
+   "move_no": 11,
+   "move": "f6d5",
+   "played_ok": true,
+   "san": "Nd5",
+   "pieces": 28,
+   "source": "go",
+   "cp": -102,
+   "score": "cp -102",
+   "depth": 14,
+   "pv": [
+    "f6d5",
+    "f4g3",
+    "d8b6",
+    "e1c1",
+    "b6a5",
+    "c2b3",
+    "b7b5",
+    "h2h4",
+    "e8g8",
+    "c1b1",
+    "a5b6"
+   ],
+   "pv_san": "11...Nd5 12.Bg3 Qb6 13.O-O-O Qa5 14.Bb3 b5 15.h4 O-O 16.Kb1 Qb6",
+   "nodes": 141665073,
+   "ms": 9676,
+   "pv_len": 11,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "f6d5",
+     -83,
+     false
+    ],
+    [
+     2,
+     "a7a5",
+     -95,
+     false
+    ],
+    [
+     3,
+     "a7a5",
+     -100,
+     false
+    ],
+    [
+     4,
+     "d8b6",
+     -88,
+     false
+    ],
+    [
+     5,
+     "d8b6",
+     -98,
+     false
+    ],
+    [
+     6,
+     "d8b6",
+     -99,
+     false
+    ],
+    [
+     7,
+     "f6d5",
+     -107,
+     false
+    ],
+    [
+     8,
+     "a7a5",
+     -100,
+     false
+    ],
+    [
+     9,
+     "a7a5",
+     -103,
+     false
+    ],
+    [
+     10,
+     "a7a5",
+     -98,
+     false
+    ],
+    [
+     11,
+     "a7a5",
+     -105,
+     false
+    ],
+    [
+     12,
+     "a7a5",
+     -100,
+     false
+    ],
+    [
+     13,
+     "a7a5",
+     -104,
+     false
+    ],
+    [
+     14,
+     "f6d5",
+     -102,
+     false
+    ]
+   ],
+   "settled_at": 14,
+   "first_move_changes": 3,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 9698
+  },
+  {
+   "ply": 23,
+   "move_no": 12,
+   "move": "d8c7",
+   "played_ok": true,
+   "san": "Qc7",
+   "pieces": 28,
+   "source": "go",
+   "cp": -104,
+   "score": "cp -104",
+   "depth": 15,
+   "pv": [
+    "d8c7",
+    "e1g1",
+    "e8g8",
+    "g2g3",
+    "d5f6",
+    "f1e1",
+    "f8e8",
+    "f3e5",
+    "a8d8",
+    "a1d1",
+    "g7g6",
+    "d2c1",
+    "d7e5",
+    "d4e5",
+    "d8d1"
+   ],
+   "pv_san": "12...Qc7 13.O-O O-O 14.g3 N5f6 15.Rfe1 Rfe8 16.Ne5 Rad8 17.Rad1 g6 18.Bc1 Nxe5 19.dxe5 Rxd1",
+   "nodes": 164145351,
+   "ms": 10877,
+   "pv_len": 15,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "d8c7",
+     -102,
+     false
+    ],
+    [
+     2,
+     "d8c7",
+     -101,
+     false
+    ],
+    [
+     3,
+     "d8c7",
+     -101,
+     false
+    ],
+    [
+     4,
+     "d8c7",
+     -108,
+     false
+    ],
+    [
+     5,
+     "d8c7",
+     -100,
+     false
+    ],
+    [
+     6,
+     "d8c7",
+     -102,
+     false
+    ],
+    [
+     7,
+     "d8c7",
+     -102,
+     false
+    ],
+    [
+     8,
+     "a7a5",
+     -102,
+     false
+    ],
+    [
+     9,
+     "a7a5",
+     -103,
+     false
+    ],
+    [
+     10,
+     "a7a5",
+     -102,
+     false
+    ],
+    [
+     11,
+     "d8c7",
+     -101,
+     false
+    ],
+    [
+     12,
+     "d8c7",
+     -100,
+     false
+    ],
+    [
+     13,
+     "d8c7",
+     -98,
+     false
+    ],
+    [
+     14,
+     "d8c7",
+     -96,
+     false
+    ],
+    [
+     15,
+     "d8c7",
+     -104,
+     false
+    ]
+   ],
+   "settled_at": 11,
+   "first_move_changes": 2,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 10880,
+   "reply_forcing": false,
+   "reply_san": "Bd2",
+   "predicted_san": "Bg3",
+   "plan_san": "Qb6",
+   "prev_depth": 14,
+   "prev_pv_len": 11,
+   "predicted_reply": "f4g3",
+   "reply": "f4d2",
+   "reply_as_predicted": false,
+   "pv_reply": "f4g3",
+   "pv_next": null,
+   "pv_next_any": "d8b6",
+   "agree_plies": null,
+   "prev_cp": -102,
+   "inherited_depth": 12,
+   "inherited_move": "d8c7",
+   "inherited_cp": -100,
+   "inherited_ms": 1128,
+   "switch_swing": 1,
+   "miss_pondered_ms": 9162,
+   "miss_depth": 15,
+   "miss_would_play": "d8b6"
+  },
+  {
+   "ply": 25,
+   "move_no": 13,
+   "move": "d5f4",
+   "played_ok": true,
+   "san": "Nf4",
+   "pieces": 28,
+   "source": "go",
+   "cp": -90,
+   "score": "cp -90",
+   "depth": 16,
+   "pv": [
+    "d5f4",
+    "e2f1",
+    "f4d5",
+    "e1c1",
+    "b7b5",
+    "f1e2",
+    "a7a5",
+    "d1e1",
+    "c6c5",
+    "f3g5",
+    "a8a6",
+    "c2e4",
+    "c7d6",
+    "d4c5",
+    "d6c5",
+    "c1b1"
+   ],
+   "pv_san": "13...Nf4 14.Qf1 Nd5 15.O-O-O b5 16.Qe2 a5 17.Rde1 c5 18.Ng5 Ra6 19.Be4 Qd6 20.dxc5 Qxc5 21.Kb1",
+   "nodes": 169434139,
+   "ms": 10395,
+   "pv_len": 16,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "c6c5",
+     -98,
+     false
+    ],
+    [
+     2,
+     "h7h6",
+     -99,
+     false
+    ],
+    [
+     3,
+     "c6c5",
+     -104,
+     false
+    ],
+    [
+     4,
+     "a7a5",
+     -99,
+     false
+    ],
+    [
+     5,
+     "c6c5",
+     -104,
+     false
+    ],
+    [
+     6,
+     "a7a5",
+     -101,
+     false
+    ],
+    [
+     7,
+     "a7a5",
+     -101,
+     false
+    ],
+    [
+     8,
+     "a7a5",
+     -101,
+     false
+    ],
+    [
+     9,
+     "a7a5",
+     -98,
+     false
+    ],
+    [
+     10,
+     "d5f4",
+     -93,
+     false
+    ],
+    [
+     11,
+     "d5f4",
+     -101,
+     false
+    ],
+    [
+     12,
+     "d5f4",
+     -93,
+     false
+    ],
+    [
+     13,
+     "d5f4",
+     -93,
+     false
+    ],
+    [
+     14,
+     "d5f4",
+     -88,
+     false
+    ],
+    [
+     15,
+     "d5f4",
+     -88,
+     false
+    ],
+    [
+     16,
+     "d5f4",
+     -90,
+     false
+    ]
+   ],
+   "settled_at": 10,
+   "first_move_changes": 2,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 10398,
+   "reply_forcing": false,
+   "reply_san": "h4",
+   "predicted_san": "O-O",
+   "plan_san": "O-O",
+   "prev_depth": 15,
+   "prev_pv_len": 15,
+   "predicted_reply": "e1g1",
+   "reply": "h2h4",
+   "reply_as_predicted": false,
+   "pv_reply": "e1g1",
+   "pv_next": null,
+   "pv_next_any": "e8g8",
+   "agree_plies": null,
+   "prev_cp": -104,
+   "inherited_depth": 13,
+   "inherited_move": "d5f4",
+   "inherited_cp": -93,
+   "inherited_ms": 1010,
+   "switch_swing": 5,
+   "miss_pondered_ms": 4929,
+   "miss_depth": 14,
+   "miss_would_play": "e8g8"
+  },
+  {
+   "ply": 27,
+   "move_no": 14,
+   "move": "e7d6",
+   "played_ok": true,
+   "san": "Bd6",
+   "pieces": 28,
+   "source": "go",
+   "cp": -91,
+   "score": "cp -91",
+   "depth": 15,
+   "pv": [
+    "e7d6",
+    "e1c1",
+    "b7b5",
+    "h4h5",
+    "h7h6",
+    "f3e5",
+    "d7e5",
+    "d4e5",
+    "d6e5",
+    "h1e1",
+    "e5d6",
+    "d2f4",
+    "d6f4",
+    "c1b1",
+    "f4d6",
+    "g2g4"
+   ],
+   "pv_san": "14...Bd6 15.O-O-O b5 16.h5 h6 17.Ne5 Nxe5 18.dxe5 Bxe5 19.Rhe1 Bd6 20.Bxf4 Bxf4+ 21.Kb1 Bd6 22.g4",
+   "nodes": 151939928,
+   "ms": 9048,
+   "pv_len": 16,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "f4d5",
+     -72,
+     false
+    ],
+    [
+     2,
+     "f4g2",
+     -91,
+     false
+    ],
+    [
+     3,
+     "f4g2",
+     -91,
+     false
+    ],
+    [
+     4,
+     "f4g2",
+     -91,
+     false
+    ],
+    [
+     5,
+     "e7d6",
+     -64,
+     false
+    ],
+    [
+     6,
+     "f4g2",
+     53,
+     false
+    ],
+    [
+     7,
+     "f4g2",
+     105,
+     false
+    ],
+    [
+     8,
+     "f4g2",
+     -16,
+     false
+    ],
+    [
+     9,
+     "f4g2",
+     3,
+     false
+    ],
+    [
+     10,
+     "f4g2",
+     -11,
+     false
+    ],
+    [
+     11,
+     "f4g2",
+     -26,
+     false
+    ],
+    [
+     12,
+     "f4g2",
+     -73,
+     false
+    ],
+    [
+     13,
+     "f4g2",
+     -69,
+     false
+    ],
+    [
+     14,
+     "e7d6",
+     -95,
+     false
+    ],
+    [
+     15,
+     "e7d6",
+     -91,
+     false
+    ]
+   ],
+   "settled_at": 14,
+   "first_move_changes": 2,
+   "game_followed": 3,
+   "game_followed_all": false,
+   "used_ms": 9050,
+   "reply_forcing": false,
+   "reply_san": "Qe4",
+   "predicted_san": "Qf1",
+   "plan_san": "Nd5",
+   "prev_depth": 16,
+   "prev_pv_len": 16,
+   "predicted_reply": "e2f1",
+   "reply": "e2e4",
+   "reply_as_predicted": false,
+   "pv_reply": "e2f1",
+   "pv_next": null,
+   "pv_next_any": "f4d5",
+   "agree_plies": null,
+   "prev_cp": -90,
+   "inherited_depth": 14,
+   "inherited_move": "e7d6",
+   "inherited_cp": -95,
+   "inherited_ms": 3328,
+   "switch_swing": -26,
+   "miss_pondered_ms": 11545,
+   "miss_depth": 15,
+   "miss_would_play": "f4d5"
+  },
+  {
+   "ply": 29,
+   "move_no": 15,
+   "move": "b7b5",
+   "played_ok": true,
+   "san": "b5",
+   "pieces": 28,
+   "source": "hit",
+   "cp": -107,
+   "score": "cp -107",
+   "depth": 15,
+   "pv": [
+    "b7b5",
+    "c1b1",
+    "f4d5",
+    "h4h5",
+    "a7a5",
+    "d1e1"
+   ],
+   "pv_san": "15...b5 16.Kb1 Nd5 17.h5 a5 18.Rde1",
+   "nodes": 128679239,
+   "ms": 7720,
+   "pv_len": 6,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "d7f6",
+     -112,
+     false
+    ],
+    [
+     2,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     3,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     4,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     5,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     6,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     7,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     8,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     9,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     10,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     11,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     12,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     13,
+     "b7b5",
+     -97,
+     false
+    ],
+    [
+     14,
+     "b7b5",
+     -110,
+     false
+    ],
+    [
+     15,
+     "b7b5",
+     -107,
+     false
+    ]
+   ],
+   "settled_at": 2,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "pondered_ms": 7278,
+   "after_hit_ms": 444,
+   "depth_at_hit": 14,
+   "move_at_hit": "b7b5",
+   "cp_at_hit": -110,
+   "depth_played": 15,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "O-O-O",
+   "predicted_san": "O-O-O",
+   "plan_san": "b5",
+   "prev_depth": 15,
+   "prev_pv_len": 16,
+   "predicted_reply": "e1c1",
+   "reply": "e1c1",
+   "reply_as_predicted": true,
+   "pv_reply": "e1c1",
+   "pv_next": "b7b5",
+   "pv_next_any": "b7b5",
+   "agree_plies": 1,
+   "prev_cp": -91,
+   "inherited_depth": 13,
+   "inherited_move": "b7b5",
+   "inherited_cp": -97,
+   "inherited_ms": 176,
+   "switch_swing": 15
+  },
+  {
+   "ply": 31,
+   "move_no": 16,
+   "move": "d7e5",
+   "played_ok": true,
+   "san": "Nxe5",
+   "pieces": 28,
+   "source": "go",
+   "cp": -88,
+   "score": "cp -88",
+   "depth": 16,
+   "pv": [
+    "d7e5",
+    "d4e5",
+    "d6e5",
+    "h1e1",
+    "e5d6",
+    "d2f4",
+    "d6f4",
+    "c1b1",
+    "f4d6",
+    "h4h5",
+    "e8c8",
+    "a2a4",
+    "a7a6",
+    "e4f3",
+    "c8b8",
+    "h5h6",
+    "g7h6"
+   ],
+   "pv_san": "16...Nxe5 17.dxe5 Bxe5 18.Rhe1 Bd6 19.Bxf4 Bxf4+ 20.Kb1 Bd6 21.h5 O-O-O 22.a4 a6 23.Qf3 Kb8 24.h6 gxh6",
+   "nodes": 111468574,
+   "ms": 6609,
+   "pv_len": 17,
+   "capture": true,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "f4d5",
+     -113,
+     false
+    ],
+    [
+     2,
+     "f4d5",
+     -81,
+     false
+    ],
+    [
+     3,
+     "f4d5",
+     -81,
+     false
+    ],
+    [
+     4,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     5,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     6,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     7,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     8,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     9,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     10,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     11,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     12,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     13,
+     "d7e5",
+     -87,
+     false
+    ],
+    [
+     14,
+     "d7e5",
+     -104,
+     false
+    ],
+    [
+     15,
+     "d7e5",
+     -80,
+     false
+    ],
+    [
+     16,
+     "d7e5",
+     -88,
+     false
+    ]
+   ],
+   "settled_at": 4,
+   "first_move_changes": 0,
+   "game_followed": 5,
+   "game_followed_all": false,
+   "used_ms": 6612,
+   "reply_forcing": false,
+   "reply_san": "Ne5",
+   "predicted_san": "Kb1",
+   "plan_san": "Nd5",
+   "prev_depth": 15,
+   "prev_pv_len": 6,
+   "predicted_reply": "c1b1",
+   "reply": "f3e5",
+   "reply_as_predicted": false,
+   "pv_reply": "c1b1",
+   "pv_next": null,
+   "pv_next_any": "f4d5",
+   "agree_plies": null,
+   "prev_cp": -107,
+   "inherited_depth": 13,
+   "inherited_move": "d7e5",
+   "inherited_cp": -87,
+   "inherited_ms": 143,
+   "switch_swing": -6,
+   "miss_pondered_ms": 9466,
+   "miss_depth": 14,
+   "miss_would_play": "f4d5"
+  },
+  {
+   "ply": 33,
+   "move_no": 17,
+   "move": "d6e5",
+   "played_ok": true,
+   "san": "Bxe5",
+   "pieces": 26,
+   "source": "hit",
+   "cp": -146,
+   "score": "cp -146",
+   "depth": 17,
+   "pv": [
+    "d6e5",
+    "h1e1",
+    "e5d6",
+    "c3c4",
+    "b5c4",
+    "d2a5",
+    "c7d7",
+    "e4d4",
+    "f4d5",
+    "d4g7",
+    "h8f8",
+    "c2a4",
+    "d6e7",
+    "g7h7",
+    "a8b8",
+    "a5c3",
+    "d7d6"
+   ],
+   "pv_san": "17...Bxe5 18.Rhe1 Bd6 19.c4 bxc4 20.Ba5 Qd7 21.Qd4 Nd5 22.Qxg7 Rf8 23.Ba4 Be7 24.Qxh7 Rb8 25.Bc3 Qd6",
+   "nodes": 161432607,
+   "ms": 10037,
+   "pv_len": 17,
+   "capture": true,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "d6e5",
+     -236,
+     false
+    ],
+    [
+     2,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     3,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     4,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     5,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     6,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     7,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     8,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     9,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     10,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     11,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     12,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     13,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     14,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     15,
+     "d6e5",
+     -88,
+     false
+    ],
+    [
+     16,
+     "d6e5",
+     -109,
+     false
+    ],
+    [
+     17,
+     "d6e5",
+     -146,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 10,
+   "game_followed_all": false,
+   "pondered_ms": 9016,
+   "after_hit_ms": 1024,
+   "depth_at_hit": 16,
+   "move_at_hit": "d6e5",
+   "cp_at_hit": -109,
+   "depth_played": 17,
+   "restarted": false,
+   "reply_forcing": true,
+   "reply_san": "dxe5",
+   "predicted_san": "dxe5",
+   "plan_san": "Bxe5",
+   "prev_depth": 16,
+   "prev_pv_len": 17,
+   "predicted_reply": "d4e5",
+   "reply": "d4e5",
+   "reply_as_predicted": true,
+   "pv_reply": "d4e5",
+   "pv_next": "d6e5",
+   "pv_next_any": "d6e5",
+   "agree_plies": 3,
+   "prev_cp": -88,
+   "inherited_depth": 14,
+   "inherited_move": "d6e5",
+   "inherited_cp": -88,
+   "inherited_ms": 67
+  },
+  {
+   "ply": 35,
+   "move_no": 18,
+   "move": "e5d6",
+   "played_ok": true,
+   "san": "Bd6",
+   "pieces": 25,
+   "source": "hit",
+   "cp": -130,
+   "score": "cp -130",
+   "depth": 17,
+   "pv": [
+    "e5d6",
+    "c3c4",
+    "b5c4",
+    "d2a5",
+    "c7d7",
+    "e4d4",
+    "f4d5",
+    "d4g7",
+    "h8f8",
+    "c2a4",
+    "d5f4",
+    "e1e4",
+    "f4d3",
+    "c1b1",
+    "a8b8",
+    "a5c3",
+    "d3f2",
+    "d1d6"
+   ],
+   "pv_san": "18...Bd6 19.c4 bxc4 20.Ba5 Qd7 21.Qd4 Nd5 22.Qxg7 Rf8 23.Ba4 Nf4 24.Re4 Nd3+ 25.Kb1 Rb8 26.Bc3 Nxf2 27.Rxd6",
+   "nodes": 171433086,
+   "ms": 10616,
+   "pv_len": 18,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "e5d6",
+     -175,
+     false
+    ],
+    [
+     2,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     3,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     4,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     5,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     6,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     7,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     8,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     9,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     10,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     11,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     12,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     13,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     14,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     15,
+     "e5d6",
+     -146,
+     false
+    ],
+    [
+     16,
+     "e5d6",
+     -143,
+     false
+    ],
+    [
+     17,
+     "e5d6",
+     -130,
+     false
+    ],
+    [
+     17,
+     "e5d6",
+     -130,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 8,
+   "game_followed_all": false,
+   "pondered_ms": 10617,
+   "after_hit_ms": 2,
+   "depth_at_hit": 17,
+   "move_at_hit": "e5d6",
+   "cp_at_hit": -130,
+   "depth_played": 17,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "Rhe1",
+   "predicted_san": "Rhe1",
+   "plan_san": "Bd6",
+   "prev_depth": 17,
+   "prev_pv_len": 17,
+   "predicted_reply": "h1e1",
+   "reply": "h1e1",
+   "reply_as_predicted": true,
+   "pv_reply": "h1e1",
+   "pv_next": "e5d6",
+   "pv_next_any": "e5d6",
+   "agree_plies": 10,
+   "prev_cp": -146,
+   "inherited_depth": 15,
+   "inherited_move": "e5d6",
+   "inherited_cp": -146,
+   "inherited_ms": 80
+  },
+  {
+   "ply": 37,
+   "move_no": 19,
+   "move": "b5c4",
+   "played_ok": true,
+   "san": "bxc4",
+   "pieces": 25,
+   "source": "hit",
+   "cp": -163,
+   "score": "cp -163",
+   "depth": 17,
+   "pv": [
+    "b5c4",
+    "d2a5",
+    "c7d7",
+    "c2a4",
+    "f4d3",
+    "c1b1",
+    "e8g8",
+    "a4c6",
+    "d7c8",
+    "c6a8",
+    "c8a8",
+    "e4a8",
+    "f8a8",
+    "e1e2",
+    "d6c5"
+   ],
+   "pv_san": "19...bxc4 20.Ba5 Qd7 21.Ba4 Nd3+ 22.Kb1 O-O 23.Bxc6 Qc8 24.Bxa8 Qxa8 25.Qxa8 Rxa8 26.Re2 Bc5",
+   "nodes": 388106477,
+   "ms": 24979,
+   "pv_len": 15,
+   "capture": true,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "b5c4",
+     -99,
+     false
+    ],
+    [
+     2,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     3,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     4,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     5,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     6,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     7,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     8,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     9,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     10,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     11,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     12,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     13,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     14,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     15,
+     "b5c4",
+     -130,
+     false
+    ],
+    [
+     16,
+     "b5c4",
+     -161,
+     false
+    ],
+    [
+     17,
+     "b5c4",
+     -163,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 3,
+   "game_followed_all": false,
+   "pondered_ms": 11431,
+   "after_hit_ms": 13550,
+   "depth_at_hit": 16,
+   "move_at_hit": "b5c4",
+   "cp_at_hit": -161,
+   "depth_played": 17,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "c4",
+   "predicted_san": "c4",
+   "plan_san": "bxc4",
+   "prev_depth": 17,
+   "prev_pv_len": 18,
+   "predicted_reply": "c3c4",
+   "reply": "c3c4",
+   "reply_as_predicted": true,
+   "pv_reply": "c3c4",
+   "pv_next": "b5c4",
+   "pv_next_any": "b5c4",
+   "agree_plies": 3,
+   "prev_cp": -130,
+   "inherited_depth": 15,
+   "inherited_move": "b5c4",
+   "inherited_cp": -130,
+   "inherited_ms": 414
+  },
+  {
+   "ply": 39,
+   "move_no": 20,
+   "move": "c7d7",
+   "played_ok": true,
+   "san": "Qd7",
+   "pieces": 24,
+   "source": "hit",
+   "cp": -175,
+   "score": "cp -175",
+   "depth": 17,
+   "pv": [
+    "c7d7",
+    "c2a4",
+    "f4d3",
+    "c1b1",
+    "e8g8",
+    "a4c6",
+    "d7c8",
+    "c6a8",
+    "c8a8",
+    "e4a8",
+    "f8a8",
+    "e1e2",
+    "a8b8",
+    "e2c2",
+    "d6e5",
+    "d1d2",
+    "h7h5",
+    "c2c4"
+   ],
+   "pv_san": "20...Qd7 21.Ba4 Nd3+ 22.Kb1 O-O 23.Bxc6 Qc8 24.Bxa8 Qxa8 25.Qxa8 Rxa8 26.Re2 Rb8 27.Rc2 Be5 28.Rdd2 h5 29.Rxc4",
+   "nodes": 269788568,
+   "ms": 16703,
+   "pv_len": 18,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "c7d7",
+     -272,
+     false
+    ],
+    [
+     2,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     3,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     4,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     5,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     6,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     7,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     8,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     9,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     10,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     11,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     12,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     13,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     14,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     15,
+     "c7d7",
+     -189,
+     false
+    ],
+    [
+     16,
+     "c7d7",
+     -212,
+     false
+    ],
+    [
+     17,
+     "c7d7",
+     -175,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "pondered_ms": 13364,
+   "after_hit_ms": 3342,
+   "depth_at_hit": 16,
+   "move_at_hit": "c7d7",
+   "cp_at_hit": -212,
+   "depth_played": 17,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "Ba5",
+   "predicted_san": "Ba5",
+   "plan_san": "Qd7",
+   "prev_depth": 17,
+   "prev_pv_len": 15,
+   "predicted_reply": "d2a5",
+   "reply": "d2a5",
+   "reply_as_predicted": true,
+   "pv_reply": "d2a5",
+   "pv_next": "c7d7",
+   "pv_next_any": "c7d7",
+   "agree_plies": 12,
+   "prev_cp": -163,
+   "inherited_depth": 15,
+   "inherited_move": "c7d7",
+   "inherited_cp": -189,
+   "inherited_ms": 258
+  },
+  {
+   "ply": 41,
+   "move_no": 21,
+   "move": "f4d5",
+   "played_ok": true,
+   "san": "Nd5",
+   "pieces": 24,
+   "source": "go",
+   "cp": -167,
+   "score": "cp -167",
+   "depth": 15,
+   "pv": [
+    "f4d5",
+    "d4g7",
+    "e8e7",
+    "a5d2",
+    "a8g8",
+    "d2g5",
+    "e7e8",
+    "g7d4",
+    "c4c3",
+    "c2b3",
+    "d7c7",
+    "b3d5",
+    "c6d5",
+    "d4d5",
+    "g8g5",
+    "h4g5"
+   ],
+   "pv_san": "21...Nd5 22.Qxg7 Ke7 23.Bd2 Rag8 24.Bg5+ Ke8 25.Qd4 c3 26.Bb3 Qc7 27.Bxd5 cxd5 28.Qxd5 Rxg5 29.hxg5",
+   "nodes": 129500578,
+   "ms": 8268,
+   "pv_len": 16,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "f4d5",
+     -201,
+     false
+    ],
+    [
+     2,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     3,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     4,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     5,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     6,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     7,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     8,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     9,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     10,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     11,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     12,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     13,
+     "f4d5",
+     -150,
+     false
+    ],
+    [
+     14,
+     "f4d5",
+     -161,
+     false
+    ],
+    [
+     15,
+     "f4d5",
+     -167,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 3,
+   "game_followed_all": false,
+   "used_ms": 8270,
+   "reply_forcing": false,
+   "reply_san": "Qd4",
+   "predicted_san": "Ba4",
+   "plan_san": "Nd3+",
+   "prev_depth": 17,
+   "prev_pv_len": 18,
+   "predicted_reply": "c2a4",
+   "reply": "e4d4",
+   "reply_as_predicted": false,
+   "pv_reply": "c2a4",
+   "pv_next": null,
+   "pv_next_any": "f4d3",
+   "agree_plies": null,
+   "prev_cp": -175,
+   "inherited_depth": 15,
+   "inherited_move": "f4d5",
+   "inherited_cp": -167,
+   "inherited_ms": 8268,
+   "miss_pondered_ms": 8120,
+   "miss_depth": 16,
+   "miss_would_play": "f4d3"
+  },
+  {
+   "ply": 43,
+   "move_no": 22,
+   "move": "e8e7",
+   "played_ok": true,
+   "san": "Ke7",
+   "pieces": 23,
+   "source": "hit",
+   "cp": -158,
+   "score": "cp -158",
+   "depth": 14,
+   "pv": [
+    "e8e7",
+    "a5d2",
+    "a8g8",
+    "d2g5",
+    "e7e8",
+    "g7d4",
+    "d7c7",
+    "c2a4",
+    "e8f8",
+    "c1b1",
+    "h7h6"
+   ],
+   "pv_san": "22...Ke7 23.Bd2 Rag8 24.Bg5+ Ke8 25.Qd4 Qc7 26.Ba4 Kf8 27.Kb1 h6",
+   "nodes": 109459178,
+   "ms": 6925,
+   "pv_len": 11,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "h8f8",
+     -108,
+     false
+    ],
+    [
+     2,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     3,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     4,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     5,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     6,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     7,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     8,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     9,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     10,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     11,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     12,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     13,
+     "e8e7",
+     -167,
+     false
+    ],
+    [
+     14,
+     "e8e7",
+     -158,
+     false
+    ],
+    [
+     14,
+     "e8e7",
+     -158,
+     false
+    ]
+   ],
+   "settled_at": 2,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "pondered_ms": 6926,
+   "after_hit_ms": 1,
+   "depth_at_hit": 14,
+   "move_at_hit": "e8e7",
+   "cp_at_hit": -158,
+   "depth_played": 14,
+   "restarted": false,
+   "reply_forcing": true,
+   "reply_san": "Qxg7",
+   "predicted_san": "Qxg7",
+   "plan_san": "Ke7",
+   "prev_depth": 15,
+   "prev_pv_len": 16,
+   "predicted_reply": "d4g7",
+   "reply": "d4g7",
+   "reply_as_predicted": true,
+   "pv_reply": "d4g7",
+   "pv_next": "e8e7",
+   "pv_next_any": "e8e7",
+   "agree_plies": 6,
+   "prev_cp": -167,
+   "inherited_depth": 13,
+   "inherited_move": "e8e7",
+   "inherited_cp": -167,
+   "inherited_ms": 119,
+   "switch_swing": -59
+  },
+  {
+   "ply": 45,
+   "move_no": 23,
+   "move": "c4c3",
+   "played_ok": true,
+   "san": "c3",
+   "pieces": 22,
+   "source": "go",
+   "cp": -132,
+   "score": "cp -132",
+   "depth": 13,
+   "pv": [
+    "c4c3",
+    "a5c3"
+   ],
+   "pv_san": "23...c3 24.Bxc3",
+   "nodes": 114585201,
+   "ms": 7760,
+   "pv_len": 2,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "c4c3",
+     -7,
+     false
+    ],
+    [
+     2,
+     "c4c3",
+     -7,
+     false
+    ],
+    [
+     3,
+     "c4c3",
+     -7,
+     false
+    ],
+    [
+     4,
+     "c4c3",
+     -7,
+     false
+    ],
+    [
+     5,
+     "a8f8",
+     -80,
+     false
+    ],
+    [
+     6,
+     "c4c3",
+     -27,
+     false
+    ],
+    [
+     7,
+     "c4c3",
+     -114,
+     false
+    ],
+    [
+     8,
+     "c4c3",
+     -40,
+     false
+    ],
+    [
+     9,
+     "c4c3",
+     -52,
+     false
+    ],
+    [
+     10,
+     "c4c3",
+     -94,
+     false
+    ],
+    [
+     11,
+     "c4c3",
+     -95,
+     false
+    ],
+    [
+     12,
+     "c4c3",
+     -162,
+     false
+    ],
+    [
+     13,
+     "c4c3",
+     -132,
+     false
+    ]
+   ],
+   "settled_at": 6,
+   "first_move_changes": 1,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 7761,
+   "reply_forcing": true,
+   "reply_san": "Bxh7",
+   "predicted_san": "Bd2",
+   "plan_san": "Rag8",
+   "prev_depth": 14,
+   "prev_pv_len": 11,
+   "predicted_reply": "a5d2",
+   "reply": "c2h7",
+   "reply_as_predicted": false,
+   "pv_reply": "a5d2",
+   "pv_next": null,
+   "pv_next_any": "a8g8",
+   "agree_plies": null,
+   "prev_cp": -158,
+   "inherited_depth": 12,
+   "inherited_move": "c4c3",
+   "inherited_cp": -162,
+   "inherited_ms": 5598,
+   "switch_swing": 53,
+   "miss_pondered_ms": 9914,
+   "miss_depth": 14,
+   "miss_would_play": "a8g8"
+  },
+  {
+   "ply": 47,
+   "move_no": 24,
+   "move": "c3b2",
+   "played_ok": true,
+   "san": "cxb2+",
+   "pieces": 22,
+   "source": "go",
+   "cp": -157,
+   "score": "cp -157",
+   "depth": 12,
+   "pv": [
+    "c3b2",
+    "c1b1",
+    "a8b8",
+    "a5d2",
+    "h8f8",
+    "d2g5",
+    "e7e8",
+    "h7f5",
+    "d5e7",
+    "f5e4",
+    "f8g8"
+   ],
+   "pv_san": "24...cxb2+ 25.Kb1 Rab8 26.Bd2 Rhf8 27.Bg5+ Ke8 28.Bf5 Ne7 29.Be4 Rg8",
+   "nodes": 132984009,
+   "ms": 9262,
+   "pv_len": 11,
+   "capture": true,
+   "check": true,
+   "depths": [
+    [
+     1,
+     "c3b2",
+     54,
+     false
+    ],
+    [
+     2,
+     "c3b2",
+     54,
+     false
+    ],
+    [
+     3,
+     "c3b2",
+     38,
+     false
+    ],
+    [
+     4,
+     "c3b2",
+     -48,
+     false
+    ],
+    [
+     5,
+     "c3b2",
+     -50,
+     false
+    ],
+    [
+     6,
+     "c3b2",
+     -65,
+     false
+    ],
+    [
+     7,
+     "c3b2",
+     -65,
+     false
+    ],
+    [
+     8,
+     "c3b2",
+     -90,
+     false
+    ],
+    [
+     9,
+     "c3b2",
+     -96,
+     false
+    ],
+    [
+     10,
+     "c3b2",
+     -125,
+     false
+    ],
+    [
+     11,
+     "c3b2",
+     -125,
+     false
+    ],
+    [
+     12,
+     "c3b2",
+     -157,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 2,
+   "game_followed_all": false,
+   "used_ms": 9264,
+   "reply_forcing": false,
+   "reply_san": "Rd3",
+   "predicted_san": "Bxc3",
+   "prev_depth": 13,
+   "prev_pv_len": 2,
+   "predicted_reply": "a5c3",
+   "reply": "d1d3",
+   "reply_as_predicted": false,
+   "pv_reply": "a5c3",
+   "pv_next": null,
+   "pv_next_any": null,
+   "agree_plies": null,
+   "prev_cp": -132,
+   "inherited_depth": 11,
+   "inherited_move": "c3b2",
+   "inherited_cp": -125,
+   "inherited_ms": 2047,
+   "miss_pondered_ms": 6589,
+   "miss_depth": 13,
+   "miss_would_play": "d5c3"
+  },
+  {
+   "ply": 49,
+   "move_no": 25,
+   "move": "h8f8",
+   "played_ok": true,
+   "san": "Rhf8",
+   "pieces": 21,
+   "source": "hit",
+   "cp": -172,
+   "score": "cp -172",
+   "depth": 13,
+   "pv": [
+    "h8f8",
+    "d3f3",
+    "e7e8",
+    "h4h5",
+    "a8b8",
+    "a5d2",
+    "b8b6",
+    "h7c2",
+    "d6b4",
+    "d2b4",
+    "b6b4",
+    "h5h6",
+    "d7d6"
+   ],
+   "pv_san": "25...Rhf8 26.Rf3 Ke8 27.h5 Rb8 28.Bd2 Rb6 29.Bc2 Bb4 30.Bxb4 Rxb4 31.h6 Qd6",
+   "nodes": 118146170,
+   "ms": 7838,
+   "pv_len": 13,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "a8b8",
+     54,
+     false
+    ],
+    [
+     2,
+     "a8f8",
+     -12,
+     false
+    ],
+    [
+     3,
+     "a8f8",
+     -125,
+     false
+    ],
+    [
+     4,
+     "a8f8",
+     -125,
+     false
+    ],
+    [
+     5,
+     "a8f8",
+     -125,
+     false
+    ],
+    [
+     6,
+     "a8f8",
+     -125,
+     false
+    ],
+    [
+     7,
+     "a8f8",
+     -143,
+     false
+    ],
+    [
+     8,
+     "a8f8",
+     -154,
+     false
+    ],
+    [
+     9,
+     "a8f8",
+     -161,
+     false
+    ],
+    [
+     10,
+     "a8f8",
+     -146,
+     false
+    ],
+    [
+     11,
+     "a8f8",
+     -160,
+     false
+    ],
+    [
+     12,
+     "a8f8",
+     -164,
+     false
+    ],
+    [
+     13,
+     "h8f8",
+     -172,
+     false
+    ]
+   ],
+   "settled_at": 13,
+   "first_move_changes": 1,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "pondered_ms": 6007,
+   "after_hit_ms": 1833,
+   "depth_at_hit": 12,
+   "move_at_hit": "a8f8",
+   "cp_at_hit": -164,
+   "depth_played": 13,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "Kb1",
+   "predicted_san": "Kb1",
+   "plan_san": "Rab8",
+   "prev_depth": 12,
+   "prev_pv_len": 11,
+   "predicted_reply": "c1b1",
+   "reply": "c1b1",
+   "reply_as_predicted": true,
+   "pv_reply": "c1b1",
+   "pv_next": "a8b8",
+   "pv_next_any": "a8b8",
+   "agree_plies": 0,
+   "prev_cp": -157,
+   "inherited_depth": 10,
+   "inherited_move": "a8f8",
+   "inherited_cp": -146,
+   "inherited_ms": 199,
+   "switch_swing": -8
+  },
+  {
+   "ply": 51,
+   "move_no": 26,
+   "move": "a8b8",
+   "played_ok": true,
+   "san": "Rab8",
+   "pieces": 21,
+   "source": "go",
+   "cp": -201,
+   "score": "cp -201",
+   "depth": 13,
+   "pv": [
+    "a8b8",
+    "d3f3",
+    "b8b5",
+    "a5d2",
+    "e7d8"
+   ],
+   "pv_san": "26...Rab8 27.Rf3 Rb5 28.Bd2 Kd8",
+   "nodes": 102428190,
+   "ms": 7135,
+   "pv_len": 5,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "a8b8",
+     -47,
+     false
+    ],
+    [
+     2,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     3,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     4,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     5,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     6,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     7,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     8,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     9,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     10,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     11,
+     "a8b8",
+     -176,
+     false
+    ],
+    [
+     12,
+     "a8b8",
+     -184,
+     false
+    ],
+    [
+     13,
+     "a8b8",
+     -201,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 7137,
+   "reply_forcing": false,
+   "reply_san": "h5",
+   "predicted_san": "Rf3",
+   "plan_san": "Ke8",
+   "prev_depth": 13,
+   "prev_pv_len": 13,
+   "predicted_reply": "d3f3",
+   "reply": "h4h5",
+   "reply_as_predicted": false,
+   "pv_reply": "d3f3",
+   "pv_next": null,
+   "pv_next_any": "e7e8",
+   "agree_plies": null,
+   "prev_cp": -172,
+   "inherited_depth": 11,
+   "inherited_move": "a8b8",
+   "inherited_cp": -176,
+   "inherited_ms": 177,
+   "miss_pondered_ms": 7038,
+   "miss_depth": 13,
+   "miss_would_play": "e7e8"
+  },
+  {
+   "ply": 53,
+   "move_no": 27,
+   "move": "b8b5",
+   "played_ok": true,
+   "san": "Rb5",
+   "pieces": 21,
+   "source": "go",
+   "cp": -275,
+   "score": "cp -275",
+   "depth": 12,
+   "pv": [
+    "b8b5",
+    "a5d2",
+    "d7e8",
+    "h7f5",
+    "d5c7",
+    "d2g5",
+    "e7d7",
+    "f5e4",
+    "c7d5",
+    "h6h7",
+    "d7c7"
+   ],
+   "pv_san": "27...Rb5 28.Bd2 Qe8 29.Bf5 Nc7 30.Bg5+ Kd7 31.Be4 Nd5 32.h7 Kc7",
+   "nodes": 105455220,
+   "ms": 7279,
+   "pv_len": 11,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "b8b5",
+     -26,
+     false
+    ],
+    [
+     2,
+     "f8h8",
+     -73,
+     false
+    ],
+    [
+     3,
+     "d6b4",
+     -79,
+     false
+    ],
+    [
+     4,
+     "e7e8",
+     -114,
+     false
+    ],
+    [
+     5,
+     "e7e8",
+     -188,
+     false
+    ],
+    [
+     6,
+     "b8b5",
+     -109,
+     false
+    ],
+    [
+     7,
+     "b8b5",
+     -162,
+     false
+    ],
+    [
+     8,
+     "b8b5",
+     -176,
+     false
+    ],
+    [
+     9,
+     "b8b5",
+     -213,
+     false
+    ],
+    [
+     10,
+     "b8b5",
+     -219,
+     false
+    ],
+    [
+     11,
+     "b8b5",
+     -255,
+     false
+    ],
+    [
+     12,
+     "b8b5",
+     -275,
+     false
+    ]
+   ],
+   "settled_at": 6,
+   "first_move_changes": 1,
+   "game_followed": 3,
+   "game_followed_all": false,
+   "used_ms": 7281,
+   "reply_forcing": false,
+   "reply_san": "h6",
+   "predicted_san": "Rf3",
+   "plan_san": "Rb5",
+   "prev_depth": 13,
+   "prev_pv_len": 5,
+   "predicted_reply": "d3f3",
+   "reply": "h5h6",
+   "reply_as_predicted": false,
+   "pv_reply": "d3f3",
+   "pv_next": null,
+   "pv_next_any": "b8b5",
+   "agree_plies": null,
+   "prev_cp": -201,
+   "inherited_depth": 11,
+   "inherited_move": "b8b5",
+   "inherited_cp": -255,
+   "inherited_ms": 3011,
+   "switch_swing": 79,
+   "miss_pondered_ms": 7166,
+   "miss_depth": 13,
+   "miss_would_play": "b8b5"
+  },
+  {
+   "ply": 55,
+   "move_no": 28,
+   "move": "d7e8",
+   "played_ok": true,
+   "san": "Qe8",
+   "pieces": 21,
+   "source": "hit",
+   "cp": -352,
+   "score": "cp -352",
+   "depth": 13,
+   "pv": [
+    "d7e8",
+    "h7f5",
+    "e7d8",
+    "h6h7",
+    "f8h8",
+    "f5e4",
+    "d8c8",
+    "e4d5",
+    "b5d5",
+    "d2c3",
+    "e6e5",
+    "d3d5"
+   ],
+   "pv_san": "28...Qe8 29.Bf5 Kd8 30.h7 Rh8 31.Be4 Kc8 32.Bxd5 Rxd5 33.Bc3 e5 34.Rxd5",
+   "nodes": 97451366,
+   "ms": 6930,
+   "pv_len": 12,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "d7b7",
+     -203,
+     false
+    ],
+    [
+     2,
+     "d7b7",
+     -146,
+     false
+    ],
+    [
+     3,
+     "d7b7",
+     -238,
+     false
+    ],
+    [
+     4,
+     "d7b7",
+     -224,
+     false
+    ],
+    [
+     5,
+     "d7e8",
+     -275,
+     false
+    ],
+    [
+     6,
+     "d7e8",
+     -275,
+     false
+    ],
+    [
+     7,
+     "d7e8",
+     -275,
+     false
+    ],
+    [
+     8,
+     "d7e8",
+     -275,
+     false
+    ],
+    [
+     9,
+     "d7e8",
+     -275,
+     false
+    ],
+    [
+     10,
+     "d7e8",
+     -275,
+     false
+    ],
+    [
+     11,
+     "e7e8",
+     -266,
+     false
+    ],
+    [
+     12,
+     "d7e8",
+     -306,
+     false
+    ],
+    [
+     13,
+     "d7e8",
+     -352,
+     false
+    ]
+   ],
+   "settled_at": 12,
+   "first_move_changes": 2,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "pondered_ms": 5944,
+   "after_hit_ms": 987,
+   "depth_at_hit": 12,
+   "move_at_hit": "d7e8",
+   "cp_at_hit": -306,
+   "depth_played": 13,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "Bd2",
+   "predicted_san": "Bd2",
+   "plan_san": "Qe8",
+   "prev_depth": 12,
+   "prev_pv_len": 11,
+   "predicted_reply": "a5d2",
+   "reply": "a5d2",
+   "reply_as_predicted": true,
+   "pv_reply": "a5d2",
+   "pv_next": "d7e8",
+   "pv_next_any": "d7e8",
+   "agree_plies": 2,
+   "prev_cp": -275,
+   "inherited_depth": 10,
+   "inherited_move": "d7e8",
+   "inherited_cp": -275,
+   "inherited_ms": 48,
+   "switch_swing": -40
+  },
+  {
+   "ply": 57,
+   "move_no": 29,
+   "move": "e7d8",
+   "played_ok": true,
+   "san": "Kd8",
+   "pieces": 21,
+   "source": "go",
+   "cp": -379,
+   "score": "cp -379",
+   "depth": 14,
+   "pv": [
+    "e7d8",
+    "h7c2",
+    "d8c8",
+    "h6h7",
+    "b5b7",
+    "e1e6",
+    "f7e6",
+    "g7f8",
+    "d6f8",
+    "h7h8q",
+    "b7f7",
+    "c2g6",
+    "f7f3",
+    "g6e8"
+   ],
+   "pv_san": "29...Kd8 30.Bc2 Kc8 31.h7 Rb7 32.Rxe6 fxe6 33.Qxf8 Bxf8 34.h8=Q Rf7 35.Bg6 Rxf3 36.Bxe8",
+   "nodes": 203030877,
+   "ms": 13626,
+   "pv_len": 14,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "e7d7",
+     -141,
+     false
+    ],
+    [
+     2,
+     "e7d7",
+     -201,
+     false
+    ],
+    [
+     3,
+     "e7d7",
+     -250,
+     false
+    ],
+    [
+     4,
+     "e7d7",
+     -222,
+     false
+    ],
+    [
+     5,
+     "e7d8",
+     -228,
+     false
+    ],
+    [
+     6,
+     "e7d8",
+     -337,
+     false
+    ],
+    [
+     7,
+     "e7d8",
+     -337,
+     false
+    ],
+    [
+     8,
+     "e7d8",
+     -337,
+     false
+    ],
+    [
+     9,
+     "e7d8",
+     -337,
+     false
+    ],
+    [
+     10,
+     "e7d8",
+     -337,
+     false
+    ],
+    [
+     11,
+     "e7d8",
+     -347,
+     false
+    ],
+    [
+     12,
+     "e7d8",
+     -350,
+     false
+    ],
+    [
+     13,
+     "e7d8",
+     -330,
+     false
+    ],
+    [
+     14,
+     "e7d8",
+     -379,
+     false
+    ]
+   ],
+   "settled_at": 5,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 13628,
+   "reply_forcing": false,
+   "reply_san": "Rf3",
+   "predicted_san": "Bf5",
+   "plan_san": "Kd8",
+   "prev_depth": 13,
+   "prev_pv_len": 12,
+   "predicted_reply": "h7f5",
+   "reply": "d3f3",
+   "reply_as_predicted": false,
+   "pv_reply": "h7f5",
+   "pv_next": null,
+   "pv_next_any": "e7d8",
+   "agree_plies": null,
+   "prev_cp": -352,
+   "inherited_depth": 11,
+   "inherited_move": "e7d8",
+   "inherited_cp": -347,
+   "inherited_ms": 756,
+   "switch_swing": -6,
+   "miss_pondered_ms": 10427,
+   "miss_depth": 14,
+   "miss_would_play": "e7d8"
+  },
+  {
+   "ply": 59,
+   "move_no": 30,
+   "move": "b5b8",
+   "played_ok": true,
+   "san": "Rb8",
+   "pieces": 21,
+   "source": "go",
+   "cp": -463,
+   "score": "cp -463",
+   "depth": 14,
+   "pv": [
+    "b5b8",
+    "h6h7",
+    "d8c7",
+    "h7h8q",
+    "f8h8",
+    "f3f7",
+    "d6e7",
+    "d2f4",
+    "c7d7",
+    "f4b8",
+    "e8b8",
+    "d3f5",
+    "b8b4",
+    "f5e6",
+    "d7c7",
+    "g7e5",
+    "c7b6",
+    "e6d5"
+   ],
+   "pv_san": "30...Rb8 31.h7 Kc7 32.h8=Q Rxh8 33.Rxf7+ Be7 34.Bf4+ Kd7 35.Bxb8 Qxb8 36.Bf5 Qb4 37.Bxe6+ Kc7 38.Qe5+ Kb6 39.Bxd5",
+   "nodes": 203088554,
+   "ms": 14136,
+   "pv_len": 18,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "f8g8",
+     -175,
+     false
+    ],
+    [
+     2,
+     "f8g8",
+     -97,
+     false
+    ],
+    [
+     3,
+     "f8g8",
+     -226,
+     false
+    ],
+    [
+     4,
+     "f8g8",
+     -197,
+     false
+    ],
+    [
+     5,
+     "f8g8",
+     -316,
+     false
+    ],
+    [
+     6,
+     "f8g8",
+     -286,
+     false
+    ],
+    [
+     7,
+     "b5b8",
+     -331,
+     false
+    ],
+    [
+     8,
+     "b5b8",
+     -331,
+     false
+    ],
+    [
+     9,
+     "b5b8",
+     -331,
+     false
+    ],
+    [
+     10,
+     "b5b8",
+     -331,
+     false
+    ],
+    [
+     11,
+     "b5b8",
+     -331,
+     false
+    ],
+    [
+     12,
+     "b5b8",
+     -331,
+     false
+    ],
+    [
+     13,
+     "b5b8",
+     -405,
+     false
+    ],
+    [
+     14,
+     "b5b8",
+     -463,
+     false
+    ]
+   ],
+   "settled_at": 7,
+   "first_move_changes": 1,
+   "game_followed": 8,
+   "game_followed_all": false,
+   "used_ms": 14139,
+   "reply_forcing": false,
+   "reply_san": "Bd3",
+   "predicted_san": "Bc2",
+   "plan_san": "Kc8",
+   "prev_depth": 14,
+   "prev_pv_len": 14,
+   "predicted_reply": "h7c2",
+   "reply": "h7d3",
+   "reply_as_predicted": false,
+   "pv_reply": "h7c2",
+   "pv_next": null,
+   "pv_next_any": "d8c8",
+   "agree_plies": null,
+   "prev_cp": -379,
+   "inherited_depth": 12,
+   "inherited_move": "b5b8",
+   "inherited_cp": -331,
+   "inherited_ms": 86,
+   "switch_swing": -45,
+   "miss_pondered_ms": 5247,
+   "miss_depth": 12,
+   "miss_would_play": "d8c8"
+  },
+  {
+   "ply": 61,
+   "move_no": 31,
+   "move": "d8c7",
+   "played_ok": true,
+   "san": "Kc7",
+   "pieces": 21,
+   "source": "hit",
+   "cp": -445,
+   "score": "cp -445",
+   "depth": 14,
+   "pv": [
+    "d8c7",
+    "h7h8q",
+    "f8h8",
+    "f3f7",
+    "d6e7",
+    "d2f4",
+    "c7b7",
+    "f4b8",
+    "b7b8",
+    "e1e6",
+    "e8d8",
+    "e6c6",
+    "h8h1",
+    "b1b2"
+   ],
+   "pv_san": "31...Kc7 32.h8=Q Rxh8 33.Rxf7+ Be7 34.Bf4+ Kb7 35.Bxb8 Kxb8 36.Rxe6 Qd8 37.Rxc6 Rh1+ 38.Kxb2",
+   "nodes": 112103008,
+   "ms": 7741,
+   "pv_len": 14,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "d8c7",
+     -404,
+     false
+    ],
+    [
+     2,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     3,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     4,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     5,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     6,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     7,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     8,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     9,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     10,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     11,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     12,
+     "d8c7",
+     -463,
+     false
+    ],
+    [
+     13,
+     "d8c7",
+     -488,
+     false
+    ],
+    [
+     14,
+     "d8c7",
+     -445,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 8,
+   "game_followed_all": false,
+   "pondered_ms": 6216,
+   "after_hit_ms": 1527,
+   "depth_at_hit": 13,
+   "move_at_hit": "d8c7",
+   "cp_at_hit": -488,
+   "depth_played": 14,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "h7",
+   "predicted_san": "h7",
+   "plan_san": "Kc7",
+   "prev_depth": 14,
+   "prev_pv_len": 18,
+   "predicted_reply": "h6h7",
+   "reply": "h6h7",
+   "reply_as_predicted": true,
+   "pv_reply": "h6h7",
+   "pv_next": "d8c7",
+   "pv_next_any": "d8c7",
+   "agree_plies": 6,
+   "prev_cp": -463,
+   "inherited_depth": 12,
+   "inherited_move": "d8c7",
+   "inherited_cp": -463,
+   "inherited_ms": 193
+  },
+  {
+   "ply": 63,
+   "move_no": 32,
+   "move": "f8h8",
+   "played_ok": true,
+   "san": "Rxh8",
+   "pieces": 21,
+   "source": "hit",
+   "cp": -476,
+   "score": "cp -476",
+   "depth": 14,
+   "pv": [
+    "f8h8",
+    "f3f7",
+    "d6e7",
+    "d2f4",
+    "c7b7",
+    "f4b8",
+    "b7b8",
+    "g7e5",
+    "b8a8",
+    "e5e6",
+    "d5c3",
+    "b1b2",
+    "c3d5",
+    "f7e7"
+   ],
+   "pv_san": "32...Rxh8 33.Rxf7+ Be7 34.Bf4+ Kb7 35.Bxb8 Kxb8 36.Qe5+ Ka8 37.Qxe6 Nc3+ 38.Kxb2 Nd5 39.Rxe7",
+   "nodes": 161406554,
+   "ms": 10197,
+   "pv_len": 14,
+   "capture": true,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "f8h8",
+     -125,
+     false
+    ],
+    [
+     2,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     3,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     4,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     5,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     6,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     7,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     8,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     9,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     10,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     11,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     12,
+     "f8h8",
+     -445,
+     false
+    ],
+    [
+     13,
+     "f8h8",
+     -443,
+     false
+    ],
+    [
+     14,
+     "f8h8",
+     -476,
+     false
+    ],
+    [
+     14,
+     "f8h8",
+     -476,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 6,
+   "game_followed_all": false,
+   "pondered_ms": 10198,
+   "after_hit_ms": 2,
+   "depth_at_hit": 14,
+   "move_at_hit": "f8h8",
+   "cp_at_hit": -476,
+   "depth_played": 14,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "h8=Q",
+   "predicted_san": "h8=Q",
+   "plan_san": "Rxh8",
+   "prev_depth": 14,
+   "prev_pv_len": 14,
+   "predicted_reply": "h7h8q",
+   "reply": "h7h8q",
+   "reply_as_predicted": true,
+   "pv_reply": "h7h8q",
+   "pv_next": "f8h8",
+   "pv_next_any": "f8h8",
+   "agree_plies": 7,
+   "prev_cp": -445,
+   "inherited_depth": 12,
+   "inherited_move": "f8h8",
+   "inherited_cp": -445,
+   "inherited_ms": 34
+  },
+  {
+   "ply": 65,
+   "move_no": 33,
+   "move": "d6e7",
+   "played_ok": true,
+   "san": "Be7",
+   "pieces": 19,
+   "source": "hit",
+   "cp": -475,
+   "score": "cp -475",
+   "depth": 13,
+   "pv": [
+    "d6e7",
+    "d2f4"
+   ],
+   "pv_san": "33...Be7 34.Bf4+",
+   "nodes": 193310868,
+   "ms": 12285,
+   "pv_len": 2,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     2,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     3,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     4,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     5,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     6,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     7,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     8,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     9,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     10,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     11,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     12,
+     "d6e7",
+     -476,
+     false
+    ],
+    [
+     13,
+     "d6e7",
+     -475,
+     false
+    ],
+    [
+     13,
+     "d6e7",
+     -475,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 2,
+   "game_followed_all": true,
+   "pondered_ms": 12286,
+   "after_hit_ms": 1,
+   "depth_at_hit": 13,
+   "move_at_hit": "d6e7",
+   "cp_at_hit": -475,
+   "depth_played": 13,
+   "restarted": false,
+   "reply_forcing": true,
+   "reply_san": "Rxf7+",
+   "predicted_san": "Rxf7+",
+   "plan_san": "Be7",
+   "prev_depth": 14,
+   "prev_pv_len": 14,
+   "predicted_reply": "f3f7",
+   "reply": "f3f7",
+   "reply_as_predicted": true,
+   "pv_reply": "f3f7",
+   "pv_next": "d6e7",
+   "pv_next_any": "d6e7",
+   "agree_plies": 2,
+   "prev_cp": -476,
+   "inherited_depth": 12,
+   "inherited_move": "d6e7",
+   "inherited_cp": -476,
+   "inherited_ms": 1
+  },
+  {
+   "ply": 67,
+   "move_no": 34,
+   "move": "c7b7",
+   "played_ok": true,
+   "san": "Kb7",
+   "pieces": 19,
+   "source": "hit",
+   "cp": -535,
+   "score": "cp -535",
+   "depth": 13,
+   "pv": [
+    "c7b7"
+   ],
+   "pv_san": "34...Kb7",
+   "nodes": 473016178,
+   "ms": 31123,
+   "pv_len": 1,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     2,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     3,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     4,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     5,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     6,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     7,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     8,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     9,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     10,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     11,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     12,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     13,
+     "c7b7",
+     -535,
+     false
+    ],
+    [
+     13,
+     "c7b7",
+     -535,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": true,
+   "pondered_ms": 13149,
+   "after_hit_ms": 17975,
+   "depth_at_hit": 13,
+   "move_at_hit": "c7b7",
+   "cp_at_hit": -535,
+   "depth_played": 13,
+   "restarted": false,
+   "reply_forcing": true,
+   "reply_san": "Bf4+",
+   "predicted_san": "Bf4+",
+   "prev_depth": 13,
+   "prev_pv_len": 2,
+   "predicted_reply": "d2f4",
+   "reply": "d2f4",
+   "reply_as_predicted": true,
+   "pv_reply": "d2f4",
+   "pv_next": null,
+   "pv_next_any": null,
+   "agree_plies": null,
+   "prev_cp": -475,
+   "inherited_depth": 11,
+   "inherited_move": "c7b7",
+   "inherited_cp": -535,
+   "inherited_ms": 1,
+   "plan_san": "Kb7"
+  },
+  {
+   "ply": 69,
+   "move_no": 35,
+   "move": "h8g8",
+   "played_ok": true,
+   "san": "Rg8",
+   "pieces": 18,
+   "source": "hit",
+   "cp": -518,
+   "score": "cp -518",
+   "depth": 14,
+   "pv": [
+    "h8g8",
+    "f7e7",
+    "d5e7",
+    "g7b2",
+    "b7a8",
+    "b8e5",
+    "e8d8",
+    "d3e4",
+    "d8a5",
+    "e1c1",
+    "e7d5",
+    "b1a1"
+   ],
+   "pv_san": "35...Rg8 36.Rxe7+ Nxe7 37.Qxb2+ Ka8 38.Be5 Qd8 39.Be4 Qa5 40.Rc1 Nd5 41.Ka1",
+   "nodes": 111944771,
+   "ms": 6801,
+   "pv_len": 12,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "b7b8",
+     -437,
+     false
+    ],
+    [
+     2,
+     "b7b8",
+     -552,
+     false
+    ],
+    [
+     3,
+     "b7b8",
+     -552,
+     false
+    ],
+    [
+     4,
+     "b7b8",
+     -552,
+     false
+    ],
+    [
+     5,
+     "b7b8",
+     -552,
+     false
+    ],
+    [
+     6,
+     "h8g8",
+     -514,
+     false
+    ],
+    [
+     7,
+     "h8g8",
+     -521,
+     false
+    ],
+    [
+     8,
+     "h8g8",
+     -498,
+     false
+    ],
+    [
+     9,
+     "h8g8",
+     -495,
+     false
+    ],
+    [
+     10,
+     "h8g8",
+     -500,
+     false
+    ],
+    [
+     11,
+     "b7b8",
+     -552,
+     false
+    ],
+    [
+     12,
+     "b7b8",
+     -552,
+     false
+    ],
+    [
+     13,
+     "b7b8",
+     -552,
+     false
+    ],
+    [
+     14,
+     "h8g8",
+     -518,
+     false
+    ]
+   ],
+   "settled_at": 14,
+   "first_move_changes": 3,
+   "game_followed": 9,
+   "game_followed_all": false,
+   "pondered_ms": 6225,
+   "after_hit_ms": 579,
+   "depth_at_hit": 13,
+   "move_at_hit": "b7b8",
+   "cp_at_hit": -552,
+   "depth_played": 14,
+   "restarted": false,
+   "reply_forcing": true,
+   "reply_san": "Bxb8",
+   "predicted_san": "Bxb8",
+   "prev_depth": 13,
+   "prev_pv_len": 1,
+   "predicted_reply": "f4b8",
+   "reply": "f4b8",
+   "reply_as_predicted": true,
+   "pv_reply": null,
+   "pv_next": null,
+   "pv_next_any": null,
+   "agree_plies": null,
+   "prev_cp": -535,
+   "inherited_depth": 11,
+   "inherited_move": "b7b8",
+   "inherited_cp": -552,
+   "inherited_ms": 473,
+   "plan_san": "Kxb8",
+   "switch_swing": 34
+  },
+  {
+   "ply": 71,
+   "move_no": 36,
+   "move": "d5e7",
+   "played_ok": true,
+   "san": "Nxe7",
+   "pieces": 17,
+   "source": "hit",
+   "cp": -613,
+   "score": "cp -613",
+   "depth": 15,
+   "pv": [
+    "d5e7",
+    "g7b2",
+    "b7a8",
+    "b8e5",
+    "e8d8",
+    "d3e4",
+    "d8a5",
+    "e1e3",
+    "g8c8",
+    "b1a1",
+    "c8d8",
+    "e3d3",
+    "a5e1",
+    "b2b1",
+    "e1a5",
+    "e5c3",
+    "a5c7",
+    "d3d8",
+    "c7d8"
+   ],
+   "pv_san": "36...Nxe7 37.Qxb2+ Ka8 38.Be5 Qd8 39.Be4 Qa5 40.Re3 Rc8 41.Ka1 Rd8 42.Rd3 Qe1+ 43.Qb1 Qa5 44.Bc3 Qc7 45.Rxd8+ Qxd8",
+   "nodes": 207114310,
+   "ms": 12630,
+   "pv_len": 19,
+   "capture": true,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     2,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     3,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     4,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     5,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     6,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     7,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     8,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     9,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     10,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     11,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     12,
+     "d5e7",
+     -519,
+     false
+    ],
+    [
+     13,
+     "d5e7",
+     -573,
+     false
+    ],
+    [
+     14,
+     "d5e7",
+     -564,
+     false
+    ],
+    [
+     15,
+     "d5e7",
+     -613,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 7,
+   "game_followed_all": false,
+   "pondered_ms": 7566,
+   "after_hit_ms": 5066,
+   "depth_at_hit": 14,
+   "move_at_hit": "d5e7",
+   "cp_at_hit": -564,
+   "depth_played": 15,
+   "restarted": false,
+   "reply_forcing": true,
+   "reply_san": "Rxe7+",
+   "predicted_san": "Rxe7+",
+   "plan_san": "Nxe7",
+   "prev_depth": 14,
+   "prev_pv_len": 12,
+   "predicted_reply": "f7e7",
+   "reply": "f7e7",
+   "reply_as_predicted": true,
+   "pv_reply": "f7e7",
+   "pv_next": "d5e7",
+   "pv_next_any": "d5e7",
+   "agree_plies": 7,
+   "prev_cp": -518,
+   "inherited_depth": 12,
+   "inherited_move": "d5e7",
+   "inherited_cp": -519,
+   "inherited_ms": 4
+  },
+  {
+   "ply": 73,
+   "move_no": 37,
+   "move": "b7a8",
+   "played_ok": true,
+   "san": "Ka8",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -580,
+   "score": "cp -580",
+   "depth": 16,
+   "pv": [
+    "b7a8",
+    "b8e5",
+    "e8d8",
+    "d3e4",
+    "d8a5",
+    "e1e3",
+    "g8c8",
+    "b1a1",
+    "c8d8",
+    "e3d3",
+    "a5e1",
+    "b2b1",
+    "e1a5",
+    "d3d8",
+    "a5d8",
+    "b1c2",
+    "d8d7",
+    "e5b2"
+   ],
+   "pv_san": "37...Ka8 38.Be5 Qd8 39.Be4 Qa5 40.Re3 Rc8 41.Ka1 Rd8 42.Rd3 Qe1+ 43.Qb1 Qa5 44.Rxd8+ Qxd8 45.Qc2 Qd7 46.Bb2",
+   "nodes": 96384538,
+   "ms": 6131,
+   "pv_len": 18,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     2,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     3,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     4,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     5,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     6,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     7,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     8,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     9,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     10,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     11,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     12,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     13,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     14,
+     "b7a8",
+     -613,
+     false
+    ],
+    [
+     15,
+     "b7a8",
+     -584,
+     false
+    ],
+    [
+     16,
+     "b7a8",
+     -580,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 5,
+   "game_followed_all": false,
+   "pondered_ms": 4898,
+   "after_hit_ms": 1236,
+   "depth_at_hit": 15,
+   "move_at_hit": "b7a8",
+   "cp_at_hit": -584,
+   "depth_played": 16,
+   "restarted": false,
+   "reply_forcing": true,
+   "reply_san": "Qxb2+",
+   "predicted_san": "Qxb2+",
+   "plan_san": "Ka8",
+   "prev_depth": 15,
+   "prev_pv_len": 19,
+   "predicted_reply": "g7b2",
+   "reply": "g7b2",
+   "reply_as_predicted": true,
+   "pv_reply": "g7b2",
+   "pv_next": "b7a8",
+   "pv_next_any": "b7a8",
+   "agree_plies": 13,
+   "prev_cp": -613,
+   "inherited_depth": 13,
+   "inherited_move": "b7a8",
+   "inherited_cp": -613,
+   "inherited_ms": 1
+  },
+  {
+   "ply": 75,
+   "move_no": 38,
+   "move": "e8d8",
+   "played_ok": true,
+   "san": "Qd8",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -650,
+   "score": "cp -650",
+   "depth": 16,
+   "pv": [
+    "e8d8",
+    "d3e4",
+    "d8a5",
+    "e1c1",
+    "a5b6",
+    "b1a1",
+    "b6b2",
+    "a1b2",
+    "a8b7",
+    "b2c3"
+   ],
+   "pv_san": "38...Qd8 39.Be4 Qa5 40.Rc1 Qb6 41.Ka1 Qxb2+ 42.Kxb2 Kb7 43.Kc3",
+   "nodes": 150543289,
+   "ms": 9600,
+   "pv_len": 10,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "e7d5",
+     -510,
+     false
+    ],
+    [
+     2,
+     "e7d5",
+     -573,
+     false
+    ],
+    [
+     3,
+     "e7d5",
+     -573,
+     false
+    ],
+    [
+     4,
+     "e7d5",
+     -573,
+     false
+    ],
+    [
+     5,
+     "e7d5",
+     -573,
+     false
+    ],
+    [
+     6,
+     "e7d5",
+     -515,
+     false
+    ],
+    [
+     7,
+     "e7d5",
+     -576,
+     false
+    ],
+    [
+     8,
+     "e7d5",
+     -568,
+     false
+    ],
+    [
+     9,
+     "e8d8",
+     -580,
+     false
+    ],
+    [
+     10,
+     "e8d8",
+     -580,
+     false
+    ],
+    [
+     11,
+     "e8d8",
+     -580,
+     false
+    ],
+    [
+     12,
+     "e8d8",
+     -580,
+     false
+    ],
+    [
+     13,
+     "e8d8",
+     -580,
+     false
+    ],
+    [
+     14,
+     "e8d8",
+     -580,
+     false
+    ],
+    [
+     15,
+     "e8d8",
+     -580,
+     false
+    ],
+    [
+     16,
+     "e8d8",
+     -650,
+     false
+    ],
+    [
+     16,
+     "e8d8",
+     -650,
+     false
+    ]
+   ],
+   "settled_at": 9,
+   "first_move_changes": 1,
+   "game_followed": 3,
+   "game_followed_all": false,
+   "pondered_ms": 9601,
+   "after_hit_ms": 1,
+   "depth_at_hit": 16,
+   "move_at_hit": "e8d8",
+   "cp_at_hit": -650,
+   "depth_played": 16,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "Be5",
+   "predicted_san": "Be5",
+   "plan_san": "Qd8",
+   "prev_depth": 16,
+   "prev_pv_len": 18,
+   "predicted_reply": "b8e5",
+   "reply": "b8e5",
+   "reply_as_predicted": true,
+   "pv_reply": "b8e5",
+   "pv_next": "e8d8",
+   "pv_next_any": "e8d8",
+   "agree_plies": 3,
+   "prev_cp": -580,
+   "inherited_depth": 14,
+   "inherited_move": "e8d8",
+   "inherited_cp": -580,
+   "inherited_ms": 97,
+   "switch_swing": -12
+  },
+  {
+   "ply": 77,
+   "move_no": 39,
+   "move": "d8a5",
+   "played_ok": true,
+   "san": "Qa5",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -707,
+   "score": "cp -707",
+   "depth": 18,
+   "pv": [
+    "d8a5",
+    "e1c1",
+    "a5b6",
+    "b2b6"
+   ],
+   "pv_san": "39...Qa5 40.Rc1 Qb6 41.Qxb6",
+   "nodes": 220973591,
+   "ms": 13768,
+   "pv_len": 4,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "d8a5",
+     -466,
+     false
+    ],
+    [
+     2,
+     "d8e8",
+     -639,
+     false
+    ],
+    [
+     3,
+     "d8e8",
+     -639,
+     false
+    ],
+    [
+     4,
+     "d8e8",
+     -639,
+     false
+    ],
+    [
+     5,
+     "d8e8",
+     -627,
+     false
+    ],
+    [
+     6,
+     "d8e8",
+     -628,
+     false
+    ],
+    [
+     7,
+     "e7d5",
+     -624,
+     false
+    ],
+    [
+     8,
+     "e7d5",
+     -636,
+     false
+    ],
+    [
+     9,
+     "e7d5",
+     -656,
+     false
+    ],
+    [
+     10,
+     "e7d5",
+     -647,
+     false
+    ],
+    [
+     11,
+     "d8a5",
+     -656,
+     false
+    ],
+    [
+     12,
+     "d8a5",
+     -656,
+     false
+    ],
+    [
+     13,
+     "d8a5",
+     -656,
+     false
+    ],
+    [
+     14,
+     "d8a5",
+     -656,
+     false
+    ],
+    [
+     15,
+     "d8a5",
+     -656,
+     false
+    ],
+    [
+     16,
+     "d8a5",
+     -690,
+     false
+    ],
+    [
+     17,
+     "d8a5",
+     -692,
+     false
+    ],
+    [
+     18,
+     "d8a5",
+     -707,
+     false
+    ]
+   ],
+   "settled_at": 11,
+   "first_move_changes": 2,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "pondered_ms": 10839,
+   "after_hit_ms": 2931,
+   "depth_at_hit": 17,
+   "move_at_hit": "d8a5",
+   "cp_at_hit": -692,
+   "depth_played": 18,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "Be4",
+   "predicted_san": "Be4",
+   "plan_san": "Qa5",
+   "prev_depth": 16,
+   "prev_pv_len": 10,
+   "predicted_reply": "d3e4",
+   "reply": "d3e4",
+   "reply_as_predicted": true,
+   "pv_reply": "d3e4",
+   "pv_next": "d8a5",
+   "pv_next_any": "d8a5",
+   "agree_plies": 3,
+   "prev_cp": -650,
+   "inherited_depth": 14,
+   "inherited_move": "d8a5",
+   "inherited_cp": -656,
+   "inherited_ms": 145,
+   "switch_swing": -9
+  },
+  {
+   "ply": 79,
+   "move_no": 40,
+   "move": "a5a4",
+   "played_ok": true,
+   "san": "Qa4",
+   "pieces": 15,
+   "source": "go",
+   "cp": -657,
+   "score": "cp -657",
+   "depth": 17,
+   "pv": [
+    "a5a4",
+    "e4f3",
+    "e7d5",
+    "b1a1",
+    "a7a5",
+    "a2a3",
+    "g8d8",
+    "d1d4",
+    "a4b5",
+    "b2b5",
+    "c6b5",
+    "g2g4",
+    "b5b4",
+    "a3b4",
+    "a5b4",
+    "g4g5",
+    "d8c8"
+   ],
+   "pv_san": "40...Qa4 41.Bf3 Nd5 42.Ka1 a5 43.a3 Rd8 44.Rd4 Qb5 45.Qxb5 cxb5 46.g4 b4 47.axb4 axb4 48.g5 Rc8",
+   "nodes": 81870734,
+   "ms": 5017,
+   "pv_len": 17,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "e7d5",
+     -418,
+     false
+    ],
+    [
+     2,
+     "e7d5",
+     -466,
+     false
+    ],
+    [
+     3,
+     "e7d5",
+     -466,
+     false
+    ],
+    [
+     4,
+     "e7d5",
+     -452,
+     false
+    ],
+    [
+     5,
+     "e7d5",
+     -502,
+     false
+    ],
+    [
+     6,
+     "e7d5",
+     -484,
+     false
+    ],
+    [
+     7,
+     "e7d5",
+     -540,
+     false
+    ],
+    [
+     8,
+     "e7d5",
+     -539,
+     false
+    ],
+    [
+     9,
+     "g8d8",
+     -595,
+     false
+    ],
+    [
+     10,
+     "g8d8",
+     -581,
+     false
+    ],
+    [
+     11,
+     "e7d5",
+     -624,
+     false
+    ],
+    [
+     12,
+     "e7d5",
+     -624,
+     false
+    ],
+    [
+     13,
+     "a5a4",
+     -624,
+     false
+    ],
+    [
+     14,
+     "a5a4",
+     -627,
+     false
+    ],
+    [
+     15,
+     "a5a4",
+     -645,
+     false
+    ],
+    [
+     16,
+     "a5a4",
+     -656,
+     false
+    ],
+    [
+     17,
+     "a5a4",
+     -657,
+     false
+    ]
+   ],
+   "settled_at": 13,
+   "first_move_changes": 3,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 5019,
+   "reply_forcing": false,
+   "reply_san": "Rd1",
+   "predicted_san": "Rc1",
+   "plan_san": "Qb6",
+   "prev_depth": 18,
+   "prev_pv_len": 4,
+   "predicted_reply": "e1c1",
+   "reply": "e1d1",
+   "reply_as_predicted": false,
+   "pv_reply": "e1c1",
+   "pv_next": null,
+   "pv_next_any": "a5b6",
+   "agree_plies": null,
+   "prev_cp": -707,
+   "inherited_depth": 16,
+   "inherited_move": "a5a4",
+   "inherited_cp": -656,
+   "inherited_ms": 3169,
+   "switch_swing": 0,
+   "miss_pondered_ms": 5652,
+   "miss_depth": 16,
+   "miss_would_play": "a5b6"
+  },
+  {
+   "ply": 81,
+   "move_no": 41,
+   "move": "a4a6",
+   "played_ok": true,
+   "san": "Qa6",
+   "pieces": 15,
+   "source": "go",
+   "cp": -676,
+   "score": "cp -676",
+   "depth": 18,
+   "pv": [
+    "a4a6",
+    "c2e4",
+    "e7d5",
+    "b1a1",
+    "g8c8",
+    "g2g4",
+    "d5b6",
+    "d1b1",
+    "b6d7",
+    "g4g5",
+    "d7e5",
+    "b2e5",
+    "a6a4",
+    "f2f3",
+    "a4c4"
+   ],
+   "pv_san": "41...Qa6 42.Be4 Nd5 43.Ka1 Rc8 44.g4 Nb6 45.Rb1 Nd7 46.g5 Nxe5 47.Qxe5 Qa4 48.f3 Qc4",
+   "nodes": 114132358,
+   "ms": 6724,
+   "pv_len": 15,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "a4a5",
+     -522,
+     false
+    ],
+    [
+     2,
+     "a4a5",
+     -520,
+     false
+    ],
+    [
+     3,
+     "a4a5",
+     -520,
+     false
+    ],
+    [
+     4,
+     "a4a5",
+     -520,
+     false
+    ],
+    [
+     5,
+     "a4a5",
+     -541,
+     false
+    ],
+    [
+     6,
+     "a4a6",
+     -487,
+     false
+    ],
+    [
+     7,
+     "a4a6",
+     -552,
+     false
+    ],
+    [
+     8,
+     "a4a6",
+     -524,
+     false
+    ],
+    [
+     9,
+     "a4a6",
+     -588,
+     false
+    ],
+    [
+     10,
+     "a4a6",
+     -595,
+     false
+    ],
+    [
+     11,
+     "a4a6",
+     -608,
+     false
+    ],
+    [
+     12,
+     "a4a6",
+     -596,
+     false
+    ],
+    [
+     13,
+     "a4a6",
+     -618,
+     false
+    ],
+    [
+     14,
+     "a4a6",
+     -601,
+     false
+    ],
+    [
+     15,
+     "a4a6",
+     -679,
+     false
+    ],
+    [
+     16,
+     "a4a6",
+     -656,
+     false
+    ],
+    [
+     17,
+     "a4a6",
+     -692,
+     false
+    ],
+    [
+     18,
+     "a4a6",
+     -676,
+     false
+    ]
+   ],
+   "settled_at": 6,
+   "first_move_changes": 1,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 6726,
+   "reply_forcing": false,
+   "reply_san": "Bc2",
+   "predicted_san": "Bf3",
+   "plan_san": "Nd5",
+   "prev_depth": 17,
+   "prev_pv_len": 17,
+   "predicted_reply": "e4f3",
+   "reply": "e4c2",
+   "reply_as_predicted": false,
+   "pv_reply": "e4f3",
+   "pv_next": null,
+   "pv_next_any": "e7d5",
+   "agree_plies": null,
+   "prev_cp": -657,
+   "inherited_depth": 15,
+   "inherited_move": "a4a6",
+   "inherited_cp": -679,
+   "inherited_ms": 2689,
+   "switch_swing": 54,
+   "miss_pondered_ms": 4848,
+   "miss_depth": 17,
+   "miss_would_play": "e7d5"
+  },
+  {
+   "ply": 83,
+   "move_no": 42,
+   "move": "e7d5",
+   "played_ok": true,
+   "san": "Nd5",
+   "pieces": 15,
+   "source": "go",
+   "cp": -791,
+   "score": "cp -791",
+   "depth": 19,
+   "pv": [
+    "e7d5",
+    "c2e4",
+    "g8c8",
+    "g2g4",
+    "d5b6",
+    "d1b1",
+    "a6a4",
+    "f2f3"
+   ],
+   "pv_san": "42...Nd5 43.Be4 Rc8 44.g4 Nb6 45.Rb1 Qa4 46.f3",
+   "nodes": 257503084,
+   "ms": 15990,
+   "pv_len": 8,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "e7d5",
+     -469,
+     false
+    ],
+    [
+     2,
+     "a6b6",
+     -628,
+     false
+    ],
+    [
+     3,
+     "a6b6",
+     -628,
+     false
+    ],
+    [
+     4,
+     "a6b6",
+     -628,
+     false
+    ],
+    [
+     5,
+     "a6b6",
+     -639,
+     false
+    ],
+    [
+     6,
+     "a6b6",
+     -647,
+     false
+    ],
+    [
+     7,
+     "a6b6",
+     -635,
+     false
+    ],
+    [
+     8,
+     "a6b6",
+     -635,
+     false
+    ],
+    [
+     9,
+     "a6b6",
+     -644,
+     false
+    ],
+    [
+     10,
+     "a6b6",
+     -647,
+     false
+    ],
+    [
+     11,
+     "a6b6",
+     -640,
+     false
+    ],
+    [
+     12,
+     "g8c8",
+     -728,
+     false
+    ],
+    [
+     13,
+     "g8c8",
+     -747,
+     false
+    ],
+    [
+     14,
+     "e7d5",
+     -757,
+     false
+    ],
+    [
+     15,
+     "e7d5",
+     -757,
+     false
+    ],
+    [
+     16,
+     "e7d5",
+     -757,
+     false
+    ],
+    [
+     17,
+     "e7d5",
+     -757,
+     false
+    ],
+    [
+     18,
+     "e7d5",
+     -743,
+     false
+    ],
+    [
+     19,
+     "e7d5",
+     -791,
+     false
+    ]
+   ],
+   "settled_at": 14,
+   "first_move_changes": 2,
+   "game_followed": 8,
+   "game_followed_all": true,
+   "used_ms": 15993,
+   "reply_forcing": false,
+   "reply_san": "Ka1",
+   "predicted_san": "Be4",
+   "plan_san": "Nd5",
+   "prev_depth": 18,
+   "prev_pv_len": 15,
+   "predicted_reply": "c2e4",
+   "reply": "b1a1",
+   "reply_as_predicted": false,
+   "pv_reply": "c2e4",
+   "pv_next": null,
+   "pv_next_any": "e7d5",
+   "agree_plies": null,
+   "prev_cp": -676,
+   "inherited_depth": 16,
+   "inherited_move": "e7d5",
+   "inherited_cp": -757,
+   "inherited_ms": 2026,
+   "switch_swing": -10,
+   "miss_pondered_ms": 5763,
+   "miss_depth": 16,
+   "miss_would_play": "e7d5"
+  },
+  {
+   "ply": 85,
+   "move_no": 43,
+   "move": "g8c8",
+   "played_ok": true,
+   "san": "Rc8",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -780,
+   "score": "cp -780",
+   "depth": 18,
+   "pv": [
+    "g8c8",
+    "g2g4",
+    "d5b6",
+    "d1b1",
+    "a6a4",
+    "f2f3",
+    "a4a6",
+    "g4g5"
+   ],
+   "pv_san": "43...Rc8 44.g4 Nb6 45.Rb1 Qa4 46.f3 Qa6 47.g5",
+   "nodes": 442129408,
+   "ms": 27984,
+   "pv_len": 8,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "a6a4",
+     -483,
+     false
+    ],
+    [
+     2,
+     "a6a4",
+     -705,
+     false
+    ],
+    [
+     3,
+     "a6a4",
+     -705,
+     false
+    ],
+    [
+     4,
+     "a6a4",
+     -705,
+     false
+    ],
+    [
+     5,
+     "a6a4",
+     -705,
+     false
+    ],
+    [
+     6,
+     "a6a4",
+     -705,
+     false
+    ],
+    [
+     7,
+     "a6a4",
+     -705,
+     false
+    ],
+    [
+     8,
+     "a6a4",
+     -727,
+     false
+    ],
+    [
+     9,
+     "a6a4",
+     -772,
+     false
+    ],
+    [
+     10,
+     "g8c8",
+     -791,
+     false
+    ],
+    [
+     11,
+     "g8c8",
+     -791,
+     false
+    ],
+    [
+     12,
+     "g8c8",
+     -791,
+     false
+    ],
+    [
+     13,
+     "g8c8",
+     -791,
+     false
+    ],
+    [
+     14,
+     "g8c8",
+     -791,
+     false
+    ],
+    [
+     15,
+     "g8c8",
+     -791,
+     false
+    ],
+    [
+     16,
+     "g8c8",
+     -791,
+     false
+    ],
+    [
+     17,
+     "g8c8",
+     -791,
+     false
+    ],
+    [
+     18,
+     "g8c8",
+     -780,
+     false
+    ],
+    [
+     18,
+     "g8c8",
+     -780,
+     false
+    ]
+   ],
+   "settled_at": 10,
+   "first_move_changes": 1,
+   "game_followed": 6,
+   "game_followed_all": false,
+   "pondered_ms": 6828,
+   "after_hit_ms": 21158,
+   "depth_at_hit": 18,
+   "move_at_hit": "g8c8",
+   "cp_at_hit": -780,
+   "depth_played": 18,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "Be4",
+   "predicted_san": "Be4",
+   "plan_san": "Rc8",
+   "prev_depth": 19,
+   "prev_pv_len": 8,
+   "predicted_reply": "c2e4",
+   "reply": "c2e4",
+   "reply_as_predicted": true,
+   "pv_reply": "c2e4",
+   "pv_next": "g8c8",
+   "pv_next_any": "g8c8",
+   "agree_plies": 6,
+   "prev_cp": -791,
+   "inherited_depth": 17,
+   "inherited_move": "g8c8",
+   "inherited_cp": -791,
+   "inherited_ms": 156,
+   "switch_swing": -19
+  },
+  {
+   "ply": 87,
+   "move_no": 44,
+   "move": "d5b6",
+   "played_ok": true,
+   "san": "Nb6",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -871,
+   "score": "cp -871",
+   "depth": 17,
+   "pv": [
+    "d5b6"
+   ],
+   "pv_san": "44...Nb6",
+   "nodes": 63581874,
+   "ms": 4110,
+   "pv_len": 1,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "a6a5",
+     -510,
+     false
+    ],
+    [
+     2,
+     "a6a5",
+     -562,
+     false
+    ],
+    [
+     3,
+     "a6a5",
+     -562,
+     false
+    ],
+    [
+     4,
+     "a6a5",
+     -518,
+     false
+    ],
+    [
+     5,
+     "a6a5",
+     -643,
+     false
+    ],
+    [
+     6,
+     "a6a5",
+     -578,
+     false
+    ],
+    [
+     7,
+     "a6a5",
+     -705,
+     false
+    ],
+    [
+     8,
+     "a6a5",
+     -679,
+     false
+    ],
+    [
+     9,
+     "a6a5",
+     -742,
+     false
+    ],
+    [
+     10,
+     "a6a5",
+     -820,
+     false
+    ],
+    [
+     11,
+     "a6a5",
+     -835,
+     false
+    ],
+    [
+     12,
+     "a6a5",
+     -866,
+     false
+    ],
+    [
+     13,
+     "a6a5",
+     -847,
+     false
+    ],
+    [
+     14,
+     "a6a5",
+     -870,
+     false
+    ],
+    [
+     15,
+     "a6a5",
+     -857,
+     false
+    ],
+    [
+     16,
+     "d5b6",
+     -871,
+     false
+    ],
+    [
+     17,
+     "d5b6",
+     -871,
+     false
+    ]
+   ],
+   "settled_at": 16,
+   "first_move_changes": 1,
+   "game_followed": 1,
+   "game_followed_all": true,
+   "pondered_ms": 3165,
+   "after_hit_ms": 22973,
+   "depth_at_hit": 15,
+   "move_at_hit": "a6a5",
+   "cp_at_hit": -857,
+   "depth_played": 17,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "g4",
+   "predicted_san": "g4",
+   "plan_san": "Nb6",
+   "prev_depth": 18,
+   "prev_pv_len": 8,
+   "predicted_reply": "g2g4",
+   "reply": "g2g4",
+   "reply_as_predicted": true,
+   "pv_reply": "g2g4",
+   "pv_next": "d5b6",
+   "pv_next_any": "d5b6",
+   "agree_plies": 1,
+   "prev_cp": -780,
+   "inherited_depth": 16,
+   "inherited_move": "d5b6",
+   "inherited_cp": -871,
+   "inherited_ms": 3519,
+   "switch_swing": -14
+  },
+  {
+   "ply": 89,
+   "move_no": 45,
+   "move": "a6a4",
+   "played_ok": true,
+   "san": "Qa4",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -958,
+   "score": "cp -958",
+   "depth": 16,
+   "pv": [
+    "a6a4"
+   ],
+   "pv_san": "45...Qa4",
+   "nodes": 185930782,
+   "ms": 11924,
+   "pv_len": 1,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "a6a5",
+     -510,
+     false
+    ],
+    [
+     2,
+     "a6a5",
+     -578,
+     false
+    ],
+    [
+     3,
+     "a6a5",
+     -578,
+     false
+    ],
+    [
+     4,
+     "a6a5",
+     -578,
+     false
+    ],
+    [
+     5,
+     "a6a5",
+     -689,
+     false
+    ],
+    [
+     6,
+     "a6a5",
+     -649,
+     false
+    ],
+    [
+     7,
+     "a6a5",
+     -759,
+     false
+    ],
+    [
+     8,
+     "a6a5",
+     -832,
+     false
+    ],
+    [
+     9,
+     "a6a5",
+     -857,
+     false
+    ],
+    [
+     10,
+     "a6a5",
+     -841,
+     false
+    ],
+    [
+     11,
+     "a6a5",
+     -923,
+     false
+    ],
+    [
+     12,
+     "a6a5",
+     -927,
+     false
+    ],
+    [
+     13,
+     "a6a5",
+     -927,
+     false
+    ],
+    [
+     14,
+     "a6a5",
+     -927,
+     false
+    ],
+    [
+     15,
+     "a6a5",
+     -927,
+     false
+    ],
+    [
+     16,
+     "a6a4",
+     -958,
+     false
+    ]
+   ],
+   "settled_at": 16,
+   "first_move_changes": 1,
+   "game_followed": 1,
+   "game_followed_all": true,
+   "pondered_ms": 5578,
+   "after_hit_ms": 6349,
+   "depth_at_hit": 15,
+   "move_at_hit": "a6a5",
+   "cp_at_hit": -927,
+   "depth_played": 16,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "Rb1",
+   "predicted_san": "Rb1",
+   "prev_depth": 17,
+   "prev_pv_len": 1,
+   "predicted_reply": "d1b1",
+   "reply": "d1b1",
+   "reply_as_predicted": true,
+   "pv_reply": null,
+   "pv_next": null,
+   "pv_next_any": null,
+   "agree_plies": null,
+   "prev_cp": -871,
+   "inherited_depth": 15,
+   "inherited_move": "a6a5",
+   "inherited_cp": -927,
+   "inherited_ms": 440,
+   "plan_san": "Qa5",
+   "switch_swing": -31
+  },
+  {
+   "ply": 91,
+   "move_no": 46,
+   "move": "a4a5",
+   "played_ok": true,
+   "san": "Qa5",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -1026,
+   "score": "cp -1026",
+   "depth": 17,
+   "pv": [
+    "a4a5",
+    "g4g5",
+    "a8b7",
+    "g5g6",
+    "c8g8",
+    "g6g7",
+    "g8d8",
+    "b2c3",
+    "a5a4",
+    "c3c5",
+    "d8d2",
+    "e4c6",
+    "a4c6",
+    "c5c6",
+    "b7c6",
+    "g7g8q",
+    "c6b7",
+    "g8e6",
+    "b7a6"
+   ],
+   "pv_san": "46...Qa5 47.g5 Kb7 48.g6 Rg8 49.g7 Rd8 50.Qc3 Qa4 51.Qc5 Rd2 52.Bxc6+ Qxc6 53.Qxc6+ Kxc6 54.g8=Q Kb7 55.Qxe6 Ka6",
+   "nodes": 161972956,
+   "ms": 10223,
+   "pv_len": 19,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "a4a5",
+     -526,
+     false
+    ],
+    [
+     2,
+     "c8b8",
+     -864,
+     false
+    ],
+    [
+     3,
+     "c8b8",
+     -864,
+     false
+    ],
+    [
+     4,
+     "c8b8",
+     -832,
+     false
+    ],
+    [
+     5,
+     "c8b8",
+     -871,
+     false
+    ],
+    [
+     6,
+     "a4a5",
+     -977,
+     false
+    ],
+    [
+     7,
+     "a4a5",
+     -977,
+     false
+    ],
+    [
+     8,
+     "a4a5",
+     -977,
+     false
+    ],
+    [
+     9,
+     "a4a5",
+     -977,
+     false
+    ],
+    [
+     10,
+     "a4a6",
+     -937,
+     false
+    ],
+    [
+     11,
+     "a4a6",
+     -973,
+     false
+    ],
+    [
+     12,
+     "a4a6",
+     -974,
+     false
+    ],
+    [
+     13,
+     "a4a6",
+     -937,
+     false
+    ],
+    [
+     14,
+     "a4a6",
+     -937,
+     false
+    ],
+    [
+     15,
+     "a4a5",
+     -977,
+     false
+    ],
+    [
+     16,
+     "a4a5",
+     -977,
+     false
+    ],
+    [
+     17,
+     "a4a5",
+     -1026,
+     false
+    ]
+   ],
+   "settled_at": 15,
+   "first_move_changes": 3,
+   "game_followed": 4,
+   "game_followed_all": false,
+   "pondered_ms": 3528,
+   "after_hit_ms": 6698,
+   "depth_at_hit": 16,
+   "move_at_hit": "a4a5",
+   "cp_at_hit": -977,
+   "depth_played": 17,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "f3",
+   "predicted_san": "f3",
+   "prev_depth": 16,
+   "prev_pv_len": 1,
+   "predicted_reply": "f2f3",
+   "reply": "f2f3",
+   "reply_as_predicted": true,
+   "pv_reply": null,
+   "pv_next": null,
+   "pv_next_any": null,
+   "agree_plies": null,
+   "prev_cp": -958,
+   "inherited_depth": 14,
+   "inherited_move": "a4a6",
+   "inherited_cp": -937,
+   "inherited_ms": 351,
+   "plan_san": "Qa6",
+   "switch_swing": -40
+  },
+  {
+   "ply": 93,
+   "move_no": 47,
+   "move": "a8b7",
+   "played_ok": true,
+   "san": "Kb7",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -1056,
+   "score": "cp -1056",
+   "depth": 16,
+   "pv": [
+    "a8b7",
+    "g5g6",
+    "c8g8",
+    "g6g7",
+    "g8d8",
+    "b2c3",
+    "a5c3",
+    "e5c3",
+    "b7a6",
+    "c3f6",
+    "d8c8",
+    "b1g1"
+   ],
+   "pv_san": "47...Kb7 48.g6 Rg8 49.g7 Rd8 50.Qc3 Qxc3+ 51.Bxc3 Ka6 52.Bf6 Rc8 53.Rg1",
+   "nodes": 62610721,
+   "ms": 4025,
+   "pv_len": 12,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "b6c4",
+     -529,
+     false
+    ],
+    [
+     2,
+     "a5c5",
+     -682,
+     false
+    ],
+    [
+     3,
+     "a5c5",
+     -682,
+     false
+    ],
+    [
+     4,
+     "a5c5",
+     -682,
+     false
+    ],
+    [
+     5,
+     "a5c5",
+     -833,
+     false
+    ],
+    [
+     6,
+     "a5c5",
+     -833,
+     false
+    ],
+    [
+     7,
+     "a5c5",
+     -982,
+     false
+    ],
+    [
+     8,
+     "a5c5",
+     -982,
+     false
+    ],
+    [
+     9,
+     "a5c5",
+     -985,
+     false
+    ],
+    [
+     10,
+     "a8b7",
+     -1026,
+     false
+    ],
+    [
+     11,
+     "a8b7",
+     -1026,
+     false
+    ],
+    [
+     12,
+     "a8b7",
+     -1026,
+     false
+    ],
+    [
+     13,
+     "a8b7",
+     -1026,
+     false
+    ],
+    [
+     14,
+     "a8b7",
+     -1026,
+     false
+    ],
+    [
+     15,
+     "a8b7",
+     -1026,
+     false
+    ],
+    [
+     16,
+     "a8b7",
+     -1056,
+     false
+    ]
+   ],
+   "settled_at": 10,
+   "first_move_changes": 1,
+   "game_followed": 2,
+   "game_followed_all": false,
+   "pondered_ms": 3493,
+   "after_hit_ms": 534,
+   "depth_at_hit": 15,
+   "move_at_hit": "a8b7",
+   "cp_at_hit": -1026,
+   "depth_played": 16,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "g5",
+   "predicted_san": "g5",
+   "plan_san": "Kb7",
+   "prev_depth": 17,
+   "prev_pv_len": 19,
+   "predicted_reply": "g4g5",
+   "reply": "g4g5",
+   "reply_as_predicted": true,
+   "pv_reply": "g4g5",
+   "pv_next": "a8b7",
+   "pv_next_any": "a8b7",
+   "agree_plies": 6,
+   "prev_cp": -1026,
+   "inherited_depth": 15,
+   "inherited_move": "a8b7",
+   "inherited_cp": -1026,
+   "inherited_ms": 51,
+   "switch_swing": -41
+  },
+  {
+   "ply": 95,
+   "move_no": 48,
+   "move": "a5c5",
+   "played_ok": true,
+   "san": "Qc5",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -1117,
+   "score": "cp -1117",
+   "depth": 15,
+   "pv": [
+    "a5c5",
+    "g6g7",
+    "c5e7",
+    "e4c6",
+    "c8c6",
+    "g7g8q",
+    "c6c8",
+    "g8g2",
+    "b7a8",
+    "f3f4",
+    "e7b7",
+    "g2b7",
+    "a8b7",
+    "b2d4",
+    "c8f8",
+    "d4d7"
+   ],
+   "pv_san": "48...Qc5 49.g7 Qe7 50.Bxc6+ Rxc6 51.g8=Q Rc8 52.Qgg2 Ka8 53.f4+ Qb7 54.Qxb7+ Kxb7 55.Qd4 Rf8 56.Qd7+",
+   "nodes": 124531316,
+   "ms": 8008,
+   "pv_len": 16,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "b7a8",
+     -678,
+     false
+    ],
+    [
+     2,
+     "b7a8",
+     -820,
+     false
+    ],
+    [
+     3,
+     "b7a8",
+     -820,
+     false
+    ],
+    [
+     4,
+     "b7a8",
+     -820,
+     false
+    ],
+    [
+     5,
+     "b7a8",
+     -820,
+     false
+    ],
+    [
+     6,
+     "b7a8",
+     -832,
+     false
+    ],
+    [
+     7,
+     "b7a8",
+     -983,
+     false
+    ],
+    [
+     8,
+     "b7a8",
+     -979,
+     false
+    ],
+    [
+     9,
+     "b7a8",
+     -980,
+     false
+    ],
+    [
+     10,
+     "b7a8",
+     -1056,
+     false
+    ],
+    [
+     11,
+     "c8d8",
+     -1056,
+     false
+    ],
+    [
+     12,
+     "c8g8",
+     -1056,
+     false
+    ],
+    [
+     13,
+     "c8g8",
+     -1056,
+     false
+    ],
+    [
+     14,
+     "c8g8",
+     -1056,
+     false
+    ],
+    [
+     15,
+     "a5c5",
+     -1117,
+     false
+    ]
+   ],
+   "settled_at": 15,
+   "first_move_changes": 3,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "pondered_ms": 6171,
+   "after_hit_ms": 1839,
+   "depth_at_hit": 14,
+   "move_at_hit": "c8g8",
+   "cp_at_hit": -1056,
+   "depth_played": 15,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "g6",
+   "predicted_san": "g6",
+   "plan_san": "Rg8",
+   "prev_depth": 16,
+   "prev_pv_len": 12,
+   "predicted_reply": "g5g6",
+   "reply": "g5g6",
+   "reply_as_predicted": true,
+   "pv_reply": "g5g6",
+   "pv_next": "c8g8",
+   "pv_next_any": "c8g8",
+   "agree_plies": 0,
+   "prev_cp": -1056,
+   "inherited_depth": 14,
+   "inherited_move": "c8g8",
+   "inherited_cp": -1056,
+   "inherited_ms": 515,
+   "switch_swing": -61
+  },
+  {
+   "ply": 97,
+   "move_no": 49,
+   "move": "c5e3",
+   "played_ok": true,
+   "san": "Qe3",
+   "pieces": 15,
+   "source": "go",
+   "cp": -1114,
+   "score": "cp -1114",
+   "depth": 15,
+   "pv": [
+    "c5e3",
+    "g6g7",
+    "e3g5",
+    "c1b1",
+    "c8g8",
+    "b2c3",
+    "g8c8",
+    "c3d4",
+    "g5d8",
+    "d4d8"
+   ],
+   "pv_san": "49...Qe3 50.g7 Qg5 51.Rb1 Rg8 52.Qc3 Rc8 53.Qd4 Qd8 54.Qxd8",
+   "nodes": 108822872,
+   "ms": 6876,
+   "pv_len": 10,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "c5e3",
+     -726,
+     false
+    ],
+    [
+     2,
+     "c5e3",
+     -646,
+     false
+    ],
+    [
+     3,
+     "c5e3",
+     -756,
+     false
+    ],
+    [
+     4,
+     "c5e3",
+     -733,
+     false
+    ],
+    [
+     5,
+     "c5e3",
+     -828,
+     false
+    ],
+    [
+     6,
+     "c5e3",
+     -799,
+     false
+    ],
+    [
+     7,
+     "c5e3",
+     -863,
+     false
+    ],
+    [
+     8,
+     "c5e3",
+     -893,
+     false
+    ],
+    [
+     9,
+     "c5e7",
+     -914,
+     false
+    ],
+    [
+     10,
+     "c5e7",
+     -914,
+     false
+    ],
+    [
+     11,
+     "c5e7",
+     -947,
+     false
+    ],
+    [
+     12,
+     "c5e7",
+     -954,
+     false
+    ],
+    [
+     13,
+     "c5e3",
+     -1003,
+     false
+    ],
+    [
+     14,
+     "c5e3",
+     -1005,
+     false
+    ],
+    [
+     15,
+     "c5e3",
+     -1114,
+     false
+    ]
+   ],
+   "settled_at": 13,
+   "first_move_changes": 2,
+   "game_followed": 3,
+   "game_followed_all": false,
+   "used_ms": 6879,
+   "reply_forcing": false,
+   "reply_san": "Rc1",
+   "predicted_san": "g7",
+   "plan_san": "Qe7",
+   "prev_depth": 15,
+   "prev_pv_len": 16,
+   "predicted_reply": "g6g7",
+   "reply": "b1c1",
+   "reply_as_predicted": false,
+   "pv_reply": "g6g7",
+   "pv_next": null,
+   "pv_next_any": "c5e7",
+   "agree_plies": null,
+   "prev_cp": -1117,
+   "inherited_depth": 13,
+   "inherited_move": "c5e3",
+   "inherited_cp": -1003,
+   "inherited_ms": 2524,
+   "switch_swing": -49,
+   "miss_pondered_ms": 4712,
+   "miss_depth": 14,
+   "miss_would_play": "c5e7"
+  },
+  {
+   "ply": 99,
+   "move_no": 50,
+   "move": "e3g5",
+   "played_ok": true,
+   "san": "Qg5",
+   "pieces": 15,
+   "source": "hit",
+   "cp": -1521,
+   "score": "cp -1521",
+   "depth": 14,
+   "pv": [
+    "e3g5",
+    "b2c3",
+    "b7a6",
+    "e5f6"
+   ],
+   "pv_san": "50...Qg5 51.Qc3 Ka6 52.Bf6",
+   "nodes": 178365824,
+   "ms": 11588,
+   "pv_len": 4,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "c8d8",
+     -711,
+     false
+    ],
+    [
+     2,
+     "c8d8",
+     -911,
+     false
+    ],
+    [
+     3,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     4,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     5,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     6,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     7,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     8,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     9,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     10,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     11,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     12,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     13,
+     "e3g5",
+     -1114,
+     false
+    ],
+    [
+     14,
+     "e3g5",
+     -1521,
+     false
+    ]
+   ],
+   "settled_at": 3,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "pondered_ms": 4072,
+   "after_hit_ms": 7518,
+   "depth_at_hit": 13,
+   "move_at_hit": "e3g5",
+   "cp_at_hit": -1114,
+   "depth_played": 14,
+   "restarted": false,
+   "reply_forcing": false,
+   "reply_san": "g7",
+   "predicted_san": "g7",
+   "plan_san": "Qg5",
+   "prev_depth": 15,
+   "prev_pv_len": 10,
+   "predicted_reply": "g6g7",
+   "reply": "g6g7",
+   "reply_as_predicted": true,
+   "pv_reply": "g6g7",
+   "pv_next": "e3g5",
+   "pv_next_any": "e3g5",
+   "agree_plies": 1,
+   "prev_cp": -1114,
+   "inherited_depth": 13,
+   "inherited_move": "e3g5",
+   "inherited_cp": -1114,
+   "inherited_ms": 45,
+   "switch_swing": -203
+  },
+  {
+   "ply": 101,
+   "move_no": 51,
+   "move": "g5g3",
+   "played_ok": true,
+   "san": "Qg3",
+   "pieces": 15,
+   "source": "go",
+   "cp": -1338,
+   "score": "cp -1338",
+   "depth": 15,
+   "pv": [
+    "g5g3",
+    "c1c6",
+    "c8c6",
+    "e4c6",
+    "b7c6",
+    "b2c3",
+    "g3c3",
+    "e5c3",
+    "e6e5",
+    "f4e5",
+    "a7a6",
+    "c3d4",
+    "b6d5"
+   ],
+   "pv_san": "51...Qg3 52.Rxc6 Rxc6 53.Bxc6+ Kxc6 54.Qc3+ Qxc3+ 55.Bxc3 e5 56.fxe5 a6 57.Bd4 Nd5",
+   "nodes": 72157055,
+   "ms": 4566,
+   "pv_len": 13,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "g5g4",
+     -782,
+     false
+    ],
+    [
+     2,
+     "g5d8",
+     -805,
+     false
+    ],
+    [
+     3,
+     "g5g3",
+     -813,
+     false
+    ],
+    [
+     4,
+     "g5g3",
+     -771,
+     false
+    ],
+    [
+     5,
+     "g5d8",
+     -860,
+     false
+    ],
+    [
+     6,
+     "g5d8",
+     -860,
+     false
+    ],
+    [
+     7,
+     "g5d8",
+     -909,
+     false
+    ],
+    [
+     8,
+     "g5g3",
+     -1015,
+     false
+    ],
+    [
+     9,
+     "g5g3",
+     -1033,
+     false
+    ],
+    [
+     10,
+     "g5g3",
+     -1066,
+     false
+    ],
+    [
+     11,
+     "g5g3",
+     -1071,
+     false
+    ],
+    [
+     12,
+     "g5g3",
+     -1110,
+     false
+    ],
+    [
+     13,
+     "g5g3",
+     -1223,
+     false
+    ],
+    [
+     14,
+     "g5g3",
+     -1337,
+     false
+    ],
+    [
+     15,
+     "g5g3",
+     -1338,
+     false
+    ]
+   ],
+   "settled_at": 8,
+   "first_move_changes": 1,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 4569,
+   "reply_forcing": false,
+   "reply_san": "f4",
+   "predicted_san": "Qc3",
+   "plan_san": "Ka6",
+   "prev_depth": 14,
+   "prev_pv_len": 4,
+   "predicted_reply": "b2c3",
+   "reply": "f3f4",
+   "reply_as_predicted": false,
+   "pv_reply": "b2c3",
+   "pv_next": null,
+   "pv_next_any": "b7a6",
+   "agree_plies": null,
+   "prev_cp": -1521,
+   "inherited_depth": 12,
+   "inherited_move": "g5g3",
+   "inherited_cp": -1110,
+   "inherited_ms": 472,
+   "switch_swing": -106,
+   "miss_pondered_ms": 2909,
+   "miss_depth": 12,
+   "miss_would_play": "b7a6"
+  },
+  {
+   "ply": 103,
+   "move_no": 52,
+   "move": "a7a6",
+   "played_ok": true,
+   "san": "a6",
+   "pieces": 15,
+   "source": "go",
+   "cp": -99992,
+   "score": "mate -8",
+   "depth": 14,
+   "pv": [
+    "a7a6",
+    "e4c6",
+    "b7a7",
+    "b5c5",
+    "g3d3",
+    "c1b1",
+    "c8c6",
+    "g7g8q",
+    "d3d4",
+    "c5d4",
+    "a6a5",
+    "g8b8"
+   ],
+   "pv_san": "52...a6 53.Bxc6+ Ka7 54.Qc5 Qd3 55.Rb1 Rxc6 56.g8=Q Qd4+ 57.Qxd4 a5 58.Qb8+",
+   "nodes": 73317761,
+   "ms": 4049,
+   "pv_len": 12,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "a7a6",
+     -792,
+     false
+    ],
+    [
+     2,
+     "g3h3",
+     -1069,
+     false
+    ],
+    [
+     3,
+     "g3g4",
+     -1015,
+     false
+    ],
+    [
+     4,
+     "g3g4",
+     -1017,
+     false
+    ],
+    [
+     5,
+     "g3g4",
+     -1336,
+     false
+    ],
+    [
+     6,
+     "g3g6",
+     -1416,
+     false
+    ],
+    [
+     7,
+     "g3g6",
+     -1511,
+     false
+    ],
+    [
+     8,
+     "g3g6",
+     -1776,
+     false
+    ],
+    [
+     9,
+     "g3g7",
+     -2500,
+     false
+    ],
+    [
+     10,
+     "a7a6",
+     -99992,
+     false
+    ],
+    [
+     11,
+     "a7a6",
+     -99992,
+     false
+    ],
+    [
+     12,
+     "a7a6",
+     -99992,
+     false
+    ],
+    [
+     13,
+     "a7a6",
+     -99992,
+     false
+    ],
+    [
+     14,
+     "a7a6",
+     -99992,
+     false
+    ]
+   ],
+   "settled_at": 10,
+   "first_move_changes": 3,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 4052,
+   "reply_forcing": false,
+   "reply_san": "Qb5",
+   "predicted_san": "Rxc6",
+   "plan_san": "Rxc6",
+   "prev_depth": 15,
+   "prev_pv_len": 13,
+   "predicted_reply": "c1c6",
+   "reply": "b2b5",
+   "reply_as_predicted": false,
+   "pv_reply": "c1c6",
+   "pv_next": null,
+   "pv_next_any": "c8c6",
+   "agree_plies": null,
+   "prev_cp": -1338,
+   "inherited_depth": 13,
+   "inherited_move": "a7a6",
+   "inherited_cp": -99992,
+   "inherited_ms": 3264,
+   "switch_swing": -97492,
+   "miss_pondered_ms": 7426,
+   "miss_depth": 15,
+   "miss_would_play": "c8c6"
+  },
+  {
+   "ply": 105,
+   "move_no": 53,
+   "move": "g3g7",
+   "played_ok": true,
+   "san": "Qxg7",
+   "pieces": 15,
+   "source": "go",
+   "cp": -99994,
+   "score": "mate -6",
+   "depth": 21,
+   "pv": [
+    "g3g7",
+    "e5g7",
+    "c8c7",
+    "c1b1",
+    "b7c8",
+    "c5b6",
+    "c8d7",
+    "b1d1"
+   ],
+   "pv_san": "53...Qxg7 54.Bxg7 Rc7 55.Rb1 Kc8 56.Qxb6 Kd7 57.Rd1+",
+   "nodes": 71474228,
+   "ms": 3855,
+   "pv_len": 8,
+   "capture": true,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "g3g4",
+     -845,
+     false
+    ],
+    [
+     2,
+     "a6a5",
+     -871,
+     false
+    ],
+    [
+     3,
+     "g3h4",
+     -1263,
+     false
+    ],
+    [
+     4,
+     "g3h4",
+     -1263,
+     false
+    ],
+    [
+     5,
+     "g3h4",
+     -2438,
+     false
+    ],
+    [
+     6,
+     "g3h4",
+     -2573,
+     false
+    ],
+    [
+     7,
+     "g3g7",
+     -2500,
+     false
+    ],
+    [
+     8,
+     "g3g7",
+     -3727,
+     false
+    ],
+    [
+     9,
+     "g3g7",
+     -3727,
+     false
+    ],
+    [
+     10,
+     "g3g7",
+     -99993,
+     false
+    ],
+    [
+     11,
+     "g3g7",
+     -99993,
+     false
+    ],
+    [
+     12,
+     "g3g7",
+     -99993,
+     false
+    ],
+    [
+     13,
+     "g3g7",
+     -99993,
+     false
+    ],
+    [
+     14,
+     "g3g7",
+     -99994,
+     false
+    ],
+    [
+     15,
+     "g3g7",
+     -99994,
+     false
+    ],
+    [
+     16,
+     "g3g7",
+     -99994,
+     false
+    ],
+    [
+     17,
+     "g3g7",
+     -99994,
+     false
+    ],
+    [
+     18,
+     "g3g7",
+     -99994,
+     false
+    ],
+    [
+     19,
+     "g3g7",
+     -99994,
+     false
+    ],
+    [
+     20,
+     "g3g7",
+     -99994,
+     false
+    ],
+    [
+     21,
+     "g3g7",
+     -99994,
+     false
+    ]
+   ],
+   "settled_at": 7,
+   "first_move_changes": 1,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 3857,
+   "reply_forcing": false,
+   "reply_san": "Qc5",
+   "predicted_san": "Bxc6+",
+   "plan_san": "Ka7",
+   "prev_depth": 14,
+   "prev_pv_len": 12,
+   "predicted_reply": "e4c6",
+   "reply": "b5c5",
+   "reply_as_predicted": false,
+   "pv_reply": "e4c6",
+   "pv_next": null,
+   "pv_next_any": "b7a7",
+   "agree_plies": null,
+   "prev_cp": -99992,
+   "inherited_depth": 12,
+   "inherited_move": "g3g7",
+   "inherited_cp": -99993,
+   "inherited_ms": 235,
+   "switch_swing": 73,
+   "miss_pondered_ms": 8125,
+   "miss_depth": 18,
+   "miss_would_play": "b7a7"
+  },
+  {
+   "ply": 107,
+   "move_no": 54,
+   "move": "b7a7",
+   "played_ok": true,
+   "san": "Ka7",
+   "pieces": 13,
+   "source": "go",
+   "cp": -99994,
+   "score": "mate -6",
+   "depth": 21,
+   "pv": [
+    "b7a7",
+    "e5g7",
+    "c8c7",
+    "g7d4",
+    "a7b8",
+    "c5f8",
+    "c7c8",
+    "f8d6"
+   ],
+   "pv_san": "54...Ka7 55.Bxg7 Rc7 56.Bd4 Kb8 57.Qf8+ Rc8 58.Qd6+",
+   "nodes": 77001010,
+   "ms": 3999,
+   "pv_len": 8,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     2,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     3,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     4,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     5,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     6,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     7,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     8,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     9,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     10,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     11,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     12,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     13,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     14,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     15,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     16,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     17,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     18,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     19,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     20,
+     "b7a7",
+     -99994,
+     false
+    ],
+    [
+     21,
+     "b7a7",
+     -99994,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 3,
+   "game_followed_all": false,
+   "used_ms": 4001,
+   "reply_forcing": true,
+   "reply_san": "Bxc6+",
+   "predicted_san": "Bxg7",
+   "plan_san": "Rc7",
+   "prev_depth": 21,
+   "prev_pv_len": 8,
+   "predicted_reply": "e5g7",
+   "reply": "e4c6",
+   "reply_as_predicted": false,
+   "pv_reply": "e5g7",
+   "pv_next": null,
+   "pv_next_any": "c8c7",
+   "agree_plies": null,
+   "prev_cp": -99994,
+   "inherited_depth": 19,
+   "inherited_move": "b7a7",
+   "inherited_cp": -99994,
+   "inherited_ms": 3121,
+   "miss_pondered_ms": 7551,
+   "miss_depth": 23,
+   "miss_would_play": "a6a5"
+  },
+  {
+   "ply": 109,
+   "move_no": 55,
+   "move": "c8c7",
+   "played_ok": true,
+   "san": "Rc7",
+   "pieces": 12,
+   "source": "hit",
+   "cp": -99995,
+   "score": "mate -5",
+   "depth": 23,
+   "pv": [
+    "c8c7",
+    "g7d4",
+    "a7b8",
+    "c5f8",
+    "c7c8",
+    "f8d6",
+    "b8a7",
+    "d6d7"
+   ],
+   "pv_san": "55...Rc7 56.Bd4 Kb8 57.Qf8+ Rc8 58.Qd6+ Ka7 59.Qd7+",
+   "nodes": 16995818,
+   "ms": 794,
+   "pv_len": 8,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "c8c7",
+     -1430,
+     false
+    ],
+    [
+     2,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     3,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     4,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     5,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     6,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     7,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     8,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     9,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     10,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     11,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     12,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     13,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     14,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     15,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     16,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     17,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     18,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     19,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     20,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     21,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     22,
+     "c8c7",
+     -99995,
+     false
+    ],
+    [
+     23,
+     "c8c7",
+     -99995,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "pondered_ms": 355,
+   "after_hit_ms": 442,
+   "depth_at_hit": 21,
+   "move_at_hit": "c8c7",
+   "cp_at_hit": -99995,
+   "depth_played": 23,
+   "restarted": false,
+   "reply_forcing": true,
+   "reply_san": "Bxg7",
+   "predicted_san": "Bxg7",
+   "plan_san": "Rc7",
+   "prev_depth": 21,
+   "prev_pv_len": 8,
+   "predicted_reply": "e5g7",
+   "reply": "e5g7",
+   "reply_as_predicted": true,
+   "pv_reply": "e5g7",
+   "pv_next": "c8c7",
+   "pv_next_any": "c8c7",
+   "agree_plies": 6,
+   "prev_cp": -99994,
+   "inherited_depth": 19,
+   "inherited_move": "c8c7",
+   "inherited_cp": -99995,
+   "inherited_ms": 1
+  },
+  {
+   "ply": 111,
+   "move_no": 56,
+   "move": "c7b7",
+   "played_ok": true,
+   "san": "Rb7",
+   "pieces": 12,
+   "source": "go",
+   "cp": -99996,
+   "score": "mate -4",
+   "depth": 19,
+   "pv": [
+    "c7b7",
+    "c6b7",
+    "a7b7",
+    "c5b6",
+    "b7c8",
+    "b6c6"
+   ],
+   "pv_san": "56...Rb7 57.Bxb7 Kxb7 58.Qxb6+ Kc8 59.Qc6+",
+   "nodes": 518879,
+   "ms": 21,
+   "pv_len": 6,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "c7c6",
+     -1726,
+     false
+    ],
+    [
+     2,
+     "c7b7",
+     -3555,
+     false
+    ],
+    [
+     3,
+     "c7b7",
+     -3555,
+     false
+    ],
+    [
+     4,
+     "c7b7",
+     -3563,
+     false
+    ],
+    [
+     5,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     6,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     7,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     8,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     9,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     10,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     11,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     12,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     13,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     14,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     15,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     16,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     17,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     18,
+     "c7b7",
+     -99996,
+     false
+    ],
+    [
+     19,
+     "c7b7",
+     -99996,
+     false
+    ]
+   ],
+   "settled_at": 2,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": false,
+   "used_ms": 23,
+   "reply_forcing": false,
+   "reply_san": "Rb1",
+   "predicted_san": "Bd4",
+   "plan_san": "Kb8",
+   "prev_depth": 23,
+   "prev_pv_len": 8,
+   "predicted_reply": "g7d4",
+   "reply": "c1b1",
+   "reply_as_predicted": false,
+   "pv_reply": "g7d4",
+   "pv_next": null,
+   "pv_next_any": "a7b8",
+   "agree_plies": null,
+   "prev_cp": -99995,
+   "inherited_depth": 19,
+   "inherited_move": "c7b7",
+   "inherited_cp": -99996,
+   "inherited_ms": 21,
+   "switch_swing": -1829,
+   "miss_pondered_ms": 356,
+   "miss_depth": 19,
+   "miss_would_play": "a7b8"
+  },
+  {
+   "ply": 113,
+   "move_no": 57,
+   "move": "b7b8",
+   "played_ok": true,
+   "san": "Rb8",
+   "pieces": 12,
+   "source": "go",
+   "cp": -99998,
+   "score": "mate -2",
+   "depth": 11,
+   "pv": [
+    "b7b8"
+   ],
+   "pv_san": "57...Rb8",
+   "nodes": 7359,
+   "ms": 1,
+   "pv_len": 1,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "b7b8",
+     -3395,
+     false
+    ],
+    [
+     2,
+     "b7b8",
+     -99998,
+     false
+    ],
+    [
+     3,
+     "b7b8",
+     -99998,
+     false
+    ],
+    [
+     4,
+     "b7b8",
+     -99998,
+     false
+    ],
+    [
+     5,
+     "b7b8",
+     -99998,
+     false
+    ],
+    [
+     6,
+     "b7b8",
+     -99998,
+     false
+    ],
+    [
+     7,
+     "b7b8",
+     -99998,
+     false
+    ],
+    [
+     8,
+     "b7b8",
+     -99998,
+     false
+    ],
+    [
+     9,
+     "b7b8",
+     -99998,
+     false
+    ],
+    [
+     10,
+     "b7b8",
+     -99998,
+     false
+    ],
+    [
+     11,
+     "b7b8",
+     -99998,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": true,
+   "used_ms": 3,
+   "reply_forcing": false,
+   "reply_san": "Be5",
+   "predicted_san": "Bxb7",
+   "plan_san": "Kxb7",
+   "prev_depth": 19,
+   "prev_pv_len": 6,
+   "predicted_reply": "c6b7",
+   "reply": "g7e5",
+   "reply_as_predicted": false,
+   "pv_reply": "c6b7",
+   "pv_next": null,
+   "pv_next_any": "a7b7",
+   "agree_plies": null,
+   "prev_cp": -99996,
+   "inherited_depth": 11,
+   "inherited_move": "b7b8",
+   "inherited_cp": -99998,
+   "inherited_ms": 1,
+   "miss_pondered_ms": 349,
+   "miss_depth": 15,
+   "miss_would_play": "a7b7"
+  },
+  {
+   "ply": 115,
+   "move_no": 58,
+   "move": "b8b7",
+   "played_ok": true,
+   "san": "Rb7",
+   "pieces": 12,
+   "source": "hit",
+   "cp": -99999,
+   "score": "mate -1",
+   "depth": 7,
+   "pv": [
+    "b8b7"
+   ],
+   "pv_san": "58...Rb7",
+   "nodes": 2408,
+   "ms": 354,
+   "pv_len": 1,
+   "capture": false,
+   "check": false,
+   "depths": [
+    [
+     1,
+     "b8b7",
+     -99999,
+     false
+    ],
+    [
+     2,
+     "b8b7",
+     -99999,
+     false
+    ],
+    [
+     3,
+     "b8b7",
+     -99999,
+     false
+    ],
+    [
+     4,
+     "b8b7",
+     -99999,
+     false
+    ],
+    [
+     5,
+     "b8b7",
+     -99999,
+     false
+    ],
+    [
+     6,
+     "b8b7",
+     -99999,
+     false
+    ],
+    [
+     7,
+     "b8b7",
+     -99999,
+     false
+    ],
+    [
+     7,
+     "b8b7",
+     -99999,
+     false
+    ]
+   ],
+   "settled_at": 1,
+   "first_move_changes": 0,
+   "game_followed": 1,
+   "game_followed_all": true,
+   "pondered_ms": 355,
+   "after_hit_ms": 1,
+   "depth_at_hit": 7,
+   "move_at_hit": "b8b7",
+   "cp_at_hit": -99999,
+   "depth_played": 7,
+   "restarted": false,
+   "reply_forcing": true,
+   "reply_san": "Qe7+",
+   "predicted_san": "Qe7+",
+   "prev_depth": 11,
+   "prev_pv_len": 1,
+   "predicted_reply": "c5e7",
+   "reply": "c5e7",
+   "reply_as_predicted": true,
+   "pv_reply": null,
+   "pv_next": null,
+   "pv_next_any": null,
+   "agree_plies": null,
+   "prev_cp": -99998,
+   "inherited_depth": 7,
+   "inherited_move": "b8b7",
+   "inherited_cp": -99999,
+   "inherited_ms": 354,
+   "plan_san": "Rb7"
+  }
+ ]
+}
