@@ -283,7 +283,7 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     549a687).
     - [x] `bench 9` again on a quiet laptop (2026-10-22 15:32, 30 rounds; the
       12:11 run shared the laptop with P6's SPRT and is left out).
-    - [ ] Optional, Matthew's call: win back version 1's ~0.5-0.9%. The
+    - [ ] **Another day** (Matthew, 2026-10-22: "3.b for another day"): win back version 1's ~0.5-0.9%. The
       bucketed net isn't slower, so the added arithmetic isn't the likely
       cause: first find where it goes (layout?), then the battery and the
       bench again. Moot if a bucketed net replaces h1024-3m.
