@@ -6473,3 +6473,8 @@ a game, and the game read back.
   the time to depth 9.
 - **Its match against h1024-3m** from 01:36 (the bot stopped at 01:33,
   checked: no other engine thinking). At 02:50: 712 games, +6 [-12, +24].
+- **h1024-3m-ob8 v h1024-3m ended 05:03: +8 [-3, +19]** over 2,000 games,
+  +515 -470 =1015, LOS 92.4%, SPRT undecided (LLR 0.95). The same speed in
+  play (3,245 v 3,266 knps) and the same depth (10.9). MATCHES.md has the
+  paragraph. The core queue and Session context told; h1536-3m-l32 v
+  h1536-3m waits for the queue's go.

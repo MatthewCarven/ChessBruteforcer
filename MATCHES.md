@@ -68,6 +68,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-22 | h1024-3m-l32 | h1024-3m | 191 | +25 -71 =95 | 38.0% | **-85 [-121, -51]** | SPRT [0, 10] **accepted H0** at game 187 (LLR -3.09); a deep net at half the speed (see below); bot stopped |
 | 2026-10-22 | h1024-3m-l16-32 | h1024-3m | 276 | +45 -91 =140 | 41.7% | **-58 [-88, -30]** | SPRT [0, 10] **accepted H0** at game 272 (LLR -3.09); bot stopped |
 | 2026-10-22 | h1536-3m | h1024-3m | 2,000 | +498 -456 =1046 | 51.0% | **+7 [-3, +18]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR ~0.8), LOS 91.3%; bot stopped (see below) |
+| 2026-10-23 | h1024-3m-ob8 | h1024-3m | 2,000 | +515 -470 =1015 | 51.1% | **+8 [-3, +19]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 0.95), LOS 92.4%: 8 output buckets, the same speed; bot stopped (see below) |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -194,6 +195,17 @@ is within that, at its low end. By 200 games it read +16 [-18, +49]; from
 600 on it stayed between -1 and +8. No time losses. Endings: 390 mates, 547
 threefolds, 957 by the tables (564 wins, 393 draws), 103 fifty-move, 3
 stalemates.
+
+**h1024-3m-ob8 against h1024-3m** (2026-10-23, 01:36-05:03, the bot stopped,
+nothing else timed on the laptop; Matthew's B): h1024-3m's recipe with 8
+output buckets (.nnue version 3: the output row picked by the pieces on the
+board), held back -1.3% against it. 2,000 games, +515 -470 =1015, **+8 [-3,
++19]**, LOS 92.4%; the SPRT stayed undecided (LLR 0.95). Searches over the
+match: h1024-3m-ob8 3,245 knps, depth 10.9; h1024-3m 3,266 and 10.9: the
+buckets cost no speed in play. The rule from our matches said ~+11 for
+-1.3%. It read -10 [-40, +20] at 250 games, then +7 to +13 from 750 on. No
+time losses. Endings: 430 mates, 523 threefolds, 928 by the tables (555
+wins, 373 draws), 114 fifty-move, 5 stalemates.
 
 ## Pondering (2026-10-16 on)
 

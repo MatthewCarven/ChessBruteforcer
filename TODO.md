@@ -191,10 +191,14 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     error is 0.013851, against h1024-3m's 0.014042 at the same point
     (-1.4%). Bucket 0 (2-4 pieces) has no training positions, so it is
     exported with bucket 1's row.
-    - [ ] When it's done: `scripts\nnue-desktop.ps1 fetch h1024-3m-ob8`, then
-      held back against h1024-3m's 0.012432, `bench 9`, then a match against
-      h1024-3m (the bot off). Both halves are in compression (549a687), so
-      the engine reads version 3.
+    - [x] Done (2026-10-23; the desktop's restart cost it pass 8, resumed
+      from pass 7): held back as the engine computes it **0.012272, -1.3%
+      against h1024-3m**. **Its match: +8 [-3, +19]** over 2,000 games at
+      10+0.1, LOS 92.4%, SPRT undecided; the same speed and depth in play
+      (MATCHES.md). A small gain at no cost, as the error said (~+11).
+    - [ ] Next for buckets, Matthew's call: on the bot's own size
+      (h1536-3m-ob8), and/or with 6 months once h1024-6m says what the data
+      is worth.
   - [x] **The bot on h1536-3m** (Matthew's 1(a), 2026-10-22 ~16:00): +7
     likely (LOS 91%), and at the bot's ~20x longer thinking the speed costs
     less. bot/make-config.py lists h1536-3m.nnue first, the net in bot\eval;
