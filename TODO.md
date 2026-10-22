@@ -167,9 +167,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     10+0.1, the bot off (2026-10-22): l32 -85 [-121, -51], l16-32 -58 [-88,
     -30]**, SPRT accepted H0, each at about half the speed (MATCHES.md). Not
     close, so no 30+0.3 run. The bot played l16-32 for a game or two, then
-    went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32 finished
-    on the desktop at 12:14 on 10-22: held back 0.010762 as the engine
-    computes it (-13.4% against h1024-3m), and it will be slower than l32.
+    went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32: see
+    "h1536-3m-l32 done" below.
   - [x] **Decision: the next jobs, and the speed work** (Matthew, 2026-10-22
     ~07:10; WORKLOG): not int8 (it can't reach the ~4x the small layers need
     on this laptop: no VNNI from .NET here; NNUE.md session 6). Instead,
