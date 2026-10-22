@@ -41,7 +41,13 @@ public sealed class UciEngine
     // came, and whether an "info" went out after it.  The search thread and the UCI thread both write them.
     private readonly object _infoLock = new();
     private SearchInfo? _lastInfo;
+    private IReadOnlyList<Move> _lastLine = Array.Empty<Move>();   // the line _lastInfo went out with
     private bool _ponderHit, _infoSinceHit;
+
+    // The search's root and the game's positions before it, for the line an "info" shows (WithTableTail).  Set at
+    // "go", before the search thread starts; read only on that thread.
+    private string _rootFen = "";
+    private IReadOnlyCollection<ulong> _rootHistory = Array.Empty<ulong>();
 
     public UciEngine(TextWriter output, string? tablePath = null)
     {
@@ -57,6 +63,9 @@ public sealed class UciEngine
 
     /// <summary>The engine's table (for tests).</summary>
     internal TranspositionTable Table => _table;
+
+    /// <summary>Whether an "info" line's pv goes on along the table (<see cref="WithTableTail"/>); off, for tests, it's the search's own.</summary>
+    internal bool TableTail { get; set; } = true;
 
     /// <summary>Read commands until "quit" or end of input.</summary>
     public void Run(TextReader input)
@@ -353,8 +362,10 @@ public sealed class UciEngine
     private void StartSearch(SearchLimits limits)
     {
         // The search works on its own copy so "position" can't change the board under it.
-        var root = Position.FromFen(_position.ToFen(), _network);
+        _rootFen = _position.ToFen();
+        var root = Position.FromFen(_rootFen, _network);
         var history = _previousHashes.ToList();
+        _rootHistory = history;
         var search = _search;
         search.Threads = _threads;
         search.Split = _split;
@@ -419,21 +430,63 @@ public sealed class UciEngine
         _searchThread = null;
     }
 
-    private void ReportInfo(SearchInfo info)
+    private void ReportInfo(SearchInfo info) =>
+        SendInfo(info, TableTail ? WithTableTail(_table, _rootFen, _rootHistory, info.PrincipalVariation,
+                                                 Math.Max(info.Depth, info.PrincipalVariation.Count))
+                                 : info.PrincipalVariation);
+
+    private void SendInfo(SearchInfo info, IReadOnlyList<Move> line)
     {
         long ms = Math.Max(1, (long)info.Elapsed.TotalMilliseconds);
         string score = info.MateIn is int mate ? $"mate {mate}" : $"cp {info.Score}";
         if (info.Partial)
             score += " lowerbound";   // (a depth cut off: its best move so far, the one played; P4)
-        string pv = string.Join(' ', info.PrincipalVariation.Select(m => m.ToUci()));
+        string pv = string.Join(' ', line.Select(m => m.ToUci()));
         lock (_infoLock)
         {
             // (Sent under the lock: a line written before "ponderhit" is read doesn't count as after it.)
             Send($"info depth {info.Depth} score {score} nodes {info.Nodes} nps {info.Nodes * 1000 / ms} " +
                  $"time {ms} hashfull {_table.Usage()} pv {pv}");
-            _lastInfo = info;
+            (_lastInfo, _lastLine) = (info, line);
             _infoSinceHit = _ponderHit;
         }
+    }
+
+    /// <summary>
+    /// The line an "info" shows: the search's own, then on along the table's moves, since a PV node that takes a
+    /// table entry returns without the line under it, which can leave a depth-15 search showing one move
+    /// (PONDER.md, option (a)).  From the line's last position: the table's move there, if its entry is exact or
+    /// a lower bound (an upper bound's move is only the least bad of a fail-low) and the move is legal; then the
+    /// same from the next position, to <paramref name="plies"/> plies at most.  It ends after a move that repeats
+    /// a position of the game or of the line, or that reaches the 50-move rule: the line is a draw there.  The
+    /// table is only peeked at, so the search and the ones after it go exactly as they would without this: it
+    /// changes the text sent, nothing else.
+    /// </summary>
+    internal static IReadOnlyList<Move> WithTableTail(TranspositionTable table, string rootFen, IReadOnlyCollection<ulong> history,
+                                                     IReadOnlyList<Move> line, int plies)
+    {
+        if (line.Count == 0 || line.Count >= plies)
+            return line;
+        var position = Position.FromFen(rootFen);   // (no network: nothing here evaluates)
+        var seen = new HashSet<ulong>(history) { position.Hash };
+        foreach (var move in line)
+        {
+            position.MakeMove(move);
+            if (!seen.Add(position.Hash) || position.HalfmoveClock >= 100)
+                return line;   // the search's own line already ends in a draw
+        }
+        var whole = new List<Move>(line);
+        while (whole.Count < plies
+               && table.TryPeek(position.Hash, out var entry)
+               && (entry.Bound is Bound.Exact or Bound.Lower)
+               && position.ParseUciMove(entry.Move.ToUci()) is Move next)
+        {
+            whole.Add(next);
+            position.MakeMove(next);
+            if (!seen.Add(position.Hash) || position.HalfmoveClock >= 100)
+                break;
+        }
+        return whole;
     }
 
     /// <summary>
@@ -442,14 +495,15 @@ public sealed class UciEngine
     /// when the hard limit cuts the depth in progress) sends none, so the move
     /// would go without its stats.  Then the last line goes out again: the
     /// same depth, score and line, with the nodes and time (counted from "go
-    /// ponder") as they are at the answer.
+    /// ponder") as they are at the answer.  (The line as it went out, the
+    /// table's part too: the table may have changed since.)
     /// </summary>
     private void ReportInfoAfterHit(long nodes, TimeSpan elapsed)
     {
         lock (_infoLock)
         {
             if (_ponderHit && !_infoSinceHit && _lastInfo is SearchInfo last)
-                ReportInfo(last with { Nodes = nodes, Elapsed = elapsed });
+                SendInfo(last with { Nodes = nodes, Elapsed = elapsed }, _lastLine);
         }
     }
 

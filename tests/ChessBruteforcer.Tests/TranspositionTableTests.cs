@@ -195,6 +195,25 @@ public class TranspositionTableTests
         Assert.Equal(3, DepthOf(table, used));
     }
 
+    [Fact]
+    public void APeekLeavesAnOldEntryOld()
+    {
+        // As above, but looked at with TryPeek (for the line "info" shows; PONDER.md, option (a)): the entry comes back
+        // whole, and stays search 1's (worth 3 - 6), so the bucket's depth-2 entries push it out.
+        var table = Small();
+        table.NewSearch();
+        ulong peeked = Key(17, 0);
+        Put(table, peeked, 3);
+        NewSearches(table, 3);
+        Assert.True(table.TryPeek(peeked, out var entry));
+        Assert.Equal((peeked, new Move(12, 28), (short)30, (sbyte)3, Bound.Exact),
+                     (entry.Key, entry.Move, entry.Score, entry.Depth, entry.Bound));
+        Assert.False(table.TryPeek(Key(17, 1), out _));
+        for (int which = 1; which <= 4; which++)
+            Put(table, Key(17, which), 2);
+        Assert.Null(DepthOf(table, peeked));
+    }
+
     [Theory]
     [InlineData(0)]   // the bucket's first slot
     [InlineData(2)]   // a slot past one it would otherwise replace
@@ -219,6 +238,8 @@ public class TranspositionTableTests
                 Put(table, Key(bucket, which), 3);
         Assert.Equal(500, table.Usage());
         table.NewSearch();
+        Assert.Equal(0, table.Usage());
+        Assert.True(table.TryPeek(Key(0, 0), out _));   // a peek uses nothing
         Assert.Equal(0, table.Usage());
         Assert.True(table.TryGet(Key(0, 0), out _));
         Assert.Equal(1, table.Usage());

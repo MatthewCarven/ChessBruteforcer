@@ -110,6 +110,27 @@ public sealed class TranspositionTable
         return false;
     }
 
+    /// <summary>
+    /// <see cref="TryGet"/> without its side effect: an old entry looked at here stays old, so what a later store
+    /// replaces and what <see cref="Usage"/> counts are as if nothing had looked.  For reading the table outside the
+    /// search: the line "info" shows past where the search's own stops (PONDER.md, option (a)).  (A loop of its own,
+    /// so TryGet's, run at every node, stays as it was.)
+    /// </summary>
+    public bool TryPeek(ulong key, out TableEntry entry)
+    {
+        int first = BucketStart(key);
+        for (int at = first; at < first + WordsPerBucket; at += 2)
+        {
+            ulong data = _words[at + 1], check = _words[at];
+            if ((check ^ data) != key || BoundOf(data) == Bound.None)
+                continue;
+            entry = Unpack(key, data);
+            return true;
+        }
+        entry = default;
+        return false;
+    }
+
     public void Store(ulong key, Move move, int score, int depth, Bound bound)
     {
         int first = BucketStart(key), replace = first, lowest = int.MaxValue;
