@@ -838,16 +838,16 @@ Sessions, in order:
             one core), or just drop them; (d) stop the learner until a
             replay (P8's O3 (a)) brings positions back. My pick (b) now,
             (c) at X = 50 only if O3 (a) is built.
-      - [ ] **Restart the learner after the merge** (Matthew's;
-            bot\learn.cmd, or start.cmd): its start line in
-            bot\logs\learn-<date>.log should say "with h1024-3m".
-      - [ ] **(c), chosen by Matthew 2026-10-22** ("when the orchestrator
-            asks"): replace the ~166 entries the net thinks lose 50 cp or
-            more. scripts/learner/relearn.py and its test are ready (it
-            refuses while a learner runs and backs up first). Waiting for a
-            CPU slot for the re-score of the other 1,456 (~4.5 core-hours),
-            then the apply from the main checkout with the learner stopped
-            (Matthew stops and restarts it).
+      - [x] Restart the learner after the merge: done 08:39 and 09:07,
+            "with h1024-3m" (stopped again at 09:48 for (c)).
+      - [x] **(c), chosen by Matthew 2026-10-22, applied 18:38**: the whole
+            book re-scored (h1024-3m at depth 14: 51% of the learnt moves
+            differ, 177 lose 50 cp or more, 41 lose 100 or more); those 177
+            replaced by the net's move (scripts/learner/relearn.py; backups
+            bot\books\*.bak-20261022-183845). WORKLOG 2026-10-22 15:32.
+      - [ ] **Matthew: start the learner again** (bot\learn.cmd), off since
+            09:48 for (c). Its start line should say "with h1024-3m ... 1656
+            positions in our book".
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
