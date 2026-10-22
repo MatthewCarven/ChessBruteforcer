@@ -6010,3 +6010,19 @@ session 7 has the details.
   depth after misses in the bot's log; (c) leave it. **He chose (a)**
   (15:50). The merge into compression is Session context's (Matthew's
   rule since 07:32); the branch merges cleanly (4aa73c6 and after).
+
+## 2026-10-22 (16:00-16:20): the bot on h1536-3m (the nnue-deep-layers session)
+
+- **Matthew's 1(a)**: the bot plays h1536-3m from its next start (+7 [-3,
+  +18] over h1024-3m at 10+0.1, LOS 91.3%; the bot thinks ~20x longer a
+  move, where its 12.8% slower nodes cost less). bot/make-config.py lists
+  h1536-3m.nnue first; bot\eval\h1536-3m.nnue is the same file as
+  games\nnue\nets\h1536-3m.nnue (sha256 8c9a7a4e..., network 50bedcc21898),
+  tracked like the bot's other nets. Smoke test the bot's way (8 threads,
+  Hash 256, the tables, a search, a ponder and a ponderhit) on compression
+  080cccb's engine: plays and exits cleanly. To go back: delete
+  bot\eval\h1536-3m.nnue.
+- Still open for Matthew: tonight's laptop-GPU training (6 months of data,
+  or h2048-3m), and ob-engine's 0.5-0.9% slowdown on version 1 nets (leave
+  it, or chase it). Booked with the core queue: h1024-3m-ob8's fetch and
+  bench ~21:55, its match after, then the laptop-GPU training overnight.

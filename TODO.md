@@ -195,9 +195,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
       held back against h1024-3m's 0.012432, `bench 9`, then a match against
       h1024-3m (the bot off). Both halves are in compression (549a687), so
       the engine reads version 3.
-  - [ ] **Decision: the bot on h1536-3m?** (a) switch (+7 likely, LOS 91%;
-    at the bot's ~20x longer thinking the speed costs less), (b) keep
-    h1024-3m, (c) a 30+0.3 match first (~6 h for 1,000 games, laptop cores).
+  - [x] **The bot on h1536-3m** (Matthew's 1(a), 2026-10-22 ~16:00): +7
+    likely (LOS 91%), and at the bot's ~20x longer thinking the speed costs
+    less. bot/make-config.py lists h1536-3m.nnue first, the net in bot\eval;
+    it plays from the bot's next start. Delete bot\eval\h1536-3m.nnue to go
+    back to h1024-3m.
   - **h1536-3m-l32 done** (desktop, 2026-10-21 22:25 to 10-22 12:14): held
     back as the engine computes it **0.010762 at K 1.132, -13.4% against
     h1024-3m**, the best yet (network sha256 303b409bc49e); in games\nnue\nets.
