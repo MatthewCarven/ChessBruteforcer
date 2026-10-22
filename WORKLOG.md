@@ -6206,3 +6206,31 @@ depth 18, one thread, nice 19) on all 300 positions of both games,
   move over both games). Of 5 plan changes by the deeper search in the
   balance, Stockfish backed the change twice and the plan twice (26...Re7,
   0.60; 25...Rhf8, 1.12).
+
+## 2026-10-22 (21:00-21:30): option (a) scoped, the whole line from the table (the game-plan session)
+
+Matthew asked for option (a) to be scoped: show the full expected line in the
+logs and chat, display only. Code read and logs only; nothing built, no
+engine run. New: scripts/ponder-scope/pvcut.py (how often the printed line
+is cut short). PONDER.md, "Option (a), scoped"; a TODO item.
+
+| today's moves played (endgame-table moves left out) | moves | PV plies (median) | 1-3 plies | under half the depth |
+|---|---:|---:|---:|---:|
+| tonight, P6 | 328 | 11 (depth 16) | 46 (14%) | 114 (35%) |
+| 02:30-03:26, old table | 41 | 11 (depth 16) | 5 (12%) | 14 (34%) |
+
+- Ponder searches' finished depths from 8 on: 62% print one move (the old
+  plan's depths, straight from the table).
+- The cut: Negamax returns a table score at a non-root node without the
+  line under it. The moves are still in the table.
+- Design: TranspositionTable.TryPeek (TryGet refreshes an entry's age, which
+  would change the next search's tree and hashfull; a peek doesn't), and a
+  walk in UciEngine.ReportInfo on the text sent: exact or lower-bound
+  entries, legal moves, stop at a repetition, at most the depth. SearchInfo
+  and SearchResult keep the search's own line, so P1, P4 and PonderMove are
+  untouched.
+- python-chess drops a whole pv with one illegal move in it
+  (_create_variation_line raises; the info then has no pv), so the walk
+  must send only legal moves; it does by construction.
+- Options: (a1) as designed (my pick), (a2) plus an info string marking
+  where the search's own line ends, (a3) later, the endgame tables' line.

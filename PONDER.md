@@ -1151,7 +1151,8 @@ is the evaluation's, not the planning's. Stockfish says the same, in three parts
 
 - **(a)** Show the whole plan: after each depth, extend the PV through the table's moves where the search cut it.
   Display only: the logs' "Pv:" and the chat show the full expected line; the move played doesn't change. Small. *My
-  pick, if you want to read plans in the logs; otherwise (c).*
+  pick, if you want to read plans in the logs; otherwise (c).* (Matthew asked for it scoped: "Option (a), scoped",
+  below.)
 - **(b)** Stockfish's rule: no table cutoffs at PV nodes, so the line comes out whole from the search itself, and
   the main line gets searched rather than taken on trust. This changes play, so it needs a match.
 - **(c)** Leave it. Nothing here says the bot loses by changing its mind; it lost by keeping to a plan its
@@ -1200,6 +1201,102 @@ two plies deeper).
 Not measured: two games are two games, both lost to stronger bots. The tables above are their 133 engine moves, not a
 sample of the bot's play; `plan.py` runs on any game in the DEBUG log (30 days kept) for more.
 
+### Option (a), scoped: the whole line, from the table (2026-10-22, nothing built)
+
+Matthew asked for option (a) to be scoped: extend the line the engine prints so the logs and chat show the whole
+expected line. Display only, no change to play.
+
+**What it is.** Each `info` line's pv goes on past the point where the search's own line stops, along the table's
+moves: from the line's last position, the table's move there if one is stored, legal, and from an exact or
+lower-bound entry; then the same from the next position. It stops where there's no such entry, where a move
+repeats a position (the line ends in a draw there), or at the depth searched. The move played, the ponder move,
+the score and the search itself are as before. (Older Stockfish did the same, extracting the PV from the table,
+before it stopped taking table cutoffs at PV nodes, which is option (b).)
+
+**How big the gap is** (`pvcut.py`, today's DEBUG log, every move the engine played, the 136 endgame-table moves
+left out):
+
+| moves played | moves | depth (median) | PV plies (median) | 1 ply | 1-3 plies | under half the depth |
+|---|---:|---:|---:|---:|---:|---:|
+| tonight, on P6 (from 20:09:57): all | 328 | 16 | 11 | 26 (8%) | **46 (14%)** | 114 (35%) |
+| ... plain `go` | 135 | 15 | 11 | 10 (7%) | 21 (16%) | 49 (36%) |
+| ... ponder hit | 193 | 16 | 12 | 16 (8%) | 25 (13%) | 65 (34%) |
+| earlier today, the old table (02:30-03:26) | 41 | 16 | 11 | 3 (7%) | 5 (12%) | 14 (34%) |
+
+And while it ponders: of the ponder searches' finished depths from 8 on tonight (2,950 lines), **62% print one move**
+(median 1 ply). Those are the depths up to the old search's depth less 2, which come straight from the table
+(section 1): the old plan is all there, and the line shows one move of it.
+
+**Where the line is cut.** `Search.Negamax` sets `_pvLength[ply] = ply` on entry. At a non-root node, a table entry
+at least as deep as the depth left, with a usable bound, returns its score at once, so the parent copies a line
+that stops there. On 8 threads a helper has often just stored such an entry, so the cut can land anywhere along
+the line. The table still holds the moves beyond it.
+
+**The design** (UciEngine and TranspositionTable; nothing in Search, nothing in lichess-bot):
+
+1. **`TranspositionTable.TryPeek`**: `TryGet` without its side effect. `TryGet` marks an old entry it finds as
+   current (P6: "in use again, so as good as new"), which changes what later stores replace and what `hashfull`
+   counts. A walk through `TryGet` would change the next search's tree; through `TryPeek` it changes nothing. About
+   15 lines, sharing `TryGet`'s loop.
+2. **The walk**, from `UciEngine.ReportInfo`, on the line it sends. It copies the root (`Position.FromFen`, with no
+   network, as `PonderMove` does) from a FEN taken at `go`, plays the line, then follows the table (found by
+   `TryPeek`; bound exact or lower, since an upper bound's move is only the least bad of a fail-low; legal by
+   `ParseUciMove`). It stops after a move that repeats a position of the game (`_previousHashes`) or of the line,
+   and at max(depth, the line's own length) plies. About 35 lines. `SearchInfo` and `SearchResult` keep the
+   search's own line, so P1's resent line, P4's lowerbound line, `PonderMove` and every other caller see what they
+   saw before; only the text sent changes.
+3. **The bot's side needs nothing.** python-chess reads the longer pv and checks every move on a copy of the board.
+   An illegal move would make it drop that line's pv altogether (`_create_variation_line`), which is why the walk
+   sends only legal ones. lichess-bot's "Pv:" in the log, the variations in the game records (bot/games) and `!eval`
+   in chat (trimmed to fit a message) all show it.
+
+**Where it stops, by design.** At 5 pieces or fewer the search answers from the endgame tables before it looks in
+the table, and stores nothing, so the line stops where it enters table territory. A root move from the tables
+(depth 1) stays one move. Showing the endgame tables' own perfect line there would be a separate, small change.
+
+**Tests** (new, in the style of PonderTests):
+
+| test | what it checks |
+|---|---|
+| ADepthsLineIsTheSearchsOwnThenTheTables | the line sent starts with the search's own line; every move legal; no longer than the depth |
+| TheTableTailChangesNothingNodeForNode | one thread, fixed depth, several positions: every depth's nodes, score, line head, `hashfull`, and `bestmove ... ponder`, with the walk and without |
+| TryPeekLeavesTheAgeAlone, TryGetStillRefreshesIt | an old entry peeked at stays old (its worth, `hashfull`); `TryGet` still makes it current |
+| TheTailStopsAtARepetition | a position whose table moves go round in a cycle: the line ends at the first repeat |
+| TheTailStopsAtAnIllegalMoveOrAnUpperBound | planted entries: the line stops before each |
+| ATableMoveAtTheRootIsStillOneMove | depth 1 from the endgame tables, unchanged |
+
+Then a mutation pass on the new lines, as for P1-P6.
+
+**Measures.**
+- **Cost**: the walk's time per `info` line. Expected tens of microseconds (a FEN copy, then a legal-move generation
+  a ply), against a depth's milliseconds.
+- **Node for node**: one thread, fixed depth, the bench positions and 100 of the bot's, walk on and off: identical at
+  every depth. That's the proof of "no change to play", so no match is needed.
+- **What it adds, and whether to believe it**: the same positions at the bot's depths. The line's length with and
+  without; and how far the table's tail agrees with the line a search two plies deeper prints, against how far the
+  search's own part does.
+- **In the bot afterwards**: `pvcut.py` on a night's log should show 1-3-ply lines fall from 14% of moves to near 0
+  (only mates, endgame-table entries and repetitions); `plan.py` then compares lines that aren't cut short.
+- The lab measures need one core for about 15 minutes, booked through the core queue. The bot can keep running.
+
+**What it can't do.** It shows the plan as the table holds it, not a better plan. The tail is what earlier searches
+(or helper threads) found best in those positions, at their own depth, which can be shallower than the line's head.
+It's the engine's expectation, not something the last depth proved. Two of our own scripts read the line too:
+`plan.py`'s "the old line's next move" will exist more often, and `turning-points.py`'s false-draw check (TURNS.md,
+D) looks along the expected line for a return to an earlier position, so longer lines may find more. Either can keep
+to the search's own part if the engine also says where that ended (an `info string` line, which python-chess keeps
+aside and lichess-bot doesn't show).
+
+**Effort**: a side session of about 2-3 hours: ~50 lines in UciEngine and TranspositionTable, the tests, and the
+measures (~15 minutes of one core). The bot gets it at its next `bot\start-bot.cmd`.
+
+**For Matthew.**
+
+- **(a1)** Build it as above: exact and lower-bound entries, capped at the depth. *My pick.*
+- **(a2)** As (a1), plus an `info string` saying where the search's own line ended, for `plan.py` and
+  `turning-points.py`. A few lines more.
+- **(a3)** As (a1), and later, separately, the endgame tables' line for positions of 5 pieces or fewer.
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's
@@ -1246,3 +1343,5 @@ python):
   miss. Reads the log only; needs python-chess (the bot venv's python, `-I`). `results/plan/<id>.txt` and `.json` are
   its output. `plan-sf.py run|summary <plan json> <out.jsonl> [--depth 18]`: Stockfish 16 (WSL, one thread, nice 19)
   on every position of the game, beside our own scores; run it only with the bot off.
+- `pvcut.py <DEBUG log>... [--split HH:MM:SS]` (option (a), scoped): how often the line the engine prints is cut
+  short, for every move played and every finished depth from 8 on. Plain Python, seconds a log.

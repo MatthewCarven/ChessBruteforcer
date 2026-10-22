@@ -1105,6 +1105,19 @@ Sessions, in order:
                   at the end.)
             After the src work in flight lands (AVX-512 and the lazy update,
             the bitboard sessions).
+- [ ] **The whole plan in the logs** (option (a) of "Does the bot keep a
+      plan?", [PONDER.md](PONDER.md); Matthew asked for it scoped,
+      2026-10-22; scoped the same evening, nothing built). The line the
+      engine prints is cut short where a PV node takes a table entry: 14% of
+      tonight's moves printed 1-3 plies, 35% under half their depth, and 62%
+      of the ponder searches' depths from 8 on printed one move (the old
+      plan, held in the table but not shown). Build: a `TryPeek` that leaves
+      entries' ages alone, and a walk along the table's moves (exact or
+      lower bound, legal, stop at a repetition, at most the depth) in
+      UciEngine.ReportInfo, for the text sent only. Display only, proved
+      node for node; no match. ~2-3 h and ~15 min of one core. Options
+      (a1) as designed, my pick; (a2) plus an `info string` marking where
+      the search's own line ends; (a3) later, the endgame tables' line.
 - [ ] **Decision O (P8): the setup per opponent** ([OPPONENTS.md](OPPONENTS.md),
       scoped 2026-10-22 along Matthew's steer: 1 log first, 2 explore
       cheaply, 3 vary the opening; nothing built). No bot is weak against us
