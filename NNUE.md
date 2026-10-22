@@ -1563,29 +1563,40 @@ nothing else of that branch.
   a mutant's scores. The search and UCI tests now use the piece-square
   net with 8 buckets (FromPieceSquares' row, a bias of 100 b), and every
   mutant ends in 8-25 s.
-- **Speed** (`bench 9`, one thread, 2026-10-22 07:53-07:55): the old build
-  (662a810) and the new on h1024-3m, and the new on **h1024-3m-v3x8**, a
-  version 3 copy of h1024-3m with its row in all 8 buckets
-  (scripts/nnue-bench/buckets/to-v3.py). It scores exactly as h1024-3m
-  does, so the tree is identical (3,775,600 nodes on all three), and what's
-  left is the bucket path's own cost. Two warm-up rounds, then 16 rounds
-  alternated, the order rotating. Rounds 13-16 ran beside another
-  session's ponder experiment (8 threads from 07:54:05) and are left out
-  below. Rounds 1-12 had the laptop to themselves (on mains, ~5% CPU
-  before), and each round compares the arms within it:
+- **Speed** (`bench 9`, one thread): the old build (662a810) and the new
+  on h1024-3m, and the new on **h1024-3m-v3x8**, a version 3 copy of
+  h1024-3m with its row in all 8 buckets (scripts/nnue-bench/buckets/to-v3.py).
+  It scores exactly as h1024-3m does, so the tree is identical (3,775,600
+  nodes on all three), and what's left is the bucket path's own cost. Two
+  runs, each after two warm-up rounds, the order rotating round by round,
+  the laptop on mains with nothing else running:
+  - 07:53-07:55, 16 rounds. Rounds 13-16 ran beside another session's
+    ponder lab (8 threads from 07:54:05) and are left out: 12 rounds.
+  - 12:11-12:14, 30 rounds, booked with the core queue after the h1536-3m
+    match. The laptop was in its slow phase (old's median 2,400 knps
+    against the morning's 2,738), with a round's pair spreading +-7.6%
+    against the morning's +-2.5%.
 
-  | arm | median knps (rounds 1-12) | vs old | paired median, per round | by CPU time (all 16) |
+  Each round's arms against old in the same round (scripts/nnue-bench/buckets/pooled.py):
+
+  | arm | by the clock: median, mean +- SE | rounds below old | by CPU time: median, mean +- SE | rounds below old |
   |---|---|---|---|---|
-  | old, h1024-3m | 2,738 | - | - | 2,777 |
-  | new, h1024-3m | 2,698 | -1.5% | -0.6% (9 of 12 rounds below) | 2,794 (+0.6%) |
-  | new, h1024-3m-v3x8 | 2,707 | -1.2% | -0.4% | 2,810 (+1.2%) |
+  | new, h1024-3m: morning (12) | -0.6%, -0.7% +- 0.7 | 9 of 12 | +1.2%, +0.6% +- 1.1 | 4 of 12 |
+  | new, h1024-3m: noon (30) | -1.5%, -2.1% +- 1.4 | 20 of 30 | +0.6%, -0.2% +- 1.3 | 14 of 30 |
+  | **new, h1024-3m: both (42)** | **-1.2%** (10%-trimmed mean -1.3%) | **29 of 42, sign test p 0.02** | **+1.2%** (trimmed +0.4%) | 18 of 42, p 0.44 |
+  | new, v3x8: both (42) | -0.9% (trimmed -0.8%) | 26 of 42, p 0.16 | -1.7% (trimmed -1.4%) | 22 of 42, p 0.88 |
 
-  **Within noise**: a round's pair spreads about +-3%, so 12 pairs put a
-  mean's standard error near 0.75%. By CPU time the new build is the faster
-  one, and the bucket path itself (v3x8 against new) costs nothing. On
-  paper the change is a popcount, a table read, a multiply and a bias read
-  per evaluation, ~0.3% of a node at most. A longer run on a quiet laptop
-  would narrow it. Output: scripts/nnue-bench/buckets/bench-2026-10-22.tsv.
+  **A version 1 net on the new build probably runs about 1% slower by the
+  engine's clock**: 29 of 42 rounds went to the old build, more than chance
+  would give (p 0.02). By CPU time there is no difference. A bucketed net
+  on the new build runs at about the same speed as a version 1 net does,
+  so the buckets themselves cost nothing extra. The change adds a popcount,
+  a table read, a multiply and a bias read to each evaluation, ~0.3% of a
+  node on paper, so the rest may be code layout. In play 1% is about 1 Elo
+  (p2.1: a doubling of time is worth +87). This morning's write-up called
+  it within noise on the 12 morning rounds alone; the 30 at noon say a
+  small cost. The runs: scripts/nnue-bench/buckets/bench-2026-10-22.tsv (07:53) and
+  bench-2026-10-22-noon.tsv.
 
 ## Risks
 
