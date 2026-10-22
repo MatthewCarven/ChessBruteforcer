@@ -196,9 +196,13 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
       against h1024-3m**. **Its match: +8 [-3, +19]** over 2,000 games at
       10+0.1, LOS 92.4%, SPRT undecided; the same speed and depth in play
       (MATCHES.md). A small gain at no cost, as the error said (~+11).
-    - [ ] Next for buckets, Matthew's call: on the bot's own size
-      (h1536-3m-ob8), and/or with 6 months once h1024-6m says what the data
-      is worth.
+    - [ ] **h1536-3m-ob8** (Matthew's (a), 2026-10-23): buckets on the bot's
+      own size, h1536-3m's recipe plus `--output-buckets 8`, training on the
+      desktop since 07:13 by its clock, ~130 k a second (bt-a-desktop's book
+      run at 6 engines beside it), done ~21:45. Then: fetch, held back
+      against h1536-3m's 0.011952, `bench 9`, a match against h1536-3m (the
+      bot off). With 6 months later, once h1024-6m says what the data is
+      worth.
   - [x] **The bot on h1536-3m** (Matthew's 1(a), 2026-10-22 ~16:00): +7
     likely (LOS 91%), and at the bot's ~20x longer thinking the speed costs
     less. bot/make-config.py lists h1536-3m.nnue first, the net in bot\eval;
