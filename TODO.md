@@ -822,6 +822,25 @@ Sessions, in order:
       against Lichess bots ~8; if that dilutes it, give Stockfish the book
       too, or a full-strength Stockfish at a short movetime. The bot's own
       rated games: 34% in 19 before the book, 46% in 42 with it (+-10 each).
+      (BT4 (a) in BOOK-TABLES.md does this as its "no book" arm, with
+      Stockfish given the wide book.)
+- [ ] **Decision BT: book tables, an opening book brute-forced like the
+      endgame tables** ([BOOK-TABLES.md](BOOK-TABLES.md), scoped 2026-10-22;
+      Matthew: "just a test for now", "lets run all the possibilities to 5
+      deep only the moves we can make legally", "any lost pieces block out
+      the entries"). Every legal position to 5 plies: 822,518 (a few MB);
+      blocking a lost piece cuts 13%. In the "all of theirs, our best" form,
+      the first 5 half-moves are 754 of our positions to search: ~85 core-h
+      at depth 18, ~11 h on 8 cores, untimed (a training window). The human
+      book leaves us at a median -0.48 as Black against +0.20 as White, by
+      our engine's view (French -0.84, Modern -0.99): at most ~+15 Elo there.
+      Matthew's call: BT1 what to build ((a) the full table; **(b) all of
+      theirs, our best, my pick**; (c) vet the human book as Black; (d) a
+      margin book to 14 plies), BT2 scoring (searches), BT3 the chain (first,
+      keeping to the human book's moves within 20 cp), BT4 the measure (three
+      arms against Stockfish with the wide book, ~3,000 games an arm, bot
+      off), BT5 rebuilds. Searches can run in a training window; the match
+      can't. Ask the core queue first.
 - [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it

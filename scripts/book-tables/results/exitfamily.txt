@@ -1,0 +1,38 @@
+== black: families with 4+ games (n, median exit, share <= -0.50)
+  Modern Defense                                  5 -0.99 80%
+  French Defense                                 11 -0.84 82%
+  Scandinavian Defense                            4 -0.62 50%
+  King's Indian Defense                           8 -0.57 62%
+  English Opening                                 6 -0.54 50%
+  Sicilian Defense                               33 -0.40 45%
+  Caro-Kann Defense                               7 -0.38 43%
+  Queen's Gambit Declined                         6 -0.37 33%
+  Queen's Pawn Game                               4 -0.14 25%
+  Ruy Lopez                                       9 -0.12 33%
+== black: first two plies with 5+ games
+  e4 g6          5 -0.99 100%
+  e4 e6         10 -0.80 80%
+  Nf3 Nf6        5 -0.63 80%
+  e4 c6          6 -0.46 50%
+  e4 c5         32 -0.39 44%
+  d4 d5          8 -0.27 25%
+  e4 e5         19 -0.24 42%
+  d4 Nf6         8 -0.24 25%
+== white: families with 4+ games (n, median exit, share <= -0.50)
+  Zukertort Opening                               5 -0.24 40%
+  Queen's Gambit Declined                         6 -0.14 0%
+  Slav Defense                                    4 -0.04 0%
+  Indian Defense                                  4 +0.00 0%
+  English Opening                                 5 +0.14 20%
+  Nimzo-Indian Defense                            4 +0.22 0%
+  French Defense                                 14 +0.23 0%
+  Sicilian Defense                               16 +0.29 12%
+  Queen's Pawn Game                               4 +0.34 0%
+  Ruy Lopez                                       4 +0.53 0%
+== white: first two plies with 5+ games
+  Nf3 d5         6 -0.34 33%
+  d4 d5         15 -0.10 7%
+  e4 e6         14 +0.23 0%
+  e4 e5         15 +0.25 0%
+  e4 c5         16 +0.29 12%
+  d4 Nf6        19 +0.32 5%

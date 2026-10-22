@@ -6234,3 +6234,48 @@ is cut short). PONDER.md, "Option (a), scoped"; a TODO item.
   must send only legal moves; it does by construction.
 - Options: (a1) as designed (my pick), (a2) plus an info string marking
   where the search's own line ends, (a3) later, the endgame tables' line.
+
+## 2026-10-22 (22:55-23:25): book tables scoped, an opening book brute-forced like the endgame tables (the self-play-book session)
+
+Matthew's idea: "Brute force entry tables, kind of like the matchbook but done
+in the style of the end game tables ... pit the bot against itself". Mid-scope
+he added: "just a test for now", "It may be that the opening book is better
+its up to us to compare", "lets run all the possibilities to 5 deep only the
+moves we can make legally", "a few gb of disk?", "any lost pieces block out
+the entries for up to 5 deep". Scoped only: BOOK-TABLES.md, scripts in
+scripts/book-tables/. No engine run; python-chess counts, the bot's games,
+and 153 Lichess cloud evaluations (network only, 1 a second).
+
+- **Every legal position to 5 plies: 822,518** (counted, matches OEIS
+  A083276). A few MB as a book, not GB. To 5 moves each (10 plies) it is 85
+  billion, the 5-piece tables' size, but every leaf needs a search (0.5 s at
+  depth 10) where a table step takes ~4 us: ~1,300 core-years, 1.4 TB.
+- **Matthew's blocking rule** (a capture-only search finds one side down
+  material): at a piece, 715,940 kept at ply 5 (-13%) and 4 of 19,607 human
+  book positions blocked; at a pawn, 554,877 (-33%), and 7.8% of the book's
+  positions (the gambits) blocked.
+- **"All of theirs, our best"**: the tables' trick for a book. Every
+  possibility in the first 5 half-moves is **754 of our positions to search**
+  (364 as White, 390 as Black), against 715,940 leaves for the full minimax
+  table. Depth 18 for all of them: ~56 core-h, ~85 with a check against the
+  human book's moves; ~11 h on 8 cores, untimed, so a training window fits.
+- **Margins** (Stockfish cloud, depth ~40, 129 positions the bot reached):
+  geometric mean of moves within 20 cp 2.65, 30 cp 3.41, 50 cp 4.0+. A 30 cp
+  "our best" book to 14 plies is ~9,800 positions, ~150 core-h at depth 16.
+  But their side within a margin misses the bots' rare moves, which end the
+  books today.
+- **The human book is weak as Black, by our engine's view.** Our first move
+  out of book, 242 network-era games: median +0.20 as White, **-0.48 as
+  Black**; 48% of Black's exits at -0.50 or worse (8% of White's). The French
+  as Black 11 games, median -0.84 (+0.23 as White against it); the Modern 5,
+  -0.99. Ratings allowed for, a pawn at the exit goes with +0.145 score
+  [0.098, 0.196] (correlation): Black's exits up 0.3 pawn would be at most
+  ~+15 Elo.
+- Book reach: median 9 of our moves from books (network era), 16% of games
+  all 12. Two books 15 Elo apart need ~3,000 games an arm to tell apart.
+- Options: BT1 (a) the full table, (b) all of theirs and our best, 5
+  half-moves at depth 18 (my pick), (c) vet the human book as Black, (d) a 30
+  cp margin book to 14 plies; BT2-BT5 the scoring (searches), the chain
+  (first, keeping to the human book's moves within 20 cp), the measure (a
+  three-arm match against Stockfish with the wide book: current books, the
+  table, no book) and the rebuilds. Waiting for Matthew's pick.
