@@ -315,10 +315,14 @@ public class NnueTests
     }
 
     /// <summary>The SIMD widths this CPU runs: the forward pass and every kernel are checked at each.</summary>
-    private static readonly int[] SimdWidths = new[] { 256, 512 }.Where(width => width <= Kernels.Widest).ToArray();
+    private static readonly int[] SimdWidths = new[] { 128, 256, 512 }.Where(width => width <= Kernels.Widest).ToArray();
 
-    private static int ForwardAt(int width, Network network, ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket = 0) =>
-        width == 512 ? network.Forward512(us, them, bucket) : network.Forward256(us, them, bucket);
+    private static int ForwardAt(int width, Network network, ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket = 0) => width switch
+    {
+        512 => network.Forward512(us, them, bucket),
+        256 => network.Forward256(us, them, bucket),
+        _ => network.Forward128(us, them, bucket),
+    };
 
     [Theory]
     [InlineData(16)]
@@ -330,7 +334,7 @@ public class NnueTests
     [InlineData(2048)]
     public void SimdEqualsScalar(int hidden)
     {
-        Assert.True(Avx2.IsSupported, "this test is about the SIMD passes");
+        Assert.True(SimdWidths.Length > 0, "this test is about the SIMD passes");
         var network = Network.Random(hidden, 100 + hidden, featureRange: 200 / (hidden >= 1024 ? 2 : 1));
         var white = new short[hidden];
         var black = new short[hidden];
@@ -369,8 +373,9 @@ public class NnueTests
     public void SimdEqualsScalarAtTheLargestSums(int hidden)
     {
         // Every output weight the largest the loader allows, every accumulator past QA: each int32 lane of the
-        // 256-bit pass holds H / 8 products of 255 x 255 x 128, its largest (512 bits: H / 16). At H 2048 the
-        // all-positive net's lanes come to 2,130,739,200, 0.8% under 2^31, so a wrap would show as a negative score.
+        // 256-bit pass holds H / 8 products of 255 x 255 x 128, its largest (512 bits: H / 16; 128 bits: H / 8, in two
+        // sets of lanes). At H 2048 the all-positive net's lanes come to 2,130,739,200, 0.8% under 2^31, so a wrap
+        // would show as a negative score (and a 128-bit pass with one set of lanes, H / 4 to a lane, would wrap).
         var network = Network.Read(Craft(hidden, f: _ => 0, b: _ => 0, o: i => i % 3 == 0 ? (short)-128 : (short)128, outputBias: 0));
         var full = Enumerable.Repeat((short)1000, hidden).ToArray();
         var limited = Network.Read(Craft(hidden, f: _ => 0, b: _ => 0, o: _ => 128, outputBias: 0));
@@ -454,6 +459,21 @@ public class NnueTests
         Assert.Equal(Kernels.Widest, Kernels.ChooseWidth("1024"));
         Assert.Equal(0, Kernels.ChooseWidth("0"));
         Assert.Equal(Math.Min(256, Kernels.Widest), Kernels.ChooseWidth("256"));
+        Assert.Equal(Math.Min(128, Kernels.Widest), Kernels.ChooseWidth("128"));
+        Assert.Equal(Kernels.Widest, Kernels.ChooseWidth("64"));   // (not a width: the widest)
+
+        // Each kind of CPU, this one or not: AVX-512 (this laptop), AVX2, SSE2 alone (the desktop's i7-3770 has AVX but
+        // not AVX2), none of them.
+        Assert.Equal(512, Kernels.WidestOf(avx512: true, avx2: true, sse2: true));
+        Assert.Equal(256, Kernels.WidestOf(avx512: false, avx2: true, sse2: true));
+        Assert.Equal(128, Kernels.WidestOf(avx512: false, avx2: false, sse2: true));
+        Assert.Equal(0, Kernels.WidestOf(avx512: false, avx2: false, sse2: false));
+        Assert.Equal(128, Kernels.ChooseWidth(null, 128));
+        Assert.Equal(128, Kernels.ChooseWidth("256", 128));
+        Assert.Equal(128, Kernels.ChooseWidth("128", 128));
+        Assert.Equal(0, Kernels.ChooseWidth("0", 128));
+        Assert.Equal(128, Kernels.ChooseWidth("128", 512));
+        Assert.Equal(0, Kernels.ChooseWidth("128", 0));
     }
 
     /// <summary>The colour-mirror: the board flipped top to bottom, colours and the side to move swapped.</summary>

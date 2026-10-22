@@ -7,8 +7,9 @@ namespace ChessBruteforcer.Core.Engine.Nnue;
 
 /// <summary>
 /// The accumulator's column arithmetic: 32 int16 lanes at a time (AVX-512) where the CPU has it, with a last
-/// 16 when the length isn't a multiple of 32; 16 at a time (AVX2); or one at a time. Wrapping 16-bit
-/// arithmetic every way, so neither the width nor the order of adds and subtracts changes a result.
+/// 16 when the length isn't a multiple of 32; 16 at a time (AVX2); 8 at a time (SSE2, for CPUs before AVX2);
+/// or one at a time. Wrapping 16-bit arithmetic every way, so neither the width nor the order of adds and
+/// subtracts changes a result.
 ///
 /// Every operand is a span, and its length is checked against the destination's before any lane is
 /// touched, so a wrong slot or column throws instead of reading or writing past an array (the vector
@@ -18,17 +19,23 @@ namespace ChessBruteforcer.Core.Engine.Nnue;
 internal static class Kernels
 {
     /// <summary>
-    /// The width the kernels and the forward pass use: 512 bits with AVX-512 (BW), 256 with AVX2, 0 for one
-    /// number at a time. The environment variable CB_NNUE_SIMD (256 or 0) holds it narrower, for an A/B or if
-    /// 512 bits ever cost a CPU more clock than they save; it can't ask for more than the CPU has.
+    /// The width the kernels and the forward pass use: 512 bits with AVX-512 (BW), 256 with AVX2, 128 with SSE2
+    /// (an Ivy Bridge, such as the desktop's i7-3770, has AVX but not AVX2), 0 for one number at a time. The
+    /// environment variable CB_NNUE_SIMD (256, 128 or 0) holds it narrower, for an A/B, for the tests of a narrower
+    /// CPU's path, or if 512 bits ever cost a CPU more clock than they save; it can't ask for more than the CPU has.
     /// </summary>
     internal static readonly int Width = ChooseWidth(Environment.GetEnvironmentVariable("CB_NNUE_SIMD"));
 
     /// <summary>The widest this CPU runs.</summary>
-    internal static int Widest => Vector512.IsHardwareAccelerated && Avx512BW.IsSupported ? 512 : Avx2.IsSupported ? 256 : 0;
+    internal static int Widest => WidestOf(Vector512.IsHardwareAccelerated && Avx512BW.IsSupported, Avx2.IsSupported, Sse2.IsSupported);
 
-    internal static int ChooseWidth(string? asked) =>
-        int.TryParse(asked, out int width) && width is 0 or 256 or 512 && width <= Widest ? width : Widest;
+    /// <summary>The widest a CPU with these runs (apart from the CPU, so the tests reach every case).</summary>
+    internal static int WidestOf(bool avx512, bool avx2, bool sse2) => avx512 ? 512 : avx2 ? 256 : sse2 ? 128 : 0;
+
+    internal static int ChooseWidth(string? asked) => ChooseWidth(asked, Widest);
+
+    internal static int ChooseWidth(string? asked, int widest) =>
+        int.TryParse(asked, out int width) && width is 0 or 128 or 256 or 512 && width <= widest ? width : widest;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Check(int n, int length)
@@ -63,6 +70,12 @@ internal static class Kernels
                 (Vector256.LoadUnsafe(ref d, (nuint)i) + Vector256.LoadUnsafe(ref x, (nuint)i)).StoreUnsafe(ref d, (nuint)i);
             return;
         }
+        if (width == 128)
+        {
+            for (; i < n; i += 8)
+                (Vector128.LoadUnsafe(ref d, (nuint)i) + Vector128.LoadUnsafe(ref x, (nuint)i)).StoreUnsafe(ref d, (nuint)i);
+            return;
+        }
         for (; i < n; i++)
             acc[i] = (short)(acc[i] + a[i]);
     }
@@ -92,6 +105,13 @@ internal static class Kernels
             for (; i < n; i += 16)
                 (Vector256.LoadUnsafe(ref p, (nuint)i) + Vector256.LoadUnsafe(ref x, (nuint)i)
                  - Vector256.LoadUnsafe(ref y, (nuint)i)).StoreUnsafe(ref d, (nuint)i);
+            return;
+        }
+        if (width == 128)
+        {
+            for (; i < n; i += 8)
+                (Vector128.LoadUnsafe(ref p, (nuint)i) + Vector128.LoadUnsafe(ref x, (nuint)i)
+                 - Vector128.LoadUnsafe(ref y, (nuint)i)).StoreUnsafe(ref d, (nuint)i);
             return;
         }
         for (; i < n; i++)
@@ -128,6 +148,13 @@ internal static class Kernels
                  - Vector256.LoadUnsafe(ref y1, (nuint)i) - Vector256.LoadUnsafe(ref y2, (nuint)i)).StoreUnsafe(ref d, (nuint)i);
             return;
         }
+        if (width == 128)
+        {
+            for (; i < n; i += 8)
+                (Vector128.LoadUnsafe(ref p, (nuint)i) + Vector128.LoadUnsafe(ref x, (nuint)i)
+                 - Vector128.LoadUnsafe(ref y1, (nuint)i) - Vector128.LoadUnsafe(ref y2, (nuint)i)).StoreUnsafe(ref d, (nuint)i);
+            return;
+        }
         for (; i < n; i++)
             dst[i] = (short)(src[i] + a[i] - s1[i] - s2[i]);
     }
@@ -161,6 +188,13 @@ internal static class Kernels
             for (; i < n; i += 16)
                 (Vector256.LoadUnsafe(ref p, (nuint)i) + Vector256.LoadUnsafe(ref x1, (nuint)i) + Vector256.LoadUnsafe(ref x2, (nuint)i)
                  - Vector256.LoadUnsafe(ref y1, (nuint)i) - Vector256.LoadUnsafe(ref y2, (nuint)i)).StoreUnsafe(ref d, (nuint)i);
+            return;
+        }
+        if (width == 128)
+        {
+            for (; i < n; i += 8)
+                (Vector128.LoadUnsafe(ref p, (nuint)i) + Vector128.LoadUnsafe(ref x1, (nuint)i) + Vector128.LoadUnsafe(ref x2, (nuint)i)
+                 - Vector128.LoadUnsafe(ref y1, (nuint)i) - Vector128.LoadUnsafe(ref y2, (nuint)i)).StoreUnsafe(ref d, (nuint)i);
             return;
         }
         for (; i < n; i++)

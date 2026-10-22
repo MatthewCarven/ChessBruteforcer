@@ -19,7 +19,7 @@ public class NnueDeepTests
     private static string DataPath(string name) => Path.Combine(AppContext.BaseDirectory, "Data", name);
 
     /// <summary>0 (one number at a time) and the SIMD widths this CPU runs.</summary>
-    private static readonly int[] Widths = new[] { 0, 256, 512 }.Where(width => width <= Kernels.Widest).ToArray();
+    private static readonly int[] Widths = new[] { 0, 128, 256, 512 }.Where(width => width <= Kernels.Widest).ToArray();
 
     private static IEnumerable<Position> RandomPositions(int count, int seed)
     {
@@ -106,6 +106,7 @@ public class NnueDeepTests
     [InlineData(48, "48-8")]          // 48 inputs to the second layer
     [InlineData(32, "16-48")]         // 48 into the output's dot product: 32 at 512 bits, then 16 at 256
     [InlineData(64, "256-3-17-5")]    // the most layers, the largest and odd sizes: every tail
+    [InlineData(64, "13-48-3")]       // 48 outputs from 7 pairs: the pairs' tail past the vectors, at every width
     [InlineData(256, "1")]
     [InlineData(1024, "32")]
     [InlineData(1024, "16-32")]

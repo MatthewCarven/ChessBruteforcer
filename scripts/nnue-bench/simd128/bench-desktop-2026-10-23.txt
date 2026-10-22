@@ -1,0 +1,22 @@
+06:11:11 quiet on ID10TERROR-DESK: Intel(R) Core(TM) i7-3770 CPU @ 3.40GHz, load 14%, clock 3401 MHz of 3401, 0 engine or dotnet processes before the start
+06:12:32 round 1 old-h1024 simd ? bench depth 9: 3,731,271 nodes in 17.05s = 219 knps
+06:12:35 round 1 new-h1024 simd 128 bench depth 9: 3,731,271 nodes in 2.65s = 1410 knps
+06:12:52 round 1 new0-h1024 simd 0 bench depth 9: 3,731,271 nodes in 17.23s = 217 knps
+06:13:16 round 1 old-h1536 simd ? bench depth 9: 3,527,432 nodes in 23.31s = 151 knps
+06:13:19 round 1 new-h1536 simd 128 bench depth 9: 3,527,432 nodes in 3.25s = 1087 knps
+06:13:37 round 2 old-h1024 simd ? bench depth 9: 3,731,271 nodes in 17.07s = 219 knps
+06:13:39 round 2 new-h1024 simd 128 bench depth 9: 3,731,271 nodes in 2.64s = 1414 knps
+06:13:56 round 2 new0-h1024 simd 0 bench depth 9: 3,731,271 nodes in 16.90s = 221 knps
+06:14:19 round 2 old-h1536 simd ? bench depth 9: 3,527,432 nodes in 22.40s = 157 knps
+06:14:22 round 2 new-h1536 simd 128 bench depth 9: 3,527,432 nodes in 3.26s = 1082 knps
+06:14:40 round 3 old-h1024 simd ? bench depth 9: 3,731,271 nodes in 17.79s = 210 knps
+06:14:43 round 3 new-h1024 simd 128 bench depth 9: 3,731,271 nodes in 2.66s = 1404 knps
+06:15:00 round 3 new0-h1024 simd 0 bench depth 9: 3,731,271 nodes in 17.10s = 218 knps
+06:15:23 round 3 old-h1536 simd ? bench depth 9: 3,527,432 nodes in 22.45s = 157 knps
+06:15:26 round 3 new-h1536 simd 128 bench depth 9: 3,527,432 nodes in 3.24s = 1088 knps
+06:15:43 round 4 old-h1024 simd ? bench depth 9: 3,731,271 nodes in 16.87s = 221 knps
+06:15:46 round 4 new-h1024 simd 128 bench depth 9: 3,731,271 nodes in 2.64s = 1415 knps
+06:16:04 round 4 new0-h1024 simd 0 bench depth 9: 3,731,271 nodes in 17.71s = 211 knps
+06:16:27 round 4 old-h1536 simd ? bench depth 9: 3,527,432 nodes in 22.47s = 157 knps
+06:16:30 round 4 new-h1536 simd 128 bench depth 9: 3,527,432 nodes in 3.27s = 1079 knps
+06:16:31 clock now 3401 MHz

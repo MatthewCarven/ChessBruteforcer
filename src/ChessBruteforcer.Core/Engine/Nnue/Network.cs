@@ -71,7 +71,7 @@ public sealed class Network
     public const int DeepVersion = 2;
     public const int BucketVersion = 3;
     public const int Inputs = 768;
-    public const int MaxHidden = 2048;      // 1024 to 2026-10-22; 2048 still can't overflow Forward256 (see there)
+    public const int MaxHidden = 2048;      // 1024 to 2026-10-22; 2048 still can't overflow Forward256 or Forward128 (see there)
     public const int MaxLayers = 4;
     public const int MaxLayerSize = 256;
     public const int MaxLayerQ = 1 << 24;
@@ -79,6 +79,9 @@ public sealed class Network
 
     /// <summary>No network score may read as a mate.</summary>
     public const int MaxScore = Search.MateBound - 1;
+
+    /// <summary>The SIMD width the pass and the accumulator run at here, in bits (<see cref="Kernels.Width"/>: 512, 256, 128 or 0).</summary>
+    public static int SimdWidth => Kernels.Width;
 
     private static ReadOnlySpan<byte> Magic => "CBNNUE01"u8;
     private const int HeaderBytes = 8 + 6 * 4;
@@ -705,6 +708,7 @@ public sealed class Network
         {
             512 => Forward512(us, them, bucket),
             256 => Forward256(us, them, bucket),
+            128 => Forward128(us, them, bucket),
             _ => ForwardScalar(us, them, bucket),
         };
 
@@ -712,7 +716,7 @@ public sealed class Network
 
     /// <summary>
     /// Version 2's pass at <paramref name="width"/> bits (0: one number at a time): the activations as int16 (0 to QA);
-    /// at 256 or 512 bits each small layer by pairs of inputs (<see cref="LayerByPairs"/>), at 0 each row a dot
+    /// at 128, 256 or 512 bits each small layer by pairs of inputs (<see cref="LayerByPairs"/>), at 0 each row a dot
     /// product; int32 sums throughout (the loader's row check keeps every one there), then a shift for Q, which equals
     /// the truncating division once clamped (a negative sum clamps to 0 either way); the output a dot product.
     /// <see cref="ForwardDeepScalar"/> is the definition it must equal.
@@ -732,7 +736,7 @@ public sealed class Network
         {
             var layer = Layers[k];
             var outputs = k % 2 == 0 ? a : b;
-            if (width >= 256)
+            if (width >= 128)
                 LayerByPairs(width, input, layer, outputs);   // writes PaddedOutputs, the padding as 0
             else
             {
@@ -751,7 +755,7 @@ public sealed class Network
     }
 
     /// <summary>
-    /// One small layer at 256 or 512 bits, the inputs taken two at a time and only where either is non-zero (82% of the
+    /// One small layer at 128, 256 or 512 bits, the inputs taken two at a time and only where either is non-zero (82% of the
     /// first layer's 2H are zero on real positions, 2026-10-21): every output's sum in an int32 lane, from its bias +
     /// Q / 2, plus MultiplyAddAdjacent of the pair broadcast against the pair's weights for all outputs; then the shift
     /// and the clamp, written to <paramref name="outputs"/>[..PaddedOutputs]. The same integers as the rows' dot
@@ -797,7 +801,7 @@ public sealed class Network
                 Avx512F.ConvertToVector256Int16(clamped).StoreUnsafe(ref to, (nuint)(16 * v));
             }
         }
-        else
+        else if (width == 256)
         {
             Span<Vector256<int>> sums = stackalloc Vector256<int>[MaxLayerSize / 8];
             int vectors = n / 8;
@@ -821,6 +825,32 @@ public sealed class Network
                 var low = Vector256.Min(Vector256.Max(Vector256.ShiftRightArithmetic(sums[v], layer.Shift), zero), qa);
                 var high = Vector256.Min(Vector256.Max(Vector256.ShiftRightArithmetic(sums[v + 1], layer.Shift), zero), qa);
                 Vector256.Narrow(low, high).StoreUnsafe(ref to, (nuint)(8 * v));
+            }
+        }
+        else
+        {
+            Span<Vector128<int>> sums = stackalloc Vector128<int>[MaxLayerSize / 4];
+            int vectors = n / 4;
+            for (int v = 0; v < vectors; v++)
+                sums[v] = Vector128.LoadUnsafe(ref starts, (nuint)(4 * v));
+            int p = 0;
+            for (; p + 4 <= pairs; p += 4)
+            {
+                var chunk = Vector128.LoadUnsafe(ref xs, (nuint)(2 * p)).AsInt32();
+                uint mask = (~Vector128.Equals(chunk, Vector128<int>.Zero)).ExtractMostSignificantBits();
+                for (; mask != 0; mask &= mask - 1)
+                    AddPair128(ref xs, ref weights, sums, p + BitOperations.TrailingZeroCount(mask), n, vectors);
+            }
+            for (; p < pairs; p++)
+                if (Pair(ref xs, p) != 0)
+                    AddPair128(ref xs, ref weights, sums, p, n, vectors);
+            var zero = Vector128<int>.Zero;
+            var qa = Vector128.Create(QA);
+            for (int v = 0; v < vectors; v += 2)
+            {
+                var low = Vector128.Min(Vector128.Max(Vector128.ShiftRightArithmetic(sums[v], layer.Shift), zero), qa);
+                var high = Vector128.Min(Vector128.Max(Vector128.ShiftRightArithmetic(sums[v + 1], layer.Shift), zero), qa);
+                Vector128.Narrow(low, high).StoreUnsafe(ref to, (nuint)(4 * v));
             }
         }
     }
@@ -848,6 +878,16 @@ public sealed class Network
         nuint at = (nuint)(pair * outputs * 2);
         for (int v = 0; v < vectors; v++)
             sums[v] += Avx2.MultiplyAddAdjacent(both, Vector256.LoadUnsafe(ref weights, at + (nuint)(16 * v)));
+    }
+
+    /// <summary>One pair of inputs into every output's sum, 4 outputs a vector.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AddPair128(ref short x, ref short weights, Span<Vector128<int>> sums, int pair, int outputs, int vectors)
+    {
+        var both = Vector128.Create(Pair(ref x, pair)).AsInt16();
+        nuint at = (nuint)(pair * outputs * 2);
+        for (int v = 0; v < vectors; v++)
+            sums[v] += Sse2.MultiplyAddAdjacent(both, Vector128.LoadUnsafe(ref weights, at + (nuint)(8 * v)));
     }
 
     /// <summary>For each byte, the positions of its set bits, 8 to a row (the rest 0): a list 8 at a time with no branch a bit.</summary>
@@ -884,11 +924,19 @@ public sealed class Network
                 count = Append(ref into, count, ref table, mask & 0xFF, p);
                 count = Append(ref into, count, ref table, mask >> 8, p + 8);
             }
-        for (; p + 8 <= pairs; p += 8)
-        {
-            uint mask = ~Vector256.Equals(Vector256.LoadUnsafe(ref xs, (nuint)(2 * p)).AsInt32(), Vector256<int>.Zero).ExtractMostSignificantBits() & 0xFF;
-            count = Append(ref into, count, ref table, mask, p);
-        }
+        if (width >= 256)
+            for (; p + 8 <= pairs; p += 8)
+            {
+                uint mask = ~Vector256.Equals(Vector256.LoadUnsafe(ref xs, (nuint)(2 * p)).AsInt32(), Vector256<int>.Zero).ExtractMostSignificantBits() & 0xFF;
+                count = Append(ref into, count, ref table, mask, p);
+            }
+        else
+            for (; p + 8 <= pairs; p += 8)
+            {
+                uint low = Vector128.Equals(Vector128.LoadUnsafe(ref xs, (nuint)(2 * p)).AsInt32(), Vector128<int>.Zero).ExtractMostSignificantBits();
+                uint high = Vector128.Equals(Vector128.LoadUnsafe(ref xs, (nuint)(2 * p + 8)).AsInt32(), Vector128<int>.Zero).ExtractMostSignificantBits();
+                count = Append(ref into, count, ref table, ~(low | high << 4) & 0xFF, p);
+            }
         for (; p < pairs; p++)
             if (Pair(ref xs, p) != 0)
                 Unsafe.Add(ref into, count++) = (ushort)p;
@@ -915,7 +963,7 @@ public sealed class Network
     }
 
     /// <summary>
-    /// A small layer of at most 32 outputs at 256 or 512 bits: the non-zero pairs listed first (<see cref="NonZeroPairs"/>),
+    /// A small layer of at most 32 outputs at 128, 256 or 512 bits: the non-zero pairs listed first (<see cref="NonZeroPairs"/>),
     /// then each listed pair broadcast and added to every output's sum, two pairs at a time into separate registers;
     /// then the shift and the clamp into <paramref name="outputs"/>[..PaddedOutputs].
     /// </summary>
@@ -975,7 +1023,7 @@ public sealed class Network
                 Avx512F.ConvertToVector256Int16(Vector512.Min(Vector512.Max(Vector512.ShiftRightArithmetic(s0 + t0, shift), zero), qa)).StoreUnsafe(ref to);
             }
         }
-        else
+        else if (width == 256)
         {
             var zero = Vector256<int>.Zero;
             var qa = Vector256.Create(QA);
@@ -1001,6 +1049,44 @@ public sealed class Network
                 Vector256.Narrow(Out(s2), Out(s3)).StoreUnsafe(ref to, 16);
 
             Vector256<int> Out(Vector256<int> s) => Vector256.Min(Vector256.Max(Vector256.ShiftRightArithmetic(s, shift), zero), qa);
+        }
+        else
+        {
+            // 4 outputs a register, so 4 registers for 16 outputs and 8 for 32 (of SSE's 16).
+            var zero = Vector128<int>.Zero;
+            var qa = Vector128.Create(QA);
+            bool two = layer.PaddedOutputs == 32;
+            int stride = layer.PaddedOutputs * 2;
+            Vector128<int> s0 = Vector128.LoadUnsafe(ref starts), s1 = Vector128.LoadUnsafe(ref starts, 4);
+            Vector128<int> s2 = Vector128.LoadUnsafe(ref starts, 8), s3 = Vector128.LoadUnsafe(ref starts, 12);
+            Vector128<int> s4 = two ? Vector128.LoadUnsafe(ref starts, 16) : zero, s5 = two ? Vector128.LoadUnsafe(ref starts, 20) : zero;
+            Vector128<int> s6 = two ? Vector128.LoadUnsafe(ref starts, 24) : zero, s7 = two ? Vector128.LoadUnsafe(ref starts, 28) : zero;
+            for (int i = 0; i < count; i++)
+            {
+                int p = Unsafe.Add(ref at, i);
+                var both = Vector128.Create(Pair(ref xs, p)).AsInt16();
+                nuint w = (nuint)(p * stride);
+                s0 += Sse2.MultiplyAddAdjacent(both, Vector128.LoadUnsafe(ref weights, w));
+                s1 += Sse2.MultiplyAddAdjacent(both, Vector128.LoadUnsafe(ref weights, w + 8));
+                s2 += Sse2.MultiplyAddAdjacent(both, Vector128.LoadUnsafe(ref weights, w + 16));
+                s3 += Sse2.MultiplyAddAdjacent(both, Vector128.LoadUnsafe(ref weights, w + 24));
+                if (two)
+                {
+                    s4 += Sse2.MultiplyAddAdjacent(both, Vector128.LoadUnsafe(ref weights, w + 32));
+                    s5 += Sse2.MultiplyAddAdjacent(both, Vector128.LoadUnsafe(ref weights, w + 40));
+                    s6 += Sse2.MultiplyAddAdjacent(both, Vector128.LoadUnsafe(ref weights, w + 48));
+                    s7 += Sse2.MultiplyAddAdjacent(both, Vector128.LoadUnsafe(ref weights, w + 56));
+                }
+            }
+            Vector128.Narrow(Out(s0), Out(s1)).StoreUnsafe(ref to);
+            Vector128.Narrow(Out(s2), Out(s3)).StoreUnsafe(ref to, 8);
+            if (two)
+            {
+                Vector128.Narrow(Out(s4), Out(s5)).StoreUnsafe(ref to, 16);
+                Vector128.Narrow(Out(s6), Out(s7)).StoreUnsafe(ref to, 24);
+            }
+
+            Vector128<int> Out(Vector128<int> s) => Vector128.Min(Vector128.Max(Vector128.ShiftRightArithmetic(s, shift), zero), qa);
         }
     }
 
@@ -1041,6 +1127,21 @@ public sealed class Network
                 quotient.AsInt16().StoreUnsafe(ref to, (nuint)i);
             }
         }
+        if (width == 128 && QA == 255)
+        {
+            ref short from = ref MemoryMarshal.GetReference(accumulator);
+            ref short to = ref MemoryMarshal.GetReference(x);
+            var zero = Vector128<short>.Zero;
+            var qa = Vector128.Create((short)255);
+            var half = Vector128.Create((ushort)127);
+            var magic = Vector128.Create((ushort)32897);
+            for (; i + 8 <= n; i += 8)
+            {
+                var v = Vector128.Min(Vector128.Max(Vector128.LoadUnsafe(ref from, (nuint)i), zero), qa).AsUInt16();
+                var quotient = Vector128.ShiftRightLogical(Sse2.MultiplyHigh(v * v + half, magic), 7);
+                quotient.AsInt16().StoreUnsafe(ref to, (nuint)i);
+            }
+        }
         for (; i < n; i++)
         {
             int v = Math.Clamp((int)accumulator[i], 0, QA);
@@ -1070,6 +1171,13 @@ public sealed class Network
             for (; i + 16 <= n; i += 16)
                 lanes += Avx2.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref xs, (nuint)i), Vector256.LoadUnsafe(ref ws, (nuint)i));
             sum += Vector256.Sum(lanes);
+        }
+        if (width == 128 && i + 8 <= n)
+        {
+            var lanes = Vector128<int>.Zero;
+            for (; i + 8 <= n; i += 8)
+                lanes += Sse2.MultiplyAddAdjacent(Vector128.LoadUnsafe(ref xs, (nuint)i), Vector128.LoadUnsafe(ref ws, (nuint)i));
+            sum += Vector128.Sum(lanes);
         }
         for (; i < n; i++)
             sum += x[i] * w[i];
@@ -1144,6 +1252,21 @@ public sealed class Network
         return Finish(sum, bucket);
     }
 
+    /// <summary>
+    /// The same 8 lanes at a time, for CPUs without AVX2 (SSE2's <see cref="Sse2.MultiplyAddAdjacent(Vector128{short}, Vector128{short})"/>).
+    /// One set of int32 lanes would collect H / 4 products, and at H 2048 512 of the largest come to 4,261,478,400 (|w| is
+    /// at most 128 with QA 255), past 2^31; so numbers i to i + 7 of each 16 go to one set and i + 8 to i + 15 to a second,
+    /// the two halves of <see cref="Forward256"/>'s lanes, and a lane collects H / 8, as there.
+    /// </summary>
+    internal int Forward128(ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket)
+    {
+        CheckAccumulators(us, them);
+        ref short ow = ref MemoryMarshal.GetReference(BucketWeights(bucket));
+        long sum = Half128(ref MemoryMarshal.GetReference(us), ref ow)
+                 + Half128(ref MemoryMarshal.GetReference(them), ref Unsafe.Add(ref ow, Hidden));
+        return Finish(sum, bucket);
+    }
+
     private void CheckAccumulators(ReadOnlySpan<short> us, ReadOnlySpan<short> them)
     {
         if (us.Length < Hidden || them.Length < Hidden)
@@ -1184,6 +1307,25 @@ public sealed class Network
         var (low, high) = Vector512.Widen(lanes);
         long sum = Vector512.Sum(low + high);
         return i < Hidden ? sum + Half256(ref accumulator, ref weights, i) : sum;
+    }
+
+    /// <summary>One perspective's sum, 16 numbers a step in two sets of 4 lanes (H is a multiple of 16).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private long Half128(ref short accumulator, ref short weights)
+    {
+        var zero = Vector128<short>.Zero;
+        var qa = Vector128.Create((short)QA);
+        Vector128<int> first = Vector128<int>.Zero, second = Vector128<int>.Zero;
+        for (int i = 0; i < Hidden; i += 16)
+        {
+            var v = Vector128.Min(Vector128.Max(Vector128.LoadUnsafe(ref accumulator, (nuint)i), zero), qa);
+            var u = Vector128.Min(Vector128.Max(Vector128.LoadUnsafe(ref accumulator, (nuint)(i + 8)), zero), qa);
+            first += Sse2.MultiplyAddAdjacent(v * Vector128.LoadUnsafe(ref weights, (nuint)i), v);
+            second += Sse2.MultiplyAddAdjacent(u * Vector128.LoadUnsafe(ref weights, (nuint)(i + 8)), u);
+        }
+        var (a, b) = Vector128.Widen(first);
+        var (c, d) = Vector128.Widen(second);
+        return Vector128.Sum(a + b + c + d);
     }
 
     /// <summary>The forward pass one number at a time, in 64 bits, with bucket <paramref name="bucket"/>'s row: the reference the SIMD passes must equal.</summary>

@@ -214,7 +214,10 @@ and a result blend. Each is a lever for session 5, measured one at a time.
    accelerated on this CPU too: a later speed step, measured. (Built
    2026-10-20: 32 lanes with `Vector512` and `Avx512BW.MultiplyAddAdjacent`
    where the CPU has them, on weights and stacks aligned to 64 bytes; AVX2
-   and scalar kept; "Speed at 1024".)
+   and scalar kept; "Speed at 1024". And 2026-10-23: 8 lanes with
+   `Vector128` and `Sse2.MultiplyAddAdjacent` for CPUs without AVX2, such as
+   the desktop's i7-3770, which had run the scalar code; "128 bits for CPUs
+   without AVX2".)
 5. **Quantisation**: trained in float32. The trainer clamps weights to
    +-1.98 throughout, so the feature layer becomes int16 at x255 (QA) and
    the output weights at x64 (QB) with no overflow. The export checks the
@@ -1782,6 +1785,102 @@ one thread, arms alternated over 6 rounds after a warm-up;
 - **The CPU steps are ~2.4x faster at full** (the filter; the check 13
   against 21-22 min). A month's records would take ~5 h instead of ~11.
 - Quiet: another day, with bt-a-desktop's run stopped for it.
+
+### 128 bits for CPUs without AVX2 (2026-10-23)
+
+A side session (simd128, branch `claude/serene-allen-b4f9da`, from
+compression 6474411). The desktop's i7-3770 (Ivy Bridge: SSE2 to SSE4.2 and
+AVX, no AVX2) ran the network one number at a time: `Kernels.Widest` was
+512 with AVX-512, 256 with AVX2, and otherwise 0. On 2026-10-23 its `bench
+9` on one thread ran at 216 knps (h1024-3m) against the laptop's ~2,713,
+12.5x slower, and bt-a-desktop's book table (BOOK-TABLES.md) has ~45 h on
+its 8 threads.
+
+- **The width**: 128 where SSE2 is there and AVX2 isn't
+  (`Kernels.WidestOf(avx512, avx2, sse2)`); `CB_NNUE_SIMD=128` holds a wider
+  CPU to it, as 256 and 0 do. WidestOf and `ChooseWidth(asked, widest)` take
+  the CPU's features as parameters, so the tests reach the desktop's case on
+  this AVX-512 laptop. `bench` prints the width (`network simd: 128 bits`).
+- **The accumulator**: the four kernels 8 int16 lanes a step, wrapping as
+  every width does.
+- **Versions 1 and 3** (`Forward128`): clamp, (v x w) x v by
+  `Sse2.MultiplyAddAdjacent` into int32 lanes, as the 256-bit pass does. One
+  set of 4 lanes would collect H / 4 products, and at MaxHidden 2048, 512 of
+  the largest (255 x 255 x 128) come to 4,261,478,400, past 2^31. So the
+  numbers i to i + 7 of each 16 go to one set of lanes and i + 8 to i + 15
+  to a second: the two halves of Forward256's lanes. A lane then collects
+  H / 8, Forward256's bound (2,056 is the last H that fits). Each set is
+  widened to 64 bits before the two are added. NnueTests'
+  largest-sums test at H 2048 is the one that catches a single set.
+- **Version 2**: the activation (the same 16-bit multiply-high trick, 8 at a
+  time), the small layers by listed pairs (4 outputs a register, 8 registers
+  for 32 outputs, of SSE's 16) and by pairs past 32 outputs, the list of
+  non-zero pairs 8 at a time from two 128-bit compares, and the output's dot
+  product.
+- **Tests**: every width loop in NnueTests, NnueDeepTests and NnueBucketTests
+  takes 128; WidestOf and ChooseWidth for each kind of CPU; and a deep shape
+  `13-48-3`. Its 48-output layer has 7 pairs of inputs, so the pairs'
+  tail runs past the vectors at every width. No shape reached that tail
+  before, at any width; the battery's tail mutant is caught by this shape
+  alone. The network classes 107 of 107. The full suite: at the default width
+  660 passed, 2 skipped, 1 failed: PonderTests'
+  AHitAtOnceStopsAsAPlainSearchWouldNotAtTheCap, whose search answered at
+  1,213 ms against a 1,200 ms cap under the suite's load. Alone it passed 3
+  of 3, so it's a timing test, not this change. With `CB_NNUE_SIMD=128`, so
+  that every search and UCI test runs the engine at 128 bits: 661 passed, 2
+  skipped, 0 failed.
+- **Mutation battery: 28 of 28 red** (scripts/nnue-bench/simd128/battery.py,
+  its run in battery-2026-10-23.txt), each run counting the 107 tests the
+  clean run counts, 8-9 s a mutant. It covers WidestOf and ChooseWidth, each
+  kernel, the dispatch's bucket, Forward128's row, bias, perspectives, lanes,
+  clamps and widening, the activation, the dot product, both pair lists, the
+  listed pairs' registers, starting sums, weights and stores, and the pairs
+  past 32 outputs. Left out as equivalent, since only speed can show them:
+  128 bits sent to the scalar code, Dot's 128-bit sum assigned rather than
+  added (nothing comes before it at 128), and a list naming extra zero pairs
+  (a zero pair adds 0).
+- **The laptop keeps 512 bits, unchanged** (`bench 9`, h1024-3m, one
+  thread, 06:05-06:06 with nothing else running, 12 rounds alternated; the old
+  build is compression 6474411; scripts/nnue-bench/simd128/bench-laptop-2026-10-23.tsv):
+
+  | arm | nodes | median knps | against old |
+  |---|---|---|---|
+  | old | 3,731,271 | 2,760 | |
+  | new | 3,731,271 | 2,762 | +0.1% |
+  | new, held to 128 bits | 3,731,271 | 2,011 | -27.1% |
+
+- **The desktop: 6.4x on h1024-3m, 6.9x on h1536-3m** (`bench 9`, one
+  thread, 06:11-06:16 by its clock, at its full 3,401 MHz; bt-a-desktop
+  stopped its book table for it, so no engine or dotnet process ran beside;
+  4 rounds alternated after a warm-up; the old build is nnue\bench-engine,
+  compression's engine as of 00:36 that night;
+  scripts/nnue-bench/simd128/bench-desktop-2026-10-23.txt, by
+  bench-simd128.ps1):
+
+  | arm | width | nodes | median knps | against old |
+  |---|---|---|---|---|
+  | old, h1024-3m | 0 | 3,731,271 | 219 | |
+  | **new, h1024-3m** | **128** | 3,731,271 | **1,412** | **6.4x** |
+  | new held to 0, h1024-3m | 0 | 3,731,271 | 218 | -0.7% |
+  | old, h1536-3m | 0 | 3,527,432 | 157 | |
+  | **new, h1536-3m** | **128** | 3,527,432 | **1,085** | **6.9x** |
+
+  - The rounds spread under +-3%, and every arm of a net searched the same
+    tree, the laptop's included.
+  - The laptop's lead on one thread falls from **12.5x to 2.0x** (2,762
+    against 1,412 on h1024-3m). The laptop held to 128 bits (2,011) is 1.4x
+    the desktop at 128.
+  - So the network one number at a time was at least 84% of a node there:
+    the rest of the node can't take more than the new build's whole time,
+    1 / 6.4 of the old one.
+  - Beside bt-a's 8 engines on its 4 cores (03:05, one thread, `bench 7`),
+    the same comparison read only ~3.5x (383 and 352 knps against 105 and
+    104). The 8 engines and the two hyperthreads of a core share its vector
+    units, so the book table's gain may land well under 6.9x. Its own speed
+    lines will say.
+- **bt-a-desktop** has the commit. In the same stop it re-searches 100 of
+  its finished leaves with the new engine, and swaps it into the run only if
+  move, score and nodes all match, on Matthew's OK.
 
 ## Risks
 

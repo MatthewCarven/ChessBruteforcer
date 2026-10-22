@@ -47,8 +47,11 @@ tree.
 Two builds, or two settings of one, on one net (2026-10-20, the AVX-512 and
 lazy-update A/Bs): an arm can name its own engine and environment, e.g.
 `-Arms "old=<net>;engine=<old dll>,new256=<net>;engine=<new dll>;env:CB_NNUE_SIMD=256,new=<net>;engine=<new dll>"`.
-`CB_NNUE_SIMD` (256 or 0) holds the engine to 256 bits or to one number at a
-time; unset, it uses the widest the CPU has. bench.ps1 also prints speed by
+`CB_NNUE_SIMD` (256, 128 or 0) holds the engine to 256 bits, to 128 (the
+path for CPUs without AVX2, such as the desktop's; 2026-10-23) or to one
+number at a time; unset, it uses the widest the CPU has. `bench` prints the
+width it ran at. simd128/bench-simd128.ps1 is the desktop's old-against-new
+run, from its own folder on the share. bench.ps1 also prints speed by
 the process's CPU time, less its start-up; beside the bot that column was
 noisier than the wall clock, so read both, and pair rounds for a small gain.
 
