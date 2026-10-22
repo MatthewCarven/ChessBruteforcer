@@ -484,7 +484,8 @@ ride out the share dropping, and the count checks every byte against it.
 **Playing it at home** (2026-10-22). `bot\play.cmd` (double-click it) opens a
 board against the same engine, network, tables and books as the Lichess bot,
 with clocks and no take-backs. **Load game** opens one of the bot's games
-(`bot\games`), a home game, or a pasted PGN; step through it and **Take over
+(`bot\games`), a home game, or a pasted PGN; a file of many (Lichess's export
+of an account) opens a list to pick from, with a Find box. Step through it and **Take over
 from here** to play on from any move as either side. First the bot says what it
 makes of the position, exactly so when the tables cover it (5 pieces or fewer).
 Beside the live bot it thinks on 2 threads at low priority, so the bot's games

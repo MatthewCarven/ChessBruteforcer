@@ -373,6 +373,35 @@ with tempfile.TemporaryDirectory() as root:
     homegame.unlock_study(lock)
     check("unlocked", os.path.exists(lock), False)
 
+    # ---- a file of many games (Lichess's export of an account), for the list in Load game ----
+    many = ('[Event "rated blitz game"]\n[Site "https://lichess.org/game/RG8QBsQM"]\n[White "RustBot2003"]\n'
+            '[Black "matthewcarven"]\n[Result "1-0"]\n[UTCDate "2026.10.22"]\n[UTCTime "14:19:26"]\n'
+            '[TimeControl "300+2"]\n\n1. e4 e5 2. Nf3 1-0\n\n'
+            '[Event "Home game"]\n[Site "home"]\n[Date "2026.10.22"]\n[Time "23:30:05"]\n[White "Matthew"]\n'
+            '[Black "matthewcarven"]\n[Result "*"]\n[TimeControl "-"]\n\n1. d4 d5 2. c4 *\n\n'
+            '[Event "rated bullet game"]\n[White "Jürgen"]\n[Black "matthewcarven"]\n[Result "1/2-1/2"]\n'
+            '[UTCDate "2026.10.20"]\n[UTCTime "02:05:00"]\n[TimeControl "60+1"]\n\n1. c4 1/2-1/2\n')
+    utf8, ansi = os.path.join(root, "many-utf8.pgn"), os.path.join(root, "many-cp1252.pgn")
+    with open(utf8, "wb") as out:
+        out.write(b"\xef\xbb\xbf" + many.encode("utf-8"))   # with a byte-order mark
+    with open(ansi, "wb") as out:
+        out.write(many.encode("cp1252"))                    # as lichess-bot writes some names
+    check("read: the mark dropped", homegame.read_text(utf8) == many, True)
+    check("read: cp1252's name", homegame.read_text(ansi) == many, True)
+    index = homegame.game_index(homegame.read_text(utf8))
+    check("three games, in file order", [h["White"] for _, h in index], ["RustBot2003", "Matthew", "Jürgen"])
+    second = homegame.game_at(homegame.read_text(utf8), index[1][0])
+    check("the second game, whole", [m.uci() for m in second.mainline_moves()], ["d2d4", "d7d5", "c2c4"])
+    local = datetime.datetime(2026, 10, 22, 14, 19, 26, tzinfo=datetime.timezone.utc).astimezone()
+    check("a Lichess row: UTC as local time, minutes on the clock, the result in words",
+          homegame.game_row(index[0][1]),
+          (local.strftime("%Y-%m-%d %H:%M"), "RustBot2003", "matthewcarven", "1-0 (White won)", "5+2"))
+    check("a home game's row: its own date and time", homegame.game_row(index[1][1]),
+          ("2026-10-22 23:30", "Matthew", "matthewcarven", "* (unfinished)", "-"))
+    check("a bullet game's clock and a draw", homegame.game_row(index[2][1])[3:], ("1/2-1/2 (draw)", "1+1"))
+    check("seconds when not whole minutes", homegame.game_row(chess.pgn.Headers(TimeControl="15+0"))[4], "15s+0")
+    check("no headers to speak of", homegame.game_row(chess.pgn.Headers())[0], "????-??-??")
+
     # ---- copies, and which way up ----
     copies = os.path.join(root, "copies")
     first = homegame.copy_path(copies, when)

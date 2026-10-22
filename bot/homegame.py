@@ -26,6 +26,7 @@ import ctypes
 import dataclasses
 import datetime
 import importlib.util
+import io
 import json
 import math
 import os
@@ -464,6 +465,61 @@ class HomeGame:
 
 def read_game(path):
     return learn.read_game(path)
+
+
+# ---- files of many games (Lichess's export of an account: every game, newest first) -----------------------------
+
+def read_text(path):
+    """A PGN file's text: UTF-8 (a byte-order mark dropped), else cp1252, as lichess-bot writes some names."""
+    raw = open(path, "rb").read()
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return raw.decode("cp1252")
+
+
+def game_index(text):
+    """[(offset, headers)] for each game in a PGN text, in file order: headers only, so 600 games take a second."""
+    handle, found = io.StringIO(text), []
+    while True:
+        offset = handle.tell()
+        headers = chess.pgn.read_headers(handle)
+        if headers is None:
+            return found
+        found.append((offset, headers))
+
+
+def game_at(text, offset):
+    """The whole game that starts at `offset` (from game_index)."""
+    handle = io.StringIO(text)
+    handle.seek(offset)
+    return chess.pgn.read_game(handle)
+
+
+RESULT_WORDS = {"1-0": "White won", "0-1": "Black won", "1/2-1/2": "draw", "*": "unfinished"}
+
+
+def game_row(headers):
+    """(when, White, Black, result, clock) for the list of games. Lichess's UTC date and time become this laptop's
+    local time; a home game's Date and Time are local already."""
+    when = ""
+    date, clock_time = headers.get("UTCDate", ""), headers.get("UTCTime", "")
+    try:
+        utc = datetime.datetime.strptime(f"{date} {clock_time}", "%Y.%m.%d %H:%M:%S")
+        when = utc.replace(tzinfo=datetime.timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        date, clock_time = headers.get("Date", ""), headers.get("Time", "")
+        when = (date.replace(".", "-") + " " + clock_time[:5]).strip()
+    result = headers.get("Result", "*")
+    tc = headers.get("TimeControl", "-")
+    if tc not in ("-", "") and "+" in tc:
+        base, inc = tc.split("+", 1)
+        try:
+            tc = f"{int(base) // 60}+{inc}" if int(base) % 60 == 0 else f"{int(base)}s+{inc}"
+        except ValueError:
+            pass
+    return (when, headers.get("White", "?"), headers.get("Black", "?"),
+            f"{result} ({RESULT_WORDS.get(result, result)})", tc)
 
 
 def bot_colour(game):

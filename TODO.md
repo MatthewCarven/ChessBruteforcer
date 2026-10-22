@@ -909,6 +909,9 @@ Sessions, in order:
             instance another window for testing is useful"): the game on
             screen, at the position shown, in a second window. WORKLOG
             2026-10-23 00:40.
+      - [x] **A list to pick from** when Load game opens a file of many
+            games (Matthew, 2026-10-23, after downloading the account's
+            export: 632 games). WORKLOG 2026-10-23 01:40.
       - [ ] In a week or two: what the home book learnt, and whether it was
             played again (bot\books\home.jsonl, bot\logs\play-<date>.log).
       - [ ] His call, later: the home book in the Lichess bot too

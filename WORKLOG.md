@@ -6410,3 +6410,31 @@ python.exe is a launcher with the interpreter under it). Nothing was studied
 before Learn; Learn on a short take-over said why not; the game asked for
 was studied, and the lock was let go. The run was beside the bot and bt-c's
 engine job: the window said so and took 1 thread.
+
+## 2026-10-23 (01:40-02:05): Load game picks from a file of many games (the play-the-bot session)
+
+Matthew downloaded the account's games from Lichess and asked whether there
+was "only one game inside". There were two downloads in his Downloads
+folder: 632 games (617 rated, 15 casual, 12-22 October, newest first) and,
+2 minutes later, 612 (rated only; probably a filter on Lichess's export
+page). Load game had shown only the first game of a file. His pick: a list
+to choose from.
+
+- homegame.read_text (UTF-8, dropping a byte-order mark, else cp1252),
+  game_index (each game's offset and headers, through chess.pgn.read_headers:
+  632 games in 0.04 s), game_at, and game_row. A row is when, White, Black,
+  the result in words ("1-0 (White won)") and the clock in minutes ("5+2").
+  Lichess's UTCDate/UTCTime are shown as this laptop's local time; a home
+  game's Date/Time are local already.
+- play.GamePicker: a ttk.Treeview of the rows, in file order (newest first),
+  with a Find box that keeps rows holding every word typed (any case).
+  Double-click, Enter or Open picks. Load game uses it for any file or paste
+  with more than one game. A one-game file loads as before. A file of many
+  isn't a home game, even in bot\home\games, so it gets no Learn.
+
+Tests, run beside the night's SPRT (ob8 v h1024-3m), at below normal on
+CPUs 14-15 with no engine. bot\test-play.py: 110 checks passed (the
+engine's part wasn't re-run tonight; nothing in it changed).
+`bot\test-play-window.py --picker --file <his 632-game download>` passed:
+the list off screen (withdrawn), Find, every word, Open on nothing, Open on
+a game, and the game read back.

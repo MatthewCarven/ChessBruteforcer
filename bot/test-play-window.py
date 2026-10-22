@@ -2,6 +2,8 @@
 
     bot\\lichess-bot\\.venv\\Scripts\\python.exe -I bot\\test-play-window.py --engine <exe> [--eval <net>] [--tables <dir>]
                                                                         [--books <dir>] [--load <pgn>] [--shots <dir>]
+    bot\\lichess-bot\\.venv\\Scripts\\python.exe -I bot\\test-play-window.py --picker [--file <pgn of many games>]
+                                   (only the Load game list, off screen, no engine: fine beside a match)
 
 Its games, lists, copies and home book go to a temporary folder (bot\\home and bot\\books are never written;
 --books is read only). Dialogs answer themselves (yes to everything). It plays 12 random moves for you against the
@@ -183,7 +185,49 @@ def script(app):
     app.close()
 
 
+def picker_check():
+    """--picker [--file <pgn>]: only the list of games (Load game, a file of many), off screen, no engine. The file
+    defaults to two games made up here; Lichess's export of the account (600-odd games) is the real test."""
+    path = option("--file")
+    text = homegame.read_text(path) if path else (
+        '[White "RustBot2003"]\n[Black "matthewcarven"]\n[Result "1-0"]\n\n1. e4 1-0\n\n'
+        '[White "matthewcarven"]\n[Black "entebot"]\n[Result "0-1"]\n\n1. d4 0-1\n')
+    started = time.perf_counter()
+    index = homegame.game_index(text)
+    rows = [homegame.game_row(headers) for _, headers in index]
+    print(f"     ({len(rows)} games indexed in {time.perf_counter() - started:.2f} s)")
+    root = tk.Tk()
+    root.withdraw()
+    picker = play.GamePicker(root, rows, wait=False)
+    picker.withdraw()   # (off screen: Matthew may be at the laptop)
+    picker.update()
+    expect("the list holds every game", picker.count.cget("text") == f"{len(rows)} of {len(rows)}")
+    expect("the newest (the file's first) is chosen to start with", picker.tree.selection() == ("0",))
+    picker.find.set("RUSTBOT")
+    wanted = [n for n, row in enumerate(rows) if "rustbot" in " ".join(row).lower()]
+    expect("Find narrows it, any case", len(picker.tree.get_children()) == len(wanted) > 0)
+    picker.find.set("rustbot 1-0")
+    both = [n for n, row in enumerate(rows) if "rustbot" in " ".join(row).lower() and "1-0" in " ".join(row)]
+    expect("every word typed must match", len(picker.tree.get_children()) == len(both))
+    picker.find.set("no such player anywhere")
+    picker.ok()
+    expect("nothing shown: Open does nothing", picker.result is None and picker.winfo_exists())
+    picker.find.set("rustbot")
+    last = picker.tree.get_children()[-1]
+    picker.tree.selection_set(last)
+    picker.ok()
+    expect("Open: the game's number in the file", picker.result == int(last) == wanted[-1])
+    game = homegame.game_at(text, index[picker.result][0])
+    expect("... which reads as that game", game.headers.get("White") == index[picker.result][1].get("White")
+           and game.headers.get("Black") == index[picker.result][1].get("Black"))
+    root.destroy()
+    print("all passed" if not failures else f"{len(failures)} FAILED: {', '.join(failures)}")
+    sys.exit(1 if failures else 0)
+
+
 def main():
+    if "--picker" in sys.argv:
+        picker_check()
     root = tk.Tk()
     app = play.App(root)
     run(app)

@@ -6,6 +6,8 @@
 
 - **New game**: your colour and a clock. No take-backs. Resign any time; the bot never resigns.
 - **Load game**: one of the bot's games (bot\\games), a home game, or a pasted PGN (Lichess's "Share & export").
+  A file of many games (Lichess's export of the account: every game, newest first) opens a list to pick from:
+  when (your time), White, Black, the result in words, the clock, with a Find box (Matthew, 2026-10-23).
   Step through it (the arrows, or click a move) and **Take over from here**: you play one side from that move on,
   the bot the other. First it says what it makes of the position, exactly when 5 pieces or fewer are left (the
   tables), "to see if its even possible".
@@ -31,7 +33,7 @@ import threading
 import time
 import tkinter as tk
 import traceback
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
 import chess
 import chess.engine
@@ -116,6 +118,75 @@ class Choice(tk.Toplevel):
     def ok(self):
         self.result = {name: var.get() for name, var in self.vars.items()}
         self.destroy()
+
+
+class GamePicker(tk.Toplevel):
+    """A list of the games in a file (homegame.game_row: when, White, Black, result, clock), with a box to narrow
+    it by any text (an opponent's name, a date, "draw"). .result is the chosen game's number in the file, or None.
+    wait=False leaves it open for a test to drive (find, choose, ok)."""
+
+    COLUMNS = (("when", "When (your time)", 130), ("white", "White", 150), ("black", "Black", 150),
+               ("result", "Result", 130), ("clock", "Clock", 60))
+
+    def __init__(self, parent, rows, wait=True):
+        super().__init__(parent)
+        self.title(f"Pick a game ({len(rows)} in the file, newest first as Lichess exports them)")
+        self.transient(parent)
+        self.rows, self.result = rows, None
+        top = tk.Frame(self)
+        top.pack(fill="x", padx=10, pady=(10, 4))
+        tk.Label(top, text="Find:").pack(side="left")
+        self.find = tk.StringVar()
+        entry = tk.Entry(top, textvariable=self.find, width=30)
+        entry.pack(side="left", padx=6)
+        self.count = tk.Label(top, fg="#555")
+        self.count.pack(side="left", padx=6)
+        self.find.trace_add("write", lambda *a: self.refilter())
+        body = tk.Frame(self)
+        body.pack(fill="both", expand=True, padx=10)
+        self.tree = ttk.Treeview(body, columns=[c for c, _, _ in self.COLUMNS], show="headings", height=18,
+                                 selectmode="browse")
+        for column, heading, width in self.COLUMNS:
+            self.tree.heading(column, text=heading)
+            self.tree.column(column, width=width, anchor="w")
+        bar = ttk.Scrollbar(body, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=bar.set)
+        self.tree.pack(side="left", fill="both", expand=True)
+        bar.pack(side="left", fill="y")
+        self.tree.bind("<Double-1>", lambda e: self.ok())
+        self.tree.bind("<Return>", lambda e: self.ok())
+        buttons = tk.Frame(self)
+        buttons.pack(pady=10)
+        tk.Button(buttons, text="Open", width=10, command=self.ok).pack(side="left", padx=6)
+        tk.Button(buttons, text="Cancel", width=10, command=self.destroy).pack(side="left", padx=6)
+        self.bind("<Escape>", lambda e: self.destroy())
+        self.refilter()
+        entry.focus_set()
+        if wait:
+            self.grab_set()
+            self.wait_window()
+
+    def refilter(self):
+        """Shows the games whose row holds every word typed (any case)."""
+        words = self.find.get().lower().split()
+        self.tree.delete(*self.tree.get_children())
+        shown = 0
+        for number, row in enumerate(self.rows):
+            line = " ".join(row).lower()
+            if all(word in line for word in words):
+                self.tree.insert("", "end", iid=str(number), values=row)
+                shown += 1
+        self.count.config(text=f"{shown} of {len(self.rows)}")
+        children = self.tree.get_children()
+        if children:
+            self.tree.selection_set(children[0])
+            self.tree.focus(children[0])
+
+    def ok(self):
+        chosen = self.tree.selection()
+        if chosen:
+            self.result = int(chosen[0])
+            self.destroy()
 
 
 class App:
@@ -526,7 +597,7 @@ class App:
             if not path:
                 return
             try:
-                game = learn.read_game(path)
+                text = homegame.read_text(path)
             except OSError as error:
                 messagebox.showerror("Load game", str(error))
                 return
@@ -535,6 +606,14 @@ class App:
                                                  "PGN):")
             if not text:
                 return
+        # A file of many games (Lichess's export of an account holds them all, newest first): pick one from a list.
+        index = homegame.game_index(text)
+        if len(index) > 1:
+            choice = GamePicker(self.root, [homegame.game_row(headers) for _, headers in index]).result
+            if choice is None:
+                return
+            game = homegame.game_at(text, index[choice][0])
+        else:
             game = chess.pgn.read_game(io.StringIO(text))
         if game is None or (not list(game.mainline_moves()) and "FEN" not in game.headers):
             messagebox.showerror("Load game", "That doesn't read as a game with moves in it.")
@@ -543,7 +622,8 @@ class App:
             messagebox.showwarning("Load game", f"Read with {len(game.errors)} problem(s); the moves up to the first "
                                                 f"one are kept:\n{game.errors[0]}")
         self.game, self.review, self.review_ply, self.selected = None, game, 0, None
-        home = kind == "file" and os.path.dirname(os.path.abspath(path)).lower() == os.path.abspath(homegame.GAMES).lower()
+        home = (kind == "file" and len(index) == 1
+                and os.path.dirname(os.path.abspath(path)).lower() == os.path.abspath(homegame.GAMES).lower())
         self.review_name = os.path.basename(path) if home else None
         h = game.headers
         self.flipped = homegame.black_at_bottom(h)
