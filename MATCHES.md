@@ -69,6 +69,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-22 | h1024-3m-l16-32 | h1024-3m | 276 | +45 -91 =140 | 41.7% | **-58 [-88, -30]** | SPRT [0, 10] **accepted H0** at game 272 (LLR -3.09); bot stopped |
 | 2026-10-22 | h1536-3m | h1024-3m | 2,000 | +498 -456 =1046 | 51.0% | **+7 [-3, +18]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR ~0.8), LOS 91.3%; bot stopped (see below) |
 | 2026-10-23 | h1024-3m-ob8 | h1024-3m | 2,000 | +515 -470 =1015 | 51.1% | **+8 [-3, +19]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 0.95), LOS 92.4%: 8 output buckets, the same speed; bot stopped (see below) |
+| 2026-10-23 | h1536-3m-l32 | h1536-3m | 326 | +56 -98 =172 | 43.6% | **-45 [-71, -19]** | SPRT [0, 10] **accepted H0** at game 322 (LLR -2.95): the widest deep net, at 43% of the speed; bot stopped (see below) |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -206,6 +207,17 @@ buckets cost no speed in play. The rule from our matches said ~+11 for
 -1.3%. It read -10 [-40, +20] at 250 games, then +7 to +13 from 750 on. No
 time losses. Endings: 430 mates, 523 threefolds, 928 by the tables (555
 wins, 373 draws), 114 fifty-move, 5 stalemates.
+
+**h1536-3m-l32 against h1536-3m** (2026-10-23, 05:20-05:55, the bot stopped,
+nothing else timed; Matthew's "well lets try 1536-3m-l32"): the deep net with
+the best held-back error (-10% against h1536-3m, -13.4% against h1024-3m)
+against the bot's own net. 326 games, +56 -98 =172, **-45 [-71, -19]**; the
+SPRT accepted H0 at game 322. Searches: h1536-3m-l32 1,221 knps, depth 9.6;
+h1536-3m 2,809 and 10.8 (-57%, 1.2 plies). Expected ~-35 (the rule's -18, less
+the ~25-30 the deep nets have fallen short of it), so as predicted: better
+judgement, lost on speed. Not close, so no 60+0.6 run. No time losses.
+Endings: 76 mates, 75 threefolds, 154 by the tables (78 wins, 76 draws), 21
+fifty-move.
 
 ## Pondering (2026-10-16 on)
 

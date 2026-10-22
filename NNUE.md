@@ -1519,10 +1519,14 @@ code, the trainer and the reference, clear of the ponder sessions' files).
   10-22 12:14, 10 passes, 136 k positions a second; network sha256
   303b409bc49e): held back as the engine computes it **0.010762 at K 1.132,
   -13.4% against h1024-3m**, the best of any net, 0.011064 at K 1. Width
-  and the small layer add up (1536: -3.9%, l32: -8.4%, both: -13.4%). Not
-  matched: its small layer has 1.5x l32's pairs, so it would run slower
-  than l32 (-55% in its match) and lose on speed; it is what a 4x cheaper
-  small-layer pass would be worth having for.
+  and the small layer add up (1536: -3.9%, l32: -8.4%, both: -13.4%).
+  **Matched anyway (Matthew: "well lets try 1536-3m-l32"), against the bot's
+  h1536-3m: -45 [-71, -19]** over 326 games at 10+0.1, SPRT [0, 10] accepted
+  H0 at game 322; 1,221 knps against 2,809 (-57%), 1.2 plies shallower
+  (MATCHES.md). Held back it is 10% better than h1536-3m; the rule (+8 a 1%,
+  -87 a halving) said about -18, and the deep nets keep falling ~25-30
+  short of it. It is what a 4x cheaper small-layer pass would be worth
+  having for.
 
 ### Session 7: output buckets (2026-10-22)
 

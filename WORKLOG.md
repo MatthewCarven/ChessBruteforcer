@@ -6488,3 +6488,9 @@ a game, and the game read back.
   now pins it (TheWalkLeavesAnOldEntryItReadsOld: an old entry walked over still gets pushed out). 9 of 9 red.
 - Lab, d9ba5c2 against the walk, 67 searches and 667 info lines from the two games: node for node the same on all,
   bestmove and ponder on all 67; one-ply lines 21% -> 10%, 1-3 plies 38% -> 30%; +0.013 ms a line.
+- **h1536-3m-l32 v h1536-3m** (the queue's go 05:20, from compression
+  0539ed9's engine; my finished ob8 window closed first, the learner's engine
+  idle): **-45 [-71, -19]** over 326 games, SPRT accepted H0 at game 322,
+  05:20-05:55. 1,221 knps against 2,809 (-57%), 1.2 plies shallower. As
+  expected (~-35): the best judgement of any net, lost on speed. Not close,
+  so no 60+0.6 run. The queue told; simd128's tests next, then h1024-6m.

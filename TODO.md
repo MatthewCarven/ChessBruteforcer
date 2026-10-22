@@ -207,8 +207,9 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   - **h1536-3m-l32 done** (desktop, 2026-10-21 22:25 to 10-22 12:14): held
     back as the engine computes it **0.010762 at K 1.132, -13.4% against
     h1024-3m**, the best yet (network sha256 303b409bc49e); in games\nnue\nets.
-    Not matched: at 1536 its small layers' pairs are 1.5x l32's, so it would
-    be slower than l32 (-55% in the match) and lose on speed too.
+    **Matched against h1536-3m on Matthew's word (2026-10-23): -45 [-71,
+    -19]** over 326 games, SPRT accepted H0; -57% knps, 1.2 plies shallower
+    (MATCHES.md). Not close, so no longer clock.
   - [ ] **Re-benchmark the desktop, quiet and full** (Matthew, 2026-10-23
     ~00:45): its power plan held the i7-3770 at 15% maximum processor state
     with a frequency cap, on purpose: **quiet running, Matthew sleeps near
