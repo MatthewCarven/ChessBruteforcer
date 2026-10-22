@@ -1039,6 +1039,8 @@ the opponent rarely lets come true. And in this game the plan was kept and was w
   of the fall (-1.97 of -2.89) came on moves where the opponent had played exactly the reply we expected.** Each time
   we took the next step along our own line and looked two plies further, it was a little worse than we'd thought:
   4 such steps fell by 0.30 or more, none rose that much. No surprise refuted the line; it was overrated.
+  **Stockfish agrees** (section 4): through moves 16-31 it had us about 0.25 worse than our engine did, so the falls
+  on hits were our engine finding out, two plies at a time, what Stockfish already saw.
 
 ### 1. Plan continuity
 
@@ -1096,14 +1098,18 @@ In the balance (moves 8-48), 23 of 41 plan changes or non-plans:
 
 Our score, from our side (Black), by stage:
 
-| moves | our score | what happened |
-|---|---|---|
-| 7-15 | -0.17 to -0.23 | out of the book; 6 hits of 8, plan kept each time |
-| 16-25 | -0.11 to +0.05 | caiporaBot deviates at 7 of 10 moves; each a new plan, the score steady |
-| 26-31 | +0.05 to **-1.01** | the slide: 26...Re7 (hit, -0.21), four deviations by White's rooks and bishop (-0.04, -0.15, -0.15, -0.19), 31...Qd8 (hit, -0.32) |
-| 32-44 | -0.33 to -1.04 | the plan mostly kept (hits at 32, 33, 35, 37, 39, 41, 43, 44) |
-| 45-48 | -1.48 to -3.06 | 45.Rd6 (a miss) Rxd6, then a queen trade (46...Qc6, a close call over the planned Qa8); each next step along our own line was worse (hits at 46-48: -0.57, -0.69, -0.32) |
-| 49-92 | -3.27 to mated | lost: the hits keep finding it worse (a further -5.95, capped at -10.00, against -0.99 on misses) |
+Stockfish 16 (WSL, depth 18, one thread) scored every position of the game afterwards (`plan-sf.py`, 20:45-20:47,
+with the bot off), our side's view like ours. Its "cost" of a move is its score after the move less its score
+before; at a fixed depth that's give or take 0.2-0.3 a move, so read the totals, not single moves.
+
+| moves | our score | Stockfish (mean) | ours (mean) | Stockfish's cost of our moves (its move played) | what happened |
+|---|---|---:|---:|---:|---|
+| 7-15 | -0.17 to -0.23 | -0.23 | -0.16 | 0.17 over 9 (7) | out of the book; 6 hits of 8, plan kept each time |
+| 16-25 | -0.11 to +0.05 | **-0.30** (-0.51 by move 25) | -0.03 | 0.52 over 10 (3) | caiporaBot deviates at 7 of 10 moves; each a new plan, our score steady while Stockfish's sinks |
+| 26-31 | +0.05 to **-1.01** | -0.72 | -0.48 | **1.13 over 6** (2) | the slide: 26...Re7 (hit, -0.21), four deviations by White's rooks and bishop (-0.04, -0.15, -0.15, -0.19), 31...Qd8 (hit, -0.32) |
+| 32-44 | -0.33 to -1.04 | -0.77 | -0.70 | 1.46 over 13 (7) | the plan mostly kept (hits at 32, 33, 35, 37, 39, 41, 43, 44); 43...c4 cost 0.84 |
+| 45-48 | -1.48 to -3.06 | -2.82 | -2.33 | 0.58 over 4 (4) | 45.Rd6 (a miss) Rxd6, then a queen trade (46...Qc6, a close call over the planned Qa8); each next step along our own line was worse (hits at 46-48: -0.57, -0.69, -0.32) |
+| 49-92 | -3.27 to mated | -4.21 (moves 49-60) | -4.96 | | lost: the hits keep finding it worse (a further -5.95, capped at -10.00, against -0.99 on misses); here our score is the gloomier one |
 
 | our move came after (in the balance, moves 8-48) | moves | score change, total | mean a move | fell 0.30+ | rose 0.30+ |
 |---|---:|---:|---:|---:|---:|
@@ -1113,9 +1119,20 @@ Our score, from our side (Black), by stage:
 If the evaluation were right on average, a hit's change would average about zero: the game went exactly where we
 predicted, and the extra two plies would find it better as often as worse. Here they found it worse 4 times and
 better never (by 0.30 or more). The line the bot kept playing towards was judged too kindly, and that kind of error
-is the evaluation's, not the planning's. In TURNS.md's terms this game is "outplayed slowly" or "misjudged". Which
-one needs Stockfish's view of the same positions. It can't run while the bot plays: it follows below once the bot has
-stopped and the core queue gives it a slot.
+is the evaluation's, not the planning's. Stockfish says the same, in three parts:
+
+- **Misjudged.** Through moves 16-31 Stockfish had us about 0.25 worse than our engine did (-0.30 against -0.03,
+  then -0.72 against -0.48). The falls on hits were our engine finding out, two plies at a time, what Stockfish
+  already saw. Closest to TURNS.md's "misjudged" (not tested its way, two plies deeper): Stockfish saw it first.
+- **Some of it was our moves.** Stockfish's cost of our moves in the balance came to 3.91 over 41 moves; the dearest
+  stretch was the slide itself (1.13 over moves 26-31, its own move played 2 times in 6). Both engines put the game
+  past -1.00 for good at nearly the same move (Stockfish from move 44, ours from 45).
+- **Keeping the plan didn't make the moves worse, or better.** Stockfish's cost a move after a hit (mostly the
+  planned move) and after a miss (a fresh decision): 0.14 and 0.05 here, 0.09 and 0.31 in DpEHbqlQ below; over both
+  games **0.12 and 0.13**. When the deeper search overruled the plan in the balance (5 times in the two games),
+  Stockfish preferred the new move twice (41...c5, 46...Qc6), the plan's move twice (26...Re7 for the planned Rbd7,
+  costing 0.60; DpEHbqlQ's 25...Rhf8 for the table's Raf8, costing 1.12, that game's dearest move in the balance), and
+  neither once (23...Bd6). Too few to call.
 
 ### What would make it more plan-like
 
@@ -1127,8 +1144,8 @@ stopped and the core queue gives it a slot.
   (`Search.Negamax`, the table cutoff before null move), so the "plan" exists in the table but isn't shown.
   The ponder move doesn't suffer: it falls back to the table's move (`UciEngine.PonderMove`).
 - **A more stubborn plan wouldn't have saved this game.** The plan was kept, 18 times in 22 hits in the balance, and
-  it was wrong. What would have helped is a better judgement of where the line was going: the evaluation (NNUE.md),
-  not the ponder.
+  it was wrong; Stockfish found kept plans and fresh decisions equally good (0.12 and 0.13 a move). What would have
+  helped is a better judgement of where the line was going: the evaluation (NNUE.md), not the ponder.
 
 **For Matthew.**
 
@@ -1165,12 +1182,20 @@ out of the book"), and was in the balance only to move 28.
 | in the balance, score change after a miss | -0.92 (19; 2 / 2) | -0.64 (9; 1 / 0) |
 | plan changed by the deeper search, in the balance | 4 (none a tactic) | 1 (25...Rhf8, -0.08 at the switch; not a tactic) |
 | the endgame tables | the last move only | never (mated with 12 pieces) |
+| Stockfish, in the balance: our score less its score (mean) | **+0.19** (ours kinder; +0.26 in moves 16-25) | -0.06 (the two agree) |
+| Stockfish's cost of our moves in the balance: after a hit / after a miss (a move) | 0.14 / 0.05 (22 / 19 moves) | 0.09 / 0.31 (8 / 9) |
+| our moves that were Stockfish's | 56 of 85 | 22 of 48 |
+| -1.00 or worse for us from then on: Stockfish / ours | move 44 / 45 | move 17 / 17 |
 
-The second game says the same, a little more strongly: the plan is kept through the table (90% of hits), and most of
-the fall comes as the game goes where we expected (17...Bxe5 after 17.dxe5, -0.58; 28...Qe8 after 28.Bd2, -0.77).
-Its one big fall on a miss is the clearest case of a plan we didn't see: twice we expected 26.Rf3 and 27.Rf3, and
-White pushed its h-pawn instead, h5 then h6 (-0.29, -0.74), on to h7 and h8. The lines it did predict came true for
-longer here (8-10 plies on 6 moves), as forced sequences do.
+The second game keeps its plan the same way, a little more strongly: through the table on 90% of hits, and most of
+our score's fall in the balance came after hits (17...Bxe5 after 17.dxe5, -0.58; 28...Qe8 after 28.Bd2, -0.77). But
+here **Stockfish agrees with our scores** on average (-1.10 at move 11, from the book; ours 0.06 the gloomier over
+moves 12-28), so the fall was real, not a misjudgement: the book left us worse, and our own moves cost 2.72 by Stockfish's count over moves
+23-28 (24...cxb2+ 0.67, 25...Rhf8 1.12, 26...Rab8 0.35, 27...Rb5 0.43). Those came while White carried out a plan we
+didn't forecast: twice we expected 26.Rf3 and 27.Rf3, and White pushed its h-pawn instead, h5 then h6 (our score
+-0.29, -0.74), on to h7 and h8. The lines we did predict came true for longer here (8-10 plies on 6 moves), as forced
+sequences do. Closest to TURNS.md's "worse straight out of the book", then "out-calculated" (not tested its way,
+two plies deeper).
 
 Not measured: two games are two games, both lost to stronger bots. The tables above are their 133 engine moves, not a
 sample of the bot's play; `plan.py` runs on any game in the DEBUG log (30 days kept) for more.

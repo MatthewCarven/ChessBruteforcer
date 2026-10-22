@@ -6179,3 +6179,30 @@ one before it. Write-up: PONDER.md, "Does the bot keep a plan?".
   at 20:22:36, after 16 POSTs that timed out at 2 s each, and the game's stream
   then dropped and was rejoined. About 39 s off our clock; the game was
   already lost.
+
+## 2026-10-22 (20:40-21:00): the plan, game DpEHbqlQ and Stockfish's view (the game-plan session)
+
+Matthew asked for the night's last game the same way: RustBot2003 (2754) -
+matthewcarven (Black), 5+3, mated at move 59, out of the book at -1.02. Then,
+with the bot off (Matthew's Ctrl+C 20:43:51, no game in progress; the learner
+stopped 20:44:37) and the core queue's go, plan-sf.py ran Stockfish 16 (WSL,
+depth 18, one thread, nice 19) on all 300 positions of both games,
+20:45-20:47. PONDER.md has a side-by-side table.
+
+| | 61InZpXn | DpEHbqlQ |
+|---|---:|---:|
+| hits: played the old line's next move | 34 of 43 | 19 of 21 |
+| time to the old depth less 2, hit / miss | 78 / 860 ms | 132 / 2,026 ms |
+| in the balance: score change after hits / misses | -1.97 / -0.92 | -1.86 / -0.64 |
+| our score less Stockfish's, in the balance | +0.19 | -0.06 |
+| Stockfish's cost a move, after a hit / a miss | 0.14 / 0.05 | 0.09 / 0.31 |
+
+- 61InZpXn was misjudged: Stockfish had us ~0.25 worse through moves 16-31
+  while we said level, so the falls on hits were our engine catching up.
+- DpEHbqlQ was real: Stockfish agrees with our scores; the book left us at
+  -1.10, and moves 23-28 cost 2.72 by Stockfish while White's h-pawn ran (we
+  had forecast Rf3 twice).
+- Kept plans and fresh decisions cost the same by Stockfish (0.12 and 0.13 a
+  move over both games). Of 5 plan changes by the deeper search in the
+  balance, Stockfish backed the change twice and the plan twice (26...Re7,
+  0.60; 25...Rhf8, 1.12).

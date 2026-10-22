@@ -91,6 +91,35 @@ def summary(plan_path, out_path):
     same = sum(1 for c in costs if sf[c[1]["ply"]]["best"] == c[1]["move"])
     print(f"\nour move = Stockfish's: {same} of {len(costs)}")
 
+    # In the balance (our score -3.00 or better before the move, as plan.py has it): did the moves that kept the plan
+    # cost more than the ones made afresh?  And how far was our score from Stockfish's?
+    balance = [c for c in costs if c[1].get("prev_cp") is not None and c[1]["prev_cp"] >= -300]
+    print("\n| in the balance | moves | Stockfish's cost of our moves, total (cp) | mean | moves costing 50+ | "
+          "our score less Stockfish's, before our move (mean, cp, Black's view) |")
+    print("|---|---:|---:|---:|---:|---:|")
+    for name, group in (("after a hit", [c for c in balance if c[1]["source"] == "hit"]),
+                        ("after a miss", [c for c in balance if c[1]["source"] == "go"]), ("all", balance)):
+        if not group:
+            continue
+        gap = [c[1]["cp"] - (-clamp(c[2])) for c in group]   # ours (Black's view) less Stockfish's (Black's view)
+        total = sum(c[0] for c in group)
+        print(f"| {name} | {len(group)} | {total:+d} | {total / len(group):+.1f} | {sum(1 for c in group if c[0] >= 50)} | "
+              f"{sum(gap) / len(gap):+.1f} |")
+
+    # Where each engine thought the game turned: the first of our moves from which the score stayed -1.00 or worse
+    # for us (Black's view), ours against Stockfish's.
+    def turn(scores):
+        for i in range(len(scores)):
+            if all(s <= -100 for s in scores[i:]):
+                return i
+        return None
+    seq = [(c[1], -clamp(c[2])) for c in costs]
+    ours, theirs = turn([r["cp"] for r, _ in seq]), turn([s for _, s in seq])
+    print(f"\nfrom here on -1.00 or worse for us: ours from move {seq[ours][0]['move_no'] if ours is not None else '-'}, "
+          f"Stockfish's from move {seq[theirs][0]['move_no'] if theirs is not None else '-'}")
+    print("\nour score / Stockfish's before our move (Black's view), every 3rd move:")
+    print(" ".join(f"{r['move_no']}:{r['cp']}/{s}" for r, s in seq[::3]))
+
 
 if __name__ == "__main__":
     {"run": run, "summary": summary}[sys.argv[1]](sys.argv[2], sys.argv[3])
