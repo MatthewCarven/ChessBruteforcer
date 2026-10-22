@@ -4,8 +4,9 @@ rem   scripts\book-tables\table-b.cmd <engine folder> [table-b.py options: --lim
 rem <engine folder> holds a copy of a Release build of src\ChessBruteforcer.Engine (not the bot's: a running DLL
 rem blocks rebuilds) and h1536-3m.nnue, in a path with no spaces. The log is scripts\book-tables\results\table-b.jsonl
 rem in this checkout, and a run started again carries on from it; progress goes to table-b.log beside it. To stop
-rem with the running searches finished, create table-b.jsonl.stop there (delete it before the next run). Python is
-rem the main checkout's bot venv (python-chess).
+rem with the running searches finished, create table-b.jsonl.stop there (delete it before the next run). To keep
+rem only N engines busy (beside the GPU training), write N into table-b.jsonl.engines there; it's read every ~30 s.
+rem Python is the main checkout's bot venv (python-chess).
 setlocal
 set ENG=%~1
 if "%ENG%"=="" (

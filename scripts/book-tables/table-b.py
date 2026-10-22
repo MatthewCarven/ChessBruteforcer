@@ -18,7 +18,9 @@ One thread, Hash 64, no endgame tables, a fresh game (ucinewgame) per search, so
 the order. Below-normal priority, which the engines inherit. Run it from a copy of the engine build (not the bot's).
 A new search waits while less than 2 GB of commit is free. Every search is appended to the log as it ends, and a run
 started again with the same log skips the searches in it: stop it any time (Ctrl+C, or a file <log>.stop, which lets
-the running searches finish). --limit N starts at most N searches this run (a timing trial). Progress goes to the
+the running searches finish). A file <log>.engines holding a number keeps only that many of the --engines busy, read
+again every ~30 s (beside a run that mustn't slow: 2, then 4; a lower number lets the running searches finish).
+--limit N starts at most N searches this run (a timing trial). Progress goes to the
 window and to <log name>.log. Once every position has its move, and with --summary alone (no engine), it writes the
 book (16-byte Polyglot entries, one move a position, weight 1; by default the log's name with .bin), reads it back,
 and prints the summary (also to <log name>-summary.txt).
@@ -65,7 +67,7 @@ if len(args) != 1 or (not SUMMARY and not (ENGINE and EVAL)):
 LOG = os.path.abspath(args[0])
 BASE = os.path.splitext(LOG)[0]
 BOOK_OUT = BOOK_OUT or BASE + ".bin"
-STOP = LOG + ".stop"
+STOP, CAP = LOG + ".stop", LOG + ".engines"
 
 k32 = ctypes.windll.kernel32
 k32.GetCurrentProcess.restype = ctypes.c_void_p
@@ -299,6 +301,14 @@ def load():
     return records
 
 
+def busy_cap():
+    """The engines to keep busy: --engines, or fewer while <log>.engines says so."""
+    try:
+        return max(0, min(ENGINES, int(open(CAP, encoding="utf-8").read().strip())))
+    except (OSError, ValueError):
+        return ENGINES
+
+
 def run(walk):
     results = queue.Queue()
     workers = [Worker(n, results) for n in range(ENGINES)]
@@ -309,9 +319,14 @@ def run(walk):
         f"{len(walk.nodes)} positions so far, {walk.undecided()} without a move, {len(walk.heap)} searches queued")
     out = open(LOG, "a", encoding="utf-8")
     try:
+        last_cap = ENGINES
         while True:
             stop = os.path.exists(STOP) or (LIMIT is not None and started >= LIMIT) or failures > 5
-            while walk.heap and idle and not stop:
+            cap = busy_cap()
+            if cap != last_cap:
+                say(f"engines kept busy: {cap} of {ENGINES} ({running} running now)")
+                last_cap = cap
+            while walk.heap and idle and running < cap and not stop:
                 if free_commit() < MIN_FREE:
                     if not waiting_memory:
                         say(f"waiting: {free_commit() / 2 ** 30:.2f} GB of commit free, under 2")
@@ -325,7 +340,7 @@ def run(walk):
                 running += 1
                 stop = (LIMIT is not None and started >= LIMIT)
             if running == 0:
-                if walk.heap and not stop:       # only the memory floor holds it
+                if walk.heap and not stop:       # only the memory floor or <log>.engines holds it
                     time.sleep(30)
                     continue
                 break
