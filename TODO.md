@@ -1243,6 +1243,24 @@ Sessions, in order:
 
 ### 4. Matthew's (flagged, his to do)
 
+- [ ] **Back up the data** (Matthew asked, 2026-10-22 ~18:55). Two kinds:
+      - The bot's DEBUG logs (bot\lichess-bot\lichess_bot_auto_logs, 194 MB
+        for 7 days): lichess-bot deletes each day's file after **7 days**,
+        and they're the only record of every UCI line with its time (the
+        ponder and miss checks, PONDER.md, P6's replay all come from them).
+        It rotates at midnight (renamed lichess-bot.log.<date>) and deletes
+        what's past `backupCount` (lib/lichess_bot.py). **30 days from the
+        next start** (Matthew asked, 2026-10-22): bot\lichess-bot-logs-30.patch
+        (backupCount 7 -> 30), applied by start-bot.cmd like the other
+        patches. That's ~1-1.3 GB on C:, and Session context merges it
+        with the bot stopped. Past 30 days, a copy elsewhere (bot\logs\debug\
+        or the desktop share) is still open.
+      - The Lichess months on the desktop share (Z:\lichess, April to
+        September 2026 now, ~538 M games; the queue adds more). The index
+        points straight into those files with no second copy, so a lost
+        month loses its index rows too. A copy needs a drive with room
+        and care with the share's ~8 MB/s cap (a month is tens of GB).
+        Where and how much is Matthew's call.
 - [x] Push `compression` (GitHub matched d13b55c at 00:47 on 2026-10-15).
 - [x] A second pull request from `compression` into `main` (PR #1 took only
       the first commit). (Done: PRs #2-#4, and #6 on 2026-10-21, merged by

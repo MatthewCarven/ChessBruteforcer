@@ -1,0 +1,12 @@
+diff --git a/lib/lichess_bot.py b/lib/lichess_bot.py
+--- a/lib/lichess_bot.py
++++ b/lib/lichess_bot.py
+@@ -197,7 +197,7 @@ def logging_configurer(level: int, filename: str | None, disable_auto_logs: bool) -> None:
+                                                                       delay=True,
+                                                                       encoding="utf-8",
+                                                                       when="midnight",
+-                                                                      backupCount=7)
++                                                                      backupCount=30)
+         auto_file_handler.setLevel(logging.DEBUG)
+
+         FORMAT = "%(asctime)s %(name)s (%(filename)s:%(lineno)d) %(levelname)s %(message)s"

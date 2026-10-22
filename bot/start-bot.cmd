@@ -90,6 +90,13 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-quit-soon.patch"
     if errorlevel 1 echo The quit.soon stop didn't go in ^(lichess-bot changed?^): bot\quit.soon will do nothing.
 )
+rem lichess-bot's DEBUG log (lichess_bot_auto_logs, every UCI line with its time: the ponder checks read it) keeps
+rem 30 days, not 7 (Matthew, 2026-10-22; ~25-45 MB a day): bot\lichess-bot-logs-30.patch. Unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-logs-30.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-logs-30.patch"
+    if errorlevel 1 echo The 30-day DEBUG log didn't go in ^(lichess-bot changed?^): it keeps 7 days.
+)
 set BRUTEFORCER_TABLES=%CD%\tables
 rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers;
 rem Ctrl+C stops both, and restarts.log says so.
