@@ -2,8 +2,9 @@
 
     bot\\lichess-bot\\.venv\\Scripts\\python.exe -I bot\\test-play-window.py --engine <exe> [--eval <net>] [--tables <dir>]
                                                                         [--books <dir>] [--load <pgn>] [--shots <dir>]
-    bot\\lichess-bot\\.venv\\Scripts\\python.exe -I bot\\test-play-window.py --picker [--file <pgn of many games>]
-                                   (only the Load game list, off screen, no engine: fine beside a match)
+    bot\\lichess-bot\\.venv\\Scripts\\python.exe -I bot\\test-play-window.py --no-engine [--file <pgn of many games>]
+                                   (the Load game list and the take-over buttons, off screen, no engine: fine beside
+                                   a match or a training run)
 
 Its games, lists, copies and home book go to a temporary folder (bot\\home and bot\\books are never written;
 --books is read only). Dialogs answer themselves (yes to everything). It plays 12 random moves for you against the
@@ -17,6 +18,7 @@ Matthew at the laptop, that's his own windows, not this one, so use --shots only
 caught his browser; deleted). Exit 1 if anything didn't happen as it should.
 """
 import importlib.util
+import io
 import os
 import random
 import subprocess
@@ -185,9 +187,10 @@ def script(app):
     app.close()
 
 
-def picker_check():
-    """--picker [--file <pgn>]: only the list of games (Load game, a file of many), off screen, no engine. The file
-    defaults to two games made up here; Lichess's export of the account (600-odd games) is the real test."""
+def no_engine_checks():
+    """--no-engine [--file <pgn>]: the parts that need no engine, off screen: the list of games (Load game, a file of
+    many) and the two take-over buttons. The file defaults to two games made up here; Lichess's export of the
+    account (600-odd games) is the real test."""
     path = option("--file")
     text = homegame.read_text(path) if path else (
         '[White "RustBot2003"]\n[Black "matthewcarven"]\n[Result "1-0"]\n\n1. e4 1-0\n\n'
@@ -220,14 +223,51 @@ def picker_check():
     game = homegame.game_at(text, index[picker.result][0])
     expect("... which reads as that game", game.headers.get("White") == index[picker.result][1].get("White")
            and game.headers.get("Black") == index[picker.result][1].get("Black"))
+
+    # The take-over buttons: one a side (Matthew, 2026-10-23: he'd end up on the wrong side), each wired to its
+    # side, and the board then your side up. The engine's part (the verdict) is caught, so none starts.
+    app = play.App(root)   # (in the withdrawn root: off screen)
+    source = chess.pgn.read_game(io.StringIO("1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. cxd4 Bb4+ *"))
+    expect("two buttons, White's and Black's", [b.cget("text") for b in app.take_over_buttons]
+           == ["Take over as White", "Take over as Black"])
+    expect("off with nothing loaded", {str(b.cget("state")) for b in app.take_over_buttons} == {"disabled"})
+    app.review, app.review_ply = source, 9   # after 5. d4: Black to move
+    app.draw()
+    expect("on with a game loaded", {str(b.cget("state")) for b in app.take_over_buttons} == {"normal"})
+    asked, judged = [], []
+
+    class FakeChoice:
+        """The take-over dialog, answered at once: 5+3."""
+        def __init__(self, parent, title, intro, groups):
+            asked.append((title, intro, list(groups)))
+            self.result = {"clock": "5+3"}
+
+    play.Choice, app.with_engine = FakeChoice, lambda then: then()
+    app.judge = lambda board, colour, clock, src, ply: judged.append((colour, clock, ply, board.fen()))
+    for button in reversed(app.take_over_buttons):   # Black's, then White's, as clicked
+        button.invoke()
+    expect("each button takes its own side", [c for c, _, _, _ in judged] == [chess.BLACK, chess.WHITE])
+    expect("... from the position shown, on the clock chosen", {(clock, ply, fen) for _, clock, ply, fen in judged}
+           == {((300, 3), 9, app.shown().fen())})
+    expect("the dialog asks only the clock, and says the side", [(t, g) for t, _, g in asked]
+           == [("Take over as Black", ["clock"]), ("Take over as White", ["clock"])]
+           and "your move first" in asked[0][1] and "the bot moves first" in asked[1][1])
+    app.begin(chess.BLACK, None, source=source, ply=9)
+    expect("as Black: Black at the bottom, your move", (app.flipped, app.game.human_to_move()) == (True, True))
+    expect("no taking over mid-game", {str(b.cget("state")) for b in app.take_over_buttons} == {"disabled"})
+    app.game.abandon()
+    app.review, app.review_ply = source, 10
+    app.begin(chess.WHITE, None, source=source, ply=10)
+    expect("as White: White at the bottom", (app.flipped, app.game.human_to_move()) == (False, True))
+    app.game.abandon()
     root.destroy()
     print("all passed" if not failures else f"{len(failures)} FAILED: {', '.join(failures)}")
     sys.exit(1 if failures else 0)
 
 
 def main():
-    if "--picker" in sys.argv:
-        picker_check()
+    if "--no-engine" in sys.argv:
+        no_engine_checks()
     root = tk.Tk()
     app = play.App(root)
     run(app)

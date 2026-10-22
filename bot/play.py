@@ -8,9 +8,10 @@
 - **Load game**: one of the bot's games (bot\\games), a home game, or a pasted PGN (Lichess's "Share & export").
   A file of many games (Lichess's export of the account: every game, newest first) opens a list to pick from:
   when (your time), White, Black, the result in words, the clock, with a Find box (Matthew, 2026-10-23).
-  Step through it (the arrows, or click a move) and **Take over from here**: you play one side from that move on,
-  the bot the other. First it says what it makes of the position, exactly when 5 pieces or fewer are left (the
-  tables), "to see if its even possible".
+  Step through it (the arrows, or click a move) and **Take over as White** or **as Black** (a button a side,
+  Matthew 2026-10-23): you play that side from that move on, at the bottom of the board, the bot the other. First
+  it says what it makes of the position, exactly when 5 pieces or fewer are left (the tables), "to see if its even
+  possible".
 - **Learn from this game** (a finished home game on screen): the window studies it in the background (homegame.py's
   docstring: 2(a)) and says what it learnt; you can play on meanwhile. Nothing is studied unless you press it
   (Matthew, 2026-10-23: he plays many test games). Closing the window mid-game saves the game unfinished.
@@ -224,8 +225,13 @@ class App:
         for text, step in (("|<", "start"), ("<", -1), (">", 1), (">|", "end")):
             tk.Button(nav, text=text, width=4, command=lambda s=step: self.step(s)).pack(side="left", padx=1)
         tk.Button(nav, text="Flip", width=5, command=self.flip).pack(side="left", padx=(8, 0))
-        self.take_over_button = tk.Button(side, text="Take over from here...", command=self.take_over, width=30)
-        self.take_over_button.pack(pady=2)
+        take = tk.Frame(side)
+        take.pack(pady=2)
+        self.take_over_buttons = [
+            tk.Button(take, text=f"Take over as {name}", width=15, command=lambda c=colour: self.take_over(c))
+            for name, colour in (("White", chess.WHITE), ("Black", chess.BLACK))]
+        for button in self.take_over_buttons:
+            button.pack(side="left", padx=1)
         self.learn_button = tk.Button(side, text="Learn from this game", command=self.learn_this, width=30)
         self.learn_button.pack(pady=2)
         tk.Button(side, text="Copy to a new window", command=self.copy_to_window, width=30).pack(pady=2)
@@ -321,7 +327,8 @@ class App:
         self.draw_clocks()
         playing = self.playing()
         self.resign_button.config(state="normal" if playing else "disabled")
-        self.take_over_button.config(state="normal" if self.review is not None and not playing else "disabled")
+        for button in self.take_over_buttons:
+            button.config(state="normal" if self.review is not None and not playing else "disabled")
         self.learn_button.config(state="normal" if self.review_name and not playing else "disabled")
 
     def draw_moves(self):
@@ -629,7 +636,7 @@ class App:
         self.flipped = homegame.black_at_bottom(h)
         self.say(f"{h.get('White', '?')} v {h.get('Black', '?')}, {h.get('Date', '?')}: {h.get('Result', '*')}"
                  f"{', ' + h['Termination'] if h.get('Termination') else ''}. Step through it with the arrows, "
-                 "then Take over from here.")
+                 "then Take over as White or as Black.")
         self.draw()
 
     def ask_text(self, title, prompt):
@@ -671,24 +678,25 @@ class App:
         self.review_ply = self.line_plies[row + 1] if row + 1 < len(self.line_plies) else total
         self.draw()
 
-    def take_over(self):
+    def take_over(self, colour):
+        """Take over as White, Take over as Black: one button a side, so the side is never a default you missed
+        (Matthew, 2026-10-23: "sometimes i take over then to board inverts and i find i am on the wrong side")."""
         if self.review is None or self.playing():
             return
         board = self.shown()
         if board.is_game_over():
             messagebox.showinfo("Take over", "The game is already over at this move: step back first.")
             return
+        side = "White" if colour == chess.WHITE else "Black"
         to_move = "White" if board.turn == chess.WHITE else "Black"
-        mover = self.review.headers.get(to_move) or to_move
-        choice = Choice(self.root, "Take over from here",
-                        f"From this position (move {board.fullmove_number}, {to_move} to move: {mover} in the real "
-                        "game), you play one side and the bot the other. First it says what it makes of the "
-                        "position.", {
-                            "colour": ("You play", ["White", "Black"], to_move),
+        first = "your move first" if board.turn == colour else "the bot moves first"
+        choice = Choice(self.root, f"Take over as {side}",
+                        f"You play {side}, the bot the other side, from this position (move {board.fullmove_number}, "
+                        f"{to_move} to move: {first}). {side} will be at the bottom of the board. First the bot says "
+                        "what it makes of the position.", {
                             "clock": ("Clock (each side, fresh)", [name for name, _ in CLOCKS], "10+5")}).result
         if not choice:
             return
-        colour = chess.WHITE if choice["colour"] == "White" else chess.BLACK
         clock, source, ply = self.clock_choice(choice["clock"]), self.review, self.review_ply
         self.with_engine(lambda: self.judge(board, colour, clock, source, ply))
 
@@ -833,7 +841,7 @@ class App:
         h = game.headers
         self.root.title("Play the bot (a copy)")
         self.say(f"A copy of {h.get('White', '?')} v {h.get('Black', '?')}, at move {self.shown().fullmove_number}. "
-                 "Take over from here to play on from it, or step through it. The first window's game goes on as it "
+                 "Take over as White or as Black to play on from it, or step through it. The first window's game goes on as it "
                  "was.")
         self.draw()
 

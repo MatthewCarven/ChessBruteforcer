@@ -485,8 +485,9 @@ ride out the share dropping, and the count checks every byte against it.
 board against the same engine, network, tables and books as the Lichess bot,
 with clocks and no take-backs. **Load game** opens one of the bot's games
 (`bot\games`), a home game, or a pasted PGN; a file of many (Lichess's export
-of an account) opens a list to pick from, with a Find box. Step through it and **Take over
-from here** to play on from any move as either side. First the bot says what it
+of an account) opens a list to pick from, with a Find box. Step through it and
+**Take over as White** or **as Black** to play on from any move as that side,
+your side at the bottom of the board. First the bot says what it
 makes of the position, exactly so when the tables cover it (5 pieces or fewer).
 Beside the live bot it thinks on 2 threads at low priority, so the bot's games
 come first; with the bot off, on 8 like the bot. Games are saved to

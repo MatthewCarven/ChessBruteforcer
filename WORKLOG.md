@@ -6559,3 +6559,29 @@ NNUE.md "128 bits for CPUs without AVX2" has the details.
   Matthew's own word, so the books wait until ~19:15.
 - simd128 (the 128-bit session) merged: the desktop's network 6.4-6.9x
   faster a thread (h1024-3m 219 -> 1,412 knps), searches identical.
+
+## 2026-10-23 (07:05-07:20): the home window's take-over is two buttons, one a side (the play-the-bot session)
+
+Matthew: "can you adjust the take over button to be two buttons one being
+take over white and the other take over black please? Its just sometimes i
+take over then to board inverts and i find i am on the wrong side". The old
+dialog's side defaulted to the side to move, so accepting it could put him
+on the side he didn't mean.
+
+- bot\play.py: **Take over as White** and **Take over as Black** in place of
+  Take over from here. Each fixes the side; the dialog after it asks only
+  the clock. It says the side, that it will be at the bottom of the board,
+  and whose move is first. The board after it is your side up, as before.
+- They sit side by side under the move list. Measured off screen: "Take over
+  as White" is 109 px, and a width-15 button 115, so two make 234 inside
+  the list's 242.
+- bot\test-play-window.py: `--picker` became `--no-engine`, which also
+  checks the buttons off screen. Their text, off with nothing loaded, on
+  with a game, each wired to its own side from the position shown, the
+  dialog asking only the clock, Black's and White's boards the right way up,
+  and off mid-game. The verdict's engine step was caught, so none started.
+
+Tests (during the h1024-6m training: no engine, below normal on CPUs
+14-15, seconds each): test-play.py 110 checks passed;
+test-play-window.py --no-engine (his 632-game download for the list)
+passed.

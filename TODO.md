@@ -939,6 +939,9 @@ Sessions, in order:
       - [x] **A list to pick from** when Load game opens a file of many
             games (Matthew, 2026-10-23, after downloading the account's
             export: 632 games). WORKLOG 2026-10-23 01:40.
+      - [x] **Take over as White / as Black**, two buttons (Matthew,
+            2026-10-23: he'd end up on the wrong side). WORKLOG 2026-10-23
+            07:05.
       - [ ] In a week or two: what the home book learnt, and whether it was
             played again (bot\books\home.jsonl, bot\logs\play-<date>.log).
       - [ ] His call, later: the home book in the Lichess bot too
