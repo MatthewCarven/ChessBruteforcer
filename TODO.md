@@ -262,16 +262,15 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     half is built** (branch `claude/ob-engine-e75e9e`: the loader, the
     passes, 31 tests, C# equals the numpy reference on ob-trainer's fixture,
     29 of 29 mutants red, the full suite 628 + 2 skipped), **in compression
-    since fab32bc**. `bench 9` with h1024-3m: **about 1% slower by the clock
-    than 662a810** (42 paired rounds, 29 to the old build, p 0.02), none by
-    CPU time; a bucketed net runs as fast as a version 1 net on the new
-    build (WORKLOG 2026-10-22, 12:11). ~1 Elo. The trainer half is
-    ob-trainer's (`claude/ob-trainer-56e1a8`); NNUE.md takes both sides'
-    sections, the trainer's first.
-    - [x] `bench 9` again on a quiet laptop (2026-10-22 12:11, 30 rounds).
-    - [ ] Optional, Matthew's call: win back the ~1% for version 1 nets
-      (skip the bucket's work when K = 1, drop the bounds checks the
-      bucket added), then the battery and the bench again.
+    since fab32bc**. `bench 9` with h1024-3m against 662a810's build: no
+    cost shown in 12 clean rounds (-0.6% by the clock, p 0.15; +1.2% by CPU
+    time), none ruled out up to ~2%. The trainer half is ob-trainer's
+    (`claude/ob-trainer-56e1a8`); NNUE.md takes both sides' sections, the
+    trainer's first.
+    - [ ] `bench 9` again on a quiet laptop, 24+ rounds: booked with the core
+      queue after P6's SPRT (the 12:11 run shared the laptop with it, so it
+      is left out: WORKLOG 2026-10-22, 12:11). Check for `dotnet` processes
+      as well as the engine's exe before it starts.
     - [ ] The first trained version 3 net: held-back error, `bench 9`, then
       its match against h1024-3m (the bot off).
   - Other levers waiting: the export's rounding (small); labels from our

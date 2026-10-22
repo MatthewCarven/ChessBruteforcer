@@ -5794,27 +5794,27 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - Matthew's to decide (TODO): the bot on h1536-3m or not; and E (h2048-3m,
   ~11-12 h of the laptop's GPU), whose expected gain this result shrinks.
 
-## 2026-10-22 (12:11-12:30): the buckets' bench again, on a quiet laptop: about 1% by the clock (the ob-engine session)
+## 2026-10-22 (12:11-12:45): the buckets' bench again, but beside P6's SPRT: left out, a quiet run rebooked (the ob-engine session)
 
-- Matthew's yes to the rerun. Booked with the core queue, which gave the go
-  after the h1536-3m match ended at 12:09: `bench 9`, one thread, the same
-  three arms as at 07:53 (662a810's build and the new on h1024-3m, the new
-  on h1024-3m-v3x8), 30 rounds after two warm-up rounds, 12:11:30-12:14:16,
-  no engine running before it, on mains. P6 was told at 12:14 that the
-  laptop was free for its SPRT.
-- The laptop was in its slow phase: old's median 2,400 knps (the morning's
-  2,738), a round's pair spreading +-7.6% (the morning's +-2.5%).
-- **Pooled with the morning's 12 clean rounds (42 pairs), a version 1 net
-  on the new build runs ~1.2% slower by the engine's clock**: median -1.15%,
-  10%-trimmed mean -1.3%, the old build ahead in 29 of 42 rounds (sign test
-  p 0.02). **By CPU time, no difference** (median +1.2%, trimmed +0.4%, 18
-  of 42, p 0.44). The 8-bucket copy runs as the version 1 net does on the
-  new build (-0.9% by the clock against old, p 0.16), so the buckets cost
-  nothing more than the plumbing. 1% of speed is ~1 Elo at p2.1's +87 a
-  doubling.
-- **A correction to the 07:03 entry**: "within noise" held for the 12
-  morning rounds alone. With the noon run it's a small cost, likely real.
-  The morning's table in NNUE.md also gave v3x8 a paired median of -0.4%
-  that was never computed; the script makes it -1.2%. NNUE.md session 7's
-  speed bullet now has both runs (scripts/nnue-bench/buckets/pooled.py,
-  bench-2026-10-22-noon.tsv).
+- Matthew's yes to the rerun. The core queue gave the go after the h1536-3m
+  match ended at 12:09: `bench 9`, one thread, the same three arms as at
+  07:53 (662a810's build and the new on h1024-3m, the new on
+  h1024-3m-v3x8), 30 rounds after two warm-up rounds, 12:11:30-12:14:16,
+  on mains.
+- **It wasn't quiet**: P6's SPRT (10 match engines, 5 games at a time)
+  started at 12:11:57, so rounds 3-30 ran beside it. My check at 12:11:13
+  saw no ChessBruteforcer.Engine.exe, and P6's at 12:11:44 saw none of mine
+  either: the bench's engines run as `dotnet ...dll`, so each check missed
+  the other. The run read slow and noisy (old's median 2,400 knps against
+  the morning's 2,738, a round's pair +-7.6% against +-2.5%). Pooled with
+  the morning, it would have said ~1.2% slower by the clock (29 of 42
+  rounds, p 0.02); I reported that before P6 and the queue pointed out the
+  overlap, and withdrew it. It is left out.
+- **What stands, the morning's 12 clean rounds**: by the clock new -0.6%
+  (mean -0.7% +- 0.7, 9 of 12, p 0.15), v3x8 -1.2%; by CPU time +1.2% and
+  0.0%. No cost shown, none ruled out up to ~2%. NNUE.md session 7's speed
+  bullet says so (it had given v3x8 a paired -0.4% that was never computed:
+  it is -1.2%).
+- The queue has rebooked a quiet ~6-minute run for after P6's SPRT (until
+  ~15:10), before h2048-3m's training. A check for `dotnet` processes too,
+  not only the engine's exe, before it starts.

@@ -1582,36 +1582,35 @@ nothing else of that branch.
   on h1024-3m, and the new on **h1024-3m-v3x8**, a version 3 copy of
   h1024-3m with its row in all 8 buckets (scripts/nnue-bench/buckets/to-v3.py).
   It scores exactly as h1024-3m does, so the tree is identical (3,775,600
-  nodes on all three), and what's left is the bucket path's own cost. Two
-  runs, each after two warm-up rounds, the order rotating round by round,
-  the laptop on mains with nothing else running:
+  nodes on all three), and what's left is the bucket path's own cost. Each
+  run after two warm-up rounds, the order rotating round by round, on mains:
   - 07:53-07:55, 16 rounds. Rounds 13-16 ran beside another session's
-    ponder lab (8 threads from 07:54:05) and are left out: 12 rounds.
-  - 12:11-12:14, 30 rounds, booked with the core queue after the h1536-3m
-    match. The laptop was in its slow phase (old's median 2,400 knps
-    against the morning's 2,738), with a round's pair spreading +-7.6%
-    against the morning's +-2.5%.
+    ponder lab (8 threads from 07:54:05) and are left out: **12 clean
+    rounds**.
+  - 12:11-12:14, 30 rounds. **Not a quiet run**: P6's SPRT started at
+    12:11:57 (10 match engines, 5 games at a time), so rounds 3-30 shared
+    the laptop with it (old's median 2,400 knps against the morning's
+    2,738, a round's pair spreading +-7.6% against +-2.5%). Left out. (The
+    check before it looked for ChessBruteforcer.Engine.exe at 12:11:13,
+    before the match started; the bench's own engines run as `dotnet ...dll`.)
 
-  Each round's arms against old in the same round (scripts/nnue-bench/buckets/pooled.py):
+  The 12 clean rounds, each arm against old in the same round
+  (scripts/nnue-bench/buckets/pooled.py):
 
   | arm | by the clock: median, mean +- SE | rounds below old | by CPU time: median, mean +- SE | rounds below old |
   |---|---|---|---|---|
-  | new, h1024-3m: morning (12) | -0.6%, -0.7% +- 0.7 | 9 of 12 | +1.2%, +0.6% +- 1.1 | 4 of 12 |
-  | new, h1024-3m: noon (30) | -1.5%, -2.1% +- 1.4 | 20 of 30 | +0.6%, -0.2% +- 1.3 | 14 of 30 |
-  | **new, h1024-3m: both (42)** | **-1.2%** (10%-trimmed mean -1.3%) | **29 of 42, sign test p 0.02** | **+1.2%** (trimmed +0.4%) | 18 of 42, p 0.44 |
-  | new, v3x8: both (42) | -0.9% (trimmed -0.8%) | 26 of 42, p 0.16 | -1.7% (trimmed -1.4%) | 22 of 42, p 0.88 |
+  | new, h1024-3m | -0.6%, -0.7% +- 0.7 | 9 of 12 (sign test p 0.15) | +1.2%, +0.6% +- 1.1 | 4 of 12 |
+  | new, h1024-3m-v3x8 | -1.2%, -1.0% +- 0.5 | 8 of 12 (p 0.39) | 0.0%, +1.0% +- 1.5 | 5 of 12 |
 
-  **A version 1 net on the new build probably runs about 1% slower by the
-  engine's clock**: 29 of 42 rounds went to the old build, more than chance
-  would give (p 0.02). By CPU time there is no difference. A bucketed net
-  on the new build runs at about the same speed as a version 1 net does,
-  so the buckets themselves cost nothing extra. The change adds a popcount,
-  a table read, a multiply and a bias read to each evaluation, ~0.3% of a
-  node on paper, so the rest may be code layout. In play 1% is about 1 Elo
-  (p2.1: a doubling of time is worth +87). This morning's write-up called
-  it within noise on the 12 morning rounds alone; the 30 at noon say a
-  small cost. The runs: scripts/nnue-bench/buckets/bench-2026-10-22.tsv (07:53) and
-  bench-2026-10-22-noon.tsv.
+  **No cost shown, and none ruled out up to ~2%** (the clock's mean -0.7%
+  +- 0.7, so a 95% range of about -2.1% to +0.7%): by the clock the new
+  build trails by under 1% in most rounds, not significantly; by CPU time it
+  doesn't trail at all. On paper the change adds a popcount, a table read,
+  a multiply and a bias read to each evaluation, ~0.3% of a node. In play
+  1% would be about 1 Elo (p2.1: a doubling of time is worth +87). A quiet
+  rerun is booked with the core queue, after P6's SPRT. The runs:
+  scripts/nnue-bench/buckets/bench-2026-10-22.tsv (07:53) and
+  bench-2026-10-22-noon.tsv (the loaded one, kept for the record).
 
 ## Risks
 
