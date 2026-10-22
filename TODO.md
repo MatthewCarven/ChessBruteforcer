@@ -240,13 +240,19 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
       then the swap on Matthew's OK (bt-a-desktop's to do). Anything else
       that runs our engine on the desktop gets the speed from a build of
       this branch, or of compression once it's merged.
-  - [ ] **C: h1024-6m on the laptop's GPU, tonight** (Matthew's 2(a),
-    2026-10-22, instead of E): h1024-3m's recipe (`--hidden 1024 --passes 10
-    --lr-drops 4/7/9`) on April-September, held back still September's: what
-    3 more months are worth, alone. ~13 h on the 3070, from ~00:30 after
-    h1024-3m-ob8's match (the core queue's slot (c)). April-June's records
-    come from the desktop (`nnue data`, ~20:00) to games\nnue\2026-04..06 at
-    7.5 MB/s, then a `records.py check` before the run.
+  - [ ] **C: h1024-6m on the laptop's GPU** (Matthew's 2(a), 2026-10-22,
+    instead of E): h1024-3m's recipe (`--hidden 1024 --passes 10 --lr-drops
+    4/7/9`) on April-September, held back still September's: what 3 more
+    months are worth, alone. **Training since 2026-10-23 06:28**, ~300 k
+    positions a second, 1.38 B a pass, ~76 min a pass: **done ~19:15**.
+    April-June's records came from the desktop and passed `records.py
+    check` on the laptop ("all well"). Then: held back against h1024-3m's
+    0.012432, `bench 9`, a match against h1024-3m (the bot off).
+    - Beside it (Matthew's rule: book runs only if they don't slow it): 2
+      one-thread book engines cost it 5.6% (283.7 k against a solo 295-304
+      k), so the books wait until it ends. A clean 4-engine recheck (skip
+      ~3 min of start-up, then ~8 min) only on Matthew's word in bt-b's
+      session.
   - **E: h2048-3m, dropped for now** (Matthew's 2(a)): after h1536-3m's +7,
     2048 looked like +0 to +10 at ~13% more speed cost. Nothing to build if
     it comes back: the engine takes 2048 (662a810), and train.py's held-back

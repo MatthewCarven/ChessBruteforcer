@@ -6529,3 +6529,33 @@ NNUE.md "128 bits for CPUs without AVX2" has the details.
   bt-a-desktop stopped and will restart its own run. In the same stop it
   checks the new engine on 100 finished leaves (move, score and nodes) and
   swaps it in on Matthew's OK.
+
+## 2026-10-23 (06:00-07:15): h1024-6m training on the laptop's GPU; the speed check beside it (the nnue-deep-layers session)
+
+- **records.py check** on the laptop's copies of April, May and June: all
+  well (255,749,565 / 257,698,447 / 238,760,934 records), ~6.7-7.1 min a
+  month on one core. (A slip on the way: PowerShell's variable names ignore
+  case, so a loop's $m overwrote the repo path in $M; the first check read
+  a relative path and failed at once.)
+- **h1024-6m from 06:28:15** on the core queue's go (`scripts\nnue-train.cmd
+  h1024-6m --hidden 1024 --add-data 2026-04 2026-05 2026-06 2026-07 2026-08
+  --passes 10 --lr-drops 4/7/9`, from compression 388685a): the RTX 3070 at
+  ~300 k positions a second (1.5x the desktop's 1660); 384 buckets, 1.38 B
+  positions a pass, ~76 min each: done ~19:15. Host commit 3.9 GB.
+- **The speed check** (Matthew's rule: the book runs go beside the training
+  only if they don't slow it), positions a second between its ~95 s lines:
+
+  | beside it | when | intervals | median | range |
+  |---|---|---|---|---|
+  | nothing | 06:30-06:40 | 6 | 300.6 k | 295.4-304.1 k |
+  | 2 one-thread book engines (bt-b) | 06:41-06:47 | 4 | 283.7 k (-5.6%) | 277.6-287.1 k |
+  | nothing again (bt-b stopped at 06:48:17) | 06:48-07:03 | 9 | 298.2 k | 296.7-301.5 k |
+
+  bt-b's 4 engines ran only 06:47:32-06:48:17, so my first "4 engines"
+  reading was the trainer alone and is struck. The 2-engine dip may be
+  start-up (tables read from the disk the trainer's buckets come from), so a
+  clean 4-engine recheck was offered: skip ~3 min, measure ~8. bt-b's
+  permission check refused restarting beside the training without
+  Matthew's own word, so the books wait until ~19:15.
+- simd128 (the 128-bit session) merged: the desktop's network 6.4-6.9x
+  faster a thread (h1024-3m 219 -> 1,412 knps), searches identical.
