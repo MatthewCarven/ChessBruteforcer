@@ -1297,6 +1297,38 @@ measures (~15 minutes of one core). The bot gets it at its next `bot\start-bot.c
   `turning-points.py`. A few lines more.
 - **(a3)** As (a1), and later, separately, the endgame tables' line for positions of 5 pieces or fewer.
 
+### (a1), built and measured (2026-10-23)
+
+Matthew chose (a1). The game-plan session wrote the code and tests (a35682c), then was archived before anything was
+compiled, so Session context finished it from its hand-over, in the core queue's slot after ob8's match.
+
+- **Built** first time; the classes it touches all green (159 tests: TableLineTests, TranspositionTableTests,
+  PonderTests, CutDepthTests, KeptHistoryTests, UciTests, ThreadTests).
+- **Mutants: 8 of 9 red at first.** "The walk reads through TryGet" lived: nothing noticed a walk that makes the
+  entries it reads this search's, which is the one thing that would let it change the next search. New test,
+  `TheWalkLeavesAnOldEntryItReadsOld`: an entry five searches old (worth 10 - 5 x 2 = 0), walked over, then four
+  depth-2 stores into its bucket; read by TryPeek it's pushed out, read by TryGet it would survive. **9 of 9 red.**
+- **The lab** (`tabletail.py`: the two games' positions, every second one, each game in one engine as in the bot,
+  one thread, Hash 256, depth 10; d9ba5c2 against the walk):
+
+| | result |
+|---|---|
+| searches / info lines | 67 / 667 |
+| depth, score, nodes and hashfull, old against new | the same on 667 of 667 |
+| bestmove and ponder | the same on 67 of 67 |
+| the new line starts with the old | 667 of 667 |
+| lines of one ply, every depth | 21% old, **10%** new |
+| lines of 1-3 plies, every depth | 38% old, **30%** new |
+| lines at the last depth (median plies) | 10 old, 10 new (already whole there) |
+| the walk's cost (a line's arrival after its depth's clock) | +0.013 ms a line, mean |
+
+  So it is display only, node for node, at no cost. In the lab the lines were already whole at the last depth (one
+  thread, a fixed depth), so the deeper check had no table tail to compare; the bot's short lines come with 8
+  threads, pondering and the clock. How far to believe the tail will show in the bot's own logs once it plays with
+  it (`pvcut.py` again, and `plan.py`).
+- **Merged** into compression after the full suite on the merged tree; the bot shows the longer lines from its next
+  `bot` start.
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's
@@ -1345,3 +1377,6 @@ python):
   on every position of the game, beside our own scores; run it only with the bot off.
 - `pvcut.py <DEBUG log>... [--split HH:MM:SS]` (option (a), scoped): how often the line the engine prints is cut
   short, for every move played and every finished depth from 8 on. Plain Python, seconds a log.
+- `tabletail.py run|summary` (option (a1)): the build before against the build with the walk, node for node,
+  the lines' lengths and the walk's cost (`results/tabletail.jsonl`, `tabletail-summary.txt`).
+  `tabletail-mutate.py [first] [last]`: its 9 mutants (p6-mutate.py's runner).

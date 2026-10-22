@@ -1105,7 +1105,7 @@ Sessions, in order:
                   at the end.)
             After the src work in flight lands (AVX-512 and the lazy update,
             the bitboard sessions).
-- [ ] **The whole plan in the logs** (option (a) of "Does the bot keep a
+- [x] **The whole plan in the logs** (option (a) of "Does the bot keep a
       plan?", [PONDER.md](PONDER.md); Matthew asked for it scoped,
       2026-10-22; scoped the same evening, nothing built). The line the
       engine prints is cut short where a PV node takes a table entry: 14% of
@@ -1118,6 +1118,10 @@ Sessions, in order:
       node for node; no match. ~2-3 h and ~15 min of one core. Options
       (a1) as designed, my pick; (a2) plus an `info string` marking where
       the search's own line ends; (a3) later, the endgame tables' line.
+      **(a1) built, 2026-10-23** (Matthew's pick; PONDER.md, "(a1), built and
+      measured"): node for node the same on 667 of 667 info lines, one-ply
+      lines 21% -> 10% in the lab, +0.013 ms a line; 9 of 9 mutants red. In
+      compression; the bot shows it from its next start. (a2), (a3) not done.
 - [ ] **Decision O (P8): the setup per opponent** ([OPPONENTS.md](OPPONENTS.md),
       scoped 2026-10-22 along Matthew's steer: 1 log first, 2 explore
       cheaply, 3 vary the opening; nothing built). No bot is weak against us

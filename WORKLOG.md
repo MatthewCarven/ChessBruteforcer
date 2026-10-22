@@ -6234,3 +6234,13 @@ is cut short). PONDER.md, "Option (a), scoped"; a TODO item.
   must send only legal moves; it does by construction.
 - Options: (a1) as designed (my pick), (a2) plus an info string marking
   where the search's own line ends, (a3) later, the endgame tables' line.
+
+## 2026-10-23 (05:05-05:40): option (a1) built, tested and measured (Session context, from the game-plan session's hand-over)
+
+- The game-plan session was archived with (a1) committed unbuilt (a35682c). Session context took it over in the
+  core queue's slot after ob8's match: build (clean, first time), the touched classes (159 green), the mutants,
+  the lab, the write-up (PONDER.md, "(a1), built and measured").
+- Mutants: "the walk reads through TryGet" lived. That's the property that keeps the walk display only, so a test
+  now pins it (TheWalkLeavesAnOldEntryItReadsOld: an old entry walked over still gets pushed out). 9 of 9 red.
+- Lab, d9ba5c2 against the walk, 67 searches and 667 info lines from the two games: node for node the same on all,
+  bestmove and ponder on all 67; one-ply lines 21% -> 10%, 1-3 plies 38% -> 30%; +0.013 ms a line.

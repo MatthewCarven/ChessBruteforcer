@@ -1,0 +1,15 @@
+searches 67; info lines 667: depth, score, nodes, hashfull the same on 667; the new line starts with the old on 667; bestmove (and ponder) the same on 67 of 67
+
+| lines | n | PV plies (median) | 1 ply | 1-3 plies | under half the depth |
+|---|---:|---:|---:|---:|---:|
+| last depth, old build | 67 | 10 | 0 (0%) | 1 (1%) | 2 (3%) |
+| last depth, new build | 67 | 10 | 0 (0%) | 1 (1%) | 2 (3%) |
+| every depth, old build | 667 | 5 | 139 (21%) | 256 (38%) | |
+| every depth, new build | 667 | 6 | 64 (10%) | 198 (30%) | |
+
+a line's arrival after its depth's clock (ms, mean): old 0.577, new 0.590; new less old, line by line: mean 0.013, median -0.000 (the clock counts whole ms, so read the mean over 667 lines)
+
+| part of the line shown | plies compared (the deeper line agreeing up to them) | the deeper search agrees |
+|---|---:|---:|
+| the search's own | 202 | 139 (69%) |
+| the table's tail | 0 | 0 (0%) |
