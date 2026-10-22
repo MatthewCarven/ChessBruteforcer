@@ -1,5 +1,5 @@
 diff --git a/lib/lichess_bot.py b/lib/lichess_bot.py
-index 02cca6c..67d5e89 100644
+index 02cca6c..fc7e289 100644
 --- a/lib/lichess_bot.py
 +++ b/lib/lichess_bot.py
 @@ -324,6 +324,47 @@ def log_proc_count(change: str, active_games: dict[str, str]) -> None:
@@ -50,14 +50,14 @@ index 02cca6c..67d5e89 100644
  def lichess_bot_main(li: lichess.Lichess,
                       user_profile: UserProfileType,
                       config: Configuration,
-@@ -379,6 +420,7 @@ def lichess_bot_main(li: lichess.Lichess,
-         logger.info("When quitting, lichess-bot will first wait for all running games to finish.")
-         logger.info("Press Ctrl-C twice to quit immediately.")
+@@ -374,6 +415,7 @@ def lichess_bot_main(li: lichess.Lichess,
+     recent_bot_challenges: defaultdict[str, list[Timer]] = defaultdict(list)
  
+     online_block_list = OnlineBlocklist(config.challenge.online_block_list)
 +    quitting = False  # BruteForceBot: quit.soon is there (above)
-     with multiprocessing.pool.Pool(max_games + 1) as pool:
-         games_playing.clear()  # a restart's new pool: none of the old games' play_game survive it
-         while not (stop.terminated or (one_game and one_game_completed) or stop.restart):
+ 
+     if config.quit_after_all_games_finish:
+         logger.info("When quitting, lichess-bot will first wait for all running games to finish.")
 @@ -386,6 +428,13 @@ def lichess_bot_main(li: lichess.Lichess,
              if not event:
                  continue

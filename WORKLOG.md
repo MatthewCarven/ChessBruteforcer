@@ -6087,3 +6087,25 @@ search's entries.
   "finished" line and then runs scripts\capped-copy.py at 7,500,000 B/s into
   games\nnue\<month>, one month at a time (7.17 GB each, ~16 min). The core
   queue has slot (c) for it.
+
+## 2026-10-22 (19:10-19:35): the lichess-bot patches stack again: quit-soon's flag moved (Session context, integrating)
+
+- Merging the 30-day DEBUG log (bot\lichess-bot-logs-30.patch), I checked the
+  whole stack, all eight patches in start-bot.cmd's order on a clean
+  lichess-bot. Every patch applied, but **the one-player patch no longer
+  read as in** after quit-soon. On the live lichess-bot it read as neither
+  in nor applicable. So at every start, start-bot.cmd tried to apply it again,
+  failed, and printed "The one-player fix didn't go in", with the code in.
+- Cause: quit-soon put `quitting = False` on the line just above `with
+  multiprocessing.pool.Pool(...)`, among the lines the one-player patch
+  recognises itself by (the rule from WORKLOG 2026-10-19).
+- Fix: bot\lichess-bot-quit-soon.patch rebuilt with that one line moved up,
+  after `online_block_list = ...`. It's a flag set once before the event
+  loop, so the behaviour is unchanged. On a clean lichess-bot all eight now
+  read as in. test-busy, test-one-player, test-ponder-note, test-quit-soon,
+  test-rejoin and test-sigint all pass on that copy (LICHESS_BOT). The live
+  lichess-bot was converted with the bot off (old quit-soon out, new one
+  in): seven patches read as in, and logs-30 goes in at the next start.
+- For anyone adding a patch: apply the whole stack to a clean clone of
+  bot\lichess-bot and run `git apply --reverse --check` on every patch, not
+  only on yours.
