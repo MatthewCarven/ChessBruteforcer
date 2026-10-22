@@ -1057,9 +1057,10 @@ Sessions, in order:
                   Hash is megabytes now: the bot's 256 commits 85 MB more
                   (Matthew's (a)). Suite 629 passed. SPRT against e1868ae
                   at 10+0.1, no pondering: -3 [-13, +7] over 2,000, H0
-                  accepted (no cost, no gain there). **Decision P6,
-                  Matthew's**: (a) merge as it is (my pick), (b) merge
-                  and check the bot's log, (c) leave it. PONDER.md, "P6".)
+                  accepted (no cost, no gain there). **Decision P6:
+                  Matthew chose (a), merge it as it is** (15:50); the
+                  bot gets it at its next start once it's in
+                  compression. PONDER.md, "P6".)
             - [ ] (Turned up by P4, not part of decision M; Matthew's call
                   whether.) **Lazy SMP: answer from the thread that got
                   deepest** (Stockfish's best-thread choice, "thread

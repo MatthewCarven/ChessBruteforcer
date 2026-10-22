@@ -927,7 +927,7 @@ for. That flood (an 8-thread ponder on the wrong reply, filling up to half the t
 match in that setting isn't possible here: two engines pondering on 8 threads each want 32 threads of a 16-thread
 laptop for every game. The lab above is the measure of that.
 
-**For Matthew (decision P6).**
+**Decision P6: Matthew chose (a), merge it as it is (2026-10-22, 15:50).**
 
 - **(a)** Merge as it is (always on). The bot loses nothing measurable in plain play, and its searches after a missed
   ponder stop paying 8-24% extra work. It costs 85 MB more memory at Hash 256 (your (a) earlier today). *My pick.*

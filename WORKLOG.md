@@ -5942,4 +5942,6 @@ session 7 has the details.
   bench ran as `dotnet ...Engine.dll`, so build-match's exe check missed it
   and the first 2 min overlapped (its timings dropped, not mine).
 - Decision P6 for Matthew: (a) merge as it is (my pick); (b) merge and check
-  depth after misses in the bot's log; (c) leave it. PONDER.md, "P6".
+  depth after misses in the bot's log; (c) leave it. **He chose (a)**
+  (15:50). The merge into compression is Session context's (Matthew's
+  rule since 07:32); the branch merges cleanly (4aa73c6 and after).
