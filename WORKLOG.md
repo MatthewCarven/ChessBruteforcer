@@ -6410,3 +6410,23 @@ games\book-table-a\ (not in git), and the share's booktable\.
 - **For later**: nnue-deep-layers is raising a 128-bit SSE2 path for the
   network with Matthew (the 3770 has SSE2's pmaddwd). Integer arithmetic, so
   the same answers: a run could switch to it partway.
+
+## 2026-10-23 (06:05-06:35): BT1 (a) switched to the 128-bit engine (the bt-a-desktop session)
+
+The simd128 session built the 128-bit SSE2 path (9603e7b, since merged into
+compression as 388685a): `bench 9` on the quiet desktop, one thread,
+h1536-3m 157 -> 1,085 knps (6.9x), the same nodes. The run stopped at 06:10
+(desktop clock, 67,244 leaves done) for that bench. table-a-desktop.ps1
+gained `publish -EngineDir/-Source`, `sync -EngineDir`, `check` and `swap`
+(b7e90e9). The new build, published self-contained from a detached worktree
+at 9603e7b, re-searched the first 100 leaves on 8 engines: **100 of 100 the
+same move, score and nodes** as the old engine's answers, in 34 s against
+203 s. The run restarted on the old engine at 06:17 while Matthew's answer was
+pending. On his yes (06:25), stop, swap (the old engine kept as
+booktable\engine-20261023-0625\), start: **104,047 leaves/h** (was ~16,800),
+637 knps an engine (8 x 637 = 6.6x the old 776 in all), CPU at 106%. 78,615
+of 715,940 done at 06:31, **due ~12:35**. Depth 9 would now be ~16 h, as a
+separate rerun.
+
+His first yes reached this session through ponder-scope, and the permission
+check refused to stop the run on a relayed answer; he gave it here directly.
