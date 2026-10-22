@@ -205,6 +205,20 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     h1024-3m**, the best yet (network sha256 303b409bc49e); in games\nnue\nets.
     Not matched: at 1536 its small layers' pairs are 1.5x l32's, so it would
     be slower than l32 (-55% in the match) and lose on speed too.
+  - [ ] **Re-benchmark the desktop, quiet and full** (Matthew, 2026-10-23
+    ~00:45): its power plan held the i7-3770 at 15% maximum processor state
+    with a frequency cap, on purpose: **quiet running, Matthew sleeps near
+    it**. Set to 100% at ~00:30 on 10-23. Every desktop CPU timing in NNUE.md
+    was taken quiet: the eval-games filter's ~1.8 MB/s, a month's records
+    ~11 h ("~4x slower than the laptop"), and perhaps the trainer's ~200 k a
+    second, if its one loader thread held the GPU back. So measure both
+    settings, for Matthew to choose by job and by hour: `bench 9` on one
+    thread (the engine bt-a-desktop copies to the share), the filter's 20 MB
+    probe, a one-bucket h1024 training smoke for positions a second; plus
+    the April-May records' step-3 times from their logs (full after ~00:30).
+    When the desktop is next free (after h1024-3m-ob8 and April-May's
+    records, ~01:50 on 10-23), before bt-a-desktop's multi-day book table,
+    which would also run through his nights.
   - [ ] **C: h1024-6m on the laptop's GPU, tonight** (Matthew's 2(a),
     2026-10-22, instead of E): h1024-3m's recipe (`--hidden 1024 --passes 10
     --lr-drops 4/7/9`) on April-September, held back still September's: what
