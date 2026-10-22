@@ -1,3 +1,4 @@
+using System.Numerics;
 using ChessBruteforcer.Core.Game;
 
 namespace ChessBruteforcer.Core.Engine;
@@ -149,7 +150,9 @@ public static class Evaluation
     /// (<see cref="Position.UseNetwork"/>; the UCI option EvalFile with a .nnue file), the numbers' otherwise.
     /// </summary>
     public static int Evaluate(Position position) =>
-        position.Accumulators is { } network ? network.Evaluate(position.SideToMove) : Evaluate(position, Parameters);
+        position.Accumulators is { } network
+            ? network.Evaluate(position.SideToMove, BitOperations.PopCount(position.Occupied))   // (the count picks a version 3 net's output bucket)
+            : Evaluate(position, Parameters);
 
     /// <summary>Score for the side to move, in centipawns, with the given numbers.</summary>
     public static int Evaluate(Position position, EvalParams p)

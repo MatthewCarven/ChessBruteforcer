@@ -167,10 +167,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     10+0.1, the bot off (2026-10-22): l32 -85 [-121, -51], l16-32 -58 [-88,
     -30]**, SPRT accepted H0, each at about half the speed (MATCHES.md). Not
     close, so no 30+0.3 run. The bot played l16-32 for a game or two, then
-    went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32 training on
-    the desktop, done ~12:10 on 10-22 by its clock (-11% held back after
-    pass 6); the engine loads 1536 hidden since 662a810, but it will be
-    slower than l32.
+    went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32: see
+    "h1536-3m-l32 done" below.
   - [x] **Decision: the next jobs, and the speed work** (Matthew, 2026-10-22
     ~07:10; WORKLOG): not int8 (it can't reach the ~4x the small layers need
     on this laptop: no VNNI from .NET here; NNUE.md session 6). Instead,
@@ -181,10 +179,30 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     the laptop's GPU when the bot is off. h1536-3m-l32 runs to its end
     (-11% held back after pass 6, the best yet). Later: king buckets (D),
     on whichever wins, with 6 months' data.
-  - [ ] **A: h1536-3m against h1024-3m** (the bot off, `scripts\nnue-match.cmd
-    h1536-3m h1024-3m`). The engine takes 2048 hidden since 662a810;
-    `bench 9` -12.8% knps, 1.10x the time to depth 9; about +16 Elo expected.
-    Waits for the laptop's cores (the core queue).
+  - [x] **A: h1536-3m against h1024-3m** (2026-10-22, 08:22-12:09, the bot
+    off): **+7 [-3, +18]** over 2,000 games, LOS 91.3%, SPRT undecided at
+    the limit; -15.9% knps in the match (MATCHES.md). Expected ~+16.
+  - **Output buckets** (Matthew's B, 2026-10-22; NNUE.md session 7): .nnue
+    version 3, K output rows picked by the piece count. The trainer's half
+    is branch `claude/ob-trainer-56e1a8`; the C# loader is ob-engine's
+    `claude/ob-engine-e75e9e`. **h1024-3m-ob8 is training on the desktop**,
+    from 12:19 to ~21:50 by its clock: h1024-3m's recipe plus
+    `--output-buckets 8`, at h1024-3m's speed. After pass 1 its held-back
+    error is 0.013851, against h1024-3m's 0.014042 at the same point
+    (-1.4%). Bucket 0 (2-4 pieces) has no training positions, so it is
+    exported with bucket 1's row.
+    - [ ] When it's done: `scripts\nnue-desktop.ps1 fetch h1024-3m-ob8`, then
+      held back against h1024-3m's 0.012432, `bench 9`, then a match against
+      h1024-3m (the bot off). Both halves are in compression (549a687), so
+      the engine reads version 3.
+  - [ ] **Decision: the bot on h1536-3m?** (a) switch (+7 likely, LOS 91%;
+    at the bot's ~20x longer thinking the speed costs less), (b) keep
+    h1024-3m, (c) a 30+0.3 match first (~6 h for 1,000 games, laptop cores).
+  - **h1536-3m-l32 done** (desktop, 2026-10-21 22:25 to 10-22 12:14): held
+    back as the engine computes it **0.010762 at K 1.132, -13.4% against
+    h1024-3m**, the best yet (network sha256 303b409bc49e); in games\nnue\nets.
+    Not matched: at 1536 its small layers' pairs are 1.5x l32's, so it would
+    be slower than l32 (-55% in the match) and lose on speed too.
   - [ ] **E: h2048-3m on the laptop's GPU** (2026-10-19's estimate: September
     at 20 passes ~7.5 h on the 3070; three months at 10 passes ~11-12 h),
     the bot off, after A's match: the laptop's power is shared, so no laptop
@@ -250,6 +268,22 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   - **The split probe is behind the engine**: split-patch.py targets
     180fe25, and session 1 rewrote Position.IsAttacked, so its Position
     edits stop the script. Bring them up to date before the next split.
+  - **Output buckets** (Matthew's B, 2026-10-22; NNUE.md session 7): K
+    output rows picked by the piece count, .nnue version 3. **The engine
+    half is built** (branch `claude/ob-engine-e75e9e`: the loader, the
+    passes, 31 tests, C# equals the numpy reference on ob-trainer's fixture,
+    29 of 29 mutants red, the full suite 628 + 2 skipped), **in compression
+    since fab32bc**. `bench 9` with h1024-3m against 662a810's build: no
+    cost shown in 12 clean rounds (-0.6% by the clock, p 0.15; +1.2% by CPU
+    time), none ruled out up to ~2%. The trainer half is ob-trainer's
+    (`claude/ob-trainer-56e1a8`); NNUE.md takes both sides' sections, the
+    trainer's first.
+    - [ ] `bench 9` again on a quiet laptop, 24+ rounds: booked with the core
+      queue after P6's SPRT (the 12:11 run shared the laptop with it, so it
+      is left out: WORKLOG 2026-10-22, 12:11). Check for `dotnet` processes
+      as well as the engine's exe before it starts.
+    - The first trained version 3 net, h1024-3m-ob8: the NNUE item above
+      ("Output buckets") has its run and its checks.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 
@@ -778,11 +812,39 @@ Sessions, in order:
       against Lichess bots ~8; if that dilutes it, give Stockfish the book
       too, or a full-strength Stockfish at a short movetime. The bot's own
       rated games: 34% in 19 before the book, 46% in 42 with it (+-10 each).
-- [ ] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
+- [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it
       vetoed. It covers our first 12 moves only; middlegame losses don't
-      teach it anything.
+      teach it anything. **Measured 2026-10-22** (WORKLOG, the learner's
+      evaluation): 1,656 positions, 4 of them wide-book vetoes; **ours.bin
+      played 3 moves in 617 games**, all in one game. Learnt positions
+      rarely come back (P8, OPPONENTS.md section 4).
+      - [x] **Matthew's call: which evaluation the learner thinks with**
+            (it used eval-sf1.txt; the bot has played h1024-3m since 10-20).
+            **He chose (b) (P8's O3 (b), 2026-10-22); built on
+            claude/gifted-heyrovsky-8b2f7e** with bot/test-learn.py.
+            The re-score (200 positions at depth 14): **h1024-3m's best move
+            differs from the learnt one in 50% [43, 56]** (sf1 itself, the
+            noise floor, 21%), the learnt move loses 14 cp on average in the
+            net's view, and **10% [7, 15] lose 50 cp or more** (~166 of
+            1,656). (a) leave it; (b) the bot's net from now on (learn.py
+            takes the first evaluation present in make-config.py's list);
+            (c) (b), and replace the entries the net thinks lose X cp or
+            more (X = 50: ~166; re-scoring all 1,656 to find them is ~5 h of
+            one core), or just drop them; (d) stop the learner until a
+            replay (P8's O3 (a)) brings positions back. My pick (b) now,
+            (c) at X = 50 only if O3 (a) is built.
+      - [ ] **Restart the learner after the merge** (Matthew's;
+            bot\learn.cmd, or start.cmd): its start line in
+            bot\logs\learn-<date>.log should say "with h1024-3m".
+      - [ ] **(c), chosen by Matthew 2026-10-22** ("when the orchestrator
+            asks"): replace the ~166 entries the net thinks lose 50 cp or
+            more. scripts/learner/relearn.py and its test are ready (it
+            refuses while a learner runs and backs up first). Waiting for a
+            CPU slot for the re-score of the other 1,456 (~4.5 core-hours),
+            then the apply from the main checkout with the learner stopped
+            (Matthew stops and restarts it).
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
@@ -1038,8 +1100,12 @@ Sessions, in order:
             start (a failure leaves the old record and the bot starts
             anyway); scripts/opponents/test_collect.py, 9 of 9 mutants
             caught. On from the bot's first start on a compression with it.
-      - [ ] O3 (b): the learner onto the bot's net (the item below; its
-            session waits for the cores).
+      - [x] O3 (b): the learner onto the bot's net, built 2026-10-22
+            (claude/gifted-heyrovsky-8b2f7e; bot/learn.py takes
+            make-config.py's first evaluation present, bot/test-learn.py).
+            On from the learner's next restart (Matthew's). The re-score:
+            h1024-3m's best move differs from 50% of the learnt ones (the
+            book learner item above).
       - [ ] O3 (a), after (b): the replay trial. bot/lichess-bot-replay.patch
             in get_book_move (engine_wrapper.py 756-799, clear of the
             ponder-note patch): against a bot met before with the same
@@ -1049,15 +1115,13 @@ Sessions, in order:
       - [ ] O2: rerun scripts/opponents/analyze.py on the record after
             ~3,000 more games (~6 weeks), or when a setup comes within ~10
             Elo of the best (the deep nets didn't: -85 and about -55), and
-            look again.
-- [ ] The book learner (bot/learn.py) thinks with eval-sf1.txt, set when sf1
-      was our best evaluation (2026-10-14); the bot plays its moves
-      instantly from ours.bin, ahead of its own thinking with h1024-3m.
-      Check whether it should use the bot's net (its engine has no tables,
-      so the net is the whole difference), e.g. re-score ours.jsonl's
-      moves with h1024-3m and count the disagreements. O3 (b) in
-      OPPONENTS.md: a replay would make its moves come up far more often
-      (today 3 in 617 games).
+            look again. Then also Matthew's other reason for a per-bot
+            setup (2026-10-22): "be nicer to some of the players like FPGA
+            Chess", a gentler setup for bots we'd like to keep playing.
+            fpga-chess so far (bot\games\record.csv): 4 games, all its own
+            challenges, all won by us (2336-2368 against our 2391-2548). The
+            same create_engine patch would serve both, from a list of named
+            bots in make-config.py.
 - [ ] scripts/depth-match.py's other_engines() (which build-match.py waits
       on before a match) lists only ChessBruteforcer.Engine.exe processes.
       An engine run as `dotnet <...>\ChessBruteforcer.Engine.dll` slips

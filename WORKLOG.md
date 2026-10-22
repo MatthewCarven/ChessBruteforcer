@@ -5574,6 +5574,314 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - Decision P5 for Matthew: (a) merge, the option off (my pick); (b) drop
   the src change and keep the write-up and the bench. PONDER.md, "P5".
 
+## 2026-10-22 (06:00-08:05): the book learner's evaluation, sf1 or the bot's net? (a side session from P8)
+
+- **The question** (P8, OPPONENTS.md section 4): bot/learn.py thinks with
+  bot\eval\eval-sf1.txt, set on 2026-10-14 when sf1 was our best. Since
+  2026-10-20 the bot plays h1024-3m, roughly +870 Elo over sf1 in self-play
+  (MATCHES.md, chained: nnue1 +742 over sf1, then +76, +11, +41). The
+  learner's engine has no tables, so the evaluation is the whole difference,
+  and lichess-bot plays an ours.bin move at once, before its own search.
+- **What it has learnt** (the main checkout's bot\books\ours.jsonl): 1,656
+  positions, 1,652 where no book had a move and 4 where it vetoed the wide
+  book's move. They come from 653 games, ~2.5 a game at 45 s each (about 2
+  minutes of one core per game). Depth 11-18, median 14. Our moves 2-12,
+  mostly 8-11. 1,012 of the 1,652 (61%) are the move the bot itself chose in
+  that game.
+- **How often the bot played them: 3 moves, in 1 game of 617** (PJjtQaPm,
+  2026-10-16, on sf1, a win). The main book gave 4,302 and the wide one 291
+  (bot\logs). Replaying every game's first 12 moves: positions in ours.jsonl
+  came up 1,669 times. 1,656 of those are the games they were learnt from,
+  and only 3 had been learnt before the game. P8's learner_hits.py agrees (3
+  of 7,254 positions). The reason, from P8: from a position met before, our
+  weighted-random book plays a different move 60% of the time, the bots 30%.
+  So a learnt position rarely comes back. Against a bot met before with the
+  same colours (319 games), last game's first out-of-book position came back
+  16 times, and today's main book (rebuilt 10-18) has 15 of those.
+
+  | | count |
+  |---|---|
+  | positions learnt (ours.jsonl) | 1,656 (no book 1,652, wide book vetoed 4) |
+  | games studied | 653 |
+  | our moves from ours.bin, all games | **3, in 1 game of 617** |
+  | ... from the main book / the wide book | 4,302 / 291 |
+  | learnt positions met again after they were learnt | 3 |
+
+- **The re-score** (06:54-07:53, in a slot from the queue's session, the
+  "ponder hit keeps the tree" scope; the bot off; P6's tests ran beside it
+  from 07:16, which only slows it, since the depth is fixed).
+  scripts/learner/rescore.py re-searches a seeded sample of 200 positions at
+  depth 14 (the learner's median), one thread, Hash 64, below normal
+  priority, from a copy of the learner's engine build. If the best move
+  isn't the learnt one, it also searches the position after the learnt move
+  one ply less (the engine has no searchmoves), and loss = best - learnt, in
+  that evaluation's own centipawns. One arm is h1024-3m. The other is sf1
+  itself, as the noise floor: how often the same evaluation, searched again
+  to a fixed depth, leaves its own 45 s answer. sf1 was stopped at 145 of
+  200 to keep to the hour. ~11 s a position for the net, ~13 for sf1.
+
+  | | h1024-3m | sf1 (noise floor) |
+  |---|---|---|
+  | positions | 200 | 145 |
+  | best move differs from the learnt one | **50% [43, 56]** | 21% [15, 28] |
+  | the learnt move's loss where they differ, median (quartiles) | 21 cp (5, 43) | 0.5 cp (-2, 11) |
+  | mean loss, all positions | **14 cp** | 0.7 cp |
+  | loss 25 cp or more | 22% [16, 28], ~356 of 1,656 | 1% |
+  | loss 50 cp or more | **10% [7, 15], ~166 of 1,656** | 1% |
+  | loss 100 cp or more | 2% [1, 4], ~25 of 1,656 | 0% |
+
+  On the 145 positions both searched: the net disagrees with the learnt move
+  in 80, sf1 in 30, and 55 of the net's 80 are ones sf1 itself agrees with.
+  So the method's own noise is small (sf1's "disagreements" cost it ~0 cp:
+  near-equal moves), and about 30 points of the net's 50% come from the
+  evaluation. The net thinks half the learnt moves are not its best, but
+  mostly by little: 14 cp behind on average over the book (~1/7 of a pawn),
+  and a tenth 50 cp or more behind. scripts/learner holds the two runs' files
+  (rescore-2026-10-22-*.csv) and the summary. To run it again, one arm per
+  window from a copy of the engine build:
+
+      bot\lichess-bot\.venv\Scripts\python.exe -I scripts\learner\rescore.py bot <copy>\ChessBruteforcer.Engine.exe bot\eval\h1024-3m.nnue net <out>\rescore-net.csv
+      bot\lichess-bot\.venv\Scripts\python.exe -I scripts\learner\rescore.py bot <copy>\ChessBruteforcer.Engine.exe bot\eval\eval-sf1.txt sf1 <out>\rescore-sf1.csv
+      bot\lichess-bot\.venv\Scripts\python.exe -I scripts\learner\summary.py <out>\rescore-net.csv <out>\rescore-sf1.csv
+
+- **What it means.** At 3 moves in 617 games, which evaluation the learner
+  uses can't move the bot's results today: even if every learnt move were a
+  blunder, it would touch 1 game in 600. It matters only if the positions
+  start coming back. P8's O3 (a), replaying our last line against a bot met
+  before, would bring last game's first out-of-book position back ~23% of
+  the time instead of 5%. Then the learnt move faces a bot that has shown its
+  hand, and it should be the net's move, not sf1's: today half of them
+  aren't, and a tenth are 50 cp or more behind in the net's view.
+- **Options for Matthew** (TODO, under the book learner):
+  - (a) Leave it. Costs nothing, and changes nothing measurable today.
+  - (b) The learner thinks with the bot's net from now on: learn.py takes
+    the first evaluation present in make-config.py's list (h1024-3m today),
+    so it follows the bot when the net changes. A few lines, then restart the
+    learner. Same 45 s a position. New entries only.
+  - (c) (b), and replace the existing entries where the net thinks the
+    learnt move loses X cp or more: at X = 50, ~166 of them (X = 100: ~25;
+    X = 25: ~356). Finding them means re-scoring all 1,656 at depth 14,
+    ~5 hours of one core, and that search's best move is the replacement.
+    Or replace none and drop them instead: take those lines out of
+    ours.jsonl, and the bot searches those positions itself, with the net.
+  - (d) Stop the learner until a replay exists. It spends ~2 minutes of
+    one core per game (below normal priority) for 3 moves so far.
+  - My pick: **(b)** now: it's cheap and keeps the book in step with the
+    bot. Then (c) at X = 50 only if O3 (a) gets built, since only then do
+    the old entries come up.
+- **(b) built** (Matthew's O3 (b) in P8's session, "the learner onto the
+  net first, then (a) a replay trial", passed on by P8 at ~07:55; (c) not
+  chosen). bot/learn.py: `bot_evaluation()` reads make-config.py's list of
+  evaluations from its text with `ast` (running it would rewrite config.yml)
+  and takes the first present in bot\eval, h1024-3m today. If that finds
+  nothing it falls back to eval-sf1.txt, then the built-in numbers. It's read
+  once, when the learner starts, so a new net reaches it at its next restart,
+  as with the bot. Each new ours.jsonl row says which evaluation learnt it
+  (`"eval"`; the 1,656 old rows have none and were sf1's). The start line in
+  the learn log names the evaluation, and `--summary` counts the rows by it.
+  **bot/test-learn.py**, 10 checks, no engine: for six sets of files in
+  eval\, make-config.py run for real on a temporary copy picks the same file
+  as the learner; plus no list, a make-config.py that doesn't parse, and none
+  at all; plus this tree's choice. Green, and red on two mutants of learn.py
+  (always sf1, as before: 6 checks fail; the last file present instead of
+  the first: 5). learn.start_engine() on a copy of the learner's engine
+  loaded the network h1024-3m (sha256 510a8d0e6c43, the bot's) and searched
+  to depth 6. `--summary` on a copy of the real book: "learnt with: eval-sf1
+  1656; the learner now thinks with h1024-3m". **It takes effect when
+  Matthew restarts the learner** (bot\learn.cmd, or start.cmd) after the
+  merge; the running one keeps sf1 until then.
+
+## 2026-10-22 (07:03-08:15): the engine plays .nnue version 3, output buckets (the ob-engine session)
+
+- Matthew's B, the C# half (NNUE.md session 7, "the engine half"; ob-trainer
+  did the trainer, the export and the numpy reference from the same spec).
+  Branch `claude/ob-engine-e75e9e` from 662a810: 91c8bbf (the loader, the
+  checks, the writer, the bucket through every evaluation path, the tests,
+  the battery), 60e7d0a (ob-trainer's fixture commit 7e5f283 merged, nothing
+  else of its branch), 0597dd0 (C# against the numpy reference), and this
+  write-up.
+- **The bucket**: (n - 1) x K / 32 from a popcount of the board's
+  occupancy, n kings included; a 65-entry table in the network, so versions
+  1 and 2 take bucket 0 for free. The passes at every width read the
+  bucket's row and bias, and a bucket past the last throws.
+- **Tests**: NnueBucketTests 31, the network tests 106 of 106, **the full
+  suite 628 passed, 2 skipped**. C# equals the numpy reference on all 1,000
+  of the fixture's boards, at every width. "No such version" in NnueTests
+  and NnueDeepTests moved from 3 to 4.
+- **Mutation battery 29 of 29 red** (scripts/nnue-bench/buckets/battery.py,
+  each run counting the clean run's 106 tests). Its first run had 27: on
+  this AVX-512 laptop the dispatch's 256-bit and one-at-a-time branches
+  were never reached in-process, so a bucket dropped there lived. The
+  dispatch now takes a width (as version 2's pass does) and the tests go
+  through it. A search test on a random net also ran one mutant out to the
+  420 s timeout (its capture search exploded on the mutant's scores); the
+  search and UCI tests use a piece-square net with buckets now, and every
+  mutant ends in 8-25 s.
+- **Speed: within noise.** `bench 9`, one thread, old build against new on
+  h1024-3m, and the new on a version 3 copy of h1024-3m with its row in all
+  8 buckets (the identical tree, 3,775,600 nodes): 16 rounds alternated
+  after a warm-up, the first 12 alone on the laptop. Paired by round, new
+  -0.6% (+-~0.75%) and the 8-bucket copy -0.4% by the clock; by CPU time
+  +0.6% and +1.2%. Rounds 13-16 ran beside the p6-tt-buckets session's
+  ponder lab (8 threads from 07:54:05, ~4 h), so a longer rerun on a quiet
+  laptop is left for later. The rescore job of another session (two
+  engines, one core each) ran beside the tests and the battery until ~07:52,
+  not beside the bench.
+- No trained version 3 net yet: ob-trainer's run follows. A version 3 net
+  loads through EvalFile as any other (UCI prints "8 output buckets").
+
+## 2026-10-22 (08:40-09:00): option (c) for the learner, prepared (the learner side session)
+
+- (b) is in compression (68c0b92), and the learner restarted at 08:39
+  "with h1024-3m". Matthew then chose (c) as well, "when the orchestrator
+  asks": replace the learnt moves the net thinks lose 50 cp or more (~166 of
+  1,656 by the sample).
+- **scripts/learner/relearn.py**: from rescore.py's files, each position
+  whose loss is 50 cp or more, and whose latest ours.jsonl row still has the
+  scored move, gets a new row appended: why "re-learnt", the re-score's best
+  move (depth 14, h1024-3m), and the old move with its loss ("was",
+  "was_why", "was_loss"). ours.bin is then rebuilt with the learner's own
+  write_book (a .tmp moved over, tried again while lichess-bot has it open,
+  so the bot can stay on). The learner keeps the latest row per position,
+  so nothing is deleted, and a second run adds nothing. Without --apply it
+  only lists them. The dry run on the real book with the 200-position
+  sample: 20 to re-learn, the largest 239 cp (f4g3 -> Be2).
+- **Safe by hand** (Session context's terms): --apply refuses (exit 2) while
+  any process's command line has bot\learn.py in it (PowerShell's
+  Get-CimInstance list; the pattern matches the learner's real command line
+  and not relearn.py's own). It also refuses (exit 3) if it can't get the
+  list. Before appending it copies ours.jsonl and ours.bin to
+  `.bak-<yyyymmdd-hhmmss>` beside them, and copying those back undoes it.
+  It prints the rows added and the book's new size.
+- **scripts/learner/test_relearn.py**, 17 checks on a temporary bot folder
+  (80, 20, exactly 50, a position the learner has moved on from, castling as
+  the new move; refused with a learner running or unknown, nothing changed;
+  the backups equal the old files; the real check finds a stand-in process
+  named bot\learn.py, and not after it stops): green. It goes red on five
+  mutants: > for >=, no moved-on check, no refusal when running, no refusal
+  when unsure, no backups.
+- **The learner stopped at 08:43:34** (its log: "stopped", a clean Ctrl+C or
+  window close). Just before, I killed two depth-1 checks of my own that a
+  `| Select-Object -First 1` had left blocked on their output. The learner
+  was still listed as running after that kill, and taskkill /T took only my
+  two trees, so I don't think it was mine, though the timing is close. It
+  needs `bot\learn.cmd` to start again.
+- rescore.py takes `--learnt-with eval-sf1` (the net's own rows don't need
+  it) and `--part i --parts k`, for two processes. learn.py's `--summary`
+  counts re-learnt rows.
+- **Waiting**: a slot from the ponder-scope queue for the re-score of the
+  other 1,456 positions (~4.5 core-hours, ~2.3 h on two cores; the queue
+  has h1536-3m's match, P6's SPRT and h2048-3m's training ahead of it).
+  Then, per Session context: this code merged first, and the apply run from
+  the main checkout with the learner stopped (Matthew closes its window,
+  I run the one command, he starts it again with bot\learn.cmd).
+
+## 2026-10-22 (08:16-12:30): h1536-3m against h1024-3m, +7 [-3, +18]; h1536-3m-l32 done at -13.4% (the nnue-deep-layers session)
+
+- The core queue's go (local_469cca7a), from 08:22 once Session context's
+  suite for ob-engine's merge had finished: no dotnet or testhost for two
+  checks 15 s apart, the bot off. `scripts\nnue-match.cmd h1536-3m h1024-3m`
+  from this branch at e1868ae (compression: MaxHidden 2048, P5 and P8 in).
+- **h1536-3m +7 [-3, +18]**: 2,000 games, +498 -456 =1046, LOS 91.3%, SPRT
+  undecided at the limit (08:22-12:09). Searches: 2,734 knps and depth 10.7
+  against 3,251 and 10.9. Expected ~+16 by our rule; within it. No time
+  losses. The queue told at 12:10 (P6's SPRT next).
+- **h1536-3m-l32 done** (12:14 by the desktop's clock): as the engine
+  computes it 0.010762 at K 1.132, **-13.4% against h1024-3m**; passes 7-10
+  at its K 0.010989, 0.010772, 0.010753, 0.010753. Fetched into
+  games\nnue\nets (file sha256 01d46c7a...). The desktop's GPU passes to
+  ob-trainer's smoke test and h1024-3m-ob8.
+- Matthew's to decide (TODO): the bot on h1536-3m or not; and E (h2048-3m,
+  ~11-12 h of the laptop's GPU), whose expected gain this result shrinks.
+
+## 2026-10-22 (12:11-12:45): the buckets' bench again, but beside P6's SPRT: left out, a quiet run rebooked (the ob-engine session)
+
+- Matthew's yes to the rerun. The core queue gave the go after the h1536-3m
+  match ended at 12:09: `bench 9`, one thread, the same three arms as at
+  07:53 (662a810's build and the new on h1024-3m, the new on
+  h1024-3m-v3x8), 30 rounds after two warm-up rounds, 12:11:30-12:14:16,
+  on mains.
+- **It wasn't quiet**: P6's SPRT (10 match engines, 5 games at a time)
+  started at 12:11:57, so rounds 3-30 ran beside it. My check at 12:11:13
+  saw no ChessBruteforcer.Engine.exe, and P6's at 12:11:44 saw none of mine
+  either: the bench's engines run as `dotnet ...dll`, so each check missed
+  the other. The run read slow and noisy (old's median 2,400 knps against
+  the morning's 2,738, a round's pair +-7.6% against +-2.5%). Pooled with
+  the morning, it would have said ~1.2% slower by the clock (29 of 42
+  rounds, p 0.02); I reported that before P6 and the queue pointed out the
+  overlap, and withdrew it. It is left out.
+- **What stands, the morning's 12 clean rounds**: by the clock new -0.6%
+  (mean -0.7% +- 0.7, 9 of 12, p 0.15), v3x8 -1.2%; by CPU time +1.2% and
+  0.0%. No cost shown, none ruled out up to ~2%. NNUE.md session 7's speed
+  bullet says so (it had given v3x8 a paired -0.4% that was never computed:
+  it is -1.2%).
+- The queue has rebooked a quiet ~6-minute run for after P6's SPRT (until
+  ~15:10), before h2048-3m's training. A check for `dotnet` processes too,
+  not only the engine's exe, before it starts.
+
+## 2026-10-22 (07:05-12:35): output buckets, the trainer's half; h1024-3m-ob8 training (the ob-trainer session)
+
+Matthew's B (levers that cost no speed): .nnue version 3, version 1 with K
+output rows, the row picked by b = (n - 1) x K / 32, n the pieces on the
+board. Branch `claude/ob-trainer-56e1a8`, from 662a810. ob-engine
+(`claude/ob-engine-e75e9e`) built the C# loader from the same spec. NNUE.md
+session 7 has the details.
+
+- **The reference and the fixture** (7e5f283): nnue_reference.py defines
+  version 3. tests/ChessBruteforcer.Tests/Data/nnue-random-ob8.* is a random
+  K = 8 net and 1,000 positions of 2-32 pieces with their scores. An
+  independent decoder written from the spec alone agrees on all of them.
+  Sent to ob-engine, whose C# agrees on all 1,000 at every width.
+- **The trainer** (0568cda): `train.py --output-buckets K` (not with
+  `--layers`), the version 3 export, and exact integer scoring.
+  `checks.py buckets` (CPU) tests the bucket rule, the export, and that
+  version 3 with every row alike equals version 1. `quantised` runs on the
+  CPU with `CHECKS_DEVICE=cpu`.
+- **A catch, settled with nnue-deep-layers**: the records have 6+ pieces
+  only, so at K = 8 bucket 0 (2-4 pieces) never trains. Weight decay shrinks
+  such a row to ~12% of its start, so it scores KQvK -2 cp where a trained
+  row gives +1,159. Quiescence, which doesn't probe the tables, sees such
+  positions. So the trainer counts positions per bucket, and the export
+  gives an untrained bucket its nearest trained neighbour's row (bucket 0
+  takes bucket 1's). The checkpoint keeps the raw rows.
+- **Without the option, nothing changes**, byte for byte. 662a810's export
+  and the new one agree on nnue1.pt, h768-3m.pt and h1024-3m-l32.pt. A
+  2-pass CPU training run gives the same .nnue and errors. So does a 2-pass
+  run on the desktop's GPU (256 hidden, one bucket; old and new trainer
+  side by side in runs\identity-*).
+- **The scripts on the share** (train.py, checks.py, nnue_reference.py) went
+  over by hand, not by `sync`, which would have rebuilt the cli that the
+  April-June record tasks are using. Their hashes matched on the desktop's
+  own disk.
+- **The smoke test** (h1024-3m-ob8-smoke, 12:17 by the desktop's clock: one
+  bucket, one pass, the run's options): 179 k a second, 1.1 GB of GPU memory
+  at the peak, bucket 0 filled. On its .pt, `checks.py quantised` found 0 of
+  1,000 differ, at 2.5 cp mean rounding. The laptop's re-export equals the
+  desktop's .nnue.
+- **h1024-3m-ob8 started 12:19 by the desktop's clock** (`nnue-desktop.ps1
+  train h1024-3m-ob8 --hidden 1024 --add-data 2026-07 2026-08 --passes 10
+  --lr-drops 4/7/9 --output-buckets 8`). First line: "pass 1 bucket 8/192:
+  27,995,195 positions, 195,732 a second", h1024-3m's speed. **Done ~21:55
+  by the desktop's clock.** The yardstick: h1024-3m's 0.012432 as the
+  engine computes it (0.014042 after pass 1).
+- Seen on the way: **h1536-3m-l32 finished 12:14:51** (exit 0). Held back
+  as the engine computes it: 0.011064 at K 1 and **0.010762 at K 1.1316**,
+  against h1024-3m's 0.012432 (-13.4%).
+
+## 2026-10-22 (13:16): h1024-3m-ob8 after pass 1, -1.4% against h1024-3m at the same point (the ob-trainer session)
+
+- Pass 1 of 10 at 13:15:57 by the desktop's clock: 200,004 positions a
+  second (h1024-3m 196,555). Held back 0.013851 at K 1.057 (h1024-3m after
+  its pass 1: 0.014042, **-1.4%**); training error 0.013734 (0.013879).
+  At 56.4 min a pass, done **~21:50** by the desktop's clock (not 21:55).
+- Training positions by bucket, a pass: 0, then 20.3 M, 49.3 M, 76.2 M,
+  102.2 M, 140.6 M, 181.2 M and 107.2 M (3.0% to 26.8%). The table is in
+  NNUE.md session 7.
+- The merge into compression (549a687, Session context) put the engine
+  half's NNUE.md section before the trainer's. Both sides meant the
+  trainer's first, and the engine half says so, so it's moved back with no
+  text changed. TODO's two "first version 3 net" to-dos are now one.
+
 ## 2026-10-22 (06:00-08:30, 12:10-15:40): P6, a table that keeps its deep entries (a side session)
 
 - Decision M's P6 (PONDER.md), branch claude/p6-tt-buckets-f4c01d, rebased

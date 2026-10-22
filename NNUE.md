@@ -1508,6 +1508,234 @@ code, the trainer and the reference, clear of the ponder sessions' files).
     feature layer's output and lists non-zero 4-byte chunks on it).
     Measured first, if at all: switch the parts off one at a time, as
     session 6 did.
+- **Wider instead** (Matthew's A, 2026-10-22): the engine takes up to 2048
+  hidden (662a810; Forward256's lanes stay under 2^31 at 2048). **h1536-3m
+  against h1024-3m: +7 [-3, +18]** over 2,000 games at 10+0.1, LOS 91.3%,
+  SPRT undecided; `bench 9` -12.8% knps, -15.9% in the match, 0.2 ply
+  shallower; held back -3.9%. The rule from our matches (+8 a 1% of error,
+  -87 a halving of speed) said ~+16. So width still pays at 1536, but
+  barely; 2048 would cost ~13% more speed for less error gain.
+- **h1536-3m-l32** (1536 x2 -> 32 -> 1; the desktop, 2026-10-21 22:25 to
+  10-22 12:14, 10 passes, 136 k positions a second; network sha256
+  303b409bc49e): held back as the engine computes it **0.010762 at K 1.132,
+  -13.4% against h1024-3m**, the best of any net, 0.011064 at K 1. Width
+  and the small layer add up (1536: -3.9%, l32: -8.4%, both: -13.4%). Not
+  matched: its small layer has 1.5x l32's pairs, so it would run slower
+  than l32 (-55% in its match) and lose on speed; it is what a 4x cheaper
+  small-layer pass would be worth having for.
+
+### Session 7: output buckets (2026-10-22)
+
+Matthew's B, after the deep nets lost on speed: levers that cost no speed.
+Output buckets are Stockfish's: the one output row becomes K rows, and each
+position uses the row picked by how many pieces are on the board. The
+evaluation does the same work as version 1's, from a different row. Two
+sessions from one spec: ob-trainer (branch `claude/ob-trainer-56e1a8`: the
+trainer, the export, the numpy reference, the fixture) and ob-engine (the
+C# loader and its tests).
+
+- **The file, version 3** (version 1 plus buckets), little-endian:
+
+  | bytes | what |
+  |---|---|
+  | 8 | "CBNNUE01" |
+  | u32 x3 | version (3), inputs (768), hidden H (a multiple of 16, 16 to 2048) |
+  | i32 x3 | QA (255), QB, scale (400) |
+  | u32 | K, the number of output buckets (1 to 16) |
+  | int16 | feature weights [768][H], feature biases [H] (as version 1) |
+  | int16 | output weights [K][2H], bucket by bucket; in each, the side to move's H first |
+  | i32 | output biases [K] |
+  | 32 | SHA-256 of everything above |
+
+  The bucket: **b = (n - 1) x K / 32** (integer division), n every piece
+  on the board, kings included (2 to 32); at K = 8 that is Stockfish's
+  (n - 1) / 4. The score is version 1's with bucket b's row and bias. One
+  QB serves every bucket (output_qb over all rows), and every row passes
+  version 1's check (|w| x QA within int16).
+- **The trainer** (`train.py --output-buckets K`, not with `--layers`): the
+  output layer is 2H -> K, each row started as version 1's one, and each
+  position takes its bucket's output. int_scores scores version 3 exactly
+  as the engine computes it, so held-back error "as the engine computes
+  it" means the same thing as before.
+- **A catch in the data, and what the export does about it.** The records
+  hold only positions with more than 5 pieces (the quiet rule; the tables
+  settle the rest). So at K = 8, **bucket 0 (2-4 pieces) never sees a
+  training position**, and bucket 1 (5-8) sees only 6-8. Quiescence doesn't
+  probe the tables, so after captures from 6 pieces it does evaluate 4- and
+  5-piece positions. A row that no position trains gets only AdamW's weight
+  decay, which shrinks it to 12% of its start over h1024-3m's schedule, so
+  it scores every such position about 0, whatever the material. Measured
+  with h768-3m's feature layer, 200 positions each:
+
+  | positions | trained row (median) | untrained row (median) |
+  |---|---|---|
+  | KQvK, the queen's side to move | +1,159 cp | -2 cp |
+  | KRvK, the rook's side to move | +751 | -1 |
+  | KvK | -3 | +1 |
+
+  The trainer counts the
+  training positions in each bucket (logged after each pass and kept in the
+  .pt). **The export gives a bucket with none the row of its nearest
+  trained bucket** (bucket 0 gets bucket 1's; the higher one wins a tie).
+  The file is plain version 3 either way. The checkpoint keeps the raw
+  rows, so another rule is just a `train.py export`.
+- **The checks** (all on the laptop's CPU; its GPU is left alone):
+
+  | check | result |
+  |---|---|
+  | `checks.py buckets`: train's bucket against the reference's, K = 1 to 16, 864 positions of 6-32 pieces | 0 differ |
+  | the same: a random K = 8 net through the export, int_scores against nnue_reference.evaluate | 0 of 864 differ |
+  | the same: each bucket's positions against version 1 with that bucket's row | 0 differ in int16; float within 7e-4 cp |
+  | the same: version 3 with every row alike (K = 1 and 8) against version 1 | 0 differ |
+  | the same: the fill (untrained 0, 2, 3, 4 of 8) | nearest rows taken, the higher on a tie |
+  | without the option: 662a810's export and this one, on nnue1.pt and h768-3m.pt (version 1) and h1024-3m-l32.pt (version 2) | byte for byte |
+  | without the option: a 2-pass training on the CPU, 64 hidden, 200,000 positions (both trainers' CUDA calls swapped for the CPU the same way) | the .nnue and every error figure identical |
+  | a bucketed CPU run, 1 pass then `--resume` to 2; `checks.py quantised` on it (`CHECKS_DEVICE=cpu`, new) | counts carried over, bucket 0 filled; 0 of 1,000 differ |
+
+- **The fixture for the C# tests**:
+  tests/ChessBruteforcer.Tests/Data/nnue-random-ob8.nnue and .tsv
+  (7e5f283). A random K = 8 net at H 256, with version 1's fixture's ranges
+  in every bucket, and 1,000 positions of 2-32 pieces with their scores.
+  Every bucket is used (98-161 positions each). Scores run -12,838 to
+  12,275, none zero and none at the limit. In 999 of the 1,000 positions,
+  every other bucket would give another score. Network sha256
+  a5b712fad416e75c... An independent decoder written from the spec alone
+  (pure Python ints) gets all 1,000 scores. ob-engine's C# equals it on all
+  1,000, at every width.
+- **On the desktop's GPU** (2026-10-22, from 12:16 by its clock, once
+  h1536-3m-l32 had finished):
+  - The identity check again, on the GPU: 662a810's train.py and this one,
+    without the option (256 hidden, one data bucket, two passes). The
+    .nnue came out byte for byte the same (file sha256 BFC55AD9...), and
+    every error figure matched.
+  - The smoke test, h1024-3m-ob8-smoke: one data bucket, one pass, the
+    run's own options, through `nnue-desktop.ps1 train`. 179 k positions a
+    second, 1.1 GB of GPU memory at the peak, and 13 s to score the 4.47 M
+    held-back positions as the engine computes them. The export filled
+    bucket 0. `checks.py quantised` on its .pt: 0 of 1,000 differ, and the
+    int16 net is 2.5 cp from the float one on average (+0.8 signed), as
+    version 1's nets are. Re-exported on the laptop, it is the desktop's
+    .nnue byte for byte (1,607,780 bytes: h1024-3m's size plus 7 rows, 7
+    biases and K).
+  - **Training positions by bucket**: one pass of h1024-3m-ob8, all three
+    months (677,005,066 positions; the smoke test's one September bucket
+    gave the same shares to within 0.1 point):
+
+    | bucket | pieces | positions a pass | share |
+    |---|---|---|---|
+    | 0 | 2-4 | 0 | 0% (exported with bucket 1's row) |
+    | 1 | 5-8 | 20,284,806 | 3.0% |
+    | 2 | 9-12 | 49,251,164 | 7.3% |
+    | 3 | 13-16 | 76,194,341 | 11.3% |
+    | 4 | 17-20 | 102,249,015 | 15.1% |
+    | 5 | 21-24 | 140,619,198 | 20.8% |
+    | 6 | 25-28 | 181,190,454 | 26.8% |
+    | 7 | 29-32 | 107,216,088 | 15.8% |
+
+- **h1024-3m-ob8, started 12:19 by the desktop's clock**: h1024-3m's
+  recipe plus the buckets (`scripts\nnue-desktop.ps1 train h1024-3m-ob8
+  --hidden 1024 --add-data 2026-07 2026-08 --passes 10 --lr-drops 4/7/9
+  --output-buckets 8`, Matthew's B). Its first line: "pass 1 bucket 8/192:
+  27,995,195 positions, 195,732 a second" (h1024-3m: 196,555). The
+  yardstick is h1024-3m's held-back error: 0.012394 at K 1.113 in float,
+  and 0.012432 as the engine computes it.
+
+  | after pass 1 | positions a second | training error | held back at K 1 | at its own K |
+  |---|---|---|---|---|
+  | h1024-3m | 196,555 | 0.013879 | 0.014110 | 0.014042 (K 1.060) |
+  | **h1024-3m-ob8** | 200,004 | 0.013734 | 0.013914 | **0.013851 (K 1.057), -1.4%** |
+
+  At 56.4 min a pass it is **done ~21:50 by the desktop's clock**. Then a
+  match against h1024-3m (the bot off). Both halves are in compression
+  (549a687), so the engine reads version 3.
+
+### Session 7, the engine half: version 3 in C# (2026-10-22)
+
+The ob-engine session (branch `claude/ob-engine-e75e9e`, from 662a810),
+beside ob-trainer's half from the same spec (its own "Session 7: output
+buckets" section, on `claude/ob-trainer-56e1a8`; merged, it goes just
+before this one). It merged ob-trainer's fixture commit (7e5f283) and
+nothing else of that branch.
+
+- **The loader and the writer**: Network.Read takes versions 1 and 3 by
+  one path, version 3 reading K (1-16) after the header and then K rows and
+  K biases. Its checks are version 1's with every bucket's weights
+  included (|w| x QA within int16, with the bucket named in the refusal).
+  ToBytes writes a net back in its own version, so a K = 1 file stays
+  version 3. Versions 1 and 2 read and write as before: h1024-3m searches
+  the identical tree on both builds.
+- **The evaluation**: Evaluation.Evaluate counts the board's pieces (a
+  popcount of the occupancy) and hands the count to the accumulator stack.
+  The network turns it into the bucket by a 65-entry table, (n - 1) x K /
+  32. Past 32 pieces, which no real board has, it gives the last bucket.
+  The forward passes (one at a time, 256 and 512 bits) take the bucket and
+  read that row and bias. The rows are checked spans and the biases a
+  checked array, so a bucket past the last throws rather than reading
+  beyond the weights. Each bucket's row is 4H bytes, so every one starts on
+  a cache line. Versions 1 and 2 have one bucket, always 0. The dispatch
+  takes a width too (`Forward(width, ...)`, as version 2's pass already
+  did). Without it, the tests on this AVX-512 laptop never reached its
+  256-bit and one-at-a-time branches. The battery's first run found that
+  (two mutants lived).
+- **Tests** (NnueBucketTests, 31; with NnueTests and NnueDeepTests 106 of
+  106; the full suite 628 passed, 2 skipped):
+
+  | test | what it holds |
+  |---|---|
+  | the numpy reference | ob-trainer's nnue-random-ob8 (K 8, H 256, 1,000 boards of 2-32 pieces): every score equal, through kept accumulators, a fresh refresh and each width's pass; in over 990 of them every other bucket scores otherwise |
+  | the bucket | n = 2 to 32 at K 1, 2, 3, 5, 8 and 16 against (n - 1) x K / 32 written out in the test; K 8 is (n - 1) / 4; versions 1 and 2 always 0 |
+  | every path picks it | a net whose score is 1000 + 100 b: boards of every n from 2 to 32, kept accumulators and a fresh refresh, and a game as pieces come off |
+  | every width equals the definition | H 16 to 2048, K up to 16, every bucket at every width on real and random accumulators; the largest sums in the last bucket at MaxHidden and MaxBuckets |
+  | the net as a whole | colour symmetry; move by move (null moves, take-backs) equals fresh, 6+ buckets visited; one bucket, or 8 alike, scores as version 1 |
+  | the file | the round trip; an independent craft read bucket by bucket and written back byte for byte; refusals (K 0 and 17, a too-large weight in each bucket, header and length disagreeing, cut, damaged) |
+  | in the engine | the search on 1 and 3 threads, both splits; UCI EvalFile (the "8 output buckets" line, two boards' evals, the fixture's start score) |
+
+  NnueTests and NnueDeepTests used version 3 as "no such version"; both
+  use 4 now.
+- **Mutation battery: 29 of 29 red** (scripts/nnue-bench/buckets/battery.py),
+  each run counting the 106 tests the clean run counts. A mutant that
+  doesn't compile counts as broken, not red, and none did. It covers the
+  bucket table, the piece count, the stack and refresh paths, the dispatch
+  at each width, each pass's row and bias, the row stride, the loader's K,
+  limits, biases and version, the per-bucket check, and the writer's
+  header, version, biases and offset. One mutant first ran out the 420 s
+  timeout: a search test on a random net, whose capture search explodes on
+  a mutant's scores. The search and UCI tests now use the piece-square
+  net with 8 buckets (FromPieceSquares' row, a bias of 100 b), and every
+  mutant ends in 8-25 s.
+- **Speed** (`bench 9`, one thread): the old build (662a810) and the new
+  on h1024-3m, and the new on **h1024-3m-v3x8**, a version 3 copy of
+  h1024-3m with its row in all 8 buckets (scripts/nnue-bench/buckets/to-v3.py).
+  It scores exactly as h1024-3m does, so the tree is identical (3,775,600
+  nodes on all three), and what's left is the bucket path's own cost. Each
+  run after two warm-up rounds, the order rotating round by round, on mains:
+  - 07:53-07:55, 16 rounds. Rounds 13-16 ran beside another session's
+    ponder lab (8 threads from 07:54:05) and are left out: **12 clean
+    rounds**.
+  - 12:11-12:14, 30 rounds. **Not a quiet run**: P6's SPRT started at
+    12:11:57 (10 match engines, 5 games at a time), so rounds 3-30 shared
+    the laptop with it (old's median 2,400 knps against the morning's
+    2,738, a round's pair spreading +-7.6% against +-2.5%). Left out. (The
+    check before it looked for ChessBruteforcer.Engine.exe at 12:11:13,
+    before the match started; the bench's own engines run as `dotnet ...dll`.)
+
+  The 12 clean rounds, each arm against old in the same round
+  (scripts/nnue-bench/buckets/pooled.py):
+
+  | arm | by the clock: median, mean +- SE | rounds below old | by CPU time: median, mean +- SE | rounds below old |
+  |---|---|---|---|---|
+  | new, h1024-3m | -0.6%, -0.7% +- 0.7 | 9 of 12 (sign test p 0.15) | +1.2%, +0.6% +- 1.1 | 4 of 12 |
+  | new, h1024-3m-v3x8 | -1.2%, -1.0% +- 0.5 | 8 of 12 (p 0.39) | 0.0%, +1.0% +- 1.5 | 5 of 12 |
+
+  **No cost shown, and none ruled out up to ~2%** (the clock's mean -0.7%
+  +- 0.7, so a 95% range of about -2.1% to +0.7%): by the clock the new
+  build trails by under 1% in most rounds, not significantly; by CPU time it
+  doesn't trail at all. On paper the change adds a popcount, a table read,
+  a multiply and a bias read to each evaluation, ~0.3% of a node. In play
+  1% would be about 1 Elo (p2.1: a doubling of time is worth +87). A quiet
+  rerun is booked with the core queue, after P6's SPRT. The runs:
+  scripts/nnue-bench/buckets/bench-2026-10-22.tsv (07:53) and
+  bench-2026-10-22-noon.tsv (the loaded one, kept for the record).
 
 ## Risks
 

@@ -19,16 +19,18 @@ its books afresh every move, so it is live at once). make-config.py lists it bet
 wide one. It always holds one inert entry (position key 0), since lichess-bot can't open an empty book.
 
 Runs at below-normal priority (its engine inherits it), so the bot's own engine comes first; the engine is
-its own copy of the engine build (bot/learn.cmd makes it), with the tuned evaluation and without endgame tables (openings never need them).
+its own copy of the engine build (bot/learn.cmd makes it), without endgame tables (openings never need them), and
+with the bot's evaluation: the first of make-config.py's list present in bot/eval, read when it starts (from
+2026-10-22, Matthew's O3 (b); sf1's numbers before, and h1024-3m's best move differed from 50% of the moves they
+learnt: WORKLOG, the book learner's evaluation). Each new row says which evaluation learnt it ("eval").
 Games done are listed in bot/books/ours-done.txt; stop it any time, and it carries on where it was.
 """
-import ctypes, glob, io, json, os, struct, sys, time, traceback
+import ast, ctypes, glob, io, json, os, struct, sys, time, traceback
 import chess, chess.engine, chess.pgn, chess.polyglot
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BOOKS = os.path.join(HERE, "books")
 ENGINE = os.path.join(HERE, "lichess-bot", "engines", "learner", "ChessBruteforcer.Engine.exe")   # its own copy (learn.cmd)
-EVAL = os.path.join(HERE, "eval", "eval-sf1.txt")
 MAIN, WIDE, OURS = (os.path.join(BOOKS, name) for name in ("lichess-2200.bin", "lichess-2200-wide.bin", "ours.bin"))
 LEARNT, DONE = os.path.join(BOOKS, "ours.jsonl"), os.path.join(BOOKS, "ours-done.txt")
 ME = "matthewcarven"
@@ -41,6 +43,30 @@ def option(name, default, kind=float):
 
 
 THINK, CHECK, WORSE, PER_GAME = option("--think", 45.0), option("--check", 20.0), option("--worse", 75), option("--per-game", 4, int)
+
+
+def bot_evaluation(folder=HERE):
+    """The evaluation the bot plays with: the first file of make-config.py's list that is present in <folder>/eval,
+    or None. The list is read from make-config.py's text (the for loop over .nnue / .txt names), not run: running it
+    rewrites lichess-bot's config.yml."""
+    try:
+        with open(os.path.join(folder, "make-config.py"), encoding="utf-8") as source:
+            tree = ast.parse(source.read())
+    except (OSError, SyntaxError, ValueError):
+        return None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.For) and isinstance(node.iter, (ast.Tuple, ast.List)):
+            names = [e.value for e in node.iter.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+            if names and len(names) == len(node.iter.elts) and all(n.endswith((".nnue", ".txt")) for n in names):
+                return next((os.path.join(folder, "eval", n) for n in names
+                             if os.path.exists(os.path.join(folder, "eval", n))), None)
+    return None
+
+
+# The bot's evaluation; else sf1's numbers, as before 2026-10-22; else the engine's built-in ones.
+SF1 = os.path.join(HERE, "eval", "eval-sf1.txt")
+EVAL = bot_evaluation() or (SF1 if os.path.exists(SF1) else None)
+EVAL_NAME = os.path.splitext(os.path.basename(EVAL))[0] if EVAL else "built-in"
 
 
 def log(text):
@@ -152,7 +178,7 @@ def study(engine, game, site):
             row = {"why": "wide book vetoed", "best_cp": best_cp, "wide_move": played.uci(), "wide_cp": played_cp}
         row.update(key=key, polyglot=polyglot_move(position, best), move=best.uci(), san=position.san(best),
                    fen=position.fen(), game=site, played=played.uci(), depth=info.get("depth"),
-                   when=time.strftime("%Y-%m-%d %H:%M"))
+                   when=time.strftime("%Y-%m-%d %H:%M"), eval=EVAL_NAME)
         with open(LEARNT, "a", encoding="utf-8") as out:
             out.write(json.dumps(row) + "\n")
         kept.append(row)
@@ -173,8 +199,15 @@ def summary():
     done = studied()
     think = [r for r in rows if r["why"] == "no book"]
     veto = [r for r in rows if r["why"] == "wide book vetoed"]
+    relearnt = [r for r in rows if r["why"] == "re-learnt"]   # scripts/learner/relearn.py: sf1's move, replaced by the net's
     print(f"{len(done)} games studied; {len(rows)} positions in our book: {len(think)} thought about where no book had a "
-          f"move, {len(veto)} where the wide book's move was vetoed")
+          f"move, {len(veto)} where the wide book's move was vetoed, {len(relearnt)} re-learnt with the net")
+    by_eval = {}
+    for r in rows:
+        name = r.get("eval", "eval-sf1")   # rows from before 2026-10-22 have no "eval": sf1's numbers learnt them
+        by_eval[name] = by_eval.get(name, 0) + 1
+    print("learnt with: " + ", ".join(f"{name} {count}" for name, count in by_eval.items())
+          + f"; the learner now thinks with {EVAL_NAME}")
     for r in veto[-10:]:
         print(f"  vetoed {r['wide_move']} ({r['wide_cp']:+} cp) for {r['san']} ({r['best_cp']:+} cp) in {r['fen']}")
     used = 0
@@ -186,7 +219,7 @@ def summary():
 def start_engine():
     engine = chess.engine.SimpleEngine.popen_uci(ENGINE)
     options = {"Hash": 256}
-    if os.path.exists(EVAL):
+    if EVAL:
         options["EvalFile"] = EVAL
     engine.configure(options)
     return engine
@@ -207,7 +240,7 @@ def main():
     write_book()
     done = studied()
     engine = start_engine()
-    log(f"learning from the bot's games (think {THINK:g} s, check {CHECK:g} s, veto at {WORSE} cp, {PER_GAME} a game); "
+    log(f"learning from the bot's games with {EVAL_NAME} (think {THINK:g} s, check {CHECK:g} s, veto at {WORSE} cp, {PER_GAME} a game); "
         f"{len(done)} games studied before, {len(learnt())} positions in our book")
     failures = {}
     try:

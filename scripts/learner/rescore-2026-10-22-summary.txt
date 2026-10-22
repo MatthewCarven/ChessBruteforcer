@@ -1,0 +1,17 @@
+net: 200 positions, depth 14 (median), 11.2 s a position (median)
+  best move differs from the learnt one: 99 of 200 (50% [43, 56])
+  the learnt move's loss where they differ: median 21 cp, quartiles [5.0, 21.0, 43.0]
+  loss >= 25 cp: 43 of 200 (22% [16, 28]); of the whole book ~356 entries
+  loss >= 50 cp: 20 of 200 (10% [7, 15]); of the whole book ~166 entries
+  loss >= 100 cp: 3 of 200 (2% [1, 4]); of the whole book ~25 entries
+  mean loss over all positions: 14.0 cp
+sf1: 145 positions, depth 14 (median), 13.4 s a position (median)
+  best move differs from the learnt one: 30 of 145 (21% [15, 28])
+  the learnt move's loss where they differ: median 0.5 cp, quartiles [-2.25, 0.5, 11.0]
+  loss >= 25 cp: 1 of 145 (1% [0, 4]); of the whole book ~11 entries
+  loss >= 50 cp: 1 of 145 (1% [0, 4]); of the whole book ~11 entries
+  loss >= 100 cp: 0 of 145 (0% [0, 3]); of the whole book ~0 entries
+  mean loss over all positions: 0.7 cp
+
+145 positions in both: net disagrees with the learnt move in 80, sf1 in 30; net only 55, sf1 only 5, both 25
+  net and sf1 pick the same move in 71 of 145 (49% [41, 57])
