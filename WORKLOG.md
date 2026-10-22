@@ -6234,3 +6234,86 @@ is cut short). PONDER.md, "Option (a), scoped"; a TODO item.
   must send only legal moves; it does by construction.
 - Options: (a1) as designed (my pick), (a2) plus an info string marking
   where the search's own line ends, (a3) later, the endgame tables' line.
+
+## 2026-10-22 (22:55-23:45): playing the bot at home (the play-the-bot session)
+
+Matthew: "A user interface where I can play against the bot, and it learn
+the games if they are any good like." Scoped first (three questions, lettered
+options; the notes are play-scope.md in the ponder-scope session's notes
+folder). He chose 1(a) a window on the laptop, 2(a) learn only where the bot
+went wrong, 3(a) a book of its own. He added: load a real game and take over
+from any move, "to see if its even possible like". Branch
+claude/play-the-bot-233864. It changes neither the Lichess bot nor the
+learner.
+
+What the scoping found:
+- The learner learns opening moves only (the bot's first 12), and never from
+  the result. By its own count (`learn.py --summary`, 23:00), 1,678 learnt
+  positions have been played again 3 times in 626 games. Positions from
+  Matthew's games would mostly come back only against him, so his moves go
+  to a book of their own, which only the home window plays from.
+- matthewcarven is a BOT account, so playing it on Lichess would take a
+  second, ordinary account. His games there would land in the bot's record
+  and the learner's input.
+- The bot's venv already has tkinter 8.6 and python-chess 1.11.2: nothing to
+  install. PySide6 is in the system Python only, without python-chess.
+
+Built:
+
+| file | what |
+|---|---|
+| bot\play.cmd | builds the engine, copies it to bot\home\engine, opens the window |
+| bot\play.py | the window: board (click a piece, then a square), clocks, move list, New game, Load game (the bot's games, home games, a file, a pasted PGN), step through it, Take over from here, Resign |
+| bot\homegame.py | the rest: what's running and the setup, the books (lichess-bot's order, with home.bin after ours), the clock, the game record, the verdict, the study |
+| bot\test-play.py | 88 checks (92 with PLAY_ENGINE set: the real engine plays on a clock, a search is stopped, a game is studied, the engine runs below normal and the window doesn't) |
+| bot\test-play-window.py | the window plays itself: a game, resign, a real game loaded and taken over at ply 20, both studied; dialogs answer themselves, files go to a temporary folder |
+
+- **The setup**: before each game it reads the process list. With
+  lichess-bot.py running: 2 threads, below normal (set on the engine's
+  process, not the window's), TableCache 128. With the bot off: 8 threads,
+  TableCache 512. Any other engine (a match's dotnet ...Engine.dll, a
+  ponder-match.py) brings a warning and 1 thread. It refuses to start with
+  under 3 GB of commit free (~1 GB for the engine, 2 GB kept).
+- **The bot**: the net from make-config.py's list (learn.bot_evaluation),
+  the tables, Hash 256, Move Overhead 100, and the books for its first 12
+  moves, in the order main, ours, home, wide (weighted at random, min weight
+  1, as lichess-bot does). No pondering, so it's a little weaker than on
+  Lichess.
+- **The games**: bot\home\games\<date time> Matthew v matthewcarven.pgn,
+  saved after every move, with [%clk], [%eval] or "book <file>" on the bot's
+  moves, and the setup in headers (BotEval, BotThreads, BotSetup). A
+  take-over keeps the real game's moves before it (for repetitions and the
+  books) and adds [TakeOverPly] and [Source]. Threefold and 50 moves end a
+  game at once, as on Lichess. A flag with only a bare king left on the
+  other side is a draw. Closing mid-game saves it with result "*"; it's
+  never studied.
+- **The verdict** at a take-over: a 3 s search, in words (you're winning /
+  better / a little better / about level, and the same for the bot), in
+  pawns, and as Lichess's expected score between equal players. With 5
+  pieces or fewer and the tables on, it says so: "The endgame tables know
+  this one exactly".
+- **The study** (2(a)): finished games, 10+ moves a side after any take-over,
+  the usual start, and a take-over by ply 23. Candidates are the bot's
+  positions in its first 12 moves where main, ours and home had no move (the
+  wide book's move is checked like the engine's own), at most 4 a game. It
+  thinks --think 45 s for the best move. If that differs from the bot's
+  move, both are scored by a --check 20 s search of the position after
+  each. The best move is kept only if the bot's was 75 cp or more worse
+  (the same bar as the learner's veto). Rows go to bot\books\home.jsonl, and
+  home.bin is rebuilt (an inert entry first, as ours.bin). The study runs on
+  an engine of its own (1 thread, below normal, Hash 64, no tables) in the
+  background; the window says what it learnt. Games left unstudied are
+  studied at the next start.
+
+Checked: both test scripts pass. The window smoke test ran twice beside the
+live bot (2 threads, h1536-3m, the tables: "loaded 292 endgame tables (796
+MB in memory ...)"), about a minute each. A take-over verdict: "about level
+(+0.7 pawns for you; ... 56% ...)", which led to the bands getting a "little
+better". The clock labels were cut off ("Black (bot) 0"); they were measured
+off screen and widened to 20 characters.
+
+Environment: the window test's screen copies (PowerShell CopyFromScreen of
+the window's rectangle) take whatever is on top. With Matthew at the laptop,
+the second run's first copy caught his browser. All the copies were deleted,
+and none were taken after that. test-play-window.py's --shots is opt-in, and
+its docstring says to use it only when he's away.

@@ -858,6 +858,24 @@ Sessions, in order:
             re-learnt rows are still the latest and in ours.bin; all 16 rows
             since are h1536-3m's; ours.bin plays every latest move. (c)'s
             replacements stay h1024-3m's moves; that's fine to leave.
+- [ ] **Playing the bot at home** (Matthew, 2026-10-22: "A user interface
+      where I can play against the bot, and it learn the games if they are
+      any good like"; his 1(a) 2(a) 3(a), plus taking over a real game from
+      any move, "to see if its even possible"). Built on
+      claude/play-the-bot-233864: bot\play.cmd starts it; bot\play.py (the
+      window), bot\homegame.py (the rest), bot\test-play.py (passed, the
+      real engine's part too), bot\test-play-window.py (the window plays
+      itself: passed). README "Playing it at home"; WORKLOG 2026-10-22 22:55.
+      It changes neither the Lichess bot nor the learner.
+      - [ ] Matthew plays a few games. Not during the night's matches (a
+            quiet laptop, ~02:00-06:00); the window warns if one is running.
+      - [ ] In a week or two: what the home book learnt, and whether it was
+            played again (bot\books\home.jsonl, bot\logs\play-<date>.log).
+      - [ ] His call, later: the home book in the Lichess bot too
+            (make-config.py would list home.bin between ours and the wide
+            book). Not done; nothing changes on Lichess until then.
+      - [ ] If the full-strength bot is no fun to play: an easier setting
+            (a cap on its think time or depth). Not built.
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
