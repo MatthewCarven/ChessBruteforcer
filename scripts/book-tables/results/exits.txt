@@ -1,0 +1,13 @@
+network-era games with an eval: 242
+white: n 109 first-engine-move eval (our view, pawns): mean +0.24 quartiles -0.21 +0.20 +0.51; <= -0.50: 9; <= -1.00: 5; >= +0.50: 28; depth median 14
+black: n 133 first-engine-move eval (our view, pawns): mean -0.42 quartiles -0.84 -0.49 -0.11; <= -0.50: 64; <= -1.00: 22; >= +0.50: 8; depth median 14
+both: n 242 first-engine-move eval (our view, pawns): mean -0.12 quartiles -0.65 -0.19 +0.25; <= -0.50: 73; <= -1.00: 27; >= +0.50: 36; depth median 14.0
+exit eval (-99.00, -0.50]: games 72 score 0.472 mean opp-minus-us elo +48
+exit eval (-0.50, -0.15]: games 53 score 0.623 mean opp-minus-us elo +2
+exit eval (-0.15, +0.15]: games 42 score 0.631 mean opp-minus-us elo +30
+exit eval (+0.15, +0.50]: games 40 score 0.775 mean opp-minus-us elo -15
+exit eval (+0.50, +99.00]: games 34 score 0.912 mean opp-minus-us elo -148
+book moves 0-6: n 54 mean exit eval +0.02 median -0.12
+book moves 7-9: n 97 mean exit eval -0.19 median -0.24
+book moves 10-12: n 91 mean exit eval -0.14 median -0.13
+five engine moves on, minus exit: n 239 mean +0.47 median +0.25
