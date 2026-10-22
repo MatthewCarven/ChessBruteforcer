@@ -959,6 +959,55 @@ mixed entries. A 28th, resetting the search number when the table is made, was d
 **What changes in the bot when it's merged**: the search itself (a different tree from the same position: the bench's
 is 1.2% smaller), 85 MB more memory at Hash 256, and `hashfull` reading lower. No option: P6 is always on.
 
+#### P6 in the bot's own misses (2026-10-22, 18:55-19:46; the ponder-scope session)
+
+Matthew asked for a before-and-after check of the search after a missed ponder, from the bot's own log. The log
+can't give one. On 10-20 (the old table), the search after a long miss needed 2.6-7.8x the nodes of one after a
+short miss, but that's the position, not the table: the opponent thinks longest where the play is hard. Two windows
+on the same table disagreed by 3x, and the share of the early depths didn't separate it either
+(`scripts/ponder-scope/misscheck.py`, WORKLOG). So the bot's own misses were **replayed** instead
+(`scripts/ponder-scope/replay.py`).
+
+- 60 misses from the bot's games of 10-20, every 11th candidate, middlegames of 12-30 pieces
+  (`replay-samples.json`).
+- Each miss is replayed as the bot met it. First, our own search on the position before, one thread, to a fixed
+  depth. Then a ponder on the reply we predicted, **on 8 threads for the ponder's real length** (median 4.7 s,
+  capped at 15 s for 6 of them). Then `stop`, and the position the game reached, searched to a fixed depth D
+  (median 13). The yardstick is the same arm with no ponder in between.
+- The bot's network now (h1536-3m), Hash 256 as in the bot, no endgame tables. Three engines: the old table (the
+  last build before P6, e1868ae); P6 (compression's 653254b); and P6 at Hash 171, the old table's slot count, which
+  separates the new replacement rule from the 1.5x more entries P6 gets at the same Hash. The arm order rotated from
+  miss to miss.
+
+| the next search's work after the miss / with no ponder | geometric mean [95%] | median | misses where it cost >10% more |
+|---|---|---:|---:|
+| old table | 1.02 [0.87, 1.19] | 0.96 | 26/60 |
+| **P6** (the bot's setting) | **0.75** [0.63, 0.88] | 0.85 | 13/60 |
+| P6 at the old slot count | 0.85 [0.72, 0.98] | 0.95 | 20/60 |
+
+| paired, on the same miss | geometric mean [95%] | P6 better on |
+|---|---|---:|
+| **P6 / old** | **0.74** [0.60, 0.90] | 42/60 |
+| P6 at the old slot count / old | 0.83 [0.68, 1.01] | 36/60 |
+
+| by the ponder's real length | old | P6 | P6 / old, paired [95%] |
+|---|---:|---:|---|
+| shortest third, 0.5-3.6 s | 0.90 | 0.65 | 0.72 [0.49, 1.06] |
+| middle third, 3.7-6.7 s | 1.15 | 0.72 | 0.63 [0.40, 0.91] |
+| longest third, 6.8-15 s | 1.00 | 0.89 | 0.89 [0.73, 1.10] |
+
+- **On P6, the search after a miss needs about a quarter fewer nodes to the same depth than on the old table**:
+  0.74x, paired on the same miss, better on 42 of 60. Speed per node is the same (bench 0.993x), so that's time.
+- About two thirds of it is the replacement rule (0.83x at the old slot count), and the rest is P6's bigger table at
+  the same Hash.
+- On P6, a miss now *helps* the next search: 0.75x the work of not pondering at all. The wrong reply's tree shares
+  positions with the real one, and P6 keeps both. On the old table the help and the evictions cancel (1.02x).
+- On the bot's real misses the old table's own penalty is small (1.02x overall, 1.15x in the middle third). That's
+  smaller than the lab's 1.08-1.33x, whose 8 positions sat at fixed fractions of the budget, on h1024-3m.
+- Not measured: Elo. It applies only to the searches after misses, about 40% of the bot's ponder moves on Lichess.
+  The searches of A and B here ran on one thread, where the bot uses eight, and to a fixed depth, not the bot's
+  clock.
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's
@@ -995,3 +1044,8 @@ python):
   against new at Hash 256 and 171, rotated position by position, and its tables (`results/p6/`). `experiment.py` takes
   `PONDER_SCOPE_HASH` (default 256) for it. `p6-mutate.py`: the table's mutation battery (each mutant built and run
   against the 43 table, thread and UCI generation tests; the source restored after each).
+- `misscheck.py <log>... [--since] [--until] [--label]` (P6 in the bot): misses from the bot's DEBUG log against the
+  ponder's length. It shows that a log can't measure P6: the position swamps it. `replay.py <samples> <out> <old exe>
+  <p6 exe> <net> [first] [last]`: the bot's own misses replayed on the old table, P6, and P6 at Hash 171
+  (`replay-samples.json`: 60 misses from 10-20; `results/replay.jsonl`); `replaysum.py` makes its tables. The
+  engines must sit on a short path (Windows' 260-character limit: copy them to e.g. %TEMP%\cbr\old and \new).

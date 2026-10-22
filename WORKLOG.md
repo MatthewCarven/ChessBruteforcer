@@ -6109,3 +6109,39 @@ search's entries.
 - For anyone adding a patch: apply the whole stack to a clean clone of
   bot\lichess-bot and run `git apply --reverse --check` on every patch, not
   only on yours.
+
+## 2026-10-22 (18:55-19:50): P6 in the bot's own misses, replayed (the ponder-scope session)
+
+Matthew's yes to the replay, after the log turned out unable to show P6
+(the entry above, "can the bot's own log show P6?").
+scripts/ponder-scope/replay.py took 60 of the bot's misses of 10-20 (every
+11th candidate, middlegames of 12-30 pieces, replay-samples.json). Each one
+was replayed as the bot met it: our own search at the position before (one
+thread, a fixed depth), then a ponder on the predicted reply, on 8 threads,
+for its real length (median 4.7 s, 6 capped at 15 s), then `stop` and the
+position the game reached, searched to a fixed depth (median 13). The
+yardstick is the same arm with no ponder in between. Three engines, the bot's
+net h1536-3m: the old table (e1868ae, Hash 256), P6 (653254b, Hash 256, the
+bot's setting) and P6 at Hash 171 (the old slot count). The arm order rotated
+by miss. It ran 19:02-19:46, with the laptop quiet and the bot off.
+
+| next search's work after the miss / with no ponder | geometric mean [95%] | P6 better on |
+|---|---|---:|
+| old table | 1.02 [0.87, 1.19] | |
+| P6 | 0.75 [0.63, 0.88] | |
+| P6 at Hash 171 | 0.85 [0.72, 0.98] | |
+| paired, P6 / old | **0.74 [0.60, 0.90]** | 42/60 |
+| paired, P6 at 171 / old | 0.83 [0.68, 1.01] | 36/60 |
+
+- On P6 the search after a miss needs about a quarter fewer nodes to the same
+  depth than on the old table, at the same speed per node. Two thirds of it
+  is the replacement rule, the rest the bigger table at the same Hash.
+- On P6 a miss even helps (0.75x the work of not pondering). On the old table
+  the help and the evictions cancel (1.02x). That's a smaller penalty than the
+  8-position lab's 1.08-1.33x (fixed fractions of the budget, h1024-3m).
+- Not measured: Elo. It applies to the searches after misses only (~40% of
+  ponder moves on Lichess); A and B ran on one thread and to a fixed depth.
+- Two traps: PowerShell variable names ignore case, so a timer `$t`
+  overwrote the folder `$T`; and an engine path in the scratchpad was past
+  CreateProcess's 260 characters (WinError 206), so the engines ran from
+  %TEMP%\cbr.
