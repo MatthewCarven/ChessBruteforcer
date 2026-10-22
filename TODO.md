@@ -1058,6 +1058,22 @@ Sessions, in order:
                   Matthew: (a) merge, option off (my pick), or (b) drop the
                   src change, keep the write-up and the bench.** PONDER.md,
                   "P5".)
+            - [ ] **HistoryKept as a variety setting** (Matthew's (b), in
+                  the P5 session, 2026-10-22): where we're not deliberately
+                  repeating a line against a bot, kept history makes the bot
+                  "at least try something else", which is more human. The
+                  bench backs the variety: with 50% kept, 24% of 280 searches
+                  ended on a different move at depth 12, for 1.04-1.07x the
+                  nodes. Whether those moves are worse isn't measured. The
+                  match, a no-regression test, owned by the ponder-scope
+                  session: `bot\lichess-bot\.venv\Scripts\python.exe -I
+                  scripts/ponder-match.py <engine.exe> <out.jsonl> --arms
+                  "HistoryKept=50;HistoryKept=0" --tc 10+0.1 --games 2000
+                  --sprt -10,0`. Both sides ponder, one build. Accepting 0
+                  means the variety costs nothing measurable; accepting -10
+                  means it costs. Booked after h1024-6m's laptop training
+                  (2026-10-23, ~19:00-20:00). If it's free, the per-bot
+                  chooser (O2) could switch it on per game.
             - [x] P6: a table that keeps its deep entries (buckets of 2-4
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's
