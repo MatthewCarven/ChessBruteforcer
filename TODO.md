@@ -167,10 +167,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     10+0.1, the bot off (2026-10-22): l32 -85 [-121, -51], l16-32 -58 [-88,
     -30]**, SPRT accepted H0, each at about half the speed (MATCHES.md). Not
     close, so no 30+0.3 run. The bot played l16-32 for a game or two, then
-    went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32 training on
-    the desktop, done ~12:10 on 10-22 by its clock (-11% held back after
-    pass 6); the engine loads 1536 hidden since 662a810, but it will be
-    slower than l32.
+    went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32: see
+    "h1536-3m-l32 done" below.
   - [x] **Decision: the next jobs, and the speed work** (Matthew, 2026-10-22
     ~07:10; WORKLOG): not int8 (it can't reach the ~4x the small layers need
     on this laptop: no VNNI from .NET here; NNUE.md session 6). Instead,
@@ -184,6 +182,19 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   - [x] **A: h1536-3m against h1024-3m** (2026-10-22, 08:22-12:09, the bot
     off): **+7 [-3, +18]** over 2,000 games, LOS 91.3%, SPRT undecided at
     the limit; -15.9% knps in the match (MATCHES.md). Expected ~+16.
+  - **Output buckets** (Matthew's B, 2026-10-22; NNUE.md session 7): .nnue
+    version 3, K output rows picked by the piece count. The trainer's half
+    is branch `claude/ob-trainer-56e1a8`; the C# loader is ob-engine's
+    `claude/ob-engine-e75e9e`. **h1024-3m-ob8 is training on the desktop**,
+    from 12:19 to ~21:50 by its clock: h1024-3m's recipe plus
+    `--output-buckets 8`, at h1024-3m's speed. After pass 1 its held-back
+    error is 0.013851, against h1024-3m's 0.014042 at the same point
+    (-1.4%). Bucket 0 (2-4 pieces) has no training positions, so it is
+    exported with bucket 1's row.
+    - [ ] When it's done: `scripts\nnue-desktop.ps1 fetch h1024-3m-ob8`, then
+      held back against h1024-3m's 0.012432, `bench 9`, then a match against
+      h1024-3m (the bot off). Both halves are in compression (549a687), so
+      the engine reads version 3.
   - [ ] **Decision: the bot on h1536-3m?** (a) switch (+7 likely, LOS 91%;
     at the bot's ~20x longer thinking the speed costs less), (b) keep
     h1024-3m, (c) a 30+0.3 match first (~6 h for 1,000 games, laptop cores).
@@ -266,16 +277,16 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     WORKLOG 2026-10-22, 15:31): **h1024-3m ~0.5-0.9% slower by the clock**
     (31 of 42 rounds to the old build, p 0.003), under 1 Elo; **a bucketed
     net as fast as the old build's version 1** (p 0.64). The trainer half
-    is ob-trainer's (`claude/ob-trainer-56e1a8`); NNUE.md takes both sides'
-    sections, the trainer's first.
+    is ob-trainer's (`claude/ob-trainer-56e1a8`, in compression since
+    549a687).
     - [x] `bench 9` again on a quiet laptop (2026-10-22 15:32, 30 rounds; the
       12:11 run shared the laptop with P6's SPRT and is left out).
     - [ ] Optional, Matthew's call: win back version 1's ~0.5-0.9%. The
       bucketed net isn't slower, so the added arithmetic isn't the likely
       cause: first find where it goes (layout?), then the battery and the
       bench again. Moot if a bucketed net replaces h1024-3m.
-    - [ ] The first trained version 3 net: held-back error, `bench 9`, then
-      its match against h1024-3m (the bot off).
+    - The first trained version 3 net, h1024-3m-ob8: the NNUE item above
+      ("Output buckets") has its run and its checks.
   - Other levers waiting: the export's rounding (small); labels from our
     own search.
 

@@ -5819,6 +5819,69 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   ~15:10), before h2048-3m's training. A check for `dotnet` processes too,
   not only the engine's exe, before it starts.
 
+## 2026-10-22 (07:05-12:35): output buckets, the trainer's half; h1024-3m-ob8 training (the ob-trainer session)
+
+Matthew's B (levers that cost no speed): .nnue version 3, version 1 with K
+output rows, the row picked by b = (n - 1) x K / 32, n the pieces on the
+board. Branch `claude/ob-trainer-56e1a8`, from 662a810. ob-engine
+(`claude/ob-engine-e75e9e`) built the C# loader from the same spec. NNUE.md
+session 7 has the details.
+
+- **The reference and the fixture** (7e5f283): nnue_reference.py defines
+  version 3. tests/ChessBruteforcer.Tests/Data/nnue-random-ob8.* is a random
+  K = 8 net and 1,000 positions of 2-32 pieces with their scores. An
+  independent decoder written from the spec alone agrees on all of them.
+  Sent to ob-engine, whose C# agrees on all 1,000 at every width.
+- **The trainer** (0568cda): `train.py --output-buckets K` (not with
+  `--layers`), the version 3 export, and exact integer scoring.
+  `checks.py buckets` (CPU) tests the bucket rule, the export, and that
+  version 3 with every row alike equals version 1. `quantised` runs on the
+  CPU with `CHECKS_DEVICE=cpu`.
+- **A catch, settled with nnue-deep-layers**: the records have 6+ pieces
+  only, so at K = 8 bucket 0 (2-4 pieces) never trains. Weight decay shrinks
+  such a row to ~12% of its start, so it scores KQvK -2 cp where a trained
+  row gives +1,159. Quiescence, which doesn't probe the tables, sees such
+  positions. So the trainer counts positions per bucket, and the export
+  gives an untrained bucket its nearest trained neighbour's row (bucket 0
+  takes bucket 1's). The checkpoint keeps the raw rows.
+- **Without the option, nothing changes**, byte for byte. 662a810's export
+  and the new one agree on nnue1.pt, h768-3m.pt and h1024-3m-l32.pt. A
+  2-pass CPU training run gives the same .nnue and errors. So does a 2-pass
+  run on the desktop's GPU (256 hidden, one bucket; old and new trainer
+  side by side in runs\identity-*).
+- **The scripts on the share** (train.py, checks.py, nnue_reference.py) went
+  over by hand, not by `sync`, which would have rebuilt the cli that the
+  April-June record tasks are using. Their hashes matched on the desktop's
+  own disk.
+- **The smoke test** (h1024-3m-ob8-smoke, 12:17 by the desktop's clock: one
+  bucket, one pass, the run's options): 179 k a second, 1.1 GB of GPU memory
+  at the peak, bucket 0 filled. On its .pt, `checks.py quantised` found 0 of
+  1,000 differ, at 2.5 cp mean rounding. The laptop's re-export equals the
+  desktop's .nnue.
+- **h1024-3m-ob8 started 12:19 by the desktop's clock** (`nnue-desktop.ps1
+  train h1024-3m-ob8 --hidden 1024 --add-data 2026-07 2026-08 --passes 10
+  --lr-drops 4/7/9 --output-buckets 8`). First line: "pass 1 bucket 8/192:
+  27,995,195 positions, 195,732 a second", h1024-3m's speed. **Done ~21:55
+  by the desktop's clock.** The yardstick: h1024-3m's 0.012432 as the
+  engine computes it (0.014042 after pass 1).
+- Seen on the way: **h1536-3m-l32 finished 12:14:51** (exit 0). Held back
+  as the engine computes it: 0.011064 at K 1 and **0.010762 at K 1.1316**,
+  against h1024-3m's 0.012432 (-13.4%).
+
+## 2026-10-22 (13:16): h1024-3m-ob8 after pass 1, -1.4% against h1024-3m at the same point (the ob-trainer session)
+
+- Pass 1 of 10 at 13:15:57 by the desktop's clock: 200,004 positions a
+  second (h1024-3m 196,555). Held back 0.013851 at K 1.057 (h1024-3m after
+  its pass 1: 0.014042, **-1.4%**); training error 0.013734 (0.013879).
+  At 56.4 min a pass, done **~21:50** by the desktop's clock (not 21:55).
+- Training positions by bucket, a pass: 0, then 20.3 M, 49.3 M, 76.2 M,
+  102.2 M, 140.6 M, 181.2 M and 107.2 M (3.0% to 26.8%). The table is in
+  NNUE.md session 7.
+- The merge into compression (549a687, Session context) put the engine
+  half's NNUE.md section before the trainer's. Both sides meant the
+  trainer's first, and the engine half says so, so it's moved back with no
+  text changed. TODO's two "first version 3 net" to-dos are now one.
+
 ## 2026-10-22 (15:31-15:50): the buckets' bench on a quiet laptop: version 1 nets ~0.5-0.9% slower, bucketed nets not (the ob-engine session)
 
 - The core queue's go after P6's SPRT ended at 15:30:33. At 15:31:51 no
