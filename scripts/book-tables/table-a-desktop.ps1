@@ -18,14 +18,28 @@ answers; the laptop's copies live in the main checkout's games\book-table-a\ (no
   table-a-desktop.ps1 stop                         end the task and its engines; started again, it carries on
   table-a-desktop.ps1 fetch <depth>                d<depth>\'s answers into games\book-table-a\d<depth>\ (capped)
 
+A new engine mid-run (it must give the same answers, or the depths' results would mix trees):
+  table-a-desktop.ps1 publish -EngineDir engine-sse -Source <a checkout of the new engine>
+  table-a-desktop.ps1 sync -EngineDir engine-sse   only the engine, to booktable\engine-sse\ (the running task's .cmd
+                                                   is left alone: cmd reads a batch file as it runs)
+  table-a-desktop.ps1 stop
+  table-a-desktop.ps1 check <depth> <engines> <n> -EngineDir engine-sse
+                                                   the new engine re-searches the first <n> leaves (done ones) into
+                                                   check-engine-sse\, in the foreground, then compares them with
+                                                   d<depth>\: move, score and nodes must all match
+  table-a-desktop.ps1 swap -EngineDir engine-sse   booktable\engine\ -> engine-<date>\, engine-sse\ -> engine\
+  table-a-desktop.ps1 start <depth> <engines>
+
 The task runs as Admin without a stored password (S4U: local files only, no window on Matthew's screen), at the task
 scheduler's below-normal priority, with no trigger: after a reboot, `start` it again.
 #>
 param(
-    [Parameter(Mandatory, Position = 0)][ValidateSet('publish', 'sync', 'bench', 'start', 'status', 'stop', 'fetch')][string]$Command,
+    [Parameter(Mandatory, Position = 0)][ValidateSet('publish', 'sync', 'bench', 'start', 'status', 'stop', 'fetch', 'check', 'swap')][string]$Command,
     [Parameter(Position = 1)][string]$Depth,
     [Parameter(Position = 2)][string]$Engines,
-    [Parameter(Position = 3)][string]$Limit
+    [Parameter(Position = 3)][string]$Limit,
+    [string]$EngineDir = 'engine',
+    [string]$Source
 )
 $ErrorActionPreference = 'Stop'
 $Desktop = 'Admin@id10terror-desktop'
@@ -58,20 +72,23 @@ function Need-Depth { if ($Depth -notmatch '^\d+$') { throw "$Command needs a de
 switch ($Command) {
     'publish' {
         New-Item -ItemType Directory -Force $Data | Out-Null
-        dotnet publish "$Repo\src\ChessBruteforcer.Engine" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true `
-            -o "$Data\engine" --nologo -v q --disable-build-servers
+        $src = if ($Source) { $Source } else { $Repo }
+        dotnet publish "$src\src\ChessBruteforcer.Engine" -c Release -r win-x64 --self-contained -p:PublishSingleFile=true `
+            -o "$Data\$EngineDir" --nologo -v q --disable-build-servers
         if ($LASTEXITCODE) { throw "the publish failed" }
-        "built from $(git -C $Repo rev-parse --short HEAD)$(if (git -C $Repo status --porcelain -- src) { ' (with changes in src)' })"
-        Get-ChildItem "$Data\engine" -File | Format-Table Name, Length, LastWriteTime -AutoSize
+        "built from $(git -C $src rev-parse --short HEAD)$(if (git -C $src status --porcelain -- src) { ' (with changes in src)' })"
+        Get-ChildItem "$Data\$EngineDir" -File | Format-Table Name, Length, LastWriteTime -AutoSize
     }
     'sync' {
         if (-not (Test-Path "$Data\leaves.tsv")) { throw "no $Data\leaves.tsv: table-a.py leaves first" }
-        if (-not (Test-Path "$Data\engine\ChessBruteforcer.Engine.exe")) { throw "no engine: publish first" }
-        Copy-Capped "$Share\engine" @("$Data\engine\ChessBruteforcer.Engine.exe")
-        Copy-Capped $Share @("$Main\bot\eval\h1536-3m.nnue", "$PSScriptRoot\table-a-search.py", "$PSScriptRoot\table-a-desktop.cmd", "$Data\leaves.tsv")
+        if (-not (Test-Path "$Data\$EngineDir\ChessBruteforcer.Engine.exe")) { throw "no engine: publish first" }
+        Copy-Capped "$Share\$EngineDir" @("$Data\$EngineDir\ChessBruteforcer.Engine.exe")
+        if ($EngineDir -eq 'engine') {
+            Copy-Capped $Share @("$Main\bot\eval\h1536-3m.nnue", "$PSScriptRoot\table-a-search.py", "$PSScriptRoot\table-a-desktop.cmd", "$Data\leaves.tsv")
+        }
         # The far disk's own hashes, to check against copy.log.sha256 (read there, not over the link).
         Invoke-Desktop @"
-Get-ChildItem '$Local', '$Local\engine' -File | ForEach-Object { "`$((Get-FileHash `$_.FullName).Hash.ToLower()) *`$(`$_.Name)" }
+Get-ChildItem '$Local', '$Local\$EngineDir' -File | ForEach-Object { "`$((Get-FileHash `$_.FullName).Hash.ToLower()) *`$(`$_.Name)" }
 "@
         "against the laptop's:"
         Get-Content "$Data\copy.log.sha256" -Tail 5
@@ -137,5 +154,29 @@ Get-ChildItem '$Local\d*.log' | ForEach-Object { Add-Content `$_.FullName "`$(Ge
         Copy-Capped "$Data\d$Depth" @("$Share\d$Depth")
         Copy-Item "$Share\d$Depth.log" "$Data\" -Force
         Get-ChildItem "$Data\d$Depth" -File | Format-Table Name, Length, LastWriteTime -AutoSize
+    }
+    'check' {
+        Need-Depth
+        if ($Engines -notmatch '^\d+$' -or $Limit -notmatch '^\d+$') { throw "check <depth> <engines> <leaves> -EngineDir <dir>" }
+        if ($EngineDir -eq 'engine') { throw "check a new engine: -EngineDir <its folder>" }
+        # In the foreground: a few minutes (a program started over SSH lives as long as the connection).
+        Invoke-Desktop @"
+if ((Get-ScheduledTask -TaskPath '$TaskPath' -TaskName '$TaskName' -ErrorAction SilentlyContinue).State -eq 'Running') { throw "$TaskName is running: stop it first, so the check has the CPU" }
+& 'C:\Program Files\Python314\python.exe' -I -u '$Local\table-a-search.py' '$Local\$EngineDir\ChessBruteforcer.Engine.exe' '$Local\h1536-3m.nnue' '$Local\leaves.tsv' '$Local\check-$EngineDir' $Depth $Engines $Limit 2>&1
+"@
+        & "$Main\bot\lichess-bot\.venv\Scripts\python.exe" -I "$PSScriptRoot\table-a.py" compare "$Share\check-$EngineDir" "$Share\d$Depth" $Depth
+        if ($LASTEXITCODE) { throw "the new engine's answers differ: don't swap" }
+    }
+    'swap' {
+        if ($EngineDir -eq 'engine') { throw "swap in a new engine: -EngineDir <its folder>" }
+        Invoke-Desktop @"
+if ((Get-ScheduledTask -TaskPath '$TaskPath' -TaskName '$TaskName' -ErrorAction SilentlyContinue).State -eq 'Running') { throw "$TaskName is running: stop it first" }
+if (-not (Test-Path '$Local\$EngineDir\ChessBruteforcer.Engine.exe')) { throw "no $Local\$EngineDir\ChessBruteforcer.Engine.exe" }
+`$old = "engine-`$(Get-Date -Format 'yyyyMMdd-HHmm')"
+Rename-Item '$Local\engine' `$old
+Rename-Item '$Local\$EngineDir' 'engine'
+"booktable\engine\ is now $EngineDir's; the old one is booktable\`$old\"
+Get-FileHash '$Local\engine\ChessBruteforcer.Engine.exe' | Select-Object Hash
+"@
     }
 }
