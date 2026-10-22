@@ -6362,3 +6362,51 @@ the window's rectangle) take whatever is on top. With Matthew at the laptop,
 the second run's first copy caught his browser. All the copies were deleted,
 and none were taken after that. test-play-window.py's --shots is opt-in, and
 its docstring says to use it only when he's away.
+
+## 2026-10-23 (00:30-02:15): BT1 (a), the full 5-ply table, running on the desktop (the bt-a-desktop session)
+
+Matthew's table exactly as he put it (BOOK-TABLES.md, BT1 (a)): every legal
+position after 5 half-moves, lines that lose a piece blocked (prune.py's
+check at T = 3), each leaf searched to a fixed depth by our engine on the
+desktop's CPU, the values backed up by minimax to ply 0, and a polyglot book
+of our engine's best move in every kept position. His go, with "(a) full
+speed day and night" (he'd lifted the desktop's 15% cap earlier that night,
+and noise isn't a worry). Scripts in scripts/book-tables/: table-a.py
+(laptop: leaves, book, compare), table-a-search.py (desktop, stdlib only),
+table-a-desktop.ps1 and .cmd (publish, sync, bench, start, status, stop,
+fetch, as nnue-desktop.ps1 does). Data in the main checkout's
+games\book-table-a\ (not in git), and the share's booktable\.
+
+- **Two refinements of the rule**, so the back-up can't be fooled by it: a
+  blocked line gets no entry and no search, but counts for its parent at the
+  capture check's material score (dropped outright, a move that wins a piece,
+  such as a forking check, would vanish with those that lose one); and mate
+  or stalemate is an exact result, not blocked (prune.py's check calls a
+  mated side "down"). The tree, rebuilt: 715,940 leaves (prune.py's count),
+  4 mates at ply 4 and 98 at ply 5 that prune.py had blocked. 391 s on one
+  laptop core.
+- **Tested** on a 3-ply tree (5,231 leaves at depth 4): counts as prune.py's,
+  the .bin reads back through python-chess, every leaf's entry is its own
+  search's move, and a stopped run resumes.
+- **The desktop is ~15x slower a core than the laptop**: `bench 9`, one
+  thread, 152 knps (nnue-deep-layers' re-bench at full speed) against the
+  laptop's ~2,360. Its i7-3770 has no AVX2, so the network runs its scalar
+  code. 8 engines on its 4 cores: 97 knps each, 776 in all (+28% over 4 x
+  152). The sizing sample (400 leaves a depth, 8 engines): depth 8 1,767 ms
+  a leaf, ~45 h in all; depth 9 4,363 ms, ~110 h. So **depth 8** (our move
+  sees 13 plies), within Matthew's ~3 days. Depth 10 would be ~12 days.
+- **Same answers**: the first 20 leaves at depth 8 on the laptop (one engine
+  pinned to CPU 0, 7 s) gave the desktop's move, score and node count, 20 of
+  20.
+- **Running** since 02:10 by the desktop's clock (a scheduled task, S4U,
+  below normal, 8 engines, 1.2 GB), the CPU at 108% of base. Due ~23:00 on
+  the 24th. Stoppable and resumable at any time (`table-a-desktop.ps1 stop`
+  / `start 8 8`); nnue-deep-layers may ask for a ~15-min quiet bench.
+- **Next**: `fetch 8`, then `table-a.py book` (~10 min of one laptop core:
+  ask ponder-scope), the .bin to games\book-table-a\ (~12.6 MB, so not in git
+  and never in bot\books), and the summary to
+  scripts/book-tables/results/bt-a.md; then a word to the self-play-book
+  session for the measurement.
+- **For later**: nnue-deep-layers is raising a 128-bit SSE2 path for the
+  network with Matthew (the 3770 has SSE2's pmaddwd). Integer arithmetic, so
+  the same answers: a run could switch to it partway.
