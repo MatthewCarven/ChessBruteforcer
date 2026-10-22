@@ -216,9 +216,16 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     thread (the engine bt-a-desktop copies to the share), the filter's 20 MB
     probe, a one-bucket h1024 training smoke for positions a second; plus
     the April-May records' step-3 times from their logs (full after ~00:30).
-    When the desktop is next free (after h1024-3m-ob8 and April-May's
-    records, ~01:50 on 10-23), before bt-a-desktop's multi-day book table,
-    which would also run through his nights.
+    - [x] **Full, 2026-10-23 01:43-01:58** (NNUE.md "The desktop,
+      re-benchmarked"): `bench 9` 216 knps for h1024-3m, **12.5x slower than
+      the laptop: the i7-3770 has no AVX2, so the network runs scalar**; the
+      filter 2.4x faster than quiet; training 189 k a second, the same as
+      quiet (the GPU sets the pace). Sent to bt-a-desktop.
+    - [ ] **Quiet: another day** (Matthew): `nnue\bench-engine\bench-desktop.ps1
+      -Label quiet` over SSH, with the cap back on; bt-a-desktop's book run
+      stops and resumes for it (it loses at most 8 leaves).
+    - The 128-bit SSE path for CPUs without AVX2: its own session
+      (engine-128-bit-sse-path, local_04f33c85, Matthew started it 10-23).
   - [ ] **C: h1024-6m on the laptop's GPU, tonight** (Matthew's 2(a),
     2026-10-22, instead of E): h1024-3m's recipe (`--hidden 1024 --passes 10
     --lr-drops 4/7/9`) on April-September, held back still September's: what

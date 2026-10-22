@@ -6438,3 +6438,38 @@ engine's part wasn't re-run tonight; nothing in it changed).
 `bot\test-play-window.py --picker --file <his 632-game download>` passed:
 the list off screen (withdrawn), Find, every word, Open on nothing, Open on
 a game, and the game read back.
+
+## 2026-10-22 (19:47) to 10-23 (02:50): the desktop's restart, h1024-3m-ob8 done and matched, the desktop re-benchmarked (the nnue-deep-layers session)
+
+- **The desktop restarted at 19:47** by its clock, from its Start menu
+  (event 1074, Explorer for Admin). It killed h1024-3m-ob8 in pass 8 of 10.
+  April's and May's record tasks had already been terminated at ~18:51 and
+  ~18:56, in step 3 (LastResult 267014 for all three). June finished at
+  19:27, but its copy to the laptop broke in the same minute
+  (FileNotFoundError: the share went down), and was copied again at 20:50.
+- **Resumed on Matthew's word**, 22:26 by the desktop's clock:
+  h1024-3m-ob8 from its pass-7 checkpoint (train.py --resume reloads the
+  weights, the optimizer and the per-bucket counts, and reseeds for pass 8),
+  and April and May from step 3 (`nnue data` overwrites its files, and
+  data.json comes last). April and May finished at ~01:05 ("all well":
+  255,749,565 and 257,698,447 records), then copied to the laptop by 01:39
+  (8.18 and 8.25 GB at 7.5 MB/s). games\nnue now holds April-September.
+- **The desktop's 15% cap**: quiet running, since Matthew sleeps near it;
+  set to 100% at ~00:30. **Re-benchmarked at full speed** (NNUE.md, "The
+  desktop, re-benchmarked"): `bench 9` 216 knps (h1024-3m), 12.5x slower
+  than the laptop, because the i7-3770 has no AVX2 and the network runs
+  scalar; the filter 2.4x faster than quiet; training 189 k a second, so the
+  GPU sets its pace. Quiet: another day (Matthew). bt-a-desktop then took the
+  desktop for its 5-ply book table (~45 h on 8 engines at ~97 knps each).
+  A 128-bit SSE path is its own session (local_04f33c85, Matthew started it).
+- **h1024-3m-ob8 done** at 01:37 by the desktop's clock: as the engine
+  computes it **0.012272 at K 1.028, -1.3% against h1024-3m's 0.012432**
+  (float 0.012201, -1.6%), file sha256 d0ecafc0..., network 324e4923c157.
+  Its last pass ran at 194 k a second beside the record tasks. Training
+  positions by bucket over the run: 0, 0.20, 0.49, 0.76, 1.02, 1.41, 1.81
+  and 1.07 billion. `bench 9` (one thread, 6 rounds, the learner's engine
+  thinking on the bot's last game in the first of them): 2,576 knps against
+  h1024-3m's 2,713 (-5.0%), but 3,179,201 nodes against 3,731,271, so 0.90x
+  the time to depth 9.
+- **Its match against h1024-3m** from 01:36 (the bot stopped at 01:33,
+  checked: no other engine thinking). At 02:50: 712 games, +6 [-12, +24].
