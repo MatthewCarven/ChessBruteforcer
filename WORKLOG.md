@@ -6362,3 +6362,51 @@ the window's rectangle) take whatever is on top. With Matthew at the laptop,
 the second run's first copy caught his browser. All the copies were deleted,
 and none were taken after that. test-play-window.py's --shots is opt-in, and
 its docstring says to use it only when he's away.
+
+## 2026-10-23 (00:40-01:15): the home window learns only when asked, and copies a game to a new window (the play-the-bot session)
+
+Matthew, after 6 home games (relayed by the bt-c session, then confirmed
+here): "maybe only save the human book when i ask like i play a lot of bad
+games in testing". He picked (a), a button. Mid-build he added: "when i play
+a game a want a button to copy the current position into a new window ...
+being able to instance another window for testing is useful ... like the
+current game".
+
+His 6 games had taught the home book nothing: 3 too short, 3 with no bot
+move 0.75+ pawns worse. home.jsonl didn't exist yet, so there was nothing to
+undo.
+
+- **Learn from this game** (bot\play.py): on for a finished home game on
+  screen (one just played, or loaded from bot\home\games). It checks first
+  (homegame.learn_state): already studied, already asked for, unfinished,
+  short or taken over too late each get a "Not this one: ..." box. Otherwise
+  the game goes on bot\home\to-learn.txt and the study starts. pending() now
+  lists only games asked for and not yet studied, in the order asked. A
+  game never asked for is never studied, and end_game no longer starts a
+  study.
+- **Copy to a new window**: writes the game on screen (being played, or
+  loaded) to bot\home\copies\<date time> copy.pgn and starts `play.py --open
+  <file> --ply <n>` (the venv's python, CREATE_NO_WINDOW, the same
+  --engine/--eval/--tables). The new window shows the copy at the position,
+  ready to step through or take over, with no Learn (it isn't a home game).
+  The first window's game goes on, clocks included. Each window has its own
+  engine, started only when a game is played there (~1 GB with the tables;
+  the free-memory check applies to each).
+- Two windows means two possible studies. A lock (bot\home\study.lock,
+  holding the process id) lets one window study at a time. That window goes
+  on until nothing asked for is left, so a game asked for in the other
+  window is studied too. A lock whose process has gone is taken over.
+- The engine starts with CREATE_NO_WINDOW (a console-less window's engine
+  would otherwise get a console). An error in the window goes to the log
+  and a message box, since the copied window has no console.
+
+Tests: bot\test-play.py, 105 checks with the real engine, all passed. That
+includes the asked-for list (in order, each once, a name with a space kept
+whole), learn_state, the lock (another live process holds it; a gone one is
+taken over), copy names and which way up. bot\test-play-window.py passed:
+the copy window, a real second process, started on the copy at the ply
+shown (its line in the log) and was closed (taskkill /T: the venv's
+python.exe is a launcher with the interpreter under it). Nothing was studied
+before Learn; Learn on a short take-over said why not; the game asked for
+was studied, and the lock was let go. The run was beside the bot and bt-c's
+engine job: the window said so and took 1 thread.

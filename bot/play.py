@@ -9,8 +9,12 @@
   Step through it (the arrows, or click a move) and **Take over from here**: you play one side from that move on,
   the bot the other. First it says what it makes of the position, exactly when 5 pieces or fewer are left (the
   tables), "to see if its even possible".
-- After each game the window studies it in the background (homegame.py's docstring: 2(a)), and says what it learnt.
-  You can play on meanwhile. Closing the window mid-game saves the game unfinished, and it's never learnt from.
+- **Learn from this game** (a finished home game on screen): the window studies it in the background (homegame.py's
+  docstring: 2(a)) and says what it learnt; you can play on meanwhile. Nothing is studied unless you press it
+  (Matthew, 2026-10-23: he plays many test games). Closing the window mid-game saves the game unfinished.
+- **Copy to a new window**: the game on screen (being played or loaded) opens in a second window at the position
+  shown, to try things out there (take over, step through) while this one goes on as it was, clocks included.
+  The copy is a file in bot\\home\\copies; the second window is play.py --open <file> --ply <n>, with no console.
 
 The Lichess bot and the learner are never touched: the games go to bot\\home\\games, the learnt moves to
 bot\\books\\home.jsonl and home.bin, which only this window plays from.
@@ -21,10 +25,12 @@ import logging
 import os
 import queue
 import random
+import subprocess
 import sys
 import threading
 import time
 import tkinter as tk
+import traceback
 from tkinter import filedialog, messagebox
 
 import chess
@@ -50,6 +56,7 @@ EVAL = option("--eval", learn.EVAL)
 EVAL_NAME = os.path.splitext(os.path.basename(EVAL))[0] if EVAL else "built-in"
 TABLES = option("--tables", homegame.TABLES if os.path.isdir(homegame.TABLES) else None)
 THINK, CHECK = option("--think", homegame.THINK, float), option("--check", homegame.CHECK, float)
+OPEN, OPEN_PLY = option("--open", None), option("--ply", None, int)   # a copied game (Copy to a new window)
 VERDICT_SECONDS = 3
 
 SQUARE = 64
@@ -119,6 +126,7 @@ class App:
         self.events = queue.Queue()        # callables from the worker threads, run by tick() on this thread
         self.game = None                   # the HomeGame being played
         self.review, self.review_ply = None, 0   # a loaded or finished game (chess.pgn.Game) and the ply shown
+        self.review_name = None            # the review's file name, when it's a home game (the Learn button's)
         self.flipped, self.selected = False, None
         self.engine, self.engine_setup, self.setup = None, None, None
         self.thinking = None               # the bot's search in progress (stoppable)
@@ -147,6 +155,9 @@ class App:
         tk.Button(nav, text="Flip", width=5, command=self.flip).pack(side="left", padx=(8, 0))
         self.take_over_button = tk.Button(side, text="Take over from here...", command=self.take_over, width=30)
         self.take_over_button.pack(pady=2)
+        self.learn_button = tk.Button(side, text="Learn from this game", command=self.learn_this, width=30)
+        self.learn_button.pack(pady=2)
+        tk.Button(side, text="Copy to a new window", command=self.copy_to_window, width=30).pack(pady=2)
         row = tk.Frame(side)
         row.pack(pady=(6, 0))
         tk.Button(row, text="New game...", width=10, command=self.new_game).pack(side="left", padx=2)
@@ -171,9 +182,12 @@ class App:
         self.footer_text()
         if not os.path.exists(ENGINE):
             self.say(f"No engine at {ENGINE}: start this with bot\\play.cmd, which builds it first.")
-        homegame.log(f"play.py started: engine {ENGINE}, evaluation {EVAL_NAME}, tables {TABLES or 'none'}")
+        homegame.log(f"play.py started: engine {ENGINE}, evaluation {EVAL_NAME}, tables {TABLES or 'none'}"
+                     + (f"; a copy of {OPEN} at ply {OPEN_PLY}" if OPEN else ""))
         self.draw()
-        self.root.after(500, self.study)   # games left unstudied last time
+        if OPEN:
+            self.open_copy(OPEN, OPEN_PLY)
+        self.root.after(500, self.study)   # games asked for and left unstudied last time
         self.tick()
 
     # ---- the board ----
@@ -237,6 +251,7 @@ class App:
         playing = self.playing()
         self.resign_button.config(state="normal" if playing else "disabled")
         self.take_over_button.config(state="normal" if self.review is not None and not playing else "disabled")
+        self.learn_button.config(state="normal" if self.review_name and not playing else "disabled")
 
     def draw_moves(self):
         if self.game and not self.game.over:
@@ -454,7 +469,7 @@ class App:
     def begin(self, colour, clock, source=None, ply=None, note=""):
         self.game = homegame.HomeGame(colour, clock=clock, setup=self.setup, evaluation_name=EVAL_NAME,
                                       source=source, take_over_ply=ply)
-        self.review, self.selected = None, None
+        self.review, self.review_name, self.selected = None, None, None
         self.flipped = colour == chess.BLACK
         homegame.log(f"game started: {os.path.basename(self.game.path)}" + (f" ({note})" if note else ""))
         self.say((note + " " if note else "") + ("Your move." if self.game.human_to_move() else ""))
@@ -477,11 +492,11 @@ class App:
         game = self.game
         self.selected = None
         self.review, self.review_ply = game.game, len(game.board.move_stack)
-        self.say(f"{game.describe_result()} Saved as {os.path.basename(game.path)}. Step back through it, or take "
-                 "over from any move to try again.")
-        homegame.log(f"game over: {os.path.basename(game.path)}: {game.result} ({game.termination})")
+        self.review_name = os.path.basename(game.path)
+        self.say(f"{game.describe_result()} Saved as {self.review_name}. If it's one to learn from, press Learn from "
+                 "this game. Or step back through it, and take over from any move to try again.")
+        homegame.log(f"game over: {self.review_name}: {game.result} ({game.termination})")
         self.draw()
-        self.study()
 
     # ---- loading and taking over ----
 
@@ -528,8 +543,10 @@ class App:
             messagebox.showwarning("Load game", f"Read with {len(game.errors)} problem(s); the moves up to the first "
                                                 f"one are kept:\n{game.errors[0]}")
         self.game, self.review, self.review_ply, self.selected = None, game, 0, None
+        home = kind == "file" and os.path.dirname(os.path.abspath(path)).lower() == os.path.abspath(homegame.GAMES).lower()
+        self.review_name = os.path.basename(path) if home else None
         h = game.headers
-        self.flipped = h.get("Black") == homegame.BOT and h.get("White") != homegame.BOT
+        self.flipped = homegame.black_at_bottom(h)
         self.say(f"{h.get('White', '?')} v {h.get('Black', '?')}, {h.get('Date', '?')}: {h.get('Result', '*')}"
                  f"{', ' + h['Termination'] if h.get('Termination') else ''}. Step through it with the arrows, "
                  "then Take over from here.")
@@ -620,9 +637,25 @@ class App:
 
     # ---- learning ----
 
+    def learn_this(self):
+        """The Learn button: the home game shown goes on the list to learn from (bot\\home\\to-learn.txt), and the
+        study starts. Nothing is studied unless asked for (Matthew, 2026-10-23: he plays many test games)."""
+        name = self.review_name
+        if not name or self.playing():
+            return
+        good, why = homegame.learn_state(name, self.review)
+        if not good:
+            messagebox.showinfo("Learn from this game", f"Not this one: {why}.")
+            return
+        homegame.ask_to_learn(name)
+        homegame.log(f"asked to learn from {name}")
+        self.learned(f"{name}: asked for.")
+        self.study()
+
     def study(self):
-        """Studies the finished home games not yet studied, on an engine of its own (1 thread, below normal, no
-        tables, Hash 64), in a worker thread; you can play on meanwhile."""
+        """Studies the home games asked for and not yet studied, on an engine of its own (1 thread, below normal,
+        no tables, Hash 64), in a worker thread; you can play on meanwhile. One window studies at a time (the lock):
+        it goes on until none is left, so games asked for in another window are studied too."""
         if self.studying:
             self.study_again = True
             return
@@ -631,18 +664,22 @@ class App:
             return
         free = homegame.free_commit_mb()
         if free is not None and free < 2048 + 400:
-            self.learned("Not enough memory free to study the last game now; it's studied next time.")
+            self.learned("Not enough memory free to study now; the game waits for the next start.")
+            return
+        if not homegame.lock_study():
+            self.learned("Another window is studying; it takes this game too when it's done.")
             return
         self.studying, self.study_again = True, False
-        self.learned("Studying the last game in the background (a few minutes; you can play on)...")
+        self.learned("Studying in the background (a few minutes; you can play on)...")
 
         def run():
             engine = None
             try:
                 engine = self.study_engine = homegame.start_engine(homegame.Setup(1, True, 64, "study", hash_mb=64),
                                                                    ENGINE, EVAL, None)
-                homegame.study_pending(engine, say=self.study_said, exclude=exclude, think=THINK, check=CHECK,
-                                       evaluation_name=EVAL_NAME)
+                while not self.closing and homegame.pending(exclude=exclude):
+                    homegame.study_pending(engine, say=self.study_said, exclude=exclude, think=THINK, check=CHECK,
+                                           evaluation_name=EVAL_NAME)
             except Exception as error:
                 if not self.closing:
                     homegame.log(f"the study stopped: {error!r}")
@@ -653,6 +690,7 @@ class App:
                         engine.quit()
                     except Exception:
                         pass
+                homegame.unlock_study()
                 self.events.put(self.study_finished)
 
         threading.Thread(target=run, daemon=True).start()
@@ -668,6 +706,56 @@ class App:
 
     def learned(self, text):
         self.learning.config(text="Learning: " + text)
+
+    # ---- a copy in a new window ----
+
+    def copy_to_window(self):
+        """Opens a second window on a copy of the game on screen, at the position shown, for trying things out:
+        take over there, step through it. It has its own engine (started when you take over there); this window's
+        game goes on as it was, its clocks included. The copy is a file in bot\\home\\copies."""
+        if self.playing():
+            game, ply = self.game.game, len(self.game.board.move_stack)
+        elif self.review is not None:
+            game, ply = self.review, self.review_ply
+        else:
+            messagebox.showinfo("Copy to a new window", "Start or load a game first.")
+            return
+        path = homegame.copy_path()
+        with open(path, "w", encoding="utf-8", newline="\n") as out:
+            out.write(str(game) + "\n")
+        args = [sys.executable, "-I", os.path.abspath(__file__), "--open", path, "--ply", str(ply)]
+        for name in ("--engine", "--eval", "--tables", "--think", "--check"):
+            if name in sys.argv:
+                args += [name, sys.argv[sys.argv.index(name) + 1]]
+        try:
+            subprocess.Popen(args, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        except OSError as error:
+            messagebox.showerror("Copy to a new window", repr(error))
+            return
+        homegame.log(f"copied to a new window: {os.path.basename(path)} at ply {ply}")
+        self.say("A copy is opening in a new window, at this position." +
+                 (" This game's clocks are still running." if self.playing() and self.game.clock else ""))
+
+    def open_copy(self, path, ply):
+        """--open: this window shows a copied game (copy_to_window), at the ply it was copied at."""
+        try:
+            game = learn.read_game(path)
+        except OSError as error:
+            self.say(f"The copy couldn't be read: {error}")
+            return
+        if game is None:
+            self.say("The copy couldn't be read.")
+            return
+        total = len(list(game.mainline_moves()))
+        self.review, self.review_ply, self.review_name = game, max(0, min(total, ply if ply is not None else total)), None
+        self.flipped = homegame.black_at_bottom(game.headers)
+        h = game.headers
+        self.root.title("Play the bot (a copy)")
+        self.say(f"A copy of {h.get('White', '?')} v {h.get('Black', '?')}, at move {self.shown().fullmove_number}. "
+                 "Take over from here to play on from it, or step through it. The first window's game goes on as it "
+                 "was.")
+        self.draw()
 
     # ---- the rest ----
 
@@ -718,11 +806,19 @@ class App:
                     engine.quit()   # (a study under way stops; its game is studied next time)
                 except Exception:
                     pass
+        homegame.unlock_study()
         self.root.destroy()
 
 
 def main():
     root = tk.Tk()
+
+    def report(kind, value, trace):
+        # A copied window has no console: an error goes to the log and on screen, not to a print nobody sees.
+        homegame.log("error in the window:\n" + "".join(traceback.format_exception(kind, value, trace)))
+        messagebox.showerror("Something went wrong", f"{value!r}\n\nThe details are in bot\\logs\\play-<date>.log.")
+
+    root.report_callback_exception = report
     App(root)
     root.mainloop()
 

@@ -326,25 +326,62 @@ with tempfile.TemporaryDirectory() as root:
     check("... and the positions learnt aren't thought about again (home.bin has them)",
           [f for f, _ in second.calls if f in (fens[5], fens[9])], [])
 
-    # ---- the pending games ----
-    home_games = os.path.join(root, "home-games")
+    # ---- the games asked for (the Learn button), and only those ----
+    home_games, asks = os.path.join(root, "home-games"), os.path.join(root, "to-learn.txt")
     os.makedirs(home_games)
-    for name, g2 in (("a.pgn", game), ("b.pgn", as_game(random_game(10), homegame.PLAYER, homegame.BOT, "0-1")),
-                     ("c.pgn", as_game(played, homegame.PLAYER, homegame.BOT, "*"))):
+    for name, g2 in (("a b.pgn", game), ("b.pgn", as_game(random_game(10), homegame.PLAYER, homegame.BOT, "0-1")),
+                     ("c.pgn", as_game(played, homegame.PLAYER, homegame.BOT, "*")), ("d.pgn", game)):
         with open(os.path.join(home_games, name), "w", encoding="utf-8") as out:
             out.write(str(g2) + "\n")
-    check("pending, the game in progress left out", homegame.pending(home_games, done, exclude=[
-          os.path.join(home_games, "c.pgn")]), ["a.pgn", "b.pgn"])
+    in_progress = [os.path.join(home_games, "c.pgn")]
+    check("nothing asked for: nothing pending", homegame.pending(home_games, done, in_progress, asks), [])
+    check("the Learn button takes a finished game", homegame.learn_state("a b.pgn", game, done, asks), (True, ""))
+    check("... not a short one", homegame.learn_state("b.pgn", learn.read_game(os.path.join(home_games, "b.pgn")),
+                                                      done, asks)[1].startswith("it was short"), True)
+    for name in ("b.pgn", "a b.pgn", "c.pgn", "b.pgn", "gone.pgn"):
+        homegame.ask_to_learn(name, asks)
+    check("asked: in order, each once (a name with a space kept whole)", homegame.asked(asks),
+          ["b.pgn", "a b.pgn", "c.pgn", "gone.pgn"])
+    check("... and pressed again: waiting", homegame.learn_state("a b.pgn", game, done, asks),
+          (False, "it's waiting to be studied"))
+    check("pending: those asked, not the game in progress, not one gone, not d (never asked)",
+          homegame.pending(home_games, done, in_progress, asks), ["b.pgn", "a b.pgn"])
     said = []
     fresh_rows = os.path.join(root, "fresh.jsonl")
     learnt = homegame.study_pending(FakeEngine(best, values), said.append, home_games, done, fresh_rows,
                                     os.path.join(root, "fresh.bin"), paths=homegame.book_paths(books)[:2] + [
                                         os.path.join(books, "lichess-2200-wide.bin")],
-                                    exclude=[os.path.join(home_games, "c.pgn")], think=45, check=20)
-    check("study_pending: a.pgn's two", len(learnt), 2)
+                                    exclude=in_progress, think=45, check=20, asked_path=asks)
+    check("study_pending: a b.pgn's two", len(learnt), 2)
     check("b.pgn: said why not", any(s.startswith("b.pgn: not studied: it was short") for s in said), True)
-    check("both marked studied", sorted(homegame.studied(done)), ["a.pgn", "b.pgn"])
-    check("nothing pending after", homegame.pending(home_games, done, exclude=[os.path.join(home_games, "c.pgn")]), [])
+    check("both marked studied, d never", sorted(homegame.studied(done)), ["a b.pgn", "b.pgn"])
+    check("nothing pending after", homegame.pending(home_games, done, in_progress, asks), [])
+    check("studied: the button says so", homegame.learn_state("a b.pgn", game, done, asks),
+          (False, "it's been studied already"))
+
+    # ---- one window studies at a time ----
+    lock = os.path.join(root, "study.lock")
+    check("the first window takes the lock", homegame.lock_study(lock), True)
+    with open(lock, "w", encoding="utf-8") as out:
+        out.write(str(os.getppid()))   # (as if held by another window still running: this test's parent)
+    check("another window's lock holds", homegame.lock_study(lock), False)
+    homegame.unlock_study(lock)
+    check("... and isn't ours to remove", os.path.exists(lock), True)
+    with open(lock, "w", encoding="utf-8") as out:
+        out.write("999999999")   # a window long gone
+    check("a gone window's lock is taken over", homegame.lock_study(lock), True)
+    homegame.unlock_study(lock)
+    check("unlocked", os.path.exists(lock), False)
+
+    # ---- copies, and which way up ----
+    copies = os.path.join(root, "copies")
+    first = homegame.copy_path(copies, when)
+    open(first, "w").close()
+    check("copy names", [os.path.basename(first), os.path.basename(homegame.copy_path(copies, when))],
+          ["2026-10-22 233005 copy.pgn", "2026-10-22 233005 copy 2.pgn"])
+    check("which way up", [homegame.black_at_bottom({"White": w, "Black": b}) for w, b in
+                           (("Matthew", "matthewcarven"), ("matthewcarven", "Matthew"), ("xPOI", "matthewcarven"),
+                            ("matthewcarven", "xPOI"), ("a", "b"))], [False, True, True, False, False])
 
     # ---- the real engine (optional) ----
     engine_path = os.environ.get("PLAY_ENGINE")

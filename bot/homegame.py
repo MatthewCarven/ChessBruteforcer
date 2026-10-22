@@ -9,14 +9,18 @@ if its even possible"). Everything here but the window: bot/play.py is the windo
 - **The games**: bot/home/games/<date time> <White> v <Black>.pgn, saved after every move; never in bot/games, so
   the bot's Lichess record (record.csv) and the learner never see them. A game taken over from a real one holds
   the real game's moves up to the take-over, with [TakeOverPly] and [Source] headers.
-- **What it learns** (2(a)): from finished games with 10+ moves each (after any take-over), the positions in the
+- **What it learns** (2(a)), and only from the games you ask it to (the window's "Learn from this game" button;
+  Matthew, 2026-10-23: "maybe only save the human book when i ask like i play a lot of bad games in testing"):
+  from finished games with 10+ moves each (after any take-over), the positions in the
   bot's first 12 moves where none of main, ours and home had a move: a --think search (45 s) for the best move,
   then the best and the bot's own move each scored by a --check search (20 s) of the position after it. Kept only
   if the bot's move was --worse (75 cp) or more behind: the bot learns from its mistakes against you, and a game
   with none teaches nothing. At most 4 positions a game, nearest the start first, as the learner does. The moves go
   to bot/books/home.jsonl, and bot/books/home.bin is rebuilt from it: only the home app plays from it. The Lichess
   bot doesn't, until make-config.py lists it (not done; Matthew's call).
-- bot/home/studied.txt lists the games studied (or found not worth it), one name a line.
+- bot/home/to-learn.txt lists the games you asked it to learn from, and bot/home/studied.txt the games studied (or
+  found not worth it), one name a line each. A game asked for and not yet studied (the window closed mid-study) is
+  studied at the window's next start; a game never asked for never is.
 """
 import ctypes
 import dataclasses
@@ -44,7 +48,8 @@ _spec.loader.exec_module(learn)
 
 HOME = os.path.join(HERE, "home")
 GAMES = os.path.join(HOME, "games")
-STUDIED = os.path.join(HOME, "studied.txt")
+STUDIED, TO_LEARN = os.path.join(HOME, "studied.txt"), os.path.join(HOME, "to-learn.txt")
+STUDY_LOCK, COPIES = os.path.join(HOME, "study.lock"), os.path.join(HOME, "copies")
 ENGINE = os.path.join(HOME, "engine", "ChessBruteforcer.Engine.exe")   # its own copy (bot\\play.cmd makes it)
 TABLES = os.path.join(REPO, "tables")
 HOME_ROWS, HOME_BOOK = (os.path.join(learn.BOOKS, name) for name in ("home.jsonl", "home.bin"))
@@ -194,7 +199,8 @@ def engine_pid(process):
 
 
 def start_engine(setup, engine=ENGINE, evaluation=None, tables=None):
-    process = chess.engine.SimpleEngine.popen_uci(engine)
+    # No console window of its own: a copied window (play.py --open) runs without one, and the engine would get one.
+    process = chess.engine.SimpleEngine.popen_uci(engine, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     if setup.below_normal:
         pid = engine_pid(process)
         if pid is None or not set_below_normal(pid):
@@ -584,29 +590,110 @@ def study(engine, game, name, paths, think=THINK, check=CHECK, worse=WORSE, rows
     return kept
 
 
-def studied(path=None):
-    path = path or STUDIED
+def _names(path):
+    """A list file's names, in order, one a line (names have spaces in them, so never split on whitespace)."""
     if not os.path.exists(path):
-        return set()
-    return {line.strip() for line in open(path, encoding="utf-8") if line.strip()}
+        return []
+    return [line.strip() for line in open(path, encoding="utf-8") if line.strip()]
 
 
-def mark_studied(name, path=None):
-    path = path or STUDIED
+def _append(path, name):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "a", encoding="utf-8") as out:
         out.write(name + "\n")
 
 
-def pending(folder=None, done_path=None, exclude=()):
-    """Home games not yet studied, oldest first (the game in progress excluded)."""
+def studied(path=None):
+    return set(_names(path or STUDIED))
+
+
+def mark_studied(name, path=None):
+    _append(path or STUDIED, name)
+
+
+def asked(path=None):
+    """The games you asked it to learn from (the Learn button), in the order asked."""
+    return _names(path or TO_LEARN)
+
+
+def ask_to_learn(name, path=None):
+    """Adds a game to the ones to learn from (once)."""
+    if name not in asked(path):
+        _append(path or TO_LEARN, name)
+
+
+def learn_state(name, game, done_path=None, asked_path=None):
+    """Whether the Learn button can take this home game: (True, "") or (False, why not), in words."""
+    if name in studied(done_path):
+        return False, "it's been studied already"
+    if name in asked(asked_path):
+        return False, "it's waiting to be studied"
+    return worth_studying(game)
+
+
+def lock_study(path=None):
+    """One window studies at a time (Copy to a new window makes two): True if this one may, and the lock file holds
+    its process id. A lock left by a window that has gone (closed mid-study, crashed) is taken over."""
+    path = path or STUDY_LOCK
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    for attempt in range(2):
+        try:
+            handle = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                pid = int(open(path, encoding="utf-8").read().strip() or 0)
+            except (OSError, ValueError):
+                pid = 0
+            if pid and pid != os.getpid() and priority_class(pid) is not None:
+                return False   # another window, still running, is studying
+            try:
+                os.remove(path)
+            except OSError:
+                return False
+            continue
+        with os.fdopen(handle, "w", encoding="utf-8") as out:
+            out.write(str(os.getpid()))
+        return True
+    return False
+
+
+def unlock_study(path=None):
+    path = path or STUDY_LOCK
+    try:
+        with open(path, encoding="utf-8") as lock:
+            mine = int(lock.read().strip() or 0) == os.getpid()
+        if mine:
+            os.remove(path)
+    except (OSError, ValueError):
+        pass
+
+
+def copy_path(folder=None, when=None):
+    """A new file for a copied game (the window's Copy to a new window), in bot/home/copies."""
+    folder = folder or COPIES
+    os.makedirs(folder, exist_ok=True)
+    stem = f"{(when or datetime.datetime.now()):%Y-%m-%d %H%M%S} copy"
+    path, n = os.path.join(folder, stem + ".pgn"), 1
+    while os.path.exists(path):
+        n += 1
+        path = os.path.join(folder, f"{stem} {n}.pgn")
+    return path
+
+
+def black_at_bottom(headers):
+    """Which way up to show a loaded game: your side at the bottom in a home game, the bot's in one of its own."""
+    if headers.get("Black") == PLAYER:
+        return True
+    return headers.get("Black") == BOT and headers.get("White") not in (BOT, PLAYER)
+
+
+def pending(folder=None, done_path=None, exclude=(), asked_path=None):
+    """Home games you asked it to learn from and not yet studied, in the order asked (the game in progress, and any
+    game no longer on disk, left out). A game never asked for is never pending."""
     folder = folder or GAMES
-    if not os.path.isdir(folder):
-        return []
     done = studied(done_path)
-    names = [n for n in os.listdir(folder) if n.endswith(".pgn") and n not in done
-             and os.path.join(folder, n) not in exclude]
-    return sorted(names)
+    return [n for n in asked(asked_path) if n not in done and os.path.exists(os.path.join(folder, n))
+            and os.path.join(folder, n) not in exclude]
 
 
 def describe_row(row):
@@ -616,10 +703,10 @@ def describe_row(row):
 
 
 def study_pending(engine, say=log, folder=None, done_path=None, rows_path=None, book_path=None, paths=None,
-                  exclude=(), think=THINK, check=CHECK, evaluation_name=""):
-    """Studies every unstudied home game; says what each taught. Returns the rows learnt."""
+                  exclude=(), think=THINK, check=CHECK, evaluation_name="", asked_path=None):
+    """Studies every home game asked for and not yet studied; says what each taught. Returns the rows learnt."""
     folder, learnt = folder or GAMES, []
-    for name in pending(folder, done_path, exclude):
+    for name in pending(folder, done_path, exclude, asked_path):
         path = os.path.join(folder, name)
         game = read_game(path)
         good, why = worth_studying(game)

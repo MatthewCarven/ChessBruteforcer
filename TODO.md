@@ -900,8 +900,15 @@ Sessions, in order:
       real engine's part too), bot\test-play-window.py (the window plays
       itself: passed). README "Playing it at home"; WORKLOG 2026-10-22 22:55.
       It changes neither the Lichess bot nor the learner.
-      - [ ] Matthew plays a few games. Not during the night's matches (a
-            quiet laptop, ~02:00-06:00); the window warns if one is running.
+      - [x] Matthew plays a few games: 6 by 00:30 on 2026-10-23, all
+            studied then, none taught anything (3 short, 3 nothing worse).
+      - [x] **Learn only when asked** (Matthew, 2026-10-23: "maybe only save
+            the human book when i ask like i play a lot of bad games in
+            testing"; his (a)): a Learn from this game button, nothing
+            studied otherwise. And **Copy to a new window** ("being able to
+            instance another window for testing is useful"): the game on
+            screen, at the position shown, in a second window. WORKLOG
+            2026-10-23 00:40.
       - [ ] In a week or two: what the home book learnt, and whether it was
             played again (bot\books\home.jsonl, bot\logs\play-<date>.log).
       - [ ] His call, later: the home book in the Lichess bot too

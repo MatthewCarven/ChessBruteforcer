@@ -490,11 +490,14 @@ makes of the position, exactly so when the tables cover it (5 pieces or fewer).
 Beside the live bot it thinks on 2 threads at low priority, so the bot's games
 come first; with the bot off, on 8 like the bot. Games are saved to
 `bot\home\games`, never `bot\games`, so the bot's record and its learner don't
-see them. After each finished game of 10+ moves a side, the window studies the
-bot's first 12 moves in the background. It thinks 45 s about each position no
-book covered, and keeps the better move only where the bot's own was 0.75 pawns
-or more worse. Those moves go to `bot\books\home.bin`, which only this window
-plays from, so the Lichess bot is unchanged until `make-config.py` lists it.
+see them. **Learn from this game** (only when pressed: many games are tests)
+studies a finished home game of 10+ moves a side in the background, looking at
+the bot's first 12 moves. It thinks 45 s about each position no book covered,
+and keeps the better move only where the bot's own was 0.75 pawns or more
+worse. Those moves go to `bot\books\home.bin`, which only this window plays
+from, so the Lichess bot is unchanged until `make-config.py` lists it. **Copy
+to a new window** opens the game on screen in a second window at the position
+shown, for trying ideas out while the first game goes on.
 `bot\homegame.py` holds everything but the window (`bot\test-play.py` tests it;
 `bot\test-play-window.py` is a smoke test that opens the window and plays itself).
 
