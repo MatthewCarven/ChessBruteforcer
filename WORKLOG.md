@@ -5574,7 +5574,7 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - Decision P5 for Matthew: (a) merge, the option off (my pick); (b) drop
   the src change and keep the write-up and the bench. PONDER.md, "P5".
 
-## 2026-10-22 (06:00-08:30): P6, a table that keeps its deep entries (a side session)
+## 2026-10-22 (06:00-08:30, 12:10-15:40): P6, a table that keeps its deep entries (a side session)
 
 - Decision M's P6 (PONDER.md), branch claude/p6-tt-buckets-f4c01d, rebased
   onto compression e1868ae (P1-P5, P8 and the 2048 nets in). Built and
@@ -5624,5 +5624,14 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   left picks which of two equal slots goes. **Full suite 629 passed, 2
   skipped.** A build straight after the battery held the last mutant's DLL
   in the test folder: rebuild `--no-incremental` before the suite.
-- **The SPRT** (P6 against e1868ae, 10+0.1, one thread, Hash 64): waiting
-  for the cores (after nnue-deep-layers' h1536-3m match).
+- **The SPRT** (games/builds/p6-v-e1868ae-10+0.1.*, 12:12-15:30, the bot
+  off): P6 (6b60ff0) against e1868ae, 10+0.1, one thread, Hash 64, no
+  pondering: **+415 -430 =1155, -3 [-13, +7] over 2,000 games**, SPRT
+  [0, 10] accepted H0 at game 2,000 (LLR -2.98); halves about -5 and -1;
+  depth 11.2 against 11.1, equal speed, no time losses. So no cost in
+  plain play; the gain is after 8-thread ponder misses, which a match here
+  can't play (two 8-thread ponderers want 32 threads a game). ob-engine's
+  bench ran as `dotnet ...Engine.dll`, so build-match's exe check missed it
+  and the first 2 min overlapped (its timings dropped, not mine).
+- Decision P6 for Matthew: (a) merge as it is (my pick); (b) merge and check
+  depth after misses in the bot's log; (c) leave it. PONDER.md, "P6".

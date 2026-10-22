@@ -993,8 +993,11 @@ Sessions, in order:
                   miss the next search does 1.03 / 0.87 / 0.91x the work
                   of no ponder, was 1.23 / 1.22 / 1.16x; speed 0.993x.
                   Hash is megabytes now: the bot's 256 commits 85 MB more
-                  (Matthew's (a)). Suite 629 passed. The SPRT against
-                  e1868ae at 10+0.1 waits for the cores. PONDER.md, "P6".)
+                  (Matthew's (a)). Suite 629 passed. SPRT against e1868ae
+                  at 10+0.1, no pondering: -3 [-13, +7] over 2,000, H0
+                  accepted (no cost, no gain there). **Decision P6,
+                  Matthew's**: (a) merge as it is (my pick), (b) merge
+                  and check the bot's log, (c) leave it. PONDER.md, "P6".)
             - [ ] (Turned up by P4, not part of decision M; Matthew's call
                   whether.) **Lazy SMP: answer from the thread that got
                   deepest** (Stockfish's best-thread choice, "thread
@@ -1055,6 +1058,12 @@ Sessions, in order:
       moves with h1024-3m and count the disagreements. O3 (b) in
       OPPONENTS.md: a replay would make its moves come up far more often
       (today 3 in 617 games).
+- [ ] scripts/depth-match.py's other_engines() (which build-match.py waits
+      on before a match) lists only ChessBruteforcer.Engine.exe processes.
+      An engine run as `dotnet <...>\ChessBruteforcer.Engine.dll` slips
+      past it: ob-engine's bench did on 2026-10-22, overlapping P6's SPRT
+      for its first 2 min. Match on the command line too (WMI), or have
+      such benches run the exe.
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);

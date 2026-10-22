@@ -273,6 +273,7 @@ of games/tune/openings-300.txt in colour-reversed pairs, 5 at a time, below-norm
 | date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-21 | P4 (a cut depth plays the move it proved better), 477d0f8 | P3's tip, 08a4118 | 2,000 | +442 -404 =1154 | 50.9% | +7 [-3, +17] | 5 at a time, the bot stopped; SPRT [0, 10] undecided at the cap (LLR 0.63), LOS 90.4%; halves +14 and -0; equal depth (10.9) and speed; no time losses. The lab saw P4 change no move at this clock, so most likely noise (PONDER.md, "P4") |
+| 2026-10-22 | P6 (a table in buckets of four with an age; Hash in megabytes, so Hash 64 is 4.2 M slots, was 2.8 M), 6b60ff0 | compression before it, e1868ae | 2,000 | +415 -430 =1155 | 49.6% | -3 [-13, +7] | 12:12-15:30, 5 at a time, the bot stopped; SPRT [0, 10] accepted H0 at game 2,000 (LLR -2.98): not 10 better at this clock; LOS 30.3%; halves about -5 and -1; depth 11.2 against 11.1, equal speed (3,308 and 3,310 knps); no time losses. No pondering and one thread here, where P6's gain is (after an 8-thread ponder miss) (PONDER.md, "P6") |
 
 ## Versions
 

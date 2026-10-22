@@ -845,7 +845,8 @@ threads, a fresh search each time: it passed 8 of 8 alone, on both builds).
 the wrong reply, the search of the position really reached does **1.03, 0.87 and 0.91x** the work it does with no
 ponder (misses of 0.75, 1.5 and 3x the move's planned time S), against **1.23, 1.22 and 1.16x** on the old table the
 same morning (1.08, 1.24 and 1.33x the day before, "Misses" above). A search with no ponder before it is unchanged
-(0.99x the nodes), and the speed per node too (0.993x, within noise). The match: **pending** (the SPRT below).
+(0.99x the nodes), and the speed per node too (0.993x, within noise). In a match with no pondering it is neither
+better nor worse: **-3 Elo [-13, +7] over 2,000 games** at 10+0.1 (SPRT [0, 10] accepted "not 10 better").
 
 A side session, branch `claude/p6-tt-buckets-f4c01d`, on compression e1868ae (P1-P5 in).
 
@@ -912,8 +913,27 @@ both take 37. (`hashfull` at the stop isn't comparable across the builds: P6 cou
 A variant reading the bucket without bounds checks gave 0.995 (CPU 0.999), no better within the noise, so it wasn't
 kept.
 
-**The match.** Pending: P6 against e1868ae at 10+0.1, one thread, Hash 64 each (`scripts/build-match.py`, SPRT [0,
-10]), when the cores are free. Not on 8 threads: two 8-thread engines a game won't fit beside the other work.
+**The match** (`scripts/build-match.py`, MATCHES.md): P6 (6b60ff0) against e1868ae, 10+0.1, one thread and Hash 64
+each, no pondering, 5 games at a time, 12:12-15:30 with the bot off.
+
+| games | +W -L =D | score | Elo [95%] | SPRT [0, 10] | depth (mean) | knps | time losses |
+|---:|---|---:|---|---|---:|---:|---:|
+| 2,000 | +415 -430 =1155 | 49.6% | **-3 [-13, +7]** | H0 accepted at game 2,000 (LLR -2.98) | 11.2 against 11.1 | 3,308 against 3,310 | 0 |
+
+The halves were about -5 and -1. This is the match the brief asked for, and it shows that P6 costs nothing in plain
+play. It can't show P6's gain: at this clock on one thread a move's search stores a few hundred thousand entries and
+nothing ponders, so the table fills only slowly over a game, from our own searches, and never takes the flood P6 is
+for. That flood (an 8-thread ponder on the wrong reply, filling up to half the table) is the bot's setting, and a
+match in that setting isn't possible here: two engines pondering on 8 threads each want 32 threads of a 16-thread
+laptop for every game. The lab above is the measure of that.
+
+**For Matthew (decision P6).**
+
+- **(a)** Merge as it is (always on). The bot loses nothing measurable in plain play, and its searches after a missed
+  ponder stop paying 8-24% extra work. It costs 85 MB more memory at Hash 256 (your (a) earlier today). *My pick.*
+- **(b)** Merge, and then watch the bot's own log for a few days: `scripts/ponder-scope/ponderlog*.py` gives the
+  depth reached after misses, before and after.
+- **(c)** Leave it out. Nothing is lost in play today; the ponder-miss cost stays.
 
 **Tests** (TranspositionTableTests, new, 21; and three changed):
 
