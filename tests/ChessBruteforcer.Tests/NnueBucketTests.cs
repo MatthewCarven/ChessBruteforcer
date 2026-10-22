@@ -20,7 +20,7 @@ public class NnueBucketTests
     private static string DataPath(string name) => Path.Combine(AppContext.BaseDirectory, "Data", name);
 
     /// <summary>0 (one number at a time) and the SIMD widths this CPU runs.</summary>
-    private static readonly int[] Widths = new[] { 0, 256, 512 }.Where(width => width <= Kernels.Widest).ToArray();
+    private static readonly int[] Widths = new[] { 0, 128, 256, 512 }.Where(width => width <= Kernels.Widest).ToArray();
 
     /// <summary>A width's pass by the way the engine reaches it (the dispatch, which on this CPU otherwise only ever takes the widest).</summary>
     private static int ForwardAt(int width, Network network, ReadOnlySpan<short> us, ReadOnlySpan<short> them, int bucket) =>

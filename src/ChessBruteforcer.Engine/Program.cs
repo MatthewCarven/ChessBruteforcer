@@ -72,6 +72,7 @@ static int Bench(int depth, Network? network)
         "r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
     };
     Console.WriteLine($"attacks: {Bitboards.Path.ToString().ToLowerInvariant()}");   // (CB_ATTACKS: pext, magic or rays)
+    Console.WriteLine($"network simd: {Network.SimdWidth} bits");   // (CB_NNUE_SIMD: 256, 128 or 0 holds it narrower)
     long total = 0;
     var clock = Stopwatch.StartNew();
     foreach (string fen in positions)
