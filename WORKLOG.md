@@ -5818,3 +5818,25 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
 - The queue has rebooked a quiet ~6-minute run for after P6's SPRT (until
   ~15:10), before h2048-3m's training. A check for `dotnet` processes too,
   not only the engine's exe, before it starts.
+
+## 2026-10-22 (15:31-15:50): the buckets' bench on a quiet laptop: version 1 nets ~0.5-0.9% slower, bucketed nets not (the ob-engine session)
+
+- The core queue's go after P6's SPRT ended at 15:30:33. At 15:31:51 no
+  dotnet, engine, python or testhost process, CPU ~1.4%, on mains. `bench
+  9`, one thread, the same three arms, 30 rounds after two warm-up rounds,
+  15:32:11-15:34:38; no dotnet or engine process left after it. It read
+  as the morning did (old's median 2,716 knps, a pair spreading +-2.9%). The
+  queue was told at once (the learner's re-score waited on it).
+- **A version 1 net on the new build: -0.4% by the clock** (trimmed mean
+  -0.8%, old ahead in 22 of 30, p 0.016). With the morning's 12 clean
+  rounds, **31 of 42 to the old build, p 0.003, median -0.5%, trimmed
+  -0.9%**. By CPU time no difference (20 of 42), but that column is coarse
+  (15.6 ms steps, ~1.1% of a run) and twice as noisy.
+- **A bucketed net (h1024-3m-v3x8) on the new build: as fast as the old
+  build's version 1** (median -0.2%, 23 of 42, p 0.64). It does the same
+  work plus a bucket that changes, so the version 1 net's cost isn't the
+  added arithmetic; layout is the likelier cause, untested.
+- So version 1 nets miss "within noise", narrowly: under 1 Elo. NNUE.md
+  session 7's speed bullet has all three runs; the quiet one is
+  scripts/nnue-bench/buckets/bench-2026-10-22-quiet.tsv. Whether to chase it
+  is Matthew's call (TODO).
