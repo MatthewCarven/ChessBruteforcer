@@ -5942,10 +5942,18 @@ session 7 has the details.
 - Files: scripts/learner/rescore-2026-10-22-full-net-0.csv and -1.csv (both
   parts, the 200 in each), rescore-2026-10-22-full-summary.txt and
   relearn-2026-10-22-applied.txt.
-- **Next: Matthew starts the learner again** (bot\learn.cmd). Its start line
-  should say "with h1024-3m ... 1656 positions in our book". Undo, if ever
+- **Next: Matthew starts the learner again** (bot\learn.cmd). Undo, if ever
   wanted: with the learner stopped, copy the two .bak files back over
   ours.jsonl and ours.bin.
+- **Later the same evening the bot moved to h1536-3m** (653254b,
+  make-config.py's list now starts with it), so the learner thinks with
+  h1536-3m from its next start, and its start line should say "with
+  h1536-3m". The 177 replacements stay h1024-3m's verdicts, which is fine to
+  leave. bot/test-learn.py's last check had h1024-3m first in a list of its
+  own, so it failed on the new tree while the learner was right. That check
+  now runs make-config.py on a copy of this tree's eval file names and takes
+  its choice: green ("h1536-3m.nnue"), and red on both learn.py mutants
+  again (6 and 5 checks).
 
 ## 2026-10-22 (06:00-08:30, 12:10-15:40): P6, a table that keeps its deep entries (a side session)
 

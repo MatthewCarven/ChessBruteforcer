@@ -83,9 +83,12 @@ for name, source in (("no list in make-config.py", "for kind in ('syzygy', 'gavi
     with tempfile.TemporaryDirectory() as root:
         check(name, learner_choice(folder(root, LIST, source)), None)
 
-# And this tree: the learner's EVAL is the bot's first evaluation present in bot\eval.
-check("this tree's EVAL", os.path.normcase(learn.EVAL or ""),
-      os.path.normcase(next((os.path.join(HERE, "eval", n) for n in LIST if os.path.exists(os.path.join(HERE, "eval", n))), "")))
+# And this tree: the learner's EVAL is the file make-config.py chooses from this tree's own bot\eval (its file names,
+# on a copy), whatever the list says today.
+with tempfile.TemporaryDirectory() as root:
+    bot = folder(root, sorted(os.listdir(os.path.join(HERE, "eval"))))
+    want = bot_choice(bot)
+check("this tree's EVAL", os.path.basename(learn.EVAL or "None").lower(), os.path.basename(want or "None").lower())
 print(f"this tree's learner thinks with {learn.EVAL_NAME}")
 
 print("\nall passed" if not failures else f"\n{len(failures)} FAILED: {', '.join(failures)}")
