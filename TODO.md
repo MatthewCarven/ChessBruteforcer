@@ -170,9 +170,19 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     10+0.1, the bot off (2026-10-22): l32 -85 [-121, -51], l16-32 -58 [-88,
     -30]**, SPRT accepted H0, each at about half the speed (MATCHES.md). Not
     close, so no 30+0.3 run. The bot played l16-32 for a game or two, then
-    went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32 training on
-    the desktop, done ~12:30 on 10-22; the engine can't load 1536 hidden
-    yet, and it will be slower than l32.
+    went back to h1024-3m (Matthew's (a), 5fc8a61). h1536-3m-l32 finished
+    on the desktop at 12:14 on 10-22: held back 0.010762 as the engine
+    computes it (-13.4% against h1024-3m), and it will be slower than l32.
+  - **Output buckets** (Matthew's B, 2026-10-22; NNUE.md session 7): .nnue
+    version 3, K output rows picked by the piece count. The trainer's half
+    is branch `claude/ob-trainer-56e1a8`; the C# loader is ob-engine's
+    `claude/ob-engine-e75e9e`. **h1024-3m-ob8 is training on the desktop**,
+    from 12:19 to ~21:55 by its clock: h1024-3m's recipe plus
+    `--output-buckets 8`, at h1024-3m's speed. Bucket 0 (2-4 pieces) has no
+    training positions, so it is exported with bucket 1's row.
+    - [ ] When it's done: `scripts\nnue-desktop.ps1 fetch h1024-3m-ob8`, then
+      held back against h1024-3m's 0.012432, then a match against h1024-3m
+      (the bot off), once both branches are merged.
   - [ ] **Decision: the desktop's next job after 12:30, and the speed work**
     (NNUE.md session 6, "The speed work, weighed"): int8 can't reach the
     ~4x the small layers need on this laptop (no VNNI from .NET here), so

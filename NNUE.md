@@ -1585,7 +1585,46 @@ C# loader and its tests).
   12,275, none zero and none at the limit. In 999 of the 1,000 positions,
   every other bucket would give another score. Network sha256
   a5b712fad416e75c... An independent decoder written from the spec alone
-  (pure Python ints) gets all 1,000 scores.
+  (pure Python ints) gets all 1,000 scores. ob-engine's C# equals it on all
+  1,000, at every width.
+- **On the desktop's GPU** (2026-10-22, from 12:16 by its clock, once
+  h1536-3m-l32 had finished):
+  - The identity check again, on the GPU: 662a810's train.py and this one,
+    without the option (256 hidden, one data bucket, two passes). The
+    .nnue came out byte for byte the same (file sha256 BFC55AD9...), and
+    every error figure matched.
+  - The smoke test, h1024-3m-ob8-smoke: one data bucket, one pass, the
+    run's own options, through `nnue-desktop.ps1 train`. 179 k positions a
+    second, 1.1 GB of GPU memory at the peak, and 13 s to score the 4.47 M
+    held-back positions as the engine computes them. The export filled
+    bucket 0. `checks.py quantised` on its .pt: 0 of 1,000 differ, and the
+    int16 net is 2.5 cp from the float one on average (+0.8 signed), as
+    version 1's nets are. Re-exported on the laptop, it is the desktop's
+    .nnue byte for byte (1,607,780 bytes: h1024-3m's size plus 7 rows, 7
+    biases and K).
+  - **Training positions by bucket** (that one September bucket, 3,419,568
+    positions; the run logs the full count after each pass):
+
+    | bucket | pieces | positions | share |
+    |---|---|---|---|
+    | 0 | 2-4 | 0 | 0% (exported with bucket 1's row) |
+    | 1 | 5-8 | 100,699 | 2.9% |
+    | 2 | 9-12 | 245,848 | 7.2% |
+    | 3 | 13-16 | 383,013 | 11.2% |
+    | 4 | 17-20 | 516,464 | 15.1% |
+    | 5 | 21-24 | 711,794 | 20.8% |
+    | 6 | 25-28 | 918,588 | 26.9% |
+    | 7 | 29-32 | 543,162 | 15.9% |
+
+- **h1024-3m-ob8, started 12:19 by the desktop's clock**: h1024-3m's
+  recipe plus the buckets (`scripts\nnue-desktop.ps1 train h1024-3m-ob8
+  --hidden 1024 --add-data 2026-07 2026-08 --passes 10 --lr-drops 4/7/9
+  --output-buckets 8`, Matthew's B). Its first line: "pass 1 bucket 8/192:
+  27,995,195 positions, 195,732 a second" (h1024-3m: 196,555). So it takes
+  h1024-3m's ~57 min a pass, **done ~21:55 by the desktop's clock**. The
+  yardstick is h1024-3m's held-back error: 0.012394 at K 1.113 in float,
+  0.012432 as the engine computes it, and 0.014042 after pass 1. Then a
+  match against h1024-3m (the bot off), once the engine reads version 3.
 
 ## Risks
 
