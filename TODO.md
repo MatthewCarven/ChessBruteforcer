@@ -181,10 +181,17 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     the laptop's GPU when the bot is off. h1536-3m-l32 runs to its end
     (-11% held back after pass 6, the best yet). Later: king buckets (D),
     on whichever wins, with 6 months' data.
-  - [ ] **A: h1536-3m against h1024-3m** (the bot off, `scripts\nnue-match.cmd
-    h1536-3m h1024-3m`). The engine takes 2048 hidden since 662a810;
-    `bench 9` -12.8% knps, 1.10x the time to depth 9; about +16 Elo expected.
-    Waits for the laptop's cores (the core queue).
+  - [x] **A: h1536-3m against h1024-3m** (2026-10-22, 08:22-12:09, the bot
+    off): **+7 [-3, +18]** over 2,000 games, LOS 91.3%, SPRT undecided at
+    the limit; -15.9% knps in the match (MATCHES.md). Expected ~+16.
+  - [ ] **Decision: the bot on h1536-3m?** (a) switch (+7 likely, LOS 91%;
+    at the bot's ~20x longer thinking the speed costs less), (b) keep
+    h1024-3m, (c) a 30+0.3 match first (~6 h for 1,000 games, laptop cores).
+  - **h1536-3m-l32 done** (desktop, 2026-10-21 22:25 to 10-22 12:14): held
+    back as the engine computes it **0.010762 at K 1.132, -13.4% against
+    h1024-3m**, the best yet (network sha256 303b409bc49e); in games\nnue\nets.
+    Not matched: at 1536 its small layers' pairs are 1.5x l32's, so it would
+    be slower than l32 (-55% in the match) and lose on speed too.
   - [ ] **E: h2048-3m on the laptop's GPU** (2026-10-19's estimate: September
     at 20 passes ~7.5 h on the 3070; three months at 10 passes ~11-12 h),
     the bot off, after A's match: the laptop's power is shared, so no laptop

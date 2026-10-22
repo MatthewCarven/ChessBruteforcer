@@ -67,6 +67,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-20 | h768-3m | h512-3m | 525 | +200 -189 =136 | 51.0% | +7 [-18, +33] | **stopped, not a result**: all beside the bot, 135 games lost on time (78 by h768-3m); to be played again with the bot off |
 | 2026-10-22 | h1024-3m-l32 | h1024-3m | 191 | +25 -71 =95 | 38.0% | **-85 [-121, -51]** | SPRT [0, 10] **accepted H0** at game 187 (LLR -3.09); a deep net at half the speed (see below); bot stopped |
 | 2026-10-22 | h1024-3m-l16-32 | h1024-3m | 276 | +45 -91 =140 | 41.7% | **-58 [-88, -30]** | SPRT [0, 10] **accepted H0** at game 272 (LLR -3.09); bot stopped |
+| 2026-10-22 | h1536-3m | h1024-3m | 2,000 | +498 -456 =1046 | 51.0% | **+7 [-3, +18]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR ~0.8), LOS 91.3%; bot stopped (see below) |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -181,6 +182,18 @@ to +25 (with +-35 of noise): the extra judgement is real but small, and the
 speed it costs is not. l32's bigger tree (+37% to depth 9 in `bench 9`)
 cost it another 0.3 ply. Endings: l32 51 mates, 47 threefolds, 86 by the
 tables, 7 fifty-move; l16-32 57, 69, 139, 10 and a stalemate.
+
+**h1536-3m against h1024-3m** (2026-10-22, 08:22-12:09, the bot stopped,
+nothing else on the laptop; Matthew's A): h1024-3m's recipe at 1536 hidden,
+held back -3.9% against it, `bench 9` -12.8% knps. 2,000 games, +498 -456
+=1046, **+7 [-3, +18]**, LOS 91.3%; the SPRT stayed undecided (LLR ~0.8 at
+the limit). Searches over the match: h1536-3m 2,734 knps, depth 10.7;
+h1024-3m 3,251 and 10.9 (-15.9%, 0.2 ply). The rule from our matches (+8 a
+1% of held-back error, -87 a halving of speed) said about +16; the result
+is within that, at its low end. By 200 games it read +16 [-18, +49]; from
+600 on it stayed between -1 and +8. No time losses. Endings: 390 mates, 547
+threefolds, 957 by the tables (564 wins, 393 draws), 103 fifty-move, 3
+stalemates.
 
 ## Pondering (2026-10-16 on)
 

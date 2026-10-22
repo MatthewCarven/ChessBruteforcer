@@ -5775,3 +5775,21 @@ branch (08a4118; P3 said when it was safe to start). Not merged.
   Then, per Session context: this code merged first, and the apply run from
   the main checkout with the learner stopped (Matthew closes its window,
   I run the one command, he starts it again with bot\learn.cmd).
+
+## 2026-10-22 (08:16-12:30): h1536-3m against h1024-3m, +7 [-3, +18]; h1536-3m-l32 done at -13.4% (the nnue-deep-layers session)
+
+- The core queue's go (local_469cca7a), from 08:22 once Session context's
+  suite for ob-engine's merge had finished: no dotnet or testhost for two
+  checks 15 s apart, the bot off. `scripts\nnue-match.cmd h1536-3m h1024-3m`
+  from this branch at e1868ae (compression: MaxHidden 2048, P5 and P8 in).
+- **h1536-3m +7 [-3, +18]**: 2,000 games, +498 -456 =1046, LOS 91.3%, SPRT
+  undecided at the limit (08:22-12:09). Searches: 2,734 knps and depth 10.7
+  against 3,251 and 10.9. Expected ~+16 by our rule; within it. No time
+  losses. The queue told at 12:10 (P6's SPRT next).
+- **h1536-3m-l32 done** (12:14 by the desktop's clock): as the engine
+  computes it 0.010762 at K 1.132, **-13.4% against h1024-3m**; passes 7-10
+  at its K 0.010989, 0.010772, 0.010753, 0.010753. Fetched into
+  games\nnue\nets (file sha256 01d46c7a...). The desktop's GPU passes to
+  ob-trainer's smoke test and h1024-3m-ob8.
+- Matthew's to decide (TODO): the bot on h1536-3m or not; and E (h2048-3m,
+  ~11-12 h of the laptop's GPU), whose expected gain this result shrinks.
