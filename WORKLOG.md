@@ -6010,3 +6010,36 @@ session 7 has the details.
   depth after misses in the bot's log; (c) leave it. **He chose (a)**
   (15:50). The merge into compression is Session context's (Matthew's
   rule since 07:32); the branch merges cleanly (4aa73c6 and after).
+
+## 2026-10-22 (18:50-19:15): can the bot's own log show P6? No (the ponder-scope session)
+
+Matthew asked for a before-and-after check of the search after a ponder
+miss, from the bot's log, once the bot has played a day on P6. Before the
+"after" exists, I built the measure on the "before" (10-20, h1024-3m, the
+old table), to see whether a log can show the effect at all.
+scripts/ponder-scope/misscheck.py pairs each miss (`go ponder`, `stop`)
+with the next search, and splits the misses at the median ponder length.
+On the old table, a long ponder should have pushed out more of our own
+search's entries.
+
+| 10-20, the old table | misses | ponder, median | the next search: long / short miss [95%] |
+|---|---:|---:|---|
+| 03:28-22:10, one build: nodes to depth 12 | 604 | 4.6 s | 2.60 [1.73, 4.00] |
+| 22:33-00:05, the faster build: nodes to depth 12 | 328 | 3.3 s | 7.82 [3.78, 14.51] |
+| 03:28-22:10: share of depth 12's nodes spent by depth 8 | 604 | 4.6 s | 0.87 [0.74, 1.08] |
+| 22:33-00:05: the same share | 328 | 3.3 s | 0.49 [0.35, 0.70] |
+
+- Raw nodes: after a long miss, the next search needs 2.6-7.8x the nodes.
+  That's the position, not the table: the opponent thinks long where the
+  play is hard. The two windows on one table disagree by 3x.
+- The share of the early depths should cancel the difficulty and rise
+  when entries are lost (the 8-thread lab: 33 ms with no ponder, 143 ms
+  after a 3x miss, at depth D-4). It doesn't rise; it falls, and again
+  differs between the two windows.
+- So the lab's ~20% (1.08-1.33x work after an 8-thread miss on the old
+  table, ~1.0 on P6) is far below what live games vary by. A day of play
+  on P6 can't confirm or refute it from the log.
+- The way to answer it: replay ~60 of the bot's own logged misses, each
+  at its real ponder length with the ponder on 8 threads, on the old
+  table and on P6. That's the lab measurement scaled up, from the bot's
+  games (~25 min, 9 cores). Matthew's call; it's in TODO.

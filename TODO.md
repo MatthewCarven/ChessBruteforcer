@@ -1064,6 +1064,15 @@ Sessions, in order:
                   Matthew chose (a), merge it as it is** (15:50); the
                   bot gets it at its next start once it's in
                   compression. PONDER.md, "P6".)
+            - [ ] P6 in the bot's own play (Matthew asked, 2026-10-22
+                  ~19:00: "compare the search after a ponder miss before
+                  and after, from its log"). The log can't show it:
+                  scripts/ponder-scope/misscheck.py on 10-20's misses
+                  (the old table) finds the position's difficulty swamps
+                  the ~20% the lab measured (WORKLOG). The way to answer
+                  it is to replay ~60 of the bot's logged misses, at their
+                  real ponder lengths with an 8-thread ponder, on both
+                  tables (~25 min, 9 cores). Waiting for Matthew's pick.
             - [ ] (Turned up by P4, not part of decision M; Matthew's call
                   whether.) **Lazy SMP: answer from the thread that got
                   deepest** (Stockfish's best-thread choice, "thread
