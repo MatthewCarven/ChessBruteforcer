@@ -60,6 +60,24 @@ public class TableLineTests
     }
 
     [Fact]
+    public void TheWalkLeavesAnOldEntryItReadsOld()
+    {
+        // Read through TryGet, an entry the walk passes would become this search's, as good as new, and outlive the
+        // shallow entries a later store brings to its bucket, so the next search would find a different table.  Read
+        // through TryPeek it stays five searches old (worth 10 - 5 x AgePenalty = 0) and the fourth store pushes it out.
+        var table = new TranspositionTable(1);
+        Assert.Equal(16_384 * TranspositionTable.BucketSlots, table.Slots);   // a key's bucket: its top 14 bits
+        Plant(table, Bound.Exact, "e7e5", "e2e4");
+        for (int i = 0; i < 5; i++)
+            table.NewSearch();
+        Assert.Equal("e2e4 e7e5", Walk(table, 10));   // the walk went through the entry
+        ulong key = After("e2e4").Hash, bucket = key & ~((1UL << 50) - 1);
+        for (ulong which = 1; which <= TranspositionTable.BucketSlots; which++)
+            table.Store(bucket | which * 7919, new Move(12, 28), 0, 2, Bound.Exact);   // this search's, depth 2
+        Assert.False(table.TryPeek(key, out _));
+    }
+
+    [Fact]
     public void TheLineEndsWithAMoveThatRepeatsAPositionOfTheLineOrTheGame()
     {
         // Knights out and back: the fourth move brings the root round again, and the table would go on for ever.
