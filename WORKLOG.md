@@ -6438,3 +6438,38 @@ engine's part wasn't re-run tonight; nothing in it changed).
 `bot\test-play-window.py --picker --file <his 632-game download>` passed:
 the list off screen (withdrawn), Find, every word, Open on nothing, Open on
 a game, and the game read back.
+
+## 2026-10-23 (02:45-06:30): 128 bits for CPUs without AVX2, 6.4-6.9x on the desktop (the simd128 session)
+
+The desktop's i7-3770 has SSE2 to SSE4.2 and AVX but no AVX2, so the
+network ran there one number at a time. Its `bench 9` on one thread was 12.5x
+slower than the laptop's, and bt-a-desktop's book table has ~45 h on it.
+NNUE.md "128 bits for CPUs without AVX2" has the details.
+
+- The branch started at caa89f1 (nnue-deep-layers' tip), which has no
+  version 3 nets. With no commits of its own, it moved to compression 6474411.
+- Built: `Kernels.Widest` is 128 where SSE2 is there and AVX2 isn't, and
+  `CB_NNUE_SIMD=128` holds a wider CPU to it. At 128 bits run the four
+  kernels, versions 1 and 3's pass (Forward128), and version 2's activation,
+  small layers and dot product. Forward128 sums into two sets of int32 lanes,
+  so a lane collects H / 8 products as the 256-bit pass's do. One set would
+  overflow at H 2048 (4.26 billion against 2^31). `bench` prints the width.
+- Tests: the network classes 107 of 107. That includes a new deep shape,
+  13-48-3, whose pairs' tail past the vectors no test had reached at any
+  width. Battery 28 of 28 red (scripts/nnue-bench/simd128). The full suite
+  at the default width: 660 passed, 2 skipped, 1 timing failure in
+  PonderTests (1,213 ms against a 1,200 ms cap under the suite's load;
+  passed 3 of 3 alone). With CB_NNUE_SIMD=128: 661 passed, 0 failed.
+- Laptop `bench 9` (h1024-3m, nothing else running, 06:05): old 2,760 knps,
+  new 2,762 (+0.1%), new held to 128 bits 2,011, all 3,731,271 nodes.
+- **Desktop `bench 9`** (one thread, quiet: bt-a stopped its run for it,
+  06:11-06:16 by its clock): h1024-3m **219 -> 1,412 knps (6.4x)**,
+  h1536-3m **157 -> 1,085 (6.9x)**, the same nodes in every arm. The laptop's
+  lead on one thread falls from 12.5x to 2.0x. Beside bt-a's 8 engines (a
+  one-thread `bench 7` at 03:05, on its OK) it read only ~3.5x: the engines
+  share each core's vector units.
+- Coordination: the laptop runs were the core queue's slot after
+  h1536-3m-l32's match (go 05:56, done 06:06, then h1024-6m's training).
+  bt-a-desktop stopped and will restart its own run. In the same stop it
+  checks the new engine on 100 finished leaves (move, score and nodes) and
+  swaps it in on Matthew's OK.

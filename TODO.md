@@ -219,6 +219,19 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     When the desktop is next free (after h1024-3m-ob8 and April-May's
     records, ~01:50 on 10-23), before bt-a-desktop's multi-day book table,
     which would also run through his nights.
+    (Full speed, 10-23 01:43: `bench 9` 216 knps on h1024-3m, scalar. Since
+    the 128-bit path below, 1,412.)
+  - **128 bits for CPUs without AVX2, built** (2026-10-23, a side session,
+    simd128, branch `claude/serene-allen-b4f9da`; NNUE.md "128 bits for CPUs
+    without AVX2"): the desktop's i7-3770 ran the network one number at a
+    time. Now, with SSE2, `bench 9` on one thread runs **6.4x** faster there
+    (h1024-3m, 219 -> 1,412 knps) and **6.9x** on h1536-3m (157 -> 1,085),
+    on the same tree. The laptop keeps 512 bits, unchanged (+0.1%). Tests
+    green at every width, battery 28 of 28 red. Not yet in compression.
+    - [ ] bt-a-desktop's book table: its 100-leaf check of the new engine,
+      then the swap on Matthew's OK (bt-a-desktop's to do). Anything else
+      that runs our engine on the desktop gets the speed from a build of
+      this branch, or of compression once it's merged.
   - [ ] **C: h1024-6m on the laptop's GPU, tonight** (Matthew's 2(a),
     2026-10-22, instead of E): h1024-3m's recipe (`--hidden 1024 --passes 10
     --lr-drops 4/7/9`) on April-September, held back still September's: what
