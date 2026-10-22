@@ -1,0 +1,15 @@
+1656 positions re-scored; 177 lose 50 cp or more; 0 of those already changed in ours.jsonl (skipped); 177 to re-learn
+  f4g3 -> Be2 (239 cp) in r1b1kbnr/1p2p1pp/p1P2p2/3Q4/1q3B2/2p5/P1P2PPP/3RKBNR w Kkq - 0 10
+  g4g5 -> Bb3 (230 cp) in r2qkb1r/pp3ppp/2nppnb1/2p5/2B1P1P1/2NP1N1P/PPP2P2/R1BQ1RK1 w kq - 0 9
+  e8c8 -> a5 (209 cp) in r3k1nr/p1nqbppp/4p3/2ppP3/8/2P1BN2/PP1NQPPP/R4RK1 b kq - 3 11
+  c5e4 -> Ne6 (195 cp) in r1b2r1k/ppq1bppp/2p2n2/P1n1p3/2B1P2N/2N5/1PP1QPPP/R1BR2K1 b - - 0 12
+  e8c8 -> Ne7 (181 cp) in r3kbnr/5ppp/1qp1p3/p2pP2b/3P4/5N1P/PP1N1PP1/R1BQR1K1 b kq - 4 12
+  f3e5 -> Bf4 (169 cp) in r2qkb1r/3npppp/2pn4/p4b2/Pp1P4/1B3N2/NP3PPP/R1BQR1K1 w kq - 6 12
+  g5h4 -> Bxh6 (168 cp) in r1b2rk1/1p1nppb1/p2p1npp/q1pP2B1/P1P1P3/2N2N2/RP1Q1PPP/4KB1R w K - 0 11
+  e2c3 -> Ng3 (168 cp) in r1b1k1nr/pp3ppp/n1pBpq2/8/2P5/5B2/PP2NP1P/R2QK2R w KQkq - 6 12
+  h1g1 -> b4 (165 cp) in 1rbq1rk1/ppp2p2/2n2n1p/b2p2p1/3P4/P1NBP1B1/1P2NPPP/R2QK2R w KQ - 1 12
+  f6h5 -> d5 (148 cp) in r1bqk2r/pp1p1ppp/2n2n2/2b5/3NPp2/2P2P2/PP1Q2PP/RN2KB1R b KQkq - 0 8
+  d5f5 -> Qd6 (146 cp) in r1b1kb1r/1p3ppp/p1n1pn2/1Bpq4/2P5/3P1N2/PP3PPP/RNBQ1RK1 b kq - 0 8
+  c5d4 -> b4 (139 cp) in r1b1kb1r/3n1ppp/pqn1p3/1pppP3/3P1P2/2N1BN2/PPPQB1PP/2KR3R b kq - 3 10
+backed up: ours.jsonl.bak-20261022-183845, ours.bin.bak-20261022-183845
+added 177 rows to C:\Users\Admin\Desktop\-=Programming=-\Chess Bruteforcer\bot\books\ours.jsonl; ours.bin rebuilt: 1656 positions

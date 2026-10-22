@@ -273,15 +273,18 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     half is built** (branch `claude/ob-engine-e75e9e`: the loader, the
     passes, 31 tests, C# equals the numpy reference on ob-trainer's fixture,
     29 of 29 mutants red, the full suite 628 + 2 skipped), **in compression
-    since fab32bc**. `bench 9` with h1024-3m against 662a810's build: no
-    cost shown in 12 clean rounds (-0.6% by the clock, p 0.15; +1.2% by CPU
-    time), none ruled out up to ~2%. The trainer half is ob-trainer's
-    (`claude/ob-trainer-56e1a8`); NNUE.md takes both sides' sections, the
-    trainer's first.
-    - [ ] `bench 9` again on a quiet laptop, 24+ rounds: booked with the core
-      queue after P6's SPRT (the 12:11 run shared the laptop with it, so it
-      is left out: WORKLOG 2026-10-22, 12:11). Check for `dotnet` processes
-      as well as the engine's exe before it starts.
+    since fab32bc**. `bench 9` against 662a810's build (42 clean rounds,
+    WORKLOG 2026-10-22, 15:31): **h1024-3m ~0.5-0.9% slower by the clock**
+    (31 of 42 rounds to the old build, p 0.003), under 1 Elo; **a bucketed
+    net as fast as the old build's version 1** (p 0.64). The trainer half
+    is ob-trainer's (`claude/ob-trainer-56e1a8`, in compression since
+    549a687).
+    - [x] `bench 9` again on a quiet laptop (2026-10-22 15:32, 30 rounds; the
+      12:11 run shared the laptop with P6's SPRT and is left out).
+    - [ ] Optional, Matthew's call: win back version 1's ~0.5-0.9%. The
+      bucketed net isn't slower, so the added arithmetic isn't the likely
+      cause: first find where it goes (layout?), then the battery and the
+      bench again. Moot if a bucketed net replaces h1024-3m.
     - The first trained version 3 net, h1024-3m-ob8: the NNUE item above
       ("Output buckets") has its run and its checks.
   - Other levers waiting: the export's rounding (small); labels from our
@@ -835,16 +838,16 @@ Sessions, in order:
             one core), or just drop them; (d) stop the learner until a
             replay (P8's O3 (a)) brings positions back. My pick (b) now,
             (c) at X = 50 only if O3 (a) is built.
-      - [ ] **Restart the learner after the merge** (Matthew's;
-            bot\learn.cmd, or start.cmd): its start line in
-            bot\logs\learn-<date>.log should say "with h1024-3m".
-      - [ ] **(c), chosen by Matthew 2026-10-22** ("when the orchestrator
-            asks"): replace the ~166 entries the net thinks lose 50 cp or
-            more. scripts/learner/relearn.py and its test are ready (it
-            refuses while a learner runs and backs up first). Waiting for a
-            CPU slot for the re-score of the other 1,456 (~4.5 core-hours),
-            then the apply from the main checkout with the learner stopped
-            (Matthew stops and restarts it).
+      - [x] Restart the learner after the merge: done 08:39 and 09:07,
+            "with h1024-3m" (stopped again at 09:48 for (c)).
+      - [x] **(c), chosen by Matthew 2026-10-22, applied 18:38**: the whole
+            book re-scored (h1024-3m at depth 14: 51% of the learnt moves
+            differ, 177 lose 50 cp or more, 41 lose 100 or more); those 177
+            replaced by the net's move (scripts/learner/relearn.py; backups
+            bot\books\*.bak-20261022-183845). WORKLOG 2026-10-22 15:32.
+      - [ ] **Matthew: start the learner again** (bot\learn.cmd), off since
+            09:48 for (c). Its start line should say "with h1024-3m ... 1656
+            positions in our book".
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.

@@ -5882,6 +5882,71 @@ session 7 has the details.
   trainer's first, and the engine half says so, so it's moved back with no
   text changed. TODO's two "first version 3 net" to-dos are now one.
 
+## 2026-10-22 (15:31-15:50): the buckets' bench on a quiet laptop: version 1 nets ~0.5-0.9% slower, bucketed nets not (the ob-engine session)
+
+- The core queue's go after P6's SPRT ended at 15:30:33. At 15:31:51 no
+  dotnet, engine, python or testhost process, CPU ~1.4%, on mains. `bench
+  9`, one thread, the same three arms, 30 rounds after two warm-up rounds,
+  15:32:11-15:34:38; no dotnet or engine process left after it. It read
+  as the morning did (old's median 2,716 knps, a pair spreading +-2.9%). The
+  queue was told at once (the learner's re-score waited on it).
+- **A version 1 net on the new build: -0.4% by the clock** (trimmed mean
+  -0.8%, old ahead in 22 of 30, p 0.016). With the morning's 12 clean
+  rounds, **31 of 42 to the old build, p 0.003, median -0.5%, trimmed
+  -0.9%**. By CPU time no difference (20 of 42), but that column is coarse
+  (15.6 ms steps, ~1.1% of a run) and twice as noisy.
+- **A bucketed net (h1024-3m-v3x8) on the new build: as fast as the old
+  build's version 1** (median -0.2%, 23 of 42, p 0.64). It does the same
+  work plus a bucket that changes, so the version 1 net's cost isn't the
+  added arithmetic; layout is the likelier cause, untested.
+- So version 1 nets miss "within noise", narrowly: under 1 Elo. NNUE.md
+  session 7's speed bullet has all three runs; the quiet one is
+  scripts/nnue-bench/buckets/bench-2026-10-22-quiet.tsv. Whether to chase it
+  is Matthew's call (TODO).
+
+## 2026-10-22 (15:32-18:45): option (c) applied: 177 of sf1's learnt moves replaced by the net's (the learner side session)
+
+- **The re-score of the whole book**, in the core queue's slot. 15:41:07 to
+  18:38:12, after a minute with no ChessBruteforcer or dotnet process
+  (ob-engine's quiet bench had ended at 15:34:38). 2 processes, 1 thread
+  each, below normal priority, Hash 64, h1024-3m at depth 14, from the
+  same engine copy as the morning's sample. `--parts 2`, each part seeded
+  with the morning's 200 so they weren't searched again. ~3 h, not the 2.3
+  estimated: a GPU training run shared the laptop, which only slows a
+  depth-limited search. 10.4 s a position (median).
+
+  | all 1,656 positions | h1024-3m at depth 14 |
+  |---|---|
+  | best move differs from the learnt one | **852, 51% [49, 54]** (the sample: 50%) |
+  | the learnt move's loss where they differ, median (quartiles) | 21 cp (6, 44) |
+  | mean loss, all positions | 15.1 cp |
+  | loss 25 cp or more | 384 (23%) |
+  | **loss 50 cp or more** | **177 (11%)** (the sample: ~166) |
+  | loss 100 cp or more | 41 (2%) |
+
+- **Applied** at 18:38:45 with the learner stopped (Matthew stopped it at
+  09:48; Session context's procedure), from the main checkout's
+  scripts\learner\relearn.py. Its check found no learn.py running. Backups:
+  bot\books\ours.jsonl.bak-20261022-183845 and ours.bin.bak-20261022-183845.
+  It added 177 rows (1,656 -> 1,833 lines) and rebuilt ours.bin (1,656
+  positions, as before: these are replacements). Losses re-learnt: 50 to 239
+  cp; 176 of the old moves were "no book" and 1 a wide-book veto.
+- **Checked afterwards** (a read-only script): ours.bin plays each position's
+  latest move in 1,656 of 1,656; the first 1,656 lines of ours.jsonl are the
+  backup's bytes. `learn.py --summary`: 1,476 no book + 3 vetoes + 177
+  re-learnt; learnt with eval-sf1 1,479, h1024-3m 177. A second dry run: 177
+  already changed, 0 to re-learn.
+- The largest: f4g3 -> Be2 (239 cp), g4g5 -> Bb3 (230), e8c8 (castling
+  long) -> a5 (209), c5e4 -> Ne6 (195). The replacement is the depth-14
+  search's best move, where the learner would have thought for 45 s.
+- Files: scripts/learner/rescore-2026-10-22-full-net-0.csv and -1.csv (both
+  parts, the 200 in each), rescore-2026-10-22-full-summary.txt and
+  relearn-2026-10-22-applied.txt.
+- **Next: Matthew starts the learner again** (bot\learn.cmd). Its start line
+  should say "with h1024-3m ... 1656 positions in our book". Undo, if ever
+  wanted: with the learner stopped, copy the two .bak files back over
+  ours.jsonl and ours.bin.
+
 ## 2026-10-22 (06:00-08:30, 12:10-15:40): P6, a table that keeps its deep entries (a side session)
 
 - Decision M's P6 (PONDER.md), branch claude/p6-tt-buckets-f4c01d, rebased
