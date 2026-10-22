@@ -1008,6 +1008,141 @@ on the same table disagreed by 3x, and the share of the early depths didn't sepa
   The searches of A and B here ran on one thread, where the bot uses eight, and to a fixed depth, not the bot's
   clock.
 
+## Does the bot keep a plan? One game, move by move (61InZpXn, 2026-10-22)
+
+A side session (branch `claude/game-plan-61inzpxn-4b4e4d`), from the bot's own logs only. Matthew's question: *"I want
+to know if the bot has a long term ponder in mind"*: does it keep a plan from one move to the next, or decide again
+from scratch each move? The game: [caiporaBot (2926) - matthewcarven (Black, 2548)](https://lichess.org/61InZpXn),
+blitz 5+2, 20:12, the bot's first evening on h1536-3m with P6's table. A Sicilian (B40); book to move 6, then 85
+engine moves. **Lost: mated at move 92** (Lichess's export has no computer analysis of its own).
+
+**How an engine like ours "plans".** It has no plan stored anywhere. Every move it searches again, from depth 1 up.
+What it carries forward is memory: the transposition table holds the positions the last searches looked at, each
+with the best move found there and a score. The new search finds them again, so the early depths come nearly free.
+The PV (principal variation) is the line it expects both sides to play, at the end of each search: its moves, the
+replies it expects, its next moves. That's the nearest thing it has to a plan. So "does it keep a plan?" can be
+measured: does the new move's PV carry on the old one, two plies (one move each) further along?
+
+**Short answer: it keeps its plan for the next move, and keeps it well. Beyond that the "plan" is a forecast that
+the opponent rarely lets come true. And in this game the plan was kept and was wrong.**
+
+- When the opponent played the reply we expected (a ponder hit, 49 of 84 moves, 58%), we played the move our old
+  line had next on 34 of the 43 where the line went that far (79%). The new search was handed the old line, score and
+  all (on 34 of 49 hits its line at the old search's depth less 2 had *exactly* the old score), reached that depth in
+  a median **78 ms**, and only had to look further. The first search of the game, on an empty table, took 2.7 s to
+  depth 13.
+- When the opponent played something else (a miss, 35 of 84), there was no plan for it: the search started over in
+  effect (860 ms to the same depth). We still played the move planned for the other reply on 5 of 35.
+- Further ahead, the PV is a forecast. The game followed our line for our own move only on 40 of 84 moves, for 3
+  plies or more on 34, and never for more than 7 plies (3.5 moves), though the lines were a median 12 plies long.
+- The plan wasn't right. While the game was in the balance (moves 8-48, our score from -0.17 to -3.06), **two thirds
+  of the fall (-1.97 of -2.89) came on moves where the opponent had played exactly the reply we expected.** Each time
+  we took the next step along our own line and looked two plies further, it was a little worse than we'd thought:
+  4 such steps fell by 0.30 or more, none rose that much. No surprise refuted the line; it was overrated.
+
+### 1. Plan continuity
+
+| our move came after | moves | played the old line's next move | the old line went that far | played the table's move (the search's own line at the old depth less 2) | new line follows the old, shifted two: plies agreeing (mean) / could agree |
+|---|---:|---:|---:|---:|---|
+| the reply we expected (ponder hit) | 49 | **34 (79%)** | 43 | 39 (80%) | 3.2 / 8.9; all the way on 7 of 43 |
+| another reply (ponder miss) | 35 | (the old line had no move for this reply; we played the one it had for the other on 5) | | | |
+
+| what happened to the plan, move by move | moves | in the balance (our score -3.00 or better) |
+|---|---:|---:|
+| kept: the old line's (or the table's) next move | 37 | 18 |
+| changed by the deeper search | 11 | 4 |
+| already the table's move, not the old line's (the line printed and the table had parted) | 1 | 0 |
+| they deviated; we played our planned move anyway | 5 | 3 |
+| they deviated; a new move | 29 | 16 |
+| the endgame tables (5 pieces or fewer) | 1 | 0 |
+
+| plies of our line the game then followed | 1 (our move only) | 2 | 3 | 4 | 5 | 7 |
+|---|---:|---:|---:|---:|---:|---:|
+| moves | 40 | 10 | 20 | 5 | 5 | 4 |
+
+Within a search, the move played was decided early on a hit (median depth 5 from which it stayed; it changed a mean
+0.7 times from depth 6 on) and late on a miss (median depth 11; 1.6 changes). On a hit the search mostly confirms the
+plan; on a miss it makes one.
+
+### 2. The ponder in this game
+
+| | moves | thought on the opponent's time (median) | depth reached then | depth played | own time after (median) | time to the old search's depth less 2 (median) |
+|---|---:|---:|---:|---:|---:|---:|
+| hits | 49 | 3.2 s | 16 | 17 | 1.7 s after `ponderhit` | 78 ms |
+| misses | 35 | 5.2 s, on the reply not played | 16 | 15 | 4.7 s, a new search | 860 ms |
+
+- Hit rate **58%** (49 of 84), as on 10-20 (56.5%).
+- **On every hit the search carried on from the ponder's depth**: none of the 49 went back to a shallower depth. After
+  `ponderhit` it added no depth on 14 (the move came from the ponder's last depth, which P1 sent again, so lichess-bot
+  logged real stats for all 49), one depth on 24, two on 8, three on 1 and five on 2.
+- On a miss the ponder's move for the reply we expected was the move we then played on 5 of 35; the rest was a
+  search of its own (P6's table keeps what the wrong ponder learnt; this log can't measure that, see "P6 in the bot's
+  own misses").
+
+### 3. Where the plan changed, and why
+
+In the balance (moves 8-48), 23 of 41 plan changes or non-plans:
+
+- **The opponent deviated: 19** (16 with a new move, 3 with our planned move anyway). caiporaBot played the reply we
+  expected only 22 times in 41 here. Each deviation meant a new plan, but rarely a jolt: our score moved 0.30 or more
+  on 4 of 19 (it fell at 42...Bb7 after 42.Qb1, -0.46, and at 45...Rxd6 after 45.Rd6, -0.69, which traded into an
+  ending we judged ever worse).
+- **The deeper search changed it: 4** (23...Bd6, 26...Re7, 41...c5, 46...Qc6). Each was a close call settled the
+  other way: where the new move took over, the score moved -0.05, -0.21, +0.10 and +0.02. **No tactic appeared** (none
+  moved the score 0.50 at the switch); the one that did came at move 72, long lost.
+- **The tables: none in the balance.** They took over only at 91...Kh4 (5 pieces, mated next move).
+
+### 4. The evaluation's path: was the plan right?
+
+Our score, from our side (Black), by stage:
+
+| moves | our score | what happened |
+|---|---|---|
+| 7-15 | -0.17 to -0.23 | out of the book; 6 hits of 8, plan kept each time |
+| 16-25 | -0.11 to +0.05 | caiporaBot deviates at 7 of 10 moves; each a new plan, the score steady |
+| 26-31 | +0.05 to **-1.01** | the slide: 26...Re7 (hit, -0.21), four deviations by White's rooks and bishop (-0.04, -0.15, -0.15, -0.19), 31...Qd8 (hit, -0.32) |
+| 32-44 | -0.33 to -1.04 | the plan mostly kept (hits at 32, 33, 35, 37, 39, 41, 43, 44) |
+| 45-48 | -1.48 to -3.06 | 45.Rd6 (a miss) Rxd6, then a queen trade (46...Qc6, a close call over the planned Qa8); each next step along our own line was worse (hits at 46-48: -0.57, -0.69, -0.32) |
+| 49-92 | -3.27 to mated | lost: the hits keep finding it worse (a further -5.95, capped at -10.00, against -0.99 on misses) |
+
+| our move came after (in the balance, moves 8-48) | moves | score change, total | mean a move | fell 0.30+ | rose 0.30+ |
+|---|---:|---:|---:|---:|---:|
+| the reply we expected (hit) | 22 | **-1.97** | -0.09 | 4 | 0 |
+| another reply (miss) | 19 | -0.92 | -0.05 | 2 | 2 |
+
+If the evaluation were right on average, a hit's change would average about zero: the game went exactly where we
+predicted, and the extra two plies would find it better as often as worse. Here they found it worse 4 times and
+better never (by 0.30 or more). The line the bot kept playing towards was judged too kindly, and that kind of error
+is the evaluation's, not the planning's. In TURNS.md's terms this game is "outplayed slowly" or "misjudged". Which
+one needs Stockfish's view of the same positions. It can't run while the bot plays: it follows below once the bot has
+stopped and the core queue gives it a slot.
+
+### What would make it more plan-like
+
+- **The plan is already kept, as well as an alpha-beta engine keeps one.** The table hands the next search the old
+  line and its score (78 ms to the old depth on a hit). P5 tried carrying more (the move-ordering history) and found
+  no gain.
+- **The line it prints is often cut short.** 14 of 85 PVs had 1-3 plies (9 of them in the balance, all after misses:
+  e.g. "9...Nc6" alone). A PV node that finds a table entry deep enough returns its score without the line under it
+  (`Search.Negamax`, the table cutoff before null move), so the "plan" exists in the table but isn't shown.
+  The ponder move doesn't suffer: it falls back to the table's move (`UciEngine.PonderMove`).
+- **A more stubborn plan wouldn't have saved this game.** The plan was kept, 18 times in 22 hits in the balance, and
+  it was wrong. What would have helped is a better judgement of where the line was going: the evaluation (NNUE.md),
+  not the ponder.
+
+**For Matthew.**
+
+- **(a)** Show the whole plan: after each depth, extend the PV through the table's moves where the search cut it.
+  Display only: the logs' "Pv:" and the chat show the full expected line; the move played doesn't change. Small. *My
+  pick, if you want to read plans in the logs; otherwise (c).*
+- **(b)** Stockfish's rule: no table cutoffs at PV nodes, so the line comes out whole from the search itself, and
+  the main line gets searched rather than taken on trust. This changes play, so it needs a match.
+- **(c)** Leave it. Nothing here says the bot loses by changing its mind; it lost by keeping to a plan its
+  evaluation overrated.
+
+Not measured: one game is one game. The tables in sections 1-4 are its 85 engine moves, not a sample of the bot's
+play; `plan.py` runs on any game in the DEBUG log (30 days kept) for more.
+
 ## Scripts and data
 
 `scripts/ponder-scope/` (plain Python. `extract.py` needs python-chess: use the bot venv's
@@ -1049,3 +1184,8 @@ python):
   <p6 exe> <net> [first] [last]`: the bot's own misses replayed on the old table, P6, and P6 at Hash 171
   (`replay-samples.json`: 60 misses from 10-20; `results/replay.jsonl`); `replaysum.py` makes its tables. The
   engines must sit on a short path (Windows' 260-character limit: copy them to e.g. %TEMP%\cbr\old and \new).
+- `plan.py <DEBUG log> <game id> [--json out]` ("Does the bot keep a plan?"): one game's searches from the DEBUG log,
+  each move's PV beside the one before, the ponder, where the plan changed and why, and the score's path by hit and
+  miss. Reads the log only; needs python-chess (the bot venv's python, `-I`). `results/plan/<id>.txt` and `.json` are
+  its output. `plan-sf.py run|summary <plan json> <out.jsonl> [--depth 18]`: Stockfish 16 (WSL, one thread, nice 19)
+  on every position of the game, beside our own scores; run it only with the bot off.

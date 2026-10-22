@@ -6145,3 +6145,37 @@ by miss. It ran 19:02-19:46, with the laptop quiet and the bot off.
   overwrote the folder `$T`; and an engine path in the scratchpad was past
   CreateProcess's 260 characters (WinError 206), so the engines ran from
   %TEMP%\cbr.
+
+## 2026-10-22 (20:15-20:40): does the bot keep a plan? Game 61InZpXn (the game-plan session)
+
+Matthew's question: "I want to know if the bot has a long term ponder in
+mind". One game, read from the logs while the bot played (no engine runs):
+caiporaBot (2926) - matthewcarven (Black), 5+2, the first evening on
+h1536-3m with P6's table; mated at move 92. New script
+scripts/ponder-scope/plan.py reads one game's UCI traffic from lichess-bot's
+DEBUG log (every depth's score and line) and sets each move's PV beside the
+one before it. Write-up: PONDER.md, "Does the bot keep a plan?".
+
+| | moves | played the old line's next move | time to the old depth less 2 |
+|---|---:|---:|---:|
+| ponder hit (they played the reply we expected) | 49 | 34 of 43 (79%) | 78 ms |
+| ponder miss | 35 | (no plan for that reply) | 860 ms |
+
+- The plan is kept for the next move, through the table: on 34 of 49 hits the
+  new search's line at the old depth less 2 had exactly the old score. Further
+  ahead the PV is a forecast: the game followed it 3+ plies on 34 of 84 moves,
+  never past 7.
+- Every hit carried on from the ponder's depth (0 of 49 went shallower); all
+  49 logged stats (P1).
+- The plan was kept and was wrong: while in the balance (moves 8-48, -0.17 to
+  -3.06), -1.97 of the -2.89 came on hits, the opponent playing exactly what
+  we expected; 4 hits fell 0.30+, none rose. An evaluation problem, not a
+  planning one. Stockfish's view to follow, once the bot is off and the core
+  queue gives a slot.
+- 14 of 85 PVs were 1-3 plies: a PV node takes a deep-enough table entry and
+  returns without the line. Options (a) show the full line from the table,
+  (b) no table cutoffs at PV nodes (needs a match), (c) leave it.
+- Seen in passing: at move 56 our move (found 20:21:57) reached Lichess only
+  at 20:22:36, after 16 POSTs that timed out at 2 s each, and the game's stream
+  then dropped and was rejoined. About 39 s off our clock; the game was
+  already lost.
