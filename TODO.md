@@ -205,12 +205,17 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     h1024-3m**, the best yet (network sha256 303b409bc49e); in games\nnue\nets.
     Not matched: at 1536 its small layers' pairs are 1.5x l32's, so it would
     be slower than l32 (-55% in the match) and lose on speed too.
-  - [ ] **E: h2048-3m on the laptop's GPU** (2026-10-19's estimate: September
-    at 20 passes ~7.5 h on the 3070; three months at 10 passes ~11-12 h),
-    the bot off, after A's match: the laptop's power is shared, so no laptop
-    match or bench meanwhile. Nothing to build: the engine takes 2048
-    (662a810), and train.py's held-back scoring shrinks its chunks with the
-    net (d62f955).
+  - [ ] **C: h1024-6m on the laptop's GPU, tonight** (Matthew's 2(a),
+    2026-10-22, instead of E): h1024-3m's recipe (`--hidden 1024 --passes 10
+    --lr-drops 4/7/9`) on April-September, held back still September's: what
+    3 more months are worth, alone. ~13 h on the 3070, from ~00:30 after
+    h1024-3m-ob8's match (the core queue's slot (c)). April-June's records
+    come from the desktop (`nnue data`, ~20:00) to games\nnue\2026-04..06 at
+    7.5 MB/s, then a `records.py check` before the run.
+  - **E: h2048-3m, dropped for now** (Matthew's 2(a)): after h1536-3m's +7,
+    2048 looked like +0 to +10 at ~13% more speed cost. Nothing to build if
+    it comes back: the engine takes 2048 (662a810), and train.py's held-back
+    scoring shrinks its chunks with the net (d62f955).
   - **Speed at 1024, measured and built** (2026-10-20, a side session,
     branch `claude/stoic-goodall-ecc132`; NNUE.md "Speed at 1024"): the
     updates took 27-28% of a node, the forward pass 12-13%. Matthew's J(c):

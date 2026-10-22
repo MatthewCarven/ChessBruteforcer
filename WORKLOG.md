@@ -6067,3 +6067,23 @@ search's entries.
   or h2048-3m), and ob-engine's 0.5-0.9% slowdown on version 1 nets (leave
   it, or chase it). Booked with the core queue: h1024-3m-ob8's fetch and
   bench ~21:55, its match after, then the laptop-GPU training overnight.
+
+## 2026-10-22 (18:30-19:00): tonight's laptop training is h1024-6m, not h2048-3m (the nnue-deep-layers session)
+
+- Matthew: 3(b), chasing version 1's 0.5-0.9% slowdown, for another day
+  (24b3651); 2(a), train on 6 months tonight instead of h2048-3m.
+- **The months we have** (the desktop share, Z:\lichess): April-September
+  2026 complete (26.9-28.7 GB, 86-92 M games each, ~538 M in all); March
+  2026 at 17.1 of ~29 GB (.part, the month queue off since 10-18 on
+  Matthew's word); January-June 2013 (17-31 MB each). As training records:
+  July-September (731 M positions, ~27 M analysed games); April-June being
+  made on the desktop (in step 2 of 4, the import, since ~11:30; ready
+  ~20:00), so ~1.4 B positions over 6 months tonight.
+- **h1024-6m**: h1024-3m's recipe on all 6 months, so its match against
+  h1024-3m measures the data alone. ~13 h on the 3070 (1.37 G positions a
+  pass at ~295 k a second), from ~00:30 after h1024-3m-ob8's match. h1536
+  would take ~18 h. A hidden python in this session's scratchpad
+  (months\wait_and_copy.py, from 18:54) waits for each desktop month's
+  "finished" line and then runs scripts\capped-copy.py at 7,500,000 B/s into
+  games\nnue\<month>, one month at a time (7.17 GB each, ~16 min). The core
+  queue has slot (c) for it.
