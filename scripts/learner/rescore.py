@@ -1,7 +1,11 @@
 """Re-score a sample of the book learner's positions (bot/books/ours.jsonl) with one evaluation at a fixed depth.
 
     bot\\lichess-bot\\.venv\\Scripts\\python.exe -I scripts/learner/rescore.py <bot folder> <engine exe> <eval file>
-        <arm name> <out.csv> [--n 200] [--depth 14] [--seed 1]
+        <arm name> <out.csv> [--n 200] [--depth 14] [--seed 1] [--learnt-with eval-sf1] [--part 0 --parts 1]
+
+--n 100000 takes every position. --learnt-with keeps only the rows that evaluation learnt (rows from before
+2026-10-22 have no "eval" and count as eval-sf1). --part i --parts k takes every k-th of the sample from the i-th,
+so k processes (each with its own out.csv) share one run.
 
 For each sampled position: the engine's best move and score at --depth; if the best move isn't the learnt move,
 the learnt move's score too (the position after it, searched one ply less, negated), so loss = best - learnt.
@@ -22,6 +26,7 @@ def option(name, default, kind=int):
 
 
 N, DEPTH, SEED = option("--n", 200), option("--depth", 14), option("--seed", 1)
+PART, PARTS, LEARNT_WITH = option("--part", 0), option("--parts", 1), option("--learnt-with", None, str)
 
 k32 = ctypes.windll.kernel32
 k32.GetCurrentProcess.restype = ctypes.c_void_p
@@ -35,7 +40,7 @@ for line in open(os.path.join(bot, "books", "ours.jsonl"), encoding="utf-8"):
         rows[r["key"]] = r
 keys = sorted(rows)
 random.Random(SEED).shuffle(keys)
-sample = keys[:N]
+sample = [k for k in keys[:N] if LEARNT_WITH is None or rows[k].get("eval", "eval-sf1") == LEARNT_WITH][PART::PARTS]
 
 done = set()
 if os.path.exists(out):
@@ -43,6 +48,7 @@ if os.path.exists(out):
 fields = ["arm", "key", "fen", "learnt", "why", "learnt_depth", "learnt_cp", "best", "best_cp", "learnt_cp_now",
           "loss", "depth", "nodes", "seconds"]
 new_file = not os.path.exists(out)
+print(f"{arm}: {len(sample)} positions in this part, {len(done & set(sample))} of them done already", flush=True)
 engine = chess.engine.SimpleEngine.popen_uci(exe)
 engine.configure({"Hash": 64, "Threads": 1, "EvalFile": evalfile})
 

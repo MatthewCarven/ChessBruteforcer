@@ -181,10 +181,17 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     the laptop's GPU when the bot is off. h1536-3m-l32 runs to its end
     (-11% held back after pass 6, the best yet). Later: king buckets (D),
     on whichever wins, with 6 months' data.
-  - [ ] **A: h1536-3m against h1024-3m** (the bot off, `scripts\nnue-match.cmd
-    h1536-3m h1024-3m`). The engine takes 2048 hidden since 662a810;
-    `bench 9` -12.8% knps, 1.10x the time to depth 9; about +16 Elo expected.
-    Waits for the laptop's cores (the core queue).
+  - [x] **A: h1536-3m against h1024-3m** (2026-10-22, 08:22-12:09, the bot
+    off): **+7 [-3, +18]** over 2,000 games, LOS 91.3%, SPRT undecided at
+    the limit; -15.9% knps in the match (MATCHES.md). Expected ~+16.
+  - [ ] **Decision: the bot on h1536-3m?** (a) switch (+7 likely, LOS 91%;
+    at the bot's ~20x longer thinking the speed costs less), (b) keep
+    h1024-3m, (c) a 30+0.3 match first (~6 h for 1,000 games, laptop cores).
+  - **h1536-3m-l32 done** (desktop, 2026-10-21 22:25 to 10-22 12:14): held
+    back as the engine computes it **0.010762 at K 1.132, -13.4% against
+    h1024-3m**, the best yet (network sha256 303b409bc49e); in games\nnue\nets.
+    Not matched: at 1536 its small layers' pairs are 1.5x l32's, so it would
+    be slower than l32 (-55% in the match) and lose on speed too.
   - [ ] **E: h2048-3m on the laptop's GPU** (2026-10-19's estimate: September
     at 20 passes ~7.5 h on the 3070; three months at 10 passes ~11-12 h),
     the bot off, after A's match: the laptop's power is shared, so no laptop
@@ -821,9 +828,13 @@ Sessions, in order:
       - [ ] **Restart the learner after the merge** (Matthew's;
             bot\learn.cmd, or start.cmd): its start line in
             bot\logs\learn-<date>.log should say "with h1024-3m".
-      - [ ] (c), not chosen: replace or drop the ~166 entries the net
-            thinks lose 50 cp or more (~5 h of one core to find them).
-            Only worth it once O3 (a), the replay, is built.
+      - [ ] **(c), chosen by Matthew 2026-10-22** ("when the orchestrator
+            asks"): replace the ~166 entries the net thinks lose 50 cp or
+            more. scripts/learner/relearn.py and its test are ready (it
+            refuses while a learner runs and backs up first). Waiting for a
+            CPU slot for the re-score of the other 1,456 (~4.5 core-hours),
+            then the apply from the main checkout with the learner stopped
+            (Matthew stops and restarts it).
 - [ ] **The bot on sf1**: its rated record after ~30 games (5 of 5 won at
       first; the book era 53% v ~1990). Check `!info` / `!help` from his own
       account in a casual game.
@@ -1083,7 +1094,13 @@ Sessions, in order:
       - [ ] O2: rerun scripts/opponents/analyze.py on the record after
             ~3,000 more games (~6 weeks), or when a setup comes within ~10
             Elo of the best (the deep nets didn't: -85 and about -55), and
-            look again.
+            look again. Then also Matthew's other reason for a per-bot
+            setup (2026-10-22): "be nicer to some of the players like FPGA
+            Chess", a gentler setup for bots we'd like to keep playing.
+            fpga-chess so far (bot\games\record.csv): 4 games, all its own
+            challenges, all won by us (2336-2368 against our 2391-2548). The
+            same create_engine patch would serve both, from a list of named
+            bots in make-config.py.
 - [ ] Later: speed (bitboards and legal-only move generation; the bot
       searches ~1.7 M nodes/s, depth 12-14 in blitz), pondering (a session
       on it from 2026-10-15, building on the threads branch);

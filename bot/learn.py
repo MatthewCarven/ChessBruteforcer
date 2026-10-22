@@ -199,8 +199,9 @@ def summary():
     done = studied()
     think = [r for r in rows if r["why"] == "no book"]
     veto = [r for r in rows if r["why"] == "wide book vetoed"]
+    relearnt = [r for r in rows if r["why"] == "re-learnt"]   # scripts/learner/relearn.py: sf1's move, replaced by the net's
     print(f"{len(done)} games studied; {len(rows)} positions in our book: {len(think)} thought about where no book had a "
-          f"move, {len(veto)} where the wide book's move was vetoed")
+          f"move, {len(veto)} where the wide book's move was vetoed, {len(relearnt)} re-learnt with the net")
     by_eval = {}
     for r in rows:
         name = r.get("eval", "eval-sf1")   # rows from before 2026-10-22 have no "eval": sf1's numbers learnt them

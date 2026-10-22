@@ -1508,6 +1508,21 @@ code, the trainer and the reference, clear of the ponder sessions' files).
     feature layer's output and lists non-zero 4-byte chunks on it).
     Measured first, if at all: switch the parts off one at a time, as
     session 6 did.
+- **Wider instead** (Matthew's A, 2026-10-22): the engine takes up to 2048
+  hidden (662a810; Forward256's lanes stay under 2^31 at 2048). **h1536-3m
+  against h1024-3m: +7 [-3, +18]** over 2,000 games at 10+0.1, LOS 91.3%,
+  SPRT undecided; `bench 9` -12.8% knps, -15.9% in the match, 0.2 ply
+  shallower; held back -3.9%. The rule from our matches (+8 a 1% of error,
+  -87 a halving of speed) said ~+16. So width still pays at 1536, but
+  barely; 2048 would cost ~13% more speed for less error gain.
+- **h1536-3m-l32** (1536 x2 -> 32 -> 1; the desktop, 2026-10-21 22:25 to
+  10-22 12:14, 10 passes, 136 k positions a second; network sha256
+  303b409bc49e): held back as the engine computes it **0.010762 at K 1.132,
+  -13.4% against h1024-3m**, the best of any net, 0.011064 at K 1. Width
+  and the small layer add up (1536: -3.9%, l32: -8.4%, both: -13.4%). Not
+  matched: its small layer has 1.5x l32's pairs, so it would run slower
+  than l32 (-55% in its match) and lose on speed; it is what a 4x cheaper
+  small-layer pass would be worth having for.
 
 ### Session 7, the engine half: version 3 in C# (2026-10-22)
 
