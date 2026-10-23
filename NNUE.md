@@ -1882,6 +1882,32 @@ its 8 threads.
   its finished leaves with the new engine, and swaps it into the run only if
   move, score and nodes all match, on Matthew's OK.
 
+### More data: h1024-6m, six months (2026-10-23)
+
+h1024-3m's recipe (`--hidden 1024 --passes 10 --lr-drops 4/7/9`) on April to
+September instead of July to September, on the laptop's RTX 3070 (Matthew's
+2(a), in place of h2048-3m). The held-back positions are still September's,
+so the errors compare directly. It asks what three more months of Lichess are
+worth on their own.
+
+- **The run**: 1,372,482,434 positions a pass (2.03x the three months), ~65
+  min a pass at ~348 k a second. Trained 06:28-21:31, with pauses for the
+  heat (11:26-13:55) and an hour's pause file (17:14-18:14).
+- **Held back, as the engine computes it, at each net's K:**
+
+  | net | data | hidden | held back | against h1024-3m |
+  |---|---|---|---|---|
+  | h1024-3m | 3 months | 1024 | 0.012432 | |
+  | h1024-3m-ob8 | 3 months, 8 output buckets | 1024 | 0.012272 | -1.3% |
+  | **h1024-6m** | **6 months** | 1024 | **0.012182** | **-2.0%** |
+  | h1536-3m (the bot's) | 3 months | 1536 | 0.011952 | -3.9% |
+
+- The engine's speed doesn't change: the same shape as h1024-3m. The rule of
+  thumb (+8 Elo for each 1% less error) says ~+16 against h1024-3m. The match
+  (10+0.1, SPRT [0, 10], the bot off) runs in its slot after the training.
+- Data, buckets and width look like separate gains. If the match agrees, the
+  next net stacks them: h1536 on 6 months with 8 buckets.
+
 ## Risks
 
 | risk | what it would look like | what limits it |

@@ -6643,3 +6643,15 @@ passed.
   0.7-1.2% lower each pass. h1024-3m-ob8 ended 1.6% below h1024-3m at pass
   10 (0.012201 against 0.012394) and played +8. Passes 7-10 (~5.6 h at ~134 k a second) carry on with `--resume` on
   Matthew's word that OBS is done; the command is in TODO.
+
+## 2026-10-23 (21:31): h1024-6m trained, -2.0% held back (the nnue-deep-layers session)
+
+- **h1024-6m finished at 21:31** (exit 0): games\nnue\nets\h1024-6m.nnue,
+  network sha256 60c9ef55...3b39. Held back as the engine computes it is
+  0.012182 at K 1.1377, against h1024-3m's 0.012432 (-2.0%) and
+  h1024-3m-ob8's 0.012272. The trainer's own figure by pass: 4 0.013013,
+  5 0.012414, 6 0.012450, 7 0.012435, 8 0.012223, 9 0.012226, 10 0.012140.
+- A pause file stopped it 17:14-18:14, not this session's; the run went on
+  by itself after. The laptop's GPU ran at 87 C around 20:10.
+- Told ponder-scope. The match against h1024-3m (and `bench 9` first) runs in
+  its slot after bt-a's build. NNUE.md has the comparison table.

@@ -258,7 +258,10 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     10:16 cost ~2 min (resumed from pass 3's save at 10:19). **Paused after
     pass 4, 11:26-13:55, for the day's heat** (Matthew: the fans on full, CPU
     and GPU ~80 C), through its own `h1024-6m.pause` file; resumed at 13:55
-    on Matthew's word once the bot had stopped. **Done ~21:00.**
+    on Matthew's word once the bot had stopped (and a pause file again
+    17:14-18:14, not this session's). **Trained 21:31: held back 0.012182
+    as the engine computes it, -2.0% against h1024-3m's 0.012432** (NNUE.md,
+    "More data"). Next: `bench 9`, then the match in ponder-scope's slot.
     April-June's records came from the desktop and passed `records.py
     check` on the laptop ("all well"). Then: held back against h1024-3m's
     0.012432, `bench 9`, a match against h1024-3m (the bot off).
