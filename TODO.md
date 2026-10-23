@@ -250,17 +250,19 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     months are worth, alone. **Training since 2026-10-23 06:28**, 300-345 k
     positions a second, 1.38 B a pass, ~70 min a pass. The laptop's reboot at
     10:16 cost ~2 min (resumed from pass 3's save at 10:19). **Paused after
-    pass 4, 11:26-20:00, for the day's heat** (Matthew: the fans on full, CPU
-    and GPU ~80 C), through its own `h1024-6m.pause` file; a background job
-    in this session removes it at 20:00. **Done ~03:00 on 10-24.**
+    pass 4, 11:26-13:55, for the day's heat** (Matthew: the fans on full, CPU
+    and GPU ~80 C), through its own `h1024-6m.pause` file; resumed at 13:55
+    on Matthew's word once the bot had stopped. **Done ~21:00.**
     April-June's records came from the desktop and passed `records.py
     check` on the laptop ("all well"). Then: held back against h1024-3m's
     0.012432, `bench 9`, a match against h1024-3m (the bot off).
     - Beside it (Matthew's rule: book runs only if they don't slow it): 2
       one-thread book engines cost it 5.6% (283.7 k against a solo 295-304
-      k), so the books wait until it ends. A clean 4-engine recheck (skip
-      ~3 min of start-up, then ~8 min) only on Matthew's word in bt-b's
-      session.
+      k), so the books wait until it ends. The clean 4-engine recheck
+      (Matthew's word, 2026-10-23 14:11-14:23): solo 351.9 k (344.1-354.3),
+      with bt-b's 4 one-thread depth-18 engines 337.1 k (333.0-339.4), -4.2%,
+      below the solo range, so by the rule bt-b stops (ponder-scope's word);
+      ~17 min on the run's end.
   - **E: h2048-3m, dropped for now** (Matthew's 2(a)): after h1536-3m's +7,
     2048 looked like +0 to +10 at ~13% more speed cost. Nothing to build if
     it comes back: the engine takes 2048 (662a810), and train.py's held-back

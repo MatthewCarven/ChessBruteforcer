@@ -6601,3 +6601,24 @@ passed.
   background job removes the file at 20:00; if this session dies first, the
   run stays paused (remove the file by hand to carry on). Passes 5-10 at
   ~70 min: done ~03:00 on 10-24.
+
+## 2026-10-23 (13:53-14:25): h1024-6m resumed; the 4-engine speed recheck (the nnue-deep-layers session)
+
+- **h1024-6m resumed at 13:55** on Matthew's word, once the bot had stopped
+  (13:53, bot\quit.soon). Pass 5 from its start. The bot's learner
+  (bot\learn.py and its engine) stays up but idle, 0 s of CPU in 20 s.
+- **Speed, trainer positions a second, pass 5** (scratchpad rates.py over the
+  log's bucket lines):
+
+  | beside the training | window | n | median | range |
+  |---|---|---|---|---|
+  | nothing | 13:59-14:10 | 9 | 351.9 k | 344.1-354.3 k |
+  | bt-b's 4 engines (1 thread, depth 18, below normal; up from 14:11:04) | 14:14:34-14:23 | 6 | 337.1 k | 333.0-339.4 k |
+
+  -4.2%, below the solo range, so by the agreed rule bt-b stops (sent to
+  ponder-scope, whose word it is). The GPU's clock also fell from 1650 to
+  1545 MHz (99 W to 93 W) at 79 C: the laptop's CPU and GPU share their
+  cooling, so CPU load costs GPU clock as well as feeding time. The morning's
+  solo window read 295-304 k, below today's 352 k; the cause isn't measured
+  (the GPU had rested 2.5 h, and the morning ran 300-345 k overall). A pass
+  is ~65 min solo, ~68 with the engines: done ~21:00.
