@@ -6740,3 +6740,29 @@ slowed it 4.4%.
   live and can't replace it while a reader holds it open (Windows), so the
   match plays from a copy. BOOK-TABLES.md section 4 has the five-arm command.
   ~25 h at 3,000 games an arm, bot off; it waits for (b)'s and (c)'s books.
+
+## 2026-10-24 (06:42-07:48): an hour of the bot on h1536-3m-ob8, 4 threads (the orchestrator)
+
+Matthew, through the scope session: "Ok can we run the bot for a little while on how did 1536 turn out?", then
+(b) of its three options, then "just for one hour please"; and to me, "only for an hour". So, against the morning
+heat rule on his word: bot/make-config.py plays h1536-3m-ob8 (.nnue v3, 8 output buckets; +11 Elo [-3, +24] over
+h1536-3m after 1,200 games at 10+0.1) on **4 threads, not 8** (8 took the CPU to 92 C on 10-23); 8dae7f5. Started
+06:42:31; bot\quit.soon made at 07:43:11; stopped at 07:48:13.
+
+- **7 games, 5W 1D 1L**:
+
+  | Opponent | Elo | Clock | Result |
+  |---|---|---|---|
+  | Studyloversz-bot | 2703 | 5+2 | draw |
+  | TempoCore | 2411 | 3+2 | won |
+  | Kapablanca_balls | 3071 | 30+1 | lost |
+  | lukebot | 2385 | 1+1 | won |
+  | PeachFruit | 2234 | 5+3 | won |
+  | wangha | 2460 | 3+2 | won |
+  | VidBot | 2262 | 3+3 | won |
+
+- Blitz 2535 to 2549, bullet 2639 to 2641. The only loss was to a 3071 bullet bot at 30+1.
+- The bot stays on ob8 at 4 threads until Matthew says otherwise; deleting bot\eval\h1536-3m-ob8.nnue goes back
+  to h1536-3m (Threads is in make-config.py).
+- The idle watcher fired at 06:45 (no queue work since 06:35; it doesn't count the bot's engines). A false alarm
+  with the queue held for the heat until 12:30, so no push; re-armed to wait for work first.
