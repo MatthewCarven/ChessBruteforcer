@@ -6585,3 +6585,19 @@ Tests (during the h1024-6m training: no engine, below normal on CPUs
 14-15, seconds each): test-play.py 110 checks passed;
 test-play-window.py --no-engine (his 632-game download for the list)
 passed.
+
+## 2026-10-23 (10:05-11:30): both machines rebooted; h1024-6m paused for the heat (the nnue-deep-layers session)
+
+- **Matthew rebooted both** (the desktop at 10:11, the laptop at 10:16, after
+  h1024-6m's pass-3 save at 10:13:39, as asked). h1536-3m-ob8 resumed on the
+  desktop from pass 2 at 10:19 (pass 3's first ~7 min lost), and h1024-6m on
+  the laptop from pass 3 at 10:19 (~2 min lost). bt-a-desktop's book table
+  restarted itself at 10:13.
+- **h1024-6m paused after pass 4** (11:26:40; held back 0.013013 at its K,
+  passes 3-4 at the higher learning rate) until 20:00, Matthew's call: the
+  day's heat, the laptop's fans on full (5,660 / 6,666 rpm), CPU 80 C, GPU
+  79 C (84 at most). train.py waits between buckets while
+  games\nnue\nets\h1024-6m.pause exists: the GPU went to 0% and 17 W. A
+  background job removes the file at 20:00; if this session dies first, the
+  run stays paused (remove the file by hand to carry on). Passes 5-10 at
+  ~70 min: done ~03:00 on 10-24.

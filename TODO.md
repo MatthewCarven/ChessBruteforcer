@@ -247,8 +247,12 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
   - [ ] **C: h1024-6m on the laptop's GPU** (Matthew's 2(a), 2026-10-22,
     instead of E): h1024-3m's recipe (`--hidden 1024 --passes 10 --lr-drops
     4/7/9`) on April-September, held back still September's: what 3 more
-    months are worth, alone. **Training since 2026-10-23 06:28**, ~300 k
-    positions a second, 1.38 B a pass, ~76 min a pass: **done ~19:15**.
+    months are worth, alone. **Training since 2026-10-23 06:28**, 300-345 k
+    positions a second, 1.38 B a pass, ~70 min a pass. The laptop's reboot at
+    10:16 cost ~2 min (resumed from pass 3's save at 10:19). **Paused after
+    pass 4, 11:26-20:00, for the day's heat** (Matthew: the fans on full, CPU
+    and GPU ~80 C), through its own `h1024-6m.pause` file; a background job
+    in this session removes it at 20:00. **Done ~03:00 on 10-24.**
     April-June's records came from the desktop and passed `records.py
     check` on the laptop ("all well"). Then: held back against h1024-3m's
     0.012432, `bench 9`, a match against h1024-3m (the bot off).
