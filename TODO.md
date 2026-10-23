@@ -263,7 +263,8 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     on Matthew's word once the bot had stopped (and a pause file again
     17:14-18:14, not this session's). **Trained 21:31: held back 0.012182
     as the engine computes it, -2.0% against h1024-3m's 0.012432** (NNUE.md,
-    "More data"). Next: `bench 9`, then the match in ponder-scope's slot.
+    "More data"). **Matched 2026-10-24: +11 [0, +22]** against h1024-3m,
+    2,000 games, LOS 97.9%, SPRT undecided; the same speed in play.
     April-June's records came from the desktop and passed `records.py
     check` on the laptop ("all well"). Then: held back against h1024-3m's
     0.012432, `bench 9`, a match against h1024-3m (the bot off).

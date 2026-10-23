@@ -1903,10 +1903,14 @@ worth on their own.
   | h1536-3m (the bot's) | 3 months | 1536 | 0.011952 | -3.9% |
 
 - The engine's speed doesn't change: the same shape as h1024-3m. The rule of
-  thumb (+8 Elo for each 1% less error) says ~+16 against h1024-3m. The match
-  (10+0.1, SPRT [0, 10], the bot off) runs in its slot after the training.
-- Data, buckets and width look like separate gains. If the match agrees, the
-  next net stacks them: h1536 on 6 months with 8 buckets.
+  thumb (+8 Elo for each 1% less error) said ~+16 against h1024-3m.
+- **Matched** (10+0.1, the bot off, 2026-10-23/24): 2,000 games, **+11 [0,
+  +22]**, LOS 97.9%, SPRT undecided (LLR 2.05); both 3,300 knps and depth 11.0
+  in play (MATCHES.md). Three more months are worth about what the buckets
+  are (+8), and like them they cost nothing in play.
+- Data, buckets and width look like separate gains: the next net that stacks
+  them is h1536 on 6 months with 8 buckets (h1536-6m-ob8), against the bot's
+  h1536-3m.
 
 ## Risks
 

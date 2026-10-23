@@ -6673,3 +6673,12 @@ passed.
 - **h1536-3m-ob8 resumed at 22:51 by the desktop's clock** after pass 6
   (NNUE session 2b, at Matthew's request, OBS done). Pass 7 runs at 133 k a
   second: done ~04:30 by its clock. Its watcher is reset for the longer wait.
+
+## 2026-10-24 (01:07): h1024-6m v h1024-3m, +11 (the nnue-deep-layers session)
+
+- 2,000 games at 10+0.1, the bot off: +528 -464 =1008, **+11 [0, +22]**, LOS
+  97.9%, the SPRT undecided at the limit (LLR 2.05). Both nets ran 3,300 knps
+  at depth 11.0 in play. The rule of thumb said ~+16 for -2.0% held back.
+  MATCHES.md and NNUE.md ("More data") have it. Told ponder-scope; the laptop
+  is free of this session's work until h1536-3m-ob8 is trained (~04:30 by the
+  desktop's clock).

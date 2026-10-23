@@ -70,6 +70,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-22 | h1536-3m | h1024-3m | 2,000 | +498 -456 =1046 | 51.0% | **+7 [-3, +18]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR ~0.8), LOS 91.3%; bot stopped (see below) |
 | 2026-10-23 | h1024-3m-ob8 | h1024-3m | 2,000 | +515 -470 =1015 | 51.1% | **+8 [-3, +19]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 0.95), LOS 92.4%: 8 output buckets, the same speed; bot stopped (see below) |
 | 2026-10-23 | h1536-3m-l32 | h1536-3m | 326 | +56 -98 =172 | 43.6% | **-45 [-71, -19]** | SPRT [0, 10] **accepted H0** at game 322 (LLR -2.95): the widest deep net, at 43% of the speed; bot stopped (see below) |
+| 2026-10-24 | h1024-6m | h1024-3m | 2,000 | +528 -464 =1008 | 51.6% | **+11 [0, +22]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 2.05), LOS 97.9%: h1024-3m's recipe on 6 months instead of 3, the same speed; bot stopped (see below) |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -218,6 +219,18 @@ the ~25-30 the deep nets have fallen short of it), so as predicted: better
 judgement, lost on speed. Not close, so no 60+0.6 run. No time losses.
 Endings: 76 mates, 75 threefolds, 154 by the tables (78 wins, 76 draws), 21
 fifty-move.
+
+**h1024-6m against h1024-3m** (2026-10-23 21:40 to 10-24 01:07, the bot
+stopped, nothing else timed on the laptop but one book-match.py game 21:46-21:49
+by mistake, symmetric): h1024-3m's recipe on April-September instead of
+July-September, held back -2.0% against it. 2,000 games, +528 -464 =1008,
+**+11 [0, +22]**, LOS 97.9%; the SPRT stayed undecided (LLR 2.05). Searches
+over the match: h1024-6m 3,308 knps, depth 11.0; h1024-3m 3,295 and 11.0: the
+same speed (`bench 9`'s -20% knps was its tree's shape). The rule from our
+matches said ~+16 for -2.0%. It read +5 [-10, +20] at 1,000 games, +6 at
+1,500, +9 at 1,769, then +11. No time losses. Endings: 416 mates, 533
+threefolds, 957 by the tables (576 wins, 381 draws), 92 fifty-move, 1
+stalemate, 1 at the move limit.
 
 ## Pondering (2026-10-16 on)
 
