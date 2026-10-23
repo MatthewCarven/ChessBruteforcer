@@ -6601,3 +6601,21 @@ passed.
   background job removes the file at 20:00; if this session dies first, the
   run stays paused (remove the file by hand to carry on). Passes 5-10 at
   ~70 min: done ~03:00 on 10-24.
+
+## 2026-10-23 (13:10-13:53): the bot's three games, stopped for the heat (the orchestrator)
+
+- **Three games, all as Black, 0W 1D 2L** (rating 2539 to 2537):
+
+  | Opponent | Elo | Result |
+  |---|---|---|
+  | SleepMindEngine | 2783 | lost |
+  | Bongaclang | 2503 | draw |
+  | Weiawaga | 2839 | lost: it queened a b-pawn at move 70 and mated at 72 |
+
+- **Stopped for the heat.** The bot alone on 8 threads took the CPU to 92 C (Matthew's NitroSense, 13:49). He
+  put the stop in at 13:49:28 (bot\quit.soon). The bot finished the Weiawaga game and stopped at 13:53:10, and
+  run-bot.ps1 removed the file. He'd rather it played tonight, when it's cooler.
+- **Heat follows the sun:** the morning sun is on the front of the house, and the laptop is downstairs, so it
+  cools after midday. Heavy laptop runs (the bot, training, matches) go in the afternoon, evening and night.
+- The scope session was told the bot is off so it can resume the queue. h1024-6m's training restarts at
+  20:00 as planned.
