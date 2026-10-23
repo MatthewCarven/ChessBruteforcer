@@ -2,6 +2,7 @@
 
     bot\\lichess-bot\\.venv\\Scripts\\python.exe -I scripts/book-tables/vet-c-search.py <engine exe> <out.csv>
         [--depth 16] [--tiers 1,2] [--workers 1] [--sample N] [--confirm <screen.csv> --worse 50] [--eval <file>]
+        [--stop-at HH:MM]
 
 For each position: our engine's best move and score at --depth; then each move to vet that isn't the best, scored
 by searching the position after it to --depth - 1 and negating (the engine has no MultiPV or searchmoves; as
@@ -13,6 +14,9 @@ One thread, Hash 64, no endgame tables, the bot's net (h1536-3m from the main ch
 (ucinewgame) per search, below-normal priority (the engines inherit it), --workers engines at once pulling the
 positions in priority order. Rows are appended to out.csv as each search ends, and a restart skips what's there.
 Run it from a copy of a Release build (not bot\\lichess-bot\\engines). A log goes beside out.csv (.log).
+--stop-at HH:MM (the next such time on the clock): the engines are stopped then, the searches they were in the
+middle of are dropped (only finished searches are ever written), and it exits with code 3, so that vet-c.cmd doesn't
+go on to the confirm. Started again, it carries on. Closing its window keeps the finished searches too.
 """
 import csv, ctypes, os, queue, subprocess, sys, threading, time
 
@@ -22,7 +26,7 @@ from uci import Engine, infos   # noqa: E402
 
 
 def main_checkout():
-    """bot\\eval isn't in git: from a worktree, the main checkout's."""
+    """The checkout whose bot\\eval holds the nets (they're tracked, so a worktree has its own, byte for byte)."""
     repo = os.path.dirname(os.path.dirname(HERE))
     if os.path.isdir(os.path.join(repo, "bot", "eval")):
         return repo
@@ -42,6 +46,13 @@ EVALFILE = option("--eval", os.path.join(main_checkout(), "bot", "eval", "h1536-
 POSITIONS = option("--positions", os.path.join(HERE, "results", "vet-c-positions.csv"), str)
 PHASE = "confirm" if CONFIRM else "screen"
 LOG = os.path.splitext(OUT)[0] + ".log"
+DEADLINE = None
+if option("--stop-at", None, str):
+    hour, minute = map(int, option("--stop-at", None, str).split(":"))
+    now = time.localtime()
+    DEADLINE = time.mktime((now.tm_year, now.tm_mon, now.tm_mday, hour, minute, 0, 0, 0, -1))
+    if DEADLINE <= time.time():
+        DEADLINE += 24 * 3600
 FIELDS = ["phase", "kind", "rank", "tier", "move_no", "key", "fen", "move", "share", "played", "best", "best_cp",
           "move_cp", "loss", "depth", "reached", "nodes", "seconds", "worker", "when"]
 lock = threading.Lock()
@@ -129,8 +140,18 @@ def centipawns(score):
     return 10000 - value if value > 0 else -10000 - value
 
 
+class Stopped(Exception):
+    pass
+
+
+stopping, finished = threading.Event(), threading.Event()
+engines = {}   # worker: its engine, for the stop time
+
+
 def search(engine, fen, moves, depth):
     """(best move, score for the side to move, depth reached, nodes, seconds)."""
+    if stopping.is_set():
+        raise Stopped()
     engine.send("ucinewgame")
     engine.ready()
     engine.send(f"position fen {fen}" + (f" moves {' '.join(moves)}" if moves else ""))
@@ -155,7 +176,7 @@ log(f"{PHASE} at depth {DEPTH}: {len(positions)} positions (tiers {sorted(TIERS)
 
 def work(n):
     engine = None
-    while True:
+    while not stopping.is_set():
         try:
             r = jobs.get_nowait()
         except queue.Empty:
@@ -164,6 +185,8 @@ def work(n):
             try:
                 if engine is None:
                     engine = Engine(EXE, {"Threads": 1, "Hash": 64, "EvalFile": EVALFILE})
+                    with lock:
+                        engines[n] = engine
                 base = {"phase": PHASE, "rank": r["rank"], "tier": r["tier"], "move_no": r["move_no"], "key": r["key"],
                         "fen": r["fen"], "depth": DEPTH, "worker": n}
                 if r["key"] in best_done:
@@ -199,19 +222,45 @@ def work(n):
                 with lock:
                     counts["positions"] += 1
                 break
-            except (RuntimeError, queue.Empty, OSError, IndexError) as error:
-                log(f"[{n}] #{r['rank']} attempt {attempt}: {error!r}; restarting the engine")
+            except (Stopped, RuntimeError, queue.Empty, OSError, IndexError) as error:
                 if engine is not None:
                     engine.quit()
                 engine = None
+                if stopping.is_set():
+                    return   # the stop time: the search in hand is dropped, nothing half-done is written
+                log(f"[{n}] #{r['rank']} attempt {attempt}: {error!r}; restarting the engine")
     if engine is not None:
         engine.quit()
+
+
+def watch():
+    """At the stop time, kill the engines mid-search; the workers then leave without writing."""
+    while not finished.wait(timeout=5):
+        if DEADLINE is not None and time.time() >= DEADLINE:
+            stopping.set()
+            log(f"the stop time ({time.strftime('%H:%M', time.localtime(DEADLINE))}): stopping the engines; "
+                f"the searches they were in are dropped, the finished ones are kept")
+            with lock:
+                running = list(engines.values())
+            for engine in running:
+                try:
+                    engine.p.kill()
+                except OSError:
+                    pass
+            return
 
 
 threads = [threading.Thread(target=work, args=(n,)) for n in range(WORKERS)]
 for t in threads:
     t.start()
+threading.Thread(target=watch, daemon=True).start()
 for t in threads:
     t.join()
+finished.set()
+if stopping.is_set():
+    log(f"{PHASE} at depth {DEPTH} stopped at the stop time: {counts['positions']} positions and {counts['searches']} "
+        f"searches this run; start it again to carry on")
+    out.close()
+    sys.exit(3)
 log(f"{PHASE} at depth {DEPTH} finished: {counts['positions']} positions and {counts['searches']} searches this run")
 out.close()
