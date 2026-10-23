@@ -889,7 +889,14 @@ Sessions, in order:
       keeping to the human book's moves within 20 cp), BT4 the measure (three
       arms against Stockfish with the wide book, ~3,000 games an arm, bot
       off), BT5 rebuilds. Searches can run in a training window; the match
-      can't. Ask the core queue first.
+      can't. Ask the core queue first. **Matthew's pick (2026-10-22): test
+      (a), (b) and (c), each in its own session; (d) on the longer-term
+      plan.** (a)'s book is ready (2026-10-23 21:37: games\book-table-a\
+      table-a-d8.bin, 788,056 positions; summary in scripts\book-tables\results\bt-a.md).
+      (b) and (c) run after the laptop's training (it measurably slows
+      beside them). book-match.py takes a book list per arm and a book for
+      Stockfish (BOOK-TABLES.md section 4 has the command); the match waits
+      for all three books.
 - [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it

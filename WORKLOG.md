@@ -6715,3 +6715,28 @@ The summary is scripts/book-tables/results/bt-a.md.
   ply 4.
 - **Next**: the self-play-book session's match decides whether it's worth
   playing from. Depth 9 on the SSE engine would be a ~16 h rerun.
+
+## 2026-10-23 (21:35-21:50): the book match takes a book list per arm (the self-play-book session)
+
+Matthew picked BT1 (a), (b) and (c) to test, each in its own session, with (d)
+on the longer-term plan. (a)'s book came in at 21:37:
+games\book-table-a\table-a-d8.bin. Checked here: 788,056 entries, distinct and
+sorted, and the main line from the root is e4 e5 Nf3 Nc6 d4 exd4, as its
+summary says. (b) and (c) run after the laptop's training: 4 engines beside it
+slowed it 4.4%.
+
+- **scripts/book-match.py**: an arm is now "book", "no book", or
+  `label=first.bin+second.bin`, any number of arms, in turn, colours
+  alternating every round. `--sf-book` gives Stockfish a book for its own
+  first 12 moves (BOOK-TABLES.md: weakened Stockfish's odd moves left our book
+  after ~4 moves). Rows record each side's books and book moves. The summary
+  gives each arm against the first, with an SPRT [0, 10] (a normal
+  approximation on the difference, 5% bounds).
+- Checked without engines (random movers in place of both): 9 games over
+  three arms. Each arm played from its own books and Stockfish from the wide
+  book (8-12 book moves a side, 2 for Stockfish against no book). An old
+  results file (match-sf2500-3+2.jsonl) gives the same summary as before.
+- The bot has ours.bin between its two books, but the learner rewrites it
+  live and can't replace it while a reader holds it open (Windows), so the
+  match plays from a copy. BOOK-TABLES.md section 4 has the five-arm command.
+  ~25 h at 3,000 games an arm, bot off; it waits for (b)'s and (c)'s books.

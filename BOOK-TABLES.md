@@ -202,6 +202,21 @@ the current books, and no book. The third answers the open "book's worth" item a
 (At ~50% and ~30% draws; two arms take two thirds of the time.) An SPRT [0, 10] between the table and the current
 books stops early if the difference is large.
 
+**The command** (from the main checkout, bot off, cores from the queue). Matthew picked (a), (b) and (c), so
+five arms: the current books, each new book first in front of them, and no book. That's ~25 h at 3,000 an arm,
+or stop at the SPRT. The learner rewrites ours.bin live, and a reader holding it open would block that, so
+the match plays from a copy:
+
+    copy bot\books\ours.bin games\book-match-ours.bin
+    bot\lichess-bot\.venv\Scripts\python.exe -I scripts/book-match.py games\match-bt.jsonl --tc 10+0.1
+        --games 15000 --concurrency 4 --sf-book lichess-2200-wide.bin --arms "human=H,table-a=A+H,
+        table-b=B+H,vetted=V+games\book-match-ours.bin+lichess-2200-wide.bin,no book"
+
+Here H is `lichess-2200.bin+games\book-match-ours.bin+lichess-2200-wide.bin` written out, A is
+`games\book-table-a\table-a-d8.bin`, and B and V are (b)'s and (c)'s books (V,
+`games\lichess-2200-vetted-black.bin`, replaces lichess-2200.bin). `--summary` gives each arm against
+"human", with the SPRT.
+
 **A quick look without games**: walk 2,000 lines, with each book playing our moves and the human wide book playing
 theirs. Score each exit position with Stockfish at depth 20 (WSL, ~1 s each), so the judge isn't the engine that
 built the table, and with our engine at depth 14. At most ~13 core-hours, ~2 h on 8 cores, untimed. A table that doesn't move Black's exits
