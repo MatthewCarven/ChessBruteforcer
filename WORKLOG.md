@@ -6622,3 +6622,24 @@ passed.
   solo window read 295-304 k, below today's 352 k; the cause isn't measured
   (the GPU had rested 2.5 h, and the morning ran 300-345 k overall). A pass
   is ~65 min solo, ~68 with the engines: done ~21:00.
+
+## 2026-10-23 (~16:03): h1536-3m-ob8 paused after pass 6 for OBS (the nnue-deep-layers session)
+
+- **NNUE session 2b stopped h1536-3m-ob8** on the desktop at Matthew's
+  request, right after pass 6's save (16:02:43 by the desktop's clock), so
+  he can use OBS on its GPU. The checkpoint nets\h1536-3m-ob8.pt is 16.9 MB;
+  the task shows Ready, there are no python processes, and the GPU is idle.
+  The .err records the stop. The watcher for its "finished" line keeps
+  waiting, since the stop wrote none.
+- **Held back so far, at each pass's K, against h1536-3m pass by pass:**
+
+  | pass | h1536-3m | h1536-3m-ob8 |
+  |---|---|---|
+  | 3 | 0.012871 | 0.012714 |
+  | 4 | 0.012734 | 0.012643 |
+  | 5 | 0.012199 | 0.012047 |
+  | 6 | 0.012134 | 0.012021 |
+
+  0.7-1.2% lower each pass. h1024-3m-ob8 ended 1.6% below h1024-3m at pass
+  10 (0.012201 against 0.012394) and played +8. Passes 7-10 (~5.6 h at ~134 k a second) carry on with `--resume` on
+  Matthew's word that OBS is done; the command is in TODO.
