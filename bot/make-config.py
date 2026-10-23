@@ -32,10 +32,14 @@ engine["ponder"] = True                                       # think on the opp
 engine["uci_options"] = {
     "EndgameTables": os.path.join(repo, "tables"),            # every table of 5 pieces or fewer
     "Hash": 256,
-    "Threads": 8,                                             # LazySMP on the 8 cores (WORKLOG 2026-10-15 21:25, 2026-10-16)
+    "Threads": 4,                                             # LazySMP; 4 of the 8 cores for the heat (Matthew's (b),
+                                                              # 2026-10-24: 8 took the CPU to 92 C), 8 before that
+                                                              # (WORKLOG 2026-10-15 21:25, 2026-10-16)
     "Move Overhead": 100,
 }
-# The evaluation: the network h1536-3m (Matthew's 1(a), 2026-10-22: +7 Elo [-3, +18] over h1024-3m, 2,000 games at
+# The evaluation: the network h1536-3m-ob8 (Matthew's (b), 2026-10-24: h1536-3m with 8 output buckets, .nnue v3;
+# +11 Elo [-3, +24] over h1536-3m after 1,200 games at 10+0.1), else
+# h1536-3m (Matthew's 1(a), 2026-10-22: +7 Elo [-3, +18] over h1024-3m, 2,000 games at
 # 10+0.1, LOS 91.3%, SPRT [0, 10] undecided at the limit; h1024-3m's recipe at 1536 hidden, held back -3.9%, 12.8%
 # slower a node in bench 9; the bot thinks ~20x longer a move than 10+0.1, where speed costs less), else
 # h1024-3m (NNUE.md; 2026-10-20: +52 Elo [+14, +91] over h512-3m after 188 games at
@@ -46,12 +50,13 @@ engine["uci_options"] = {
 # nnue1's recipe at 512 hidden, trained on the desktop's GTX 1660), else nnue1 (2026-10-17: +742 Elo [+645, +970]
 # over sf1, 400 games at 10+0.1, after SPRT [0, 10] accepted H1), else sf1's numbers, Texel-tuned towards
 # Stockfish's verdicts on Lichess's analysed games (2026-10-14: +208 Elo [+130, +311] over the built-in ones, 69
-# games at 10+0.1, SPRT decided). Delete h1536-3m.nnue to go back to h1024-3m, h1024-3m.nnue as well for h512-3m,
+# games at 10+0.1, SPRT decided). Delete h1536-3m-ob8.nnue to go back to h1536-3m, h1536-3m.nnue as well for
+# h1024-3m, h1024-3m.nnue as well for h512-3m,
 # h512-3m.nnue as well for nnue1-h512,
 # nnue1-h512.nnue as well for nnue1, nnue1.nnue as well for sf1, and eval-sf1.txt as well for the built-in numbers.
 # (The deep nets lost to h1024-3m at 10+0.1, 2026-10-22: h1024-3m-l32 -85 Elo, h1024-3m-l16-32 about -55, both
 # at about half its speed; MATCHES.md. The bot played h1024-3m-l16-32 for a game or two before that, then went back.)
-for name in ("h1536-3m.nnue", "h1024-3m.nnue", "h512-3m.nnue", "nnue1-h512.nnue", "nnue1.nnue", "eval-sf1.txt"):
+for name in ("h1536-3m-ob8.nnue", "h1536-3m.nnue", "h1024-3m.nnue", "h512-3m.nnue", "nnue1-h512.nnue", "nnue1.nnue", "eval-sf1.txt"):
     evaluation = os.path.join(here, "eval", name)
     if os.path.exists(evaluation):
         engine["uci_options"]["EvalFile"] = evaluation
