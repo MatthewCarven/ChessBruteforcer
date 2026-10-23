@@ -6430,3 +6430,29 @@ separate rerun.
 
 His first yes reached this session through ponder-scope, and the permission
 check refused to stop the run on a relayed answer; he gave it here directly.
+
+## 2026-10-23 (13:36-21:50): BT1 (a) finished, the table and its book (the bt-a-desktop session)
+
+The desktop's run finished at 13:36:16 (its clock): **715,940 of 715,940
+leaves at depth 8**. The run had two breaks. From 07:11 it ran on 6 engines,
+leaving the GPU's training a core. At 10:10 the desktop was restarted from its
+Start menu (USER32 1074, Explorer, Admin); the run resumed at 10:13 with
+414,674 done. The searches took 120.6 G nodes and 75.8 engine-hours, 381 ms a
+leaf on average over both engines. Fetched at 21:32 (30 MB through
+capped-copy.py, the share back by then). The back-up and book ran from 21:33
+to 21:39 on one laptop core, on ponder-scope's go after h1024-6m's training.
+The summary is scripts/book-tables/results/bt-a.md.
+
+- **The book**: games\book-table-a\table-a-d8.bin in the main checkout, 788,056
+  positions (plies 0-4 both colours, plus every leaf's own move), 12.6 MB; not
+  in git, not in bot\books.
+- **Root +0.26 for White, e4**. Then d4 and Nf3 (+0.23), e3 (+0.16), c4 (+0.07)
+  ... g4 last (-1.01). The main line is e4 e5 Nf3 Nc6 d4 exd4, a Scotch.
+- **Against lichess-2200.bin**: the table's move is the human book's most-played
+  one in 37-51% of the shared positions a ply. By the table's own values, the
+  human move is within 20 cp of the best 72-82% of the time, within 50 cp
+  92-96%, and costs a median of 0-4 cp. So the table mostly disagrees on
+  near-ties. The human book has only 3,286 of the table's 67,984 positions at
+  ply 4.
+- **Next**: the self-play-book session's match decides whether it's worth
+  playing from. Depth 9 on the SSE engine would be a ~16 h rerun.
