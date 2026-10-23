@@ -6617,5 +6617,7 @@ passed.
   run-bot.ps1 removed the file. He'd rather it played tonight, when it's cooler.
 - **Heat follows the sun:** the morning sun is on the front of the house, and the laptop is downstairs, so it
   cools after midday. Heavy laptop runs (the bot, training, matches) go in the afternoon, evening and night.
-- The scope session was told the bot is off so it can resume the queue. h1024-6m's training restarts at
-  20:00 as planned.
+- **h1024-6m resumed at 13:55:27**, not 20:00: Matthew told nnue-deep-layers "Resume h1024-6m now, once the
+  bot has stopped". Pass 5 of 10, GPU 97%, done ~21:00-21:30. Then the 10-min solo baseline and bt-b's
+  4-engine recheck; the after-training order (bt-a's build, the two net matches, HistoryKept, bt-c, bt-b)
+  from ~21:30. No bot or timed laptop runs before then unless Matthew says.
