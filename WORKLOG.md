@@ -6621,3 +6621,97 @@ passed.
   bot has stopped". Pass 5 of 10, GPU 97%, done ~21:00-21:30. Then the 10-min solo baseline and bt-b's
   4-engine recheck; the after-training order (bt-a's build, the two net matches, HistoryKept, bt-c, bt-b)
   from ~21:30. No bot or timed laptop runs before then unless Matthew says.
+
+## 2026-10-23 (00:30-02:15): BT1 (a), the full 5-ply table, running on the desktop (the bt-a-desktop session)
+
+Matthew's table exactly as he put it (BOOK-TABLES.md, BT1 (a)): every legal
+position after 5 half-moves, lines that lose a piece blocked (prune.py's
+check at T = 3), each leaf searched to a fixed depth by our engine on the
+desktop's CPU, the values backed up by minimax to ply 0, and a polyglot book
+of our engine's best move in every kept position. His go, with "(a) full
+speed day and night" (he'd lifted the desktop's 15% cap earlier that night,
+and noise isn't a worry). Scripts in scripts/book-tables/: table-a.py
+(laptop: leaves, book, compare), table-a-search.py (desktop, stdlib only),
+table-a-desktop.ps1 and .cmd (publish, sync, bench, start, status, stop,
+fetch, as nnue-desktop.ps1 does). Data in the main checkout's
+games\book-table-a\ (not in git), and the share's booktable\.
+
+- **Two refinements of the rule**, so the back-up can't be fooled by it: a
+  blocked line gets no entry and no search, but counts for its parent at the
+  capture check's material score (dropped outright, a move that wins a piece,
+  such as a forking check, would vanish with those that lose one); and mate
+  or stalemate is an exact result, not blocked (prune.py's check calls a
+  mated side "down"). The tree, rebuilt: 715,940 leaves (prune.py's count),
+  4 mates at ply 4 and 98 at ply 5 that prune.py had blocked. 391 s on one
+  laptop core.
+- **Tested** on a 3-ply tree (5,231 leaves at depth 4): counts as prune.py's,
+  the .bin reads back through python-chess, every leaf's entry is its own
+  search's move, and a stopped run resumes.
+- **The desktop is ~15x slower a core than the laptop**: `bench 9`, one
+  thread, 152 knps (nnue-deep-layers' re-bench at full speed) against the
+  laptop's ~2,360. Its i7-3770 has no AVX2, so the network runs its scalar
+  code. 8 engines on its 4 cores: 97 knps each, 776 in all (+28% over 4 x
+  152). The sizing sample (400 leaves a depth, 8 engines): depth 8 1,767 ms
+  a leaf, ~45 h in all; depth 9 4,363 ms, ~110 h. So **depth 8** (our move
+  sees 13 plies), within Matthew's ~3 days. Depth 10 would be ~12 days.
+- **Same answers**: the first 20 leaves at depth 8 on the laptop (one engine
+  pinned to CPU 0, 7 s) gave the desktop's move, score and node count, 20 of
+  20.
+- **Running** since 02:10 by the desktop's clock (a scheduled task, S4U,
+  below normal, 8 engines, 1.2 GB), the CPU at 108% of base. Due ~23:00 on
+  the 24th. Stoppable and resumable at any time (`table-a-desktop.ps1 stop`
+  / `start 8 8`); nnue-deep-layers may ask for a ~15-min quiet bench.
+- **Next**: `fetch 8`, then `table-a.py book` (~10 min of one laptop core:
+  ask ponder-scope), the .bin to games\book-table-a\ (~12.6 MB, so not in git
+  and never in bot\books), and the summary to
+  scripts/book-tables/results/bt-a.md; then a word to the self-play-book
+  session for the measurement.
+- **For later**: nnue-deep-layers is raising a 128-bit SSE2 path for the
+  network with Matthew (the 3770 has SSE2's pmaddwd). Integer arithmetic, so
+  the same answers: a run could switch to it partway.
+
+## 2026-10-23 (06:05-06:35): BT1 (a) switched to the 128-bit engine (the bt-a-desktop session)
+
+The simd128 session built the 128-bit SSE2 path (9603e7b, since merged into
+compression as 388685a): `bench 9` on the quiet desktop, one thread,
+h1536-3m 157 -> 1,085 knps (6.9x), the same nodes. The run stopped at 06:10
+(desktop clock, 67,244 leaves done) for that bench. table-a-desktop.ps1
+gained `publish -EngineDir/-Source`, `sync -EngineDir`, `check` and `swap`
+(b7e90e9). The new build, published self-contained from a detached worktree
+at 9603e7b, re-searched the first 100 leaves on 8 engines: **100 of 100 the
+same move, score and nodes** as the old engine's answers, in 34 s against
+203 s. The run restarted on the old engine at 06:17 while Matthew's answer was
+pending. On his yes (06:25), stop, swap (the old engine kept as
+booktable\engine-20261023-0625\), start: **104,047 leaves/h** (was ~16,800),
+637 knps an engine (8 x 637 = 6.6x the old 776 in all), CPU at 106%. 78,615
+of 715,940 done at 06:31, **due ~12:35**. Depth 9 would now be ~16 h, as a
+separate rerun.
+
+His first yes reached this session through ponder-scope, and the permission
+check refused to stop the run on a relayed answer; he gave it here directly.
+
+## 2026-10-23 (13:36-21:50): BT1 (a) finished, the table and its book (the bt-a-desktop session)
+
+The desktop's run finished at 13:36:16 (its clock): **715,940 of 715,940
+leaves at depth 8**. The run had two breaks. From 07:11 it ran on 6 engines,
+leaving the GPU's training a core. At 10:10 the desktop was restarted from its
+Start menu (USER32 1074, Explorer, Admin); the run resumed at 10:13 with
+414,674 done. The searches took 120.6 G nodes and 75.8 engine-hours, 381 ms a
+leaf on average over both engines. Fetched at 21:32 (30 MB through
+capped-copy.py, the share back by then). The back-up and book ran from 21:33
+to 21:39 on one laptop core, on ponder-scope's go after h1024-6m's training.
+The summary is scripts/book-tables/results/bt-a.md.
+
+- **The book**: games\book-table-a\table-a-d8.bin in the main checkout, 788,056
+  positions (plies 0-4 both colours, plus every leaf's own move), 12.6 MB; not
+  in git, not in bot\books.
+- **Root +0.26 for White, e4**. Then d4 and Nf3 (+0.23), e3 (+0.16), c4 (+0.07)
+  ... g4 last (-1.01). The main line is e4 e5 Nf3 Nc6 d4 exd4, a Scotch.
+- **Against lichess-2200.bin**: the table's move is the human book's most-played
+  one in 37-51% of the shared positions a ply. By the table's own values, the
+  human move is within 20 cp of the best 72-82% of the time, within 50 cp
+  92-96%, and costs a median of 0-4 cp. So the table mostly disagrees on
+  near-ties. The human book has only 3,286 of the table's 67,984 positions at
+  ply 4.
+- **Next**: the self-play-book session's match decides whether it's worth
+  playing from. Depth 9 on the SSE engine would be a ~16 h rerun.
