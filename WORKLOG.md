@@ -6655,3 +6655,21 @@ passed.
   by itself after. The laptop's GPU ran at 87 C around 20:10.
 - Told ponder-scope. The match against h1024-3m (and `bench 9` first) runs in
   its slot after bt-a's build. NNUE.md has the comparison table.
+
+## 2026-10-23 (21:39-22:55): h1024-6m's match started; h1536-3m-ob8 resumed (the nnue-deep-layers session)
+
+- **`bench 9`, alternated over 5 rounds, the bot's learner idle**:
+  h1024-3m 3,150 knps, 3,731,271 nodes; h1024-6m 2,504 knps (-20.5%),
+  2,875,022 nodes. Time to depth 9 is x0.97. At `bench 10` (2 rounds) the
+  knps gap is only -3 to -8% (3,107-3,277 against 3,372-3,393), and
+  h1024-3m-ob8 reads the same as h1024-6m. The two files are the same shape
+  and size (1,579,076 bytes), so the gap is the search tree's shape (which
+  nodes get evaluated), not the net's cost.
+- **h1024-6m v h1024-3m started at 21:40:43** on ponder-scope's go:
+  scripts\nnue-match.cmd, 10+0.1, SPRT [0, 10], 5 at a time, the bot off.
+  From 21:46:33 to ~21:49:20, Session context ran one book-match.py game
+  beside it by mistake (2-3 busy threads, ~25 of the first games). Both nets
+  shared every game, so it's symmetric noise and the games stand.
+- **h1536-3m-ob8 resumed at 22:51 by the desktop's clock** after pass 6
+  (NNUE session 2b, at Matthew's request, OBS done). Pass 7 runs at 133 k a
+  second: done ~04:30 by its clock. Its watcher is reset for the longer wait.

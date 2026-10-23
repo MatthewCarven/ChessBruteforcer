@@ -202,7 +202,9 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
       run at 6 engines beside it). **Paused after pass 6** (16:02:43 by its
       clock; held back 0.012021 at K, against h1536-3m's 0.012134 at pass
       6) so Matthew can use OBS on the desktop's GPU (NNUE session 2b
-      stopped it). Carry on, on Matthew's word that OBS is done:
+      stopped it). **Resumed at 22:51 by its clock** (NNUE session 2b, at
+      Matthew's request), ~133 k a second: **done ~04:30 by its clock**.
+      The line it carried on with:
       `scripts\nnue-desktop.ps1 train h1536-3m-ob8 --hidden 1536 --add-data
       2026-07 2026-08 --passes 10 --lr-drops 4/7/9 --output-buckets 8
       --resume`; passes 7-10 take ~5.6 h. Then: fetch, held back
