@@ -1,4 +1,4 @@
-"""Our own chat commands for the bot (Matthew, 2026-10-14): !info, and !help listing it.
+"""Our own chat commands for the bot (Matthew, 2026-10-14): !info, !stats, and !help listing them.
 
 lichess-bot's commands are written into its lib/conversation.py, with no way to add one, so start-bot.cmd
 copies this file into lichess-bot as lib/bruteforcer_chat.py and applies bot/lichess-bot-chat.patch, which
@@ -10,6 +10,11 @@ opponent isn't told that, just as lichess-bot's !eval isn't for the opponent (Ma
 lines about the project (ABOUT, 2026-10-16: the greeting has room for little more than a pointer here).
 Lichess chat messages are 140 characters at most: lichess-bot drops a longer one unsent. Kept to a few
 messages a command, as a burst could trip Lichess's chat flood filter.
+
+!stats (Matthew, 2026-10-25: "a figure on the total computed positions would be nice", not long, and it "does not
+need be 100% acurate"): roughly how many positions our engine has searched this game, in one message. The same goes
+into the goodbyes at the game's end, in the same message as "Good game!" (outgoing(), which lichess-bot's
+Conversation.send_message asks first: bot/lichess-bot-goodbye-stats.patch), so the end sends no more than before.
 """
 import os
 import chess
@@ -17,7 +22,8 @@ import chess.engine
 
 TABLE_PIECES = 5   # every ending with this many pieces or fewer is solved
 BOOK_SOURCE = "lichess-bot-source:Opening Book"
-HELP = ("Commands: !info (about me, and my endgame tables now), !name, !queue, "
+CHAT_LIMIT = 140   # characters in a Lichess chat message
+HELP = ("Commands: !info (about me, and my endgame tables now), !stats, !name, !queue, "
         "!eval (spectators), !wait (a minute for my first move)")
 ABOUT = [   # each 140 characters at most; the figures are from WORKLOG (September 2026's games, the bot's config)
     "About me: a thesis project on how small real chess is, mapping games back from the end. "
@@ -92,10 +98,74 @@ def verdict(engine, boards):
     return ""
 
 
+def amount(number):
+    """A count in words, rounded: 7.0 billion, 11 billion, 850 million, 12 thousand."""
+    for size, word in ((1e9, "billion"), (1e6, "million"), (1e3, "thousand")):
+        if number >= size * 0.9995:   # (so 999.8 million reads 1.0 billion, not 1000 million)
+            value = number / size
+            return f"{value:.1f} {word}" if size == 1e9 and value < 9.95 else f"{value:.0f} {word}"
+    return str(int(number))
+
+
+def searched(engine):
+    """The positions our engine searched for its moves this game, and the seconds that took: the sum of what it
+    reported for each move lichess-bot kept (engine.move_commentary: nodes, and time or nps). A ponder hit's search
+    began in the opponent's time, and its count runs from then. A ponder miss's search is stopped and thrown away by
+    python-chess unreported, so it isn't in: with the tables' moves, that leaves about three quarters of the engine's
+    thinking time from its first search to its last counted (the bot's logs of 2026-10-22 to 24, 34 games one at a
+    time: 73% the median, 66-80% the middle half; 0.9 to 11 billion positions a game, 6.8 billion the median). Book
+    moves report nothing."""
+    nodes, seconds = 0, 0.0
+    for info in engine.move_commentary:
+        count = (info or {}).get("nodes")
+        if not isinstance(count, int) or count <= 0:
+            continue
+        nodes += count
+        if info.get("time"):
+            seconds += info["time"]
+        elif info.get("nps"):
+            seconds += count / info["nps"]
+    return nodes, seconds
+
+
+def stats_sentence(engine, so_far):
+    """What we searched this game in a sentence, or "" before the first search. lichess-bot keeps only the moves it
+    played since it last started, so after a restart mid-game (as book_note tells it) the count says so."""
+    nodes, seconds = searched(engine)
+    if not nodes:
+        return ""
+    since = "this game" if engine.comment_start_index <= 1 else "since my restart"
+    who = "So far I've" if so_far else "I"
+    text = f"{who} searched ~{amount(nodes)} positions {since}"
+    if seconds > 0 and nodes / seconds >= 1e6:
+        text += f", ~{amount(nodes / seconds)} a second"
+    return text + "."
+
+
+def game_on(conversation):
+    """Whether the game is still being played (lichess-bot's own test, is_game_over, the other way round)."""
+    return conversation.game.state.get("status", "started") == "started"
+
+
+def outgoing(conversation, room, message):
+    """A message lichess-bot sends unasked, as it would send it (its Conversation.send_message asks this first:
+    bot/lichess-bot-goodbye-stats.patch). With the game over it's a goodbye, and it gets what we searched added when
+    the two fit in one message; Matthew's quit.soon goodbye (113 characters) doesn't, and goes as it was. The hellos
+    come before the game's over, and are left alone."""
+    if not message or game_on(conversation):
+        return message
+    said = stats_sentence(conversation.engine, so_far=False)
+    joined = f"{message} {said}"
+    return joined if said and len(joined) <= CHAT_LIMIT else message
+
+
 def reply(conversation, line, cmd):
     """Our answer to a command (a list of chat messages), or None to let lichess-bot answer it."""
     if cmd in ("commands", "help"):
         return [HELP]
+    if cmd == "stats":   # for anyone: a count gives nothing away about the game
+        said = stats_sentence(conversation.engine, so_far=game_on(conversation))
+        return [said or "I haven't searched any positions yet this game."]
     if cmd != "info":
         return None
     boards = replay(conversation.game)

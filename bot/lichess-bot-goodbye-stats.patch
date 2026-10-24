@@ -1,0 +1,15 @@
+diff --git a/lib/conversation.py b/lib/conversation.py
+index 2ae6209..875b47f 100644
+--- a/lib/conversation.py
++++ b/lib/conversation.py
+@@ -112,5 +112,10 @@ class Conversation:
+ 
+     def send_message(self, room: str, message: str) -> None:
+         """Send the message to the chat."""
++        try:  # ChessBruteforcer: the goodbye says what we searched (bot/chat_commands.py); on a fault, as it was
++            from lib import bruteforcer_chat
++            message = bruteforcer_chat.outgoing(self, room, message)
++        except Exception:
++            logger.exception("bruteforcer_chat failed")
+         if message:
+             self.send_reply(ChatLine({"room": room, "username": "", "text": ""}), message)
