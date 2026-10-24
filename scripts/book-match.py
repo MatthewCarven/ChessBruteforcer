@@ -23,9 +23,9 @@ whose time runs out loses. Our engine is a copy of the bot's (bot/lichess-bot/en
 
 Each game is appended to the results file as it ends, so a run can be stopped and its games still
 count; run it again with the same file to add more (it carries on numbering). The summary at the end
-(and `--summary` alone) gives each arm's score with a 95% interval, as Elo against Stockfish-at---sf-elo,
-and each later arm's difference from the first, with an SPRT [0, 10] on it (a normal approximation; it
-accepts or rejects at the 5% bounds).
+(and `--summary` alone) gives each arm's score with a 95% interval, as Elo against Stockfish-at---sf-elo
+(and our losses on time one by one, with the score had they been draws), and each later arm's difference
+from the first, with an SPRT [0, 10] on it (a normal approximation; it accepts or rejects at the 5% bounds).
 """
 import json, math, os, random, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor
@@ -88,6 +88,14 @@ def parse_arms(spec, books):
     return arms
 
 
+def interval(points):
+    """Mean score and its 95% half-width."""
+    n = len(points)
+    mean = sum(points) / n
+    sd = math.sqrt(sum((p - mean) ** 2 for p in points) / max(1, n - 1))
+    return mean, 1.96 * sd / math.sqrt(n)
+
+
 def summary(path):
     games = [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
     print(f"{len(games)} games in {path}")
@@ -98,18 +106,29 @@ def summary(path):
         rows = [g for g in games if g["arm"] == arm]
         points = [g["points"] for g in rows]
         n = len(points)
-        mean = sum(points) / n
-        sd = math.sqrt(sum((p - mean) ** 2 for p in points) / max(1, n - 1))
-        half = 1.96 * sd / math.sqrt(n)
+        mean, half = interval(points)
         arms[arm] = (n, mean, half)
         w = sum(p == 1 for p in points); d = sum(p == 0.5 for p in points); l = n - w - d
-        flags = sum(g["termination"] == "time" and g["points"] == 0 for g in rows)
+        flags = [g for g in rows if g["termination"] == "time" and g["points"] == 0]
+        theirs_flags = sum(g["termination"] == "time" and g["points"] == 1 for g in rows)
         book_plies = [g["book_moves"] for g in rows]
         theirs = [g.get("sf_book_moves", 0) for g in rows]
         print(f"  {arm:{width}s} {n:4d} games  +{w} -{l} ={d}  score {100 * mean:5.1f}% (+-{100 * half:.1f})  "
               f"Elo v Stockfish {elo(mean):+5.0f} [{elo(mean - half):+.0f}, {elo(mean + half):+.0f}]  "
-              f"lost on time {flags}  book moves a game {sum(book_plies) / n:.1f}"
+              f"lost on time {len(flags)} (Stockfish {theirs_flags})  book moves a game {sum(book_plies) / n:.1f}"
               + (f" (Stockfish's {sum(theirs) / n:.1f})" if any(theirs) else ""))
+        # Our time losses one by one (Matthew, 2026-10-25: counted, and shown apart), then the score had they been draws.
+        for g in flags:
+            board = chess.Board()
+            for move in g["moves"].split():
+                board.push_uci(move)
+            print(f"    lost on time: game {g['game']}, we {g['we']}, {g['plies']} plies, {len(board.piece_map())} pieces "
+                  f"left, over by " + (f"{-g['our_clock_end']:.1f} s" if -g["our_clock_end"] >= 0.05 else "under 0.1 s"))
+        if flags:
+            lost = {g["game"] for g in flags}
+            m, h = interval([0.5 if g["game"] in lost else g["points"] for g in rows])
+            print(f"    with those as draws: score {100 * m:5.1f}% (+-{100 * h:.1f})  Elo v Stockfish {elo(m):+5.0f} "
+                  f"[{elo(m - h):+.0f}, {elo(m + h):+.0f}]")
     first = labels[0] if labels else None
     for arm in labels[1:]:
         (n1, m1, h1), (n2, m2, h2) = arms[arm], arms[first]

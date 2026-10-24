@@ -673,10 +673,13 @@ Sessions, in order:
       **4 of the 40 were our losses on time** (Stockfish none), all in
       endgames of 7-10 pieces, two by ~2 s: most likely the 5-piece tables
       read from disk mid-search with 6 engines at once (not shown). As draws
-      they'd be worth ~36 Elo here. Before the 500: (a) no tables for
-      either side, like every net match (book-match.py needs a `--tables`
-      option; Stockfish has none anyway), my pick; (b) as now, the time
-      losses counted; (c) a longer clock. Separately: does the engine's
+      they'd be worth ~36 Elo here. **Matthew's (b) (2026-10-25, via
+      ponder-scope): keep the tables as now and count the time losses.** The
+      write-up gives them apart, each with its pieces left and its overrun,
+      and the figure with them as draws beside the real one: book-match.py's
+      summary prints both now. The 500 games at 3190 (`--games 500 --sf-elo
+      3190`, games\sf-check\sf3190.jsonl) in their slot, after the book duel
+      and h1536-6m-ob8's match, on ponder-scope's go. Separately: does the engine's
       clock allow for a slow 5-piece probe? The bot's own games would show
       it (it plays longer controls, so less exposed).
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**

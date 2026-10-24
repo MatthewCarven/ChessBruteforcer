@@ -7152,3 +7152,15 @@ and OURS), as the fix wasn't merged yet.
 - For the 500-game run (its own slot): 3190 is the level. The time losses want a decision first (TODO).
 - All engines gone at 06:17 (the learner's own engine aside). The branch fast-forwarded to compression (dc458f0,
   which had merged 64b117f) before this entry.
+
+## 2026-10-25 (06:25-06:35): the Stockfish check keeps its tables (Matthew's (b))
+
+- Matthew, through ponder-scope, verbatim: "(b) Keep the tables as now in the 500-game Stockfish check, and count
+  the time losses." No `--tables` option, then. The write-up is to give the time losses apart, with pieces left
+  and the overrun, and the figure with them as draws beside the real one.
+- book-match.py's summary now does that: "lost on time N (Stockfish M)", then a line per loss of ours (game, our
+  colour, plies, pieces left, the overrun) and the score with those as draws. On the 3190 probe: games 7, 8, 12
+  and 14, 7/10/8/9 pieces left, over by 0.1, 1.8, 2.6 and under 0.1 s; as draws 47.5%, -17 [-83, +47], beside
+  42.5%, -53 [-129, +19].
+- The 500 games at 3190 wait for their slot (after the book duel and h1536-6m-ob8's match, on ponder-scope's go).
+  The bot plays from 06:55 on Matthew's yes, so nothing runs on the laptop meanwhile.
