@@ -1164,7 +1164,7 @@ Sessions, in order:
                   Matthew: (a) merge, option off (my pick), or (b) drop the
                   src change, keep the write-up and the bench.** PONDER.md,
                   "P5".)
-            - [ ] **HistoryKept as a variety setting** (Matthew's (b), in
+            - [x] **HistoryKept as a variety setting** (Matthew's (b), in
                   the P5 session, 2026-10-22): where we're not deliberately
                   repeating a line against a bot, kept history makes the bot
                   "at least try something else", which is more human. The
@@ -1177,9 +1177,12 @@ Sessions, in order:
                   "HistoryKept=50;HistoryKept=0" --tc 10+0.1 --games 2000
                   --sprt -10,0`. Both sides ponder, one build. Accepting 0
                   means the variety costs nothing measurable; accepting -10
-                  means it costs. Booked after h1024-6m's laptop training
-                  (2026-10-23, ~19:00-20:00). If it's free, the per-bot
-                  chooser (O2) could switch it on per game.
+                  means it costs. **Done 2026-10-24: free.** The SPRT
+                  accepted 0 at game 1,571 (LLR 3.00); 1,574 games, +267
+                  -256 =1051, **+2 [-7, +12]**, both pondering, h1536-3m,
+                  no time losses (PONDER.md, "The no-regression match").
+                  It stays off by default; the per-bot chooser (O2) could
+                  switch it on per game, on Matthew's word.
             - [x] P6: a table that keeps its deep entries (buckets of 2-4
                   slots, an age; the slot has spare bits). Always-replace
                   lets an 8-thread ponder push out our own search's
