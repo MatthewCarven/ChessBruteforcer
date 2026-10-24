@@ -6936,3 +6936,38 @@ no-regression SPRT [-10, 0] like P5's.
   say (+30 to +60 Elo in the games they change), the SPRT decides in ~450-830
   pairs (1-2 h); near 0 it runs to the stop with about +-17 Elo on those
   games, +-0.15 over all Black games.
+
+## 2026-10-25 (00:43-03:54): three hours of the bot on h1536-3m-ob8, 4 threads (the orchestrator)
+
+Matthew asked through the scope session for a few hours of the bot before Decision C's measurement, then gave his
+yes here first-hand ("a please Claude", 00:42). bot/make-config.py as it stands: h1536-3m-ob8 on 4 threads (8dae7f5;
+the engine logged the same net as on 10-24). Started 00:42:59, online 00:43:10; bot\quit.soon made at 03:43:12; the
+game in hand ended 03:53:47 and lichess-bot stopped by 03:54:00. Then the laptop went to bt-c's vet-c-match.
+
+- **16 games, 5W 9D 2L** (9.5/16, 59%; opponents' average 2608), plus one of holidaybot1225's (2987) abandoned
+  before a move:
+
+  | Opponent | Elo | Clock | Colour | Result |
+  |---|---|---|---|---|
+  | Lynx_BOT | 2616 | 5+2 | White | draw |
+  | rust-in-pieces | 2298 | 3+3 | Black | won |
+  | Vic98lg | 2521 | 3+1 | Black | won |
+  | sxphia | 2562 | 5+3 | White | draw |
+  | endspiel-pi | 2832 | 5+2 | White | draw |
+  | Jacobsbot | 3029 | 5+2 | White | draw |
+  | VidBot | 2255 | 5+3 | White | won |
+  | BattleBornThe4th | 2618 | 6+2 | Black | won |
+  | BattleBornThe4th | 2612 | 5+3 | Black | draw |
+  | Alarm2001 | 2535 | 10+0 | Black | won |
+  | Alieknek | 2815 | 5+2 | White | lost |
+  | ProsperoBot | 2743 | 5+2 | White | draw |
+  | ArabicaHCE | 2527 | 3+3 | White | draw |
+  | ArabicaNNUE | 2657 | 3+3 | Black | draw |
+  | rudim-bot | 2558 | 2+1 | Black | lost |
+  | sxphia | 2555 | 3+3 | Black | draw |
+
+- Blitz 2549 to 2576, bullet 2641 to 2629 (the one bullet game, lost), rapid +20 (the one rapid game, won).
+- Draws held against the two strongest, endspiel-pi (2832) and Jacobsbot (3029). Two draws by repetition came early:
+  ArabicaHCE at move 19 and endspiel-pi at move 29, both as White.
+- The idle watcher fired at 00:49 while the bot played (it doesn't count the bot): a false alarm, no push; re-armed
+  after the bot stopped.
