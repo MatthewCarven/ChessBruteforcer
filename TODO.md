@@ -990,7 +990,10 @@ Sessions, in order:
             (no worse) after 760 pairs, +32 Elo [+11, +54] on the games where
             the books differ (0.86% of Black games), +0.3 over all Black
             games. Keep the vetted book.** bt-c.md, results/vet-c-match.txt.
-      - [ ] **The vetted book into the bot?** Matthew's call: it would take
+      - [x] **The vetted book into the bot?** **Matthew's (a), 2026-10-25: its
+            own file, in from the bot's 06:55 start** (bot\books\
+            lichess-2200-vetted-black.bin, sha256 6037702afae8; make-config.py
+            prefers it, then lichess-2200.bin). Rename it to go back. It would take
             lichess-2200.bin's place at the head of the bot's book chain (both
             colours; the vetoes only change Black's moves), the bot off.
             What it takes is in bt-c.md ("Putting it into the bot"): the file

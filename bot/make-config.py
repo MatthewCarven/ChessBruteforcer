@@ -65,9 +65,15 @@ engine["online_moves"]["online_egtb"]["enabled"] = False      # our own tables, 
 # The opening book from our own games (scripts/make-book.py, scripts/month-book.cmd): what 2200+ players
 # chose, from every month counted, weighted by how often and how well; played instantly for the first 12
 # moves while the book has the position. (lichess-2026-09-2200.bin: September alone, the first build.)
+# In its place from 2026-10-25 (Matthew's (a)): lichess-2200-vetted-black.bin, the same book less the 57 Black moves
+# BT1 (c) vetoed (scripts/book-tables/results/bt-c.md: no worse in a paired match, +32 Elo [+11, +54] where the books
+# differ, under 1% of Black games; White's lines unchanged). A month rebuild renews lichess-2200.bin only, so the
+# vetted copy lags it until vet-c-book.py is run again. Rename or delete it to go back to the human book.
 # lichess-bot tries the books in order: the wide one (moves played 3+ times, not 10+) answers only where the
 # main one can't, which is mostly a bot's rare move; it would have answered 33 of the first 74 games' exits.
-book = os.path.join(here, "books", "lichess-2200.bin")
+book = os.path.join(here, "books", "lichess-2200-vetted-black.bin")
+if not os.path.exists(book):
+    book = os.path.join(here, "books", "lichess-2200.bin")
 if not os.path.exists(book):
     book = os.path.join(here, "books", "lichess-2026-09-2200.bin")
 # Between them, our own book (bot/learn.py: moves the learner worked out after the bot's games, where the main

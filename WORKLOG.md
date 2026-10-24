@@ -7122,3 +7122,16 @@ ponder-scope offered the quiet laptop until 06:55 (vet-c-match done at 06:02, th
 - **Beside another game** (blitz, 123 games of 565): ours 3.0 / 4.4 against 4.0 / 4.8 alone. The time a move hardly
   changes, as expected: the clock sets it. What a second or third game costs is search in that time (the Speed lines:
   ~0.6x each with two 8-thread engines, 2026-10-20), not seconds. The first sessions at three: `--since 2026-10-25`.
+
+## 2026-10-25 (06:19-06:30): the vetted Black book into the bot (the orchestrator)
+
+- Matthew's (a), through the scope session, to the question put in both sessions: "(a) Its own file: copy it into
+  bot\books and have make-config.py prefer it" (BT1 (c)'s pick (i)). The bot was off (06:19, no lichess-bot).
+- games\lichess-2200-vetted-black.bin copied to bot\books\ under that name: sha256 6037702afae8...ab692 both, as
+  bt-c.md has it. lichess-2200.bin stays beside it (the fallback, and the human book vet-c-book.py and the matches
+  read). bot\books is out of git.
+- bot/make-config.py: the main book is lichess-2200-vetted-black.bin when it's there, then lichess-2200.bin, then
+  September's. Checked on a scratch copy with placeholder files (no token): the chain is vetted, ours.bin, wide; with
+  the vetted file gone, lichess-2200.bin, ours.bin, wide; concurrency 3, Threads 4, h1536-3m-ob8, ponder on.
+- Live from the bot's next start (06:55, Matthew's yes for 06:55-08:00, three games at once). A month rebuild of
+  lichess-2200.bin leaves the vetted copy a month behind until vet-c-book.py is run again and copied over.
