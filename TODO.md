@@ -906,17 +906,24 @@ Sessions, in order:
             1.e4 it always plays the French (-0.34), the scoping's weak spot.
       - [ ] **BT4 with the table**: the quick look, then the match (an arm
             playing table-b.bin first, the current books after it).
-      - [ ] **Matthew's call: carry it to Black's move 3** (`--plies 6`,
-            ~6,620 positions, ~314 core-h at depth 18 at the measured
-            speed, ~40 h on 8 cores; less at depth 16).
+            Matthew (2026-10-25): later, kept on the todo.
+      - [ ] **Carry it to Black's move 3** (`--plies 6`, ~6,620 positions,
+            ~314 core-h at depth 18 at the measured speed, ~40 h on 8
+            cores; less at depth 16). Matthew (2026-10-25): later, kept on
+            the todo.
 - [ ] **Decision C: after BT1 (c)'s vetting** (scripts/book-tables/results/
       bt-c.md, 2026-10-24): 57 human-book moves vetoed as Black (Stockfish
       agrees with 84%), in games\lichess-2200-vetted-black.bin; but they are
       15% of what the book gives away, and they change ~3% of Black games
       (~1 Elo). The rest is many 10-49 cp moves, much of it the first move.
-      Matthew's call: **(a) measure the vetted book as it stands (my pick)**,
-      (b) a 25 cp line (227 more moves, ~7-8 h of the desktop to confirm), (c)
-      leave Black's first moves to BT1 (b)'s table.
+      The options were (a) measure the vetted book as it stands, (b) a 25 cp
+      line (227 more moves, ~7-8 h of the desktop to confirm), (c) leave
+      Black's first moves to BT1 (b)'s table. **Matthew chose (a)
+      (2026-10-25)**, to run after a few hours of the bot that night, on its
+      own rather than waiting for BT4: vetted v plain Black book, a
+      no-regression test (bt-c-vet-black plans it). Expect no visible
+      difference; keep it if it isn't worse. Later, it's also one of BT4's
+      arms.
 - [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it
@@ -1305,12 +1312,9 @@ Sessions, in order:
             ~3,000 more games (~6 weeks), or when a setup comes within ~10
             Elo of the best (the deep nets didn't: -85 and about -55), and
             look again. Then also Matthew's other reason for a per-bot
-            setup (2026-10-22): "be nicer to some of the players like FPGA
-            Chess", a gentler setup for bots we'd like to keep playing.
-            fpga-chess so far (bot\games\record.csv): 4 games, all its own
-            challenges, all won by us (2336-2368 against our 2391-2548). The
-            same create_engine patch would serve both, from a list of named
-            bots in make-config.py.
+            setup (2026-10-22): a gentler setup for bots we'd like to keep
+            playing. The same create_engine patch would serve both, from a
+            list of named bots in make-config.py.
             Matthew, in the P5 session (2026-10-22): "we might enable this
             option for certain players at a later date". That's HistoryKept
             (P5, UCI option, 0 = off, today's default). It would go through

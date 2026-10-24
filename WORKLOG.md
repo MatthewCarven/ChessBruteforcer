@@ -6883,3 +6883,14 @@ BT4's measurement, not in bot\books.
 - Next: BT4 (the quick look, then the match), and Matthew's call on carrying
   it to Black's move 3 (~6,620 positions, ~314 core-h at depth 18 at this
   run's speed, ~40 h on 8 cores).
+
+## 2026-10-25 (00:35): Matthew's calls on the books, and a TODO line out (the ponder-scope session)
+
+- **Decision C: (a)**, measure the vetted Black book as it stands. He wants
+  it after a few hours of the bot tonight, on its own rather than waiting for
+  BT4: vetted v plain Black book, a no-regression test, planned by the BT1
+  (c) session.
+- **BT4** and **carrying BT1 (b)'s table to Black's move 3**: later, kept on
+  the todo.
+- One opponent's name and record came out of TODO.md's O2 item, on his word,
+  before the next push; the per-bot setup idea stays.
