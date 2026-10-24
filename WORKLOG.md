@@ -7059,3 +7059,23 @@ commit free). This branch fast-forwarded to compression (463878d) after.
   vet-c-match.txt, the write-up in bt-c.md; games in games\vet-c-match\.
 - **Keep the vetted book.** Putting it in the bot's books is Matthew's call
   (TODO); it's also one of the book duel's arms.
+
+## 2026-10-25 (06:03-06:15): the duel's smoke test and the Stockfish probe, in an early window
+
+ponder-scope offered the quiet laptop until 06:55 (vet-c-match done at 06:02, the learner only).
+- **book-duel smoke test, real engines** (06:04:40-06:05:12): `book-duel.py run` with the bot's engine copied to
+  games\book-duel\engine (sha256 1853644e2c4a, the bot's), `--arms table-a,table-b,vetted --games 2`, into
+  games\book-duel\smoke.jsonl. 6 games in 32 s, h1536-3m-ob8, 6 at once on CPUs 2-13: 4 threefold draws, 2 mates;
+  no time losses (lowest clock at the end 1.79 s). The tables' fixed lines came out as expected: table-a White
+  against table-b 1.e4 e6 2.d4 d5 3.e5 c5 4.c3 Nc6, table-b White against table-a 1.Nf3 d5 2.d4 c6 3.c4 Nf6.
+  Ready for `book-duel.cmd round-robin` (the smoke file is separate; round-robin.jsonl starts fresh).
+- **Stockfish probe** (06:06:39-06:09:58): book-match.py from the main checkout, h1536-3m-ob8 against Stockfish 16
+  at UCI_Elo 2700, 10+0.1, 6 at once, no book, our tables: **+35 -0 =5, 93.8%, +470 [+356, +788], about 3170 on
+  Stockfish's scale** (MATCHES.md, "Against Stockfish again"). 35 mates, 4 repetitions, 1 dead draw; as White
+  +18 =2, as Black +17 =3; no time losses either side, so WSL's relay is fine at 10+0.1. 36 different first 8
+  plies in 40 games: the weakened Stockfish varies them. The even level is at or past Stockfish's top, 3190.
+- Found while setting it up: python-chess sends the first isready inside the first timed move, and our engine reads
+  its tables then (1.82 s, 796 MB; the second isready 0.001 s). Each thread's first game (0-5) paid it: those
+  scored 75% (+3 =3), the other 34 97%. book-match.py now pings both engines before the first game. Each engine
+  holds ~1.3 GB (796 MB of tables, up to 512 MB of block cache) plus Hash 256: ~9.5 GB at 6 at once.
+- All engines gone at 06:10 (the learner's own engine aside).

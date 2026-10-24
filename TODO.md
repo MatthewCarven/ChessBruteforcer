@@ -646,6 +646,17 @@ Sessions, in order:
       10+0.1 while we lose more, and its scale is calibrated at a longer
       control: a floor, approximate. If h1536-6m-ob8 wins its match, its
       figure follows from this one plus that match. Then MATCHES.md.
+      **The probe ran early** (06:06-06:10, a quiet window ponder-scope
+      offered): **+35 -0 =5, 93.8%, +470 [+356, +788]: about 3170 on
+      Stockfish's scale**, far above the even level guessed. No time losses
+      either side. So the even level is at or past Stockfish's top (3190):
+      next, a 40-game probe at 3190. If we score 25-75% there, the 500
+      games at 3190 (±35); if more, the weakened scale has run out and the
+      figure stays "above ~3100" (full-strength Stockfish at a handicap is
+      another yardstick, with no Elo scale of its own). Each thread's first
+      game had our tables' read (~1.8 s) on its first move's clock (those 6
+      scored 75%, the other 34 97%); book-match.py now sends isready before
+      the clock (claude/self-play-book-83557a).
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**
       (Matthew's (c) in "3. Findings for the thesis"; scripts/turning-points.py
       reads lichess-bot's DEBUG logs, which it keeps 7-8 days). Did the
@@ -935,8 +946,8 @@ Sessions, in order:
             same day, his way: "all three should go against each other then
             the winner goes against a cpu without using any".** Built:
             scripts/book-tables/book-duel.py and .cmd (our engine on both
-            sides, each with its own books; dry-run checked, not yet with real
-            engines). `book-duel.cmd round-robin` (table-a, table-b, vetted;
+            sides, each with its own books; dry-run checked; 6-game smoke
+            test with real engines clean, 2026-10-25 06:05). `book-duel.cmd round-robin` (table-a, table-b, vetted;
             1,000 games a pair, ±14 Elo, ~4 h), then `book-duel.cmd final
             <winner>` (against no book, SPRT [0, 10], at most 2,000 games,
             ~2.6 h). Bot off, ~12 CPUs, an afternoon or night slot from the
