@@ -7170,3 +7170,38 @@ and OURS), as the fix wasn't merged yet.
   either; each row records its tables). ~50 min each. The difference says what the tables are worth at 10+0.1,
   time losses and all. Checked: it compiles, and a missing tables folder is refused; not run with engines (the
   bot has the laptop).
+
+## 2026-10-25 (06:55-08:00): an hour of the bot with up to three games at once (the orchestrator)
+
+Matthew's yes here, first-hand: "Yes: start the bot at 06:55 until 08:00, three games at once; the heat rule is
+lifted for that hour." bot/make-config.py as it stands: h1536-3m-ob8 on 4 threads a game, concurrency 3 (8e7da05),
+the vetted Black book first (3849d3e). Started 06:55:13; bot\quit.soon made at 08:00:16 with no game in play, so
+lichess-bot stopped at 08:00:21.
+
+- **6 games, 4W 2D 0L** (5/6, 83%; opponents' average 2504), in the order they started:
+
+  | Opponent | Elo | Clock | Colour | Result | End |
+  |---|---|---|---|---|---|
+  | Weiawaga | 2842 | 3+2 | White | draw | threefold repetition, move 50, rook endgame (12 pieces) |
+  | Juno-v1 | 2453 | 1+2 | Black | won | move 55, 5 pieces |
+  | morabandbot | 2301 | 5+3 | Black | won | move 54, 14 pieces |
+  | TempoCore | 2410 | 3+0 | White | won | move 47, 10 pieces |
+  | artidigm_research | 2319 | 3+2 | White | won | move 85, 3 pieces |
+  | RustBot2003 | 2700 | 3+3 | Black | draw | fifty-move rule, move 157, rook and two pawns against rook and pawn |
+
+- **Two games at once twice, never three.** Juno-v1's bullet challenge came 27 s into Weiawaga's game, TempoCore's
+  9 minutes into morabandbot's; at concurrency 1 both would have been declined "later". None was turned away busy.
+- **No time losses, either side, in all 22 of 10-25's games** (this hour's 6 and the night's 16). Our clock at the
+  end was 0:45 at the least (the 1+2 bullet game; theirs 0:30). RustBot2003 finished 157 moves with 0:06 to our 1:09.
+- `bot\move-times.py --since 2026-10-24`, 22 games. (`--since` is a UTC date and the laptop is on UTC+11: this
+  morning's games carry 2026.10.24 in their tags, and `--since 2026-10-25` found none.) Blitz, seconds a move,
+  median / mean: ours 3.0 / 4.1, theirs 3.0 / 4.4; ours alone 3.0 / 4.2 (16 games), beside another game 2.5 / 3.9
+  (3). Clock used by the end, blitz: ours 71%, theirs 80%. Bullet, 2 games: ours 2.0 / 2.0, theirs 2.0 / 2.3.
+- **Speed lines** (the engine's Mnps a search in the log, by how many games were on; a scratch script): this hour
+  8.9 / 7.8 median / mean with one on (262 searches), 8.8 / 8.4 with two (113); the night before, one on, 10.8 /
+  10.0 (834). A second game cost the search little. The morning ran ~18% slower than the night with one game on:
+  likely the heat (the CPU temperature wasn't read), though the games' mix differs.
+- lichess-bot's draw offers (offer_draw_enabled: a score of 0 for 10 moves, 10 pieces or fewer) went six times in
+  RustBot2003's long endgame; White declined each.
+- Blitz 2576 to 2588; bullet, the one game, won (2629 before it).
+- The laptop is free again from 08:00: light work only to midday.

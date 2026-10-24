@@ -373,10 +373,15 @@ heat with three on). test-busy.py now checks concurrency 3 too (10 cases).
 - [ ] Read the first sessions at three: Speed lines with 1, 2 and 3 games on,
       the CPU's temperature, and results split the same way. Fewer games or
       threads if three lose more or the CPU sits at its 92-93 C limit.
-      `bot\move-times.py --since 2026-10-25` gives the move times, ours and
+      `bot\move-times.py --since 2026-10-24` gives the move times, ours and
       the opponents', alone and beside another game (the baseline over 653
       games is in the WORKLOG, 2026-10-25); it doesn't yet split two games
-      on from three.
+      on from three. `--since` is a UTC date and the laptop is on UTC+11,
+      so the bot's mornings carry the day before: `--since 2026-10-25`
+      found none of 10-25's 06:55 games. The first session (10-25
+      06:55-08:00, WORKLOG): never three on, two on twice; 4W 2D, no time
+      losses; Speed 8.8 Mnps with two on against 8.9 alone (10.8 alone the
+      night before). CPU temperature not read.
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that
