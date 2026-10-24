@@ -7256,3 +7256,25 @@ Matthew: "lets run two 4 thread games now and i'll do the same". The same script
 - The work: two 4-thread engines do 17.0 Mnps together, about one 8-thread engine alone (19.0); two 8-thread
   engines 21.5 (1.27x the two 4-thread ones, for twice the threads). A game beside another: 8.5 Mnps at 4 threads,
   10.8 at 8 (+27%). Three 4-thread engines (the bot at its busiest) not measured.
+
+## 2026-10-25 (08:35-08:40): three 4-thread engines, the bot at its busiest
+
+Matthew: "Yes, run three 4-thread engines for 2 minutes and I'll screenshot NitroSense". A and B played each other
+(90+1, both pondering) while C searched the game's latest position 3 s at a time, so all three were busy, as with
+three bot games: 08:36:06-08:38:07 (a scratch script, heat-n.py). One alone first: 10.9 Mnps at 25% CPU, clock 153%.
+
+- Each engine 6.1 Mnps (0.56x alone); 18.3 together. CPU use 68% (12 of 16 threads); clock 146% falling to 128%,
+  median 130% (3.25 GHz). NitroSense: 92 C at 60-69% load, fans 3,488 / 4,054-4,109 RPM; 74 C at 2% after.
+- The four runs side by side (Mnps; clock against the 2.5 GHz base, median over the 2 minutes):
+
+  | engines on | CPU use | clock | each engine | together |
+  |---|---|---|---|---|
+  | one, 4 threads | 25-28% | 153-156% | 11.0 | 11.0 |
+  | one, 8 threads | 45% | 151% | 19.0 | 19.0 |
+  | two, 4 threads | 49% | 138% | 8.5 | 17.0 |
+  | three, 4 threads | 68% | 130% | 6.1 | 18.3 |
+  | two, 8 threads | 100% | 131% | 10.8 | 21.5 |
+
+- For the bot at concurrency 3: a game searches ~11 Mnps alone, ~8.5 with a second on, ~6.1 with three on (0.56x).
+  The third game adds 8% to the laptop's total work and takes 28% from each of the other two. Temperature 92 C in
+  every run, from 48% load up.
