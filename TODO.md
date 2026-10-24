@@ -657,6 +657,18 @@ Sessions, in order:
       game had our tables' read (~1.8 s) on its first move's clock (those 6
       scored 75%, the other 34 97%); book-match.py now sends isready before
       the clock (claude/self-play-book-83557a).
+      **The second probe, at 3190** (06:12-06:17, ponder-scope's go, with
+      the fix): **+6 -12 =22, 42.5%, -53 [-129, +19]: about 3140.** So 3190
+      is the level for the 500 games (±~20 at these draws, ~50 min). But
+      **4 of the 40 were our losses on time** (Stockfish none), all in
+      endgames of 7-10 pieces, two by ~2 s: most likely the 5-piece tables
+      read from disk mid-search with 6 engines at once (not shown). As draws
+      they'd be worth ~36 Elo here. Before the 500: (a) no tables for
+      either side, like every net match (book-match.py needs a `--tables`
+      option; Stockfish has none anyway), my pick; (b) as now, the time
+      losses counted; (c) a longer clock. Separately: does the engine's
+      clock allow for a slow 5-piece probe? The bot's own games would show
+      it (it plays longer controls, so less exposed).
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**
       (Matthew's (c) in "3. Findings for the thesis"; scripts/turning-points.py
       reads lichess-bot's DEBUG logs, which it keeps 7-8 days). Did the

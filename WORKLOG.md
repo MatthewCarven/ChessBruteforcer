@@ -7079,3 +7079,20 @@ ponder-scope offered the quiet laptop until 06:55 (vet-c-match done at 06:02, th
   scored 75% (+3 =3), the other 34 97%. book-match.py now pings both engines before the first game. Each engine
   holds ~1.3 GB (796 MB of tables, up to 512 MB of block cache) plus Hash 256: ~9.5 GB at 6 at once.
 - All engines gone at 06:10 (the learner's own engine aside).
+
+## 2026-10-25 (06:12-06:20): the Stockfish probe at 3190, Stockfish's top
+
+On ponder-scope's go, in the same early window. This worktree's book-match.py (isready before the clock) run
+against the main checkout's engine, tables and net through a wrapper in the scratchpad (it sets the module's REPO
+and OURS), as the fix wasn't merged yet.
+- **h1536-3m-ob8 against Stockfish 16 at UCI_Elo 3190** (06:12:40-06:16:52), 10+0.1, 6 at once, no book, our
+  tables: **+6 -12 =22, 42.5%, -53 [-129, +19], about 3140 on Stockfish's scale**; with the 2700 probe, ~3140-3170.
+  21 repetitions, 14 mates, 1 by the 50-move rule; as White +3 -7 =10, as Black +3 -5 =12; median 148 plies.
+- **4 losses on time, all ours** (Stockfish none): games 7, 8, 12, 14, at 175, 114, 122 and 70 plies, with 7, 10,
+  8 and 9 pieces on the board, our clocks ending at -0.1, -1.8, -2.6 and -0.0. Two overran by ~2 s, which isn't
+  ordinary time pressure: the likeliest cause is the 5-piece tables (compressed, read from disk as probed, 220 of
+  them) with 6 engines reading at once. Not shown. The duel and the net matches play without tables and have no
+  time losses. As draws they'd make it 47.5%, -17.
+- For the 500-game run (its own slot): 3190 is the level. The time losses want a decision first (TODO).
+- All engines gone at 06:17 (the learner's own engine aside). The branch fast-forwarded to compression (dc458f0,
+  which had merged 64b117f) before this entry.
