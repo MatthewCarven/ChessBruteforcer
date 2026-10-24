@@ -897,6 +897,18 @@ Sessions, in order:
       beside them). book-match.py takes a book list per arm and a book for
       Stockfish (BOOK-TABLES.md section 4 has the command); the match waits
       for all three books.
+      - [x] **BT1 (b) built** (2026-10-24, claude/book-table-b-cac6a7;
+            [bt-b.md](scripts/book-tables/results/bt-b.md)): 811 positions,
+            39 core-h (half the estimate), the check clean. Our best is a
+            human-book move in 47%, the 20 cp rule took the book's move in
+            4%, 48% aren't in the human book. Against the 2200 book's
+            choices: White +0.33 at move 3, Black -0.29 at move 2. Against
+            1.e4 it always plays the French (-0.34), the scoping's weak spot.
+      - [ ] **BT4 with the table**: the quick look, then the match (an arm
+            playing table-b.bin first, the current books after it).
+      - [ ] **Matthew's call: carry it to Black's move 3** (`--plies 6`,
+            ~6,620 positions, ~314 core-h at depth 18 at the measured
+            speed, ~40 h on 8 cores; less at depth 16).
 - [ ] **Decision C: after BT1 (c)'s vetting** (scripts/book-tables/results/
       bt-c.md, 2026-10-24): 57 human-book moves vetoed as Black (Stockfish
       agrees with 84%), in games\lichess-2200-vetted-black.bin; but they are
