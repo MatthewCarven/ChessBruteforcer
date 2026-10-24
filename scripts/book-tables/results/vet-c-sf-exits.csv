@@ -1,0 +1,143 @@
+id,fen,played,ours_cp,family,net,ply,sf_best,sf_cp,depth,seconds
+d67lsoeU,r2qkb1r/pp1npppp/3p1n2/2p5/4P3/2N2N1P/PPPP1PP1/R1BQK2R b KQkq - 0 6,e7e6,-7,Sicilian Defense,h1024-3m,12,e7e6,0,20,1.1
+lJzuGd4k,r2qkb1r/2pn1ppp/p3p3/1p2P3/8/4PQ2/PP3PPP/RNBR2K1 b kq - 2 12,c7c5,-46,Queen's Gambit Accepted,nnue1-h512,24,d8c8,-31,20,2.2
+kDVwVFwk,2kr3r/ppp2ppp/2nb1n2/7q/3P2b1/2N1BN1P/PPP1BPP1/R2QK2R b KQ - 2 10,h8e8,-101,Petrov's Defense,nnue1-h512,20,h8e8,-111,20,3.7
+JfwCmAaT,rn1qkb1r/pp3ppp/2p1pnb1/8/3P3N/2P3N1/PP3PPP/R1BQKB1R b KQkq - 2 8,d8c7,0,Caro-Kann Defense,h1024-3m,16,b8d7,-11,20,2.8
+NHS3ImhM,rn1qkb1r/pp4pp/2ppbn2/3P1p2/2P1p3/2N1P3/PP1NBPPP/R1BQK2R b KQkq - 0 8,e6f7,-68,Rat Defense,nnue1-h512,16,e6f7,-31,20,1.8
+MsUvIazI,r1bqk2r/pp1n1ppp/2n1p3/b2pP3/3N1P2/P1N1B3/1PPQ2PP/R3KB1R b KQkq - 2 10,a7a6,-116,French Defense,nnue1-h512,20,a5b6,-102,20,1.7
+YvTwwUtv,r1bq1rk1/pp2ppbp/2np1np1/8/4P3/2PQ1N2/PP2BPPP/RNBR2K1 b - - 0 9,d8c7,0,Sicilian Defense,nnue1-h512,18,d8c7,0,20,2.6
+bjjNVN26,r1q2rk1/1p2bppp/n2pbn2/pB2p1P1/4P3/1NN1BQ1P/PPP2P2/2KR3R b - - 0 13,f6d7,-38,Sicilian Defense,nnue1-h512,26,f6d7,-17,20,2.8
+yFJy4ffC,r3k2r/pb1p1ppp/2qPp3/2pn4/8/5P2/PPP1B1PP/R1BQ1RK1 b kq - 0 13,c5c4,-66,Sicilian Defense,nnue1-h512,26,c5c4,-47,20,1.3
+sEnaAKHi,rn1qkb1r/pp2nppp/2p1p3/3pPb2/2PP4/4BN2/PP3PPP/RN1QKB1R b KQkq - 2 6,b8a6,4,Caro-Kann Defense,nnue1-h512,12,b8d7,-1,20,1.6
+lfwpbVex,rn1qk2r/pb1pbppp/1p2p3/4P3/2BP4/2B2N2/PP3PPP/R2QK2R b KQkq - 2 10,b8a6,-40,Sicilian Defense,nnue1,20,b8a6,-27,20,3.2
+kq9Vc4JD,rnbqkb1r/ppp1pp2/6pp/8/4P2P/2P2N2/PP3PP1/R1BQKB1R b KQkq - 0 7,d8d1,-66,English Opening,nnue1-h512,14,d8d1,-39,20,3.0
+a7x7ZcPI,rnbqk2r/pppp1ppp/5n2/2b1p3/4P3/2N2N2/PPPPKPPP/R1BQ1B1R b kq - 5 4,d7d5,169,Bongcloud Attack,nnue1,8,d7d5,130,20,1.1
+e0Psme6o,r1bqkbnr/pp1p1ppp/4p3/2p5/3nP3/8/PPPPBPPP/RNBQK1NR b kq - 3 5,d7d5,76,Sicilian Defense,h1536-3m,10,d4e2,110,20,1.9
+cFB6ccAd,r2q1rk1/pp1nbppp/2p2n2/3p2Bb/3P3N/2NBP2P/PPQ2PP1/R3K2R b KQ - 4 11,a8c8,-33,Queen's Gambit Declined,nnue1-h512,22,h7h6,-34,20,1.8
+tpiNv3fg,r2q1rk1/p1p1bppp/2p1pn2/8/3P4/2PB4/PP2QPPP/R1B2RK1 b - - 1 12,a7a5,-113,French Defense,nnue1-h512,24,a7a5,-56,20,2.1
+70hB8Npn,r1bqk1nr/pp3ppp/1b2p3/nP1pP3/8/P2B1N2/2P2PPP/RNBQK2R b KQkq - 2 9,g8e7,-84,Caro-Kann Defense,h1024-3m,18,g8e7,-67,20,2.6
+X8Bv55aj,rn1qkb1r/pp3pp1/2p1pn1p/4N3/3P1P1P/3Q2N1/PPP3P1/R1B1K2R b KQkq - 0 11,f8b4,-67,Caro-Kann Defense,nnue1-h512,22,f8e7,-26,20,4.5
+bbPLryIe,r3k2r/ppp1bppp/2p1b3/4Pn2/8/1PN2N2/PBP2PPP/3R1RK1 b - - 4 12,h7h5,-9,Ruy Lopez,h1024-3m,24,h7h5,-6,20,1.6
+Pncamg3I,r3r1k1/1bqnbppp/pppp1n2/4pN2/P2PP3/2N1B2P/BPP2PP1/R2QR1K1 b - - 5 13,b6b5,-94,Philidor Defense,nnue1-h512,26,b6b5,-116,20,2.8
+mQ2qPq3q,r3k2r/ppp2pbp/2nqb1p1/1B1n2B1/3P4/5N2/PP1N1PPP/R2QR1K1 b kq - 5 11,h7h6,-133,Ruy Lopez,nnue1-h512,22,e8g8,-51,20,1.4
+KkZ8NZaq,2rq1rk1/1b1nppBp/pp1p1np1/8/2P4Q/1PN2NP1/P3PPBP/R2R2K1 b - - 0 13,g8g7,-29,English Opening,nnue1-h512,26,g8g7,-40,20,5.6
+8X6zOcJZ,r1bq1rk1/pp2ppbp/2n2np1/1B1pN3/3P4/2N4P/PPP2PP1/R1BQ1RK1 b - - 4 9,c8d7,-37,Modern Defense,nnue1-h512,18,c8d7,-13,20,3.3
+nTuLvqAW,r1b1kb1r/5ppp/p1p5/4p3/1n6/2P5/PP1R1PPP/RNB2BK1 b kq - 0 13,b4d5,-19,Sicilian Defense,h1024-3m,26,b4d5,-14,20,2.9
+5HhXH4oi,r2qkb1r/pp1nnppp/2p1p3/3pP3/3P2b1/2P2N2/PP1NBPPP/R1BQK2R b KQkq - 4 7,c6c5,-35,Caro-Kann Defense,nnue1,14,c6c5,-20,20,1.9
+BH91YtKU,r1bqkbnr/1p1npppp/p2p4/2p5/B3P3/3P1N2/PPP2PPP/RNBQK2R b KQkq - 1 5,b7b5,18,Sicilian Defense,nnue1,10,b7b5,20,20,1.2
+n1fVU252,r1bqk2r/1p3ppp/p3p3/2npP3/3Q1P2/P1N5/1PP3PP/R3KB1R b KQkq - 1 12,d8c7,-67,French Defense,h1024-3m,24,d8b6,-58,20,1.7
+lPSTPzpI,r1b1r1k1/pp3pbp/n1p2np1/4p3/2P1P3/2N1BN1P/PP2BPP1/3R1RK1 b - - 2 12,g7f8,10,King's Indian Defense,nnue1-h512,24,g7f8,10,20,2.7
+eMSqf9na,r1bq1rk1/p1pnbppp/1p1p1n2/4p3/2PPP3/2N1BN2/PPQ1BPPP/R3K2R b KQ - 1 8,c8b7,-91,Old Indian Defense,nnue1-h512,16,c8b7,-96,20,2.5
+oLPfv6Pm,r1bq1rk1/pp2ppbp/n2p1np1/2pP4/4P3/P1NB1N2/1PP2PPP/R1BQ1RK1 b - - 0 8,a6c7,-39,Indian Defense,nnue1,16,a6c7,-53,20,2.4
+k3z1fk0T,r2q1rk1/ppp1ppbp/n2p1np1/6B1/2PPP1b1/2N2N2/PP2BPPP/R2QK2R b KQ - 7 8,a8b8,-57,King's Indian Defense,nnue1-h512,16,f6d7,-62,20,4.4
+4Gbpgh4d,rn1q1rk1/ppp2ppp/8/3p1Q2/3P4/2b2N2/PPP2PPP/R1B2RK1 b - - 0 10,c3b4,-84,French Defense,nnue1-h512,20,c3b4,-133,20,2.0
+KGzIqNfl,r1bq1rk1/p1p3pp/2pb4/5p2/3Pp3/1QP2N2/PP3PPP/R1B2RK1 b - - 1 12,g8h8,53,Italian Game,h1536-3m,24,g8h8,82,20,0.8
+fNOVq2vj,rnbq1rk1/ppp3bp/3p1n2/3PppN1/2P5/2N3PP/PP3PB1/R1BQK2R b KQ - 3 11,d8e8,-67,Clemenz Opening,nnue1-h512,22,d8e7,-20,20,3.0
+kpGjnInZ,rnbqkb1r/pp1p1ppp/4p3/2pnP3/8/2N2N2/PPPPBPPP/R1BQK2R b KQkq - 2 5,d7d6,-50,Sicilian Defense,nnue1,10,b8c6,-31,20,1.4
+XSMc24RE,r2q1rk1/2p1bppp/p1n1b3/1p1pP3/8/1PP2N2/1PB2PPP/R1BQ1RK1 b - - 0 13,d8d7,-114,Ruy Lopez,nnue1-h512,26,d8d7,-76,20,2.5
+m3Uh653K,r3k2r/ppp2ppp/1qn1pn2/5b2/2BP4/P1B2N2/1PP2PPP/R2QR1K1 b kq - 2 11,e8g8,-39,Scandinavian Defense,h512-3m,22,f5g4,-31,20,3.5
+IKeWH5wI,r2q1rk1/pppb1pbp/2np1np1/8/2P1P3/2N1B3/PPN1BPPP/R2Q1RK1 b - - 4 10,d7e6,-92,King's Indian Defense,nnue1-h512,20,d7e6,-92,20,4.0
+fhWdlvn1,rn1qkbnr/pp2ppp1/2p4p/3pPb2/P2P4/2P5/1P3PPP/RNBQKBNR b KQkq - 0 5,e7e6,-54,Caro-Kann Defense,h1024-3m,10,a7a6,-43,20,1.8
+iFc7E0r4,rnbqk1nr/1p2ppbp/p2p2p1/2pP4/4P3/3B1N1P/PPP2PP1/RNBQK2R b KQkq - 0 6,b7b5,-84,Pirc Defense,h512-3m,12,b7b5,-75,20,2.0
+TDfo4ztb,r1bqkbnr/pp1p1ppp/2n5/4p3/3NPB2/8/PPP2PPP/RN1QKB1R b KQkq - 1 5,e5f4,478,Sicilian Defense,nnue1,10,e5d4,448,20,1.9
+2CA8oFLx,r1bqk2r/pp2bppp/2n1p3/2p5/3P1B2/2P2N2/P1P1BPPP/R2Q1RK1 b kq - 2 9,e8g8,-17,Sicilian Defense,nnue1-h512,18,e8g8,-15,20,3.4
+iOdSquPj,r3kb1r/pp1bpp1p/2np1p2/q7/3NP3/2N5/PPP1BPPP/R2Q1RK1 b kq - 1 9,c6d4,-54,Sicilian Defense,nnue1-h512,18,c6d4,-24,20,1.4
+1tQ818fC,r1bqk1nr/pp3pb1/2n4p/2Ppp1p1/7P/2P1P1B1/PP3PP1/RN1QKBNR b KQkq - 0 8,g5g4,9,Queen's Pawn Game,nnue1-h512,16,g5g4,-9,20,3.6
+iUtGWUZy,r1br2k1/ppp2pp1/2n2q1p/3p4/1b1P4/1QNBPN2/PP3PPP/R3K2R b KQ - 4 11,c8g4,-14,Queen's Gambit Declined,h1536-3m,22,c8g4,1,20,2.4
+73bugVW9,r2qkb1r/pp2pppp/2p2n2/2p4b/4P3/1P1P1N1P/P1P2PP1/RNBQK2R b KQkq - 0 7,f6d7,-62,Sicilian Defense,nnue1,14,h5f3,-49,20,1.4
+sPfKhEJh,r1b2rk1/p4pp1/2p2Q1p/3p4/1b6/2NB4/PPP2PPP/R4RK1 b - - 0 13,g7f6,-10,Four Knights Game,h512-3m,26,g7f6,-7,20,2.1
+BqFtHoE7,r1b2rk1/ppp1nppp/3p1q2/2b5/2nNP3/2P3PP/PP3PB1/RNBQ1RK1 b - - 2 11,c8d7,-69,Scotch Game,nnue1-h512,22,f6g6,-56,20,5.8
+XoDIlot7,r1bqkbnr/pp3ppp/2n5/2P1p3/2Pp4/B3PN2/P2P1PPP/RN1QKB1R b KQkq - 1 6,g8f6,101,Réti Opening,h1536-3m,12,g8f6,82,20,2.8
+ZqCcVd3Z,rn2k2r/pp3ppp/2pqpn2/3p4/3PP3/2NP1N2/PP3PPP/R2QK2R b KQkq - 0 9,f6g8,-37,Queen's Pawn Game,nnue1-h512,18,f6g8,-33,20,3.4
+RaYnEOgR,rnbqk2r/pppppnbp/5pp1/8/3PP3/2NB1N2/PPP2PPP/R1BQ1RK1 b kq - 6 6,e8g8,-102,Queen's Pawn Game,h512-3m,12,c7c6,-93,20,4.2
+tA5pV8Gg,rnbq1rk1/ppp3bp/5p1n/4p1p1/2P1P3/1QN2NB1/PP2BPPP/R3K2R b KQ - 1 12,c7c6,-29,King's Indian Defense,nnue1-h512,24,g8h8,-36,20,2.3
+q5SrQPgw,rnbqkb1r/pp2pppp/3p4/3n4/2P5/5N2/PP1P1PPP/RNBQKB1R b KQkq - 0 5,d5c7,-56,Alekhine Defense,h1024-3m,10,d5f6,-46,20,1.5
+bhJE4lVW,r2qkb1r/1p3ppp/p1npp3/2p4n/4P3/2P1Q2P/PP1P1PP1/RNB1RBK1 b kq - 4 11,f8e7,-29,Sicilian Defense,nnue1-h512,22,h5f6,-35,20,2.3
+SUQ6541w,r2qk2r/pp2Bpp1/2n1b2p/3pPp2/3P3P/2N2N2/PP3PP1/R2QK2R b KQkq - 0 12,d8e7,-51,French Defense,nnue1-h512,24,d8e7,-64,20,3.0
+GcIChtGz,rn3rk1/p3qpp1/1p2b2p/2pp4/3P4/Q3PN2/PP3PPP/2R1KB1R b K - 1 13,f8c8,1,Queen's Gambit Declined,h512-3m,26,f8c8,1,20,2.5
+g6mFtOL3,r1bq1rk1/pp1pbppp/2n2n2/2p1p3/2B1P3/2NP4/PPPN1PPP/R1BQ1RK1 b - - 4 7,d7d6,0,Sicilian Defense,nnue1-h512,14,d7d6,-4,20,1.6
+krqpUwGa,rn2kbnr/pp2pppp/2p5/q4b2/3P3N/2N5/PPP2PPP/R1BQKB1R b KQkq - 1 6,f5g6,-85,Scandinavian Defense,nnue1,12,g8f6,-53,20,2.4
+x2tU0gzn,r1bq1rk1/pppn1pbp/5np1/4p3/4P3/2N1BN2/PPP1BPPP/R2Q1RK1 b - - 1 9,d8e7,-10,Pirc Defense,nnue1-h512,18,d8e7,-2,20,2.2
+FjfQe1fU,rnbqkb1r/pp2pp1p/3p2p1/3n4/2B5/5N1P/PPPP1PP1/RNBQK2R b KQkq - 1 6,d5c7,-11,Alekhine Defense,h1024-3m,12,d5c7,-10,20,1.5
+5goydEra,r3kbnr/p2q1ppp/np2p3/2ppP3/3P4/2P2N2/PP2QPPP/RNB2RK1 b kq - 1 8,a6c7,-76,French Defense,h1024-3m,16,a6c7,-77,20,1.3
+qs2DZo4I,r1bq1rk1/1p1nbppp/p1npp3/6P1/3NP2P/2N1B3/PPPQ1P2/2KR1B1R b - - 4 11,c6d4,-169,Sicilian Defense,nnue1-h512,22,c6d4,-143,20,2.2
+V7ZS451t,r1bqk1nr/ppp2p1p/2nb4/8/6pN/3P2P1/PPP1P2P/RNBQKB1R b KQkq - 0 7,g8e7,-78,Bird Opening,h1024-3m,14,g8e7,-117,20,3.6
+5FP15eCl,r1bq1rk1/pp1nbpp1/2p1pn1p/3p4/2PP1B2/2N1PN1P/PPQ2PP1/3RKB1R b K - 1 9,a7a5,-62,Queen's Gambit Declined,nnue1-h512,18,d5c4,-52,20,2.5
+Y0J1MynV,rnb1qrk1/1pp1p1b1/3p1npp/p2P1p2/2P5/2N1BNPP/PP2PPB1/R2Q1RK1 b - - 0 10,b8a6,-27,Dutch Defense,nnue1-h512,20,g6g5,-37,20,6.6
+ugpNTtRp,rnbqk2r/pp2ppbp/5np1/2Pp4/5B2/2N2N1P/PPP1PPP1/R2QKB1R b KQkq - 0 6,d8a5,27,Queen's Pawn Game,nnue1-h512,12,e8g8,39,20,2.3
+3UhgcjWI,rnbqkb1r/pppppp1p/6p1/4P2n/3P4/4B3/PPP2PPP/RN1QKBNR b KQkq - 2 4,d7d6,-99,Modern Defense,nnue1-h512,8,d7d6,-103,20,3.4
+DpEHbqlQ,r2qk2r/pp1nbppp/2p1pn2/8/3P1B2/2P2N2/PPB1QPPP/R3K2R b KQkq - 6 11,f6d5,-102,French Defense,h1536-3m,22,d8a5,-110,20,2.6
+RG8QBsQM,r2qkb1r/1b1nppp1/p2p1n1p/1p6/3NP1P1/2N4P/PPP2PB1/R1BQR1K1 b kq - 3 10,e7e5,-67,Sicilian Defense,h1536-3m,20,a8b8,-47,20,2.0
+xDcHih3N,r1b1k1nr/1p1p1ppp/pqn1p3/8/1b2PBQ1/1NN5/PPP2PPP/R3KB1R b KQkq - 5 8,e8f8,-133,Sicilian Defense,h1536-3m,16,e8f8,-128,20,2.6
+4XjK3nrD,r1bq1rk1/ppp1bppp/2np1n2/8/4PB2/2N1QN1P/PPP2PP1/R3KB1R b KQ - 2 8,f6d7,-97,Philidor Defense,nnue1-h512,16,a7a6,-60,20,2.5
+JUyvrAuS,rnb2rk1/pp3pp1/2pq1n1p/3p4/3P4/2N1P2P/PPQ2PP1/R3KBNR b KQ - 0 10,f8e8,-20,Queen's Gambit Declined,nnue1-h512,20,d6e7,-9,20,2.7
+UjXm4isg,r1bq1rk1/pp1n1pp1/2pb1n1p/4p3/2BP4/2N1PN1P/PPQB1PP1/R4RK1 b - - 0 11,f8e8,-9,Semi-Slav Defense,nnue1-h512,22,f8e8,-21,20,2.7
+RrkEQuzN,r1b1k1nr/ppqn1pbp/2pp2p1/3Pp3/2P1P3/2N1BN2/PP2BPPP/R2QK2R b KQkq - 2 8,h7h6,-118,Modern Defense,h1536-3m,16,g8f6,-115,20,3.0
+QbYsZ8JR,r3kbnr/1p1b1ppp/1qn1p3/p2pP3/3P4/P1N1BN2/1P3PPP/R2QKB1R b KQkq - 1 9,g8h6,-145,French Defense,nnue1-h512,18,g8h6,-143,20,1.8
+ctRpH8A9,r1bqk2r/1ppp1ppp/p2b1n2/4n3/B2PP3/2N5/PPP2PPP/R1BQ1RK1 b kq - 2 8,e8g8,0,Ruy Lopez,h1024-3m,16,e8g8,0,20,1.0
+rjwPKyy2,rnbq1rk1/pp2ppbp/5np1/2p5/4PP2/2N2N2/PPP1B1PP/R1BQ1RK1 b - - 1 8,b8c6,-113,Pirc Defense,nnue1-h512,16,e7e6,-116,20,2.8
+LhOPR4P5,r2qkbnr/1b1ppppp/p1n5/1p1P4/4P3/3B1N2/PP3PPP/RNBQK2R b KQkq - 0 7,c6b4,-198,Sicilian Defense,nnue1-h512,14,c6a5,-141,20,4.2
+a7Jmzf4K,r1b2rk1/ppqnbppp/4pn2/8/2PN4/2N1B3/PP2BPPP/R1Q2RK1 b - - 2 12,a7a6,-68,Sicilian Defense,nnue1-h512,24,f8e8,-50,20,2.3
+CfJSyPFF,r2qkbnr/1ppb1ppp/p1Bp4/4p3/4P3/5N2/PPPP1PPP/RNBQ1RK1 b kq - 0 6,d7c6,-17,Ruy Lopez,h1024-3m,12,d7c6,-11,20,2.5
+VmlMiREF,2kr1bnr/ppp2ppp/1qB5/8/8/1Q6/PP3PPP/RNB2RK1 b - - 0 11,b6c6,69,Ponziani Opening,nnue1-h512,22,b6c6,57,20,3.9
+FxS2qBUM,rn1qkb1r/pp2pppp/2p5/4Nb2/1nPP4/3BB3/PP3PPP/RN1QK2R b KQkq - 4 8,b4d3,21,Alekhine Defense,nnue1-h512,16,b4d3,0,20,1.6
+Tc0h7kqz,r2qkbnr/pp3ppp/2n1p3/1N1pPb2/3p4/5N2/PPP1BPPP/R1BQ1RK1 b kq - 1 8,f8c5,-38,Caro-Kann Defense,nnue1-h512,16,f5g4,-22,20,2.8
+1clnkk3T,r2qkbnr/pb1ppppp/1pn5/8/3NPB2/2N5/PPP2PPP/R2QKB1R b KQkq - 4 6,g7g6,-114,Sicilian Defense,nnue1,12,a7a6,-99,20,1.8
+gXJc1q5N,r2qk2r/pp1bppbp/2np1np1/1B6/3PP3/5N1P/PP3PP1/RNBQR1K1 b kq - 0 9,d6d5,-108,Sicilian Defense,nnue1-h512,18,d6d5,-84,20,3.1
+3dk0EhCk,r1bq1rk1/pp2bppp/8/2pN4/8/4PN2/P2P1PPP/R2QKB1R b KQ - 0 11,d8d5,81,Polish Opening,h512-3m,22,d8d5,50,20,3.6
+OG79t33o,rnbq1rk1/ppp3b1/3p2p1/3Ppp2/2P5/2N1B1PP/PP1Q1P2/R3KB1R b KQ - 1 13,d8e8,-57,King's Indian Defense,h1024-3m,26,f5f4,-49,20,1.7
+aswvT4bd,rnbq1rk1/1pp1ppbp/3p1np1/p2P4/2P1P3/2NB1N2/PP3PPP/R1BQK2R b KQ - 1 7,c8g4,-25,King's Indian Defense,nnue1-h512,14,c8g4,-28,20,2.3
+tLbgisSS,rn1q1rk1/4ppbp/p2p1np1/1PpP4/P3P1b1/2N2N1P/1P3PP1/R1BQKB1R b KQ - 0 10,g4f3,-158,Benko Gambit Accepted,h1536-3m,20,g4d7,-130,20,3.5
+3TOu23kK,r2qkb1r/ppp1nppp/8/3Pp3/2Bn2b1/3P1N2/PPP2PPP/RNBQ1RK1 b kq - 0 7,d4f3,78,Ruy Lopez,nnue1-h512,14,g4f3,90,20,2.0
+EAyX3Mf9,rnbq1rk1/pp2ppbp/2p3p1/2Pn4/2BP4/1Q3N2/PP3PPP/RNB1R1K1 b - - 3 10,b7b6,-113,Scandinavian Defense,nnue1-h512,20,b7b5,-95,20,2.1
+bSkoa3IP,rnbqkb1r/ppp2p1p/3ppnp1/8/2P1P3/2N2N2/PP1PBPPP/R1BQK2R b KQkq - 1 5,f8g7,-90,English Opening,nnue1-h512,10,f8g7,-91,20,2.9
+c2XdXitD,r2q1rk1/pb3ppp/2pb1n2/1p2N3/4P3/2NB4/PPQ2PPP/R1B2RK1 b - - 0 13,d6e5,-21,Semi-Slav Defense,nnue1-h512,26,d6e5,-38,20,2.0
+dceIxTUp,r1bqkbnr/pp1ppp1p/6p1/1B6/3PP3/2N5/PP3PPP/R1BQK2R b KQkq - 0 7,a7a6,-136,Sicilian Defense,h1024-3m,14,a7a6,-131,20,2.9
+n0QNtoYp,r1bq1rk1/pp3pbp/2np1np1/3Pp3/4P3/3B1N1P/PP3PP1/RNBQR1K1 b - - 0 10,c6d4,-120,Modern Defense,h1024-3m,20,c6e7,-108,20,1.3
+WZFll4Yr,r1r3k1/ppq1ppbp/3pbnp1/8/3BP1PP/2N2P2/PPPQ4/1K1R1B1R b - - 0 13,c7a5,-105,Sicilian Defense,nnue1-h512,26,c7a5,-87,20,3.1
+ZBTeiXaO,r2q1rk1/3nbppp/p2pb3/1p1Np1Pn/4P3/1N2BP2/PPPQ3P/2KR1B1R b - - 2 13,e6d5,-13,Sicilian Defense,h1024-3m,26,e6d5,-41,20,1.9
+2X61nz3m,r2qk2r/1p1n1pb1/p2p1np1/3Pp2p/8/1N2BP2/PPPQB1PP/2KR3R b kq - 3 13,b7b5,29,Sicilian Defense,nnue1,26,b7b5,-13,20,3.2
+61InZpXn,rnbqkb1r/pp3ppp/1n1pp3/2p1P3/3P4/2P2N2/PP2BPPP/RNBQK2R b KQkq - 0 7,d6e5,-17,Sicilian Defense,h1536-3m,14,c5d4,-24,20,1.4
+KLb7YnDr,r2qkbnr/p4ppp/2p1p3/3pP3/3P2b1/5N2/PP1N1PPP/R1BQK2R b KQkq - 1 9,a7a5,20,Zukertort Opening,nnue1-h512,18,d8b6,17,20,2.6
+e21MKNkh,r2qkb1r/pp2pppp/2n2n2/2Pp4/6b1/P1N1PN2/1PP2PPP/R1BQKB1R b KQkq - 0 8,g7g6,-71,Zukertort Opening,h1536-3m,16,g7g6,-76,20,4.0
+giIOhsyS,r4k1r/2qn1p2/1pNp2p1/pPnPp2p/2P3P1/5P2/P1BQ3P/1KR4R b - - 0 25,f8g7,-84,Sicilian Defense,nnue1-h512,50,a8e8,-128,20,2.9
+7LWWHoYo,rnbqkb1r/pp2pppp/2p2n2/3P4/1P6/4P3/P2P1PPP/RNBQKBNR b KQkq - 0 4,c6d5,19,Polish Opening,h1024-3m,8,c6d5,21,20,3.0
+oiCHRw7g,r1bqkbnr/pp1p1ppp/2n1p3/2p5/4P2P/2N2N2/PPPP1PP1/R1BQKB1R b KQkq - 0 4,g8f6,15,Sicilian Defense,h1024-3m,8,d7d5,10,20,2.2
+qArV8776,r1bqkbnr/1pp2ppp/p1np4/4p3/B3P3/P4N2/1PPP1PPP/RNBQK2R b KQkq - 0 5,g8f6,-3,Ruy Lopez,h1024-3m,10,g8f6,-8,20,2.1
+Syz7YNOa,r3kb1r/ppp1pppp/2n2n2/q4b2/2BP2P1/2N2P2/PPP1N2P/R1BQK2R b KQkq - 0 8,f5g6,50,Scandinavian Defense,nnue1-h512,16,f5g6,51,20,2.8
+JA0URIGw,rn1qk2r/pbp2ppp/1p2pn2/3P4/3P4/5NP1/PP1NPPBP/R2QK2R b KQkq - 0 8,e6d5,-44,Queen's Indian Defense,nnue1-h512,16,e6d5,-33,20,2.1
+Mj03oVhf,r3kb1r/pppq1ppp/2n1bn2/1B1p2B1/3P4/2N1PN2/PP3PPP/R2QK2R b KQkq - 4 8,f8d6,-126,Queen's Gambit Declined,nnue1-h512,16,f8d6,-74,20,1.4
+eE7XdPIK,r3k2r/p1pnq1pp/1ppb1p2/4p3/Q1PPP3/2P2N2/P4PPP/R1B2RK1 b kq - 2 13,c6c5,-12,Ruy Lopez,h1536-3m,26,c6c5,-13,20,3.0
+KVQmuBlU,rnbqk2r/1p2bppp/p2p1n2/4p3/4P3/1NNQB3/PPP2PPP/R3KB1R b KQkq - 3 8,e8g8,-21,Sicilian Defense,nnue1-h512,16,c8e6,-21,20,3.2
+ybcfdXmz,r2qk2r/2p1bppp/p1n1b3/1p1pP3/8/1BP2N2/PP1Q1PPP/R1B2RK1 b kq - 0 11,c6a5,-98,Ruy Lopez,h1024-3m,22,c6a5,-79,20,2.8
+gpQq9HoI,r1b2rk1/ppp1bppp/2n5/3q4/3Pn3/P4N2/1P2BPPP/RNBQR1K1 b - - 1 12,c8f5,-73,Petrov's Defense,nnue1-h512,24,e7d6,-30,20,3.0
+gqnnTXnl,rn1qk1nr/pp2bpp1/2p1b3/3p3P/3P1B2/2N1P2P/PP3P2/R2QKBNR b KQkq - 0 9,b8d7,-41,Queen's Gambit Declined,h1024-3m,18,g8f6,-30,20,1.9
+DhX8Fe5q,rn2k1nr/pbpp2pp/1p2p3/3P1P2/1bP4q/2N5/PPQ2PPP/R1B1KBNR b KQkq - 0 7,e6d5,-65,English Defense,h1024-3m,14,e6d5,-13,20,3.3
+UTgj5nQV,rn1qkbnr/ppp1pppp/8/8/2Pp2b1/1Q6/PP1PPPBP/RNB1K1NR b KQkq - 1 4,b8d7,130,Grob Opening,nnue1-h512,8,b8d7,130,20,1.2
+Bp7QzRJX,r1bqk2r/pp1nbppp/4pn2/3p4/3P1B2/5NP1/PP2PPBP/RN1Q1RK1 b kq - 1 8,e8g8,-51,"King's Indian Attack, with e6",nnue1,16,f6h5,-36,20,1.8
+eM8Xp5RG,r1bqk1nr/ppp2p1p/3p2p1/4b3/4PP2/8/PPP1B1PP/RNBQ1RK1 b kq - 0 8,e5g7,-92,Modern Defense,nnue1-h512,16,e5g7,-92,20,2.6
+ZEx2G2if,r1bqkb1r/3n1pp1/p1n1p2p/1pppP2P/3P1P2/P1N1BN2/1PP3P1/R2QKB1R b KQkq - 0 10,f8e7,-49,French Defense,nnue1-h512,20,c6d4,-28,20,2.4
+xF9D2gHc,rnbq1rk1/1p3pbp/p2p1np1/3Pp3/P3P3/2N2N1P/1P2BPP1/R1BQK2R b KQ - 0 10,f6h5,-121,King's Indian Defense,nnue1-h512,20,a6a5,-123,20,2.6
+xqDAtJJk,rnbq1rk1/pp3pbp/2p2np1/4N3/2P1P3/2N5/PP2BPPP/R1BQ1RK1 b - - 0 9,f6e4,-63,King's Indian Defense,h1024-3m,18,f6e4,-56,20,1.5
+L8uz7i1b,r1bqkbnr/pppp2pp/2n5/4pp2/2P5/1PN3P1/P2PPP1P/R1BQKBNR b KQkq - 0 4,g8f6,-41,English Opening,h512-3m,8,g8f6,-43,20,2.4
+4cLFqM7W,r1b1k2r/p1q2pp1/2pb1n1p/n7/8/1P1N4/P1P1BPPP/RNBQK2R b KQkq - 0 13,e8g8,-24,Italian Game,nnue1-h512,26,c6c5,-27,20,3.7
+xdJrVrJP,rn1q1rk1/1p1bbppp/3p1n2/p3p3/P3P3/1NN1BP2/1PPQ2PP/R3KB1R b KQ - 0 10,b8c6,-83,Sicilian Defense,nnue1-h512,20,b8a6,-95,20,2.8
+22KGEWMv,r2qkb1r/ppp1p1pp/2n5/3p1n2/3P4/5N2/PPP2PPP/RNBQ1RK1 b kq - 0 7,d8d7,-66,Nimzowitsch Defense,nnue1,14,g7g6,-82,20,2.3
+4ZACwOMW,r1bqr1k1/pppnbppp/5n2/3p4/3P4/2NB1N1P/PPP2PP1/R1BQR1K1 b - - 4 9,c7c6,-18,French Defense,nnue1-h512,18,c7c6,-40,20,2.2
+ENOMki0z,r2q1rk1/pp1nbpp1/2p1pn1p/8/2PP1B1P/3Q1NN1/PP3PP1/3R1RK1 b - - 2 13,b7b5,-34,Caro-Kann Defense,h1536-3m,26,d8b6,-25,20,3.8
+LhVApeLo,r1b1kb1r/pp3p2/1qnppp2/7p/P3P3/1NN5/1PPQ1PPP/R3KB1R b KQkq - 0 10,f8h6,-60,Sicilian Defense,h512-3m,20,a7a6,-47,20,1.9
+tQMZ4mBz,r1b1kb1r/pp3ppp/2n1pn2/1Bpq4/8/2PP1N2/PP3PPP/RNBQ1RK1 b kq - 0 7,a7a6,-12,Sicilian Defense,nnue1-h512,14,a7a6,11,20,2.1
+UytQQsBt,rnbq1rk1/ppppbppp/4pn2/8/2PPP3/2N5/PP3PPP/R1BQKBNR b KQ - 0 5,d7d5,0,Indian Defense,nnue1-h512,10,d7d5,13,20,1.0
+dFe4YRwy,rn1qkb1r/pbpp1ppp/1p2pn2/8/2PP4/4PB2/PP3PPP/RNBQK1NR b KQkq - 3 5,d7d5,7,Indian Defense,nnue1-h512,10,d7d5,11,20,1.6
+7fu8ANJ1,rnbq1rk1/pp2ppbp/6p1/2p5/3P1B2/2PBPN2/P4PPP/R2QK2R b KQ - 2 10,b8c6,-23,Grünfeld Defense,h512-3m,20,b8d7,-31,20,4.5
+lSmXf8hr,r2q1rk1/pppb1pp1/2np1n1p/1B2p3/4P2B/2PP1N2/P1P2PPP/1R1Q1RK1 b - - 3 10,a7a6,-26,Four Knights Game,nnue1-h512,20,a7a6,-21,20,4.2
+SaHorQMN,rnb2rk1/1pq1p1bp/2pp1np1/p1P2p2/3P4/P1N2NP1/1P2PPBP/1RBQ1RK1 b - - 0 10,f6e4,-72,Dutch Defense,nnue1-h512,20,d6c5,-83,20,4.0
+xJisriVV,r1b2rk1/p1p1bppp/2Nqpn2/8/Q1pP4/6P1/PP2PP1P/RNB2RK1 b - - 2 10,a7a5,-49,Catalan Opening,nnue1-h512,20,f6d5,-46,20,2.6
+1dqQbWet,r1bq1rk1/1p2ppbp/2np1np1/p1p3B1/2P5/P1NP1NP1/1P2PPBP/R2Q1RK1 b - - 1 9,h7h6,5,English Opening,h512-3m,18,h7h6,-4,20,2.2
+OVRTBNHl,r1bqkb1r/1p2nppp/p1npp3/8/4PP2/1NN1B3/PPP3PP/R2QKB1R b KQkq - 1 8,d6d5,-90,Sicilian Defense,nnue1-h512,16,d6d5,-118,20,2.8
+hEUPrIxC,rnb1k2r/p1q1npQ1/1p2p2p/3pP2P/3p4/P1P5/2P2PP1/1RB1KBNR b Kkq - 0 11,h8g8,-103,French Defense,h1024-3m,22,h8g8,-78,20,1.3
+mnZzTFXt,r1bqkb1r/1p1npppp/p2p4/2p5/3PP3/2N2N2/PPP2PPP/R1BQ1RK1 b kq - 1 7,c5d4,-48,Sicilian Defense,nnue1-h512,14,e7e6,-56,20,2.5
+ooNWI3Ns,r1bqkb1r/pp3ppp/2n1p3/2pp4/2B1N3/3P1N2/PPP2PPP/R1BQ1RK1 b kq - 0 7,d5c4,77,Sicilian Defense,nnue1-h512,14,d5c4,72,20,1.2
+wnibvfk8,r1bqk2r/pp3ppp/2N2n2/2bp4/8/6P1/PP2PPBP/RNBQ1RK1 b kq - 0 9,b7c6,-106,English Opening,nnue1,18,b7c6,-106,20,2.3
+MwO2HMMU,r1bqkb1r/pp3ppp/2n1pn2/8/2BP4/5N2/PP3PPP/RNBQR1K1 b kq - 2 8,f8e7,-74,Queen's Gambit Accepted,nnue1-h512,16,f8e7,-54,20,1.9
+yfv1OML1,rnbq1rk1/1p2ppbp/p1p2np1/P2p4/2PP4/1QN1PN2/1P3PPP/R1B1KB1R b KQ - 2 8,b8d7,-49,Slav Defense,nnue1-h512,16,f6e4,-65,20,3.6

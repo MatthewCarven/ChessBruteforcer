@@ -1,0 +1,58 @@
+rank,tier,move_no,fen,vetoed,san,share,played,loss_d16,loss_d18,best_d18,best_san,best_cp_d18,replaced,in_book,sf_loss,sf_loss_ours,families
+1,1,1,rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1,b8a6,Na6,0.0002,1,88,69,e7e6,e6,-34,,yes,86,9,Sicilian Defense:33; French Defense:10; Ruy Lopez:9; Caro-Kann Defense:6; Scandinavian Defense:4; Modern Defense:4; Alekhine Defense:3; Petrov's Defense:2; Philidor Defense:2; Four Knights Game:2; Pirc Defense:2; Bongcloud Attack:1; Old Indian Defense:1; Scotch Game:1; Ponziani Opening:1; King's Indian Defense:1; Italian Game:1
+2,1,1,rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq - 0 1,b7b6,b6,0.0060,1,68,55,d7d5,d5,-26,,yes,67,7,Queen's Gambit Declined:5; King's Indian Defense:4; Indian Defense:3; Queen's Pawn Game:2; Dutch Defense:2; Semi-Slav Defense:2; Rat Defense:1; Caro-Kann Defense:1; Modern Defense:1; Pirc Defense:1; French Defense:1; Queen's Indian Defense:1; English Defense:1; Grünfeld Defense:1; Catalan Opening:1
+4,1,2,rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2,f7f6,f6,0.0008,1,136,143,b8c6,Nc6,-19,,yes,110,0,Ruy Lopez:9; Petrov's Defense:2; Old Indian Defense:1; Scotch Game:1; Philidor Defense:1; Ponziani Opening:1; Italian Game:1; Four Knights Game:1
+5,1,1,rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1,f7f6,f6,0.0014,1,92,95,g8f6,Nf6,-23,,yes,91,0,"English Opening:4; King's Indian Defense:3; Queen's Gambit Accepted:2; Sicilian Defense:1; Queen's Pawn Game:1; Queen's Gambit Declined:1; Zukertort Opening:1; King's Indian Attack, with e6:1; Nimzowitsch Defense:1; Slav Defense:1"
+21,1,4,rnbqkb1r/ppp2ppp/4pn2/3pP3/3P4/2N5/PPP2PPP/R1BQKBNR b KQkq - 0 4,f6g8,Ng8,0.0220,1,59,73,f6d7,Nfd7,-23,,yes,68,0,French Defense:3
+41,1,3,rnbqkb1r/pppp1ppp/5n2/4N3/4P3/8/PPPP1PPP/RNBQKB1R b KQkq - 0 3,b8c6,Nc6,0.0974,0,95,91,d7d6,d6,-45,,yes,116,0,Petrov's Defense:2
+48,1,2,rnbqkbnr/pppppp1p/6p1/8/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 1 2,f7f6,f6,0.0052,1,119,119,g8f6,Nf6,-31,,yes,118,0,Queen's Pawn Game:1; Dutch Defense:1
+49,1,3,r1bqkbnr/pppp1ppp/2n5/4p3/3PP3/5N2/PPP2PPP/RNBQKB1R b KQkq - 0 3,d7d6,d6,0.0139,1,64,62,e5d4,exd4,-18,,yes,69,0,Scotch Game:1
+69,1,3,rnbqkb1r/pppp1ppp/4pn2/8/2P5/2N2N2/PP1PPPPP/R1BQKB1R b KQkq - 2 3,g7g6,g6,0.0028,1,53,64,d7d5,d5,-17,,yes,61,-11,English Opening:1
+105,1,2,r1bqkbnr/pppppppp/2n5/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 0 2,f7f5,f5,0.1023,1,96,102,e7e5,e5,-20,,yes,79,0,Nimzowitsch Defense:1
+112,1,2,rnbqkbnr/pppp1ppp/4p3/8/3P4/2N5/PPP1PPPP/R1BQKBNR b KQkq - 1 2,f7f5,f5,0.0629,0,64,63,d7d5,d5,-30,,yes,77,0,French Defense:1
+124,1,3,rnbqkbnr/ppp2ppp/3p4/4p3/2PP4/5N2/PP2PPPP/RNBQKB1R b KQkq - 1 3,c8g4,Bg4,0.0638,0,66,63,e5e4,e4,-19,,yes,61,0,Rat Defense:1
+124,1,3,rnbqkbnr/ppp2ppp/3p4/4p3/2PP4/5N2/PP2PPPP/RNBQKB1R b KQkq - 1 3,b8c6,Nc6,0.1041,0,61,68,e5e4,e4,-19,,yes,52,0,Rat Defense:1
+168,1,5,rn1qkbnr/pb1ppppp/1p6/8/3NP3/2N5/PPP2PPP/R1BQKB1R b KQkq - 2 5,e7e6,e6,0.1233,0,95,60,a7a6,a6,-86,,yes,85,0,Sicilian Defense:1
+177,1,5,r2qkbnr/pp1bpppp/2np4/1Bp5/4P3/2P2N2/PP1P1PPP/RNBQ1RK1 b kq - 0 5,e7e5,e5,0.0584,0,61,71,g8f6,Nf6,-43,,yes,44,23,Sicilian Defense:1
+181,1,5,rn1qk1nr/pbpp1ppp/1p2p3/8/1bPPP3/2N5/PPQ2PPP/R1B1KBNR b KQkq - 2 5,f7f5,f5,0.0780,0,58,50,b4c3,Bxc3+,-51,,yes,75,-8,English Defense:1
+186,1,6,rnbq1rk1/ppp1ppbp/3p1np1/8/3PPP2/2N2N2/PPP1B1PP/R1BQK2R b KQ - 4 6,c8g4,Bg4,0.0957,0,81,63,c7c5,c5,-21,,yes,73,0,Pirc Defense:1
+186,1,6,rnbq1rk1/ppp1ppbp/3p1np1/8/3PPP2/2N2N2/PPP1B1PP/R1BQK2R b KQ - 4 6,b8c6,Nc6,0.1201,0,70,64,c7c5,c5,-21,,yes,52,0,Pirc Defense:1
+191,1,6,rn1qkbnr/1b1ppppp/p7/1p6/3PP3/3B1N2/PP3PPP/RNBQK2R b KQkq - 2 6,b8c6,Nc6,0.2364,1,61,78,g8f6,Nf6,-85,yes,yes,81,0,Sicilian Defense:1
+191,1,6,rn1qkbnr/1b1ppppp/p7/1p6/3PP3/3B1N2/PP3PPP/RNBQK2R b KQkq - 2 6,d7d6,d6,0.7636,0,76,80,g8f6,Nf6,-85,yes,yes,74,0,Sicilian Defense:1
+218,1,6,r1bqkbnr/pp1ppppp/8/1B6/4P3/2N5/PP1P1PPP/R1BQK2R b KQkq - 0 6,g7g6,g6,0.4403,1,51,67,a7a6,a6,-87,,yes,52,0,Sicilian Defense:1
+226,1,7,r1b1kbnr/pp3ppp/1qn1p3/3pP3/3P4/P4N2/1P3PPP/RNBQKB1R b KQkq - 0 7,f7f6,f6,0.1243,0,52,57,g8e7,Nge7,-67,,yes,43,0,French Defense:1
+230,1,7,r2qkb1r/pp1bpppp/2np1n2/6B1/3NP3/2N5/PPP1BPPP/R2QK2R b KQkq - 6 7,d8a5,Qa5,0.5806,1,76,64,e7e6,e6,-23,,yes,28,0,Sicilian Defense:1
+234,1,7,rnbqkb1r/pp4pp/2pp1n2/5p2/2PPp3/2N1P3/PP1NBPPP/R1BQK2R b KQkq - 3 7,c8e6,Be6,0.0753,1,86,79,d6d5,d5,29,,yes,58,0,Rat Defense:1
+241,1,7,r1b1k2r/ppppnppp/2n2q2/2b5/3NP3/2P1B1P1/PP3P1P/RN1QKB1R b KQkq - 0 7,e8g8,O-O,0.3243,1,76,78,h7h5,h5,29,,yes,58,0,Scotch Game:1
+241,1,7,r1b1k2r/ppppnppp/2n2q2/2b5/3NP3/2P1B1P1/PP3P1P/RN1QKB1R b KQkq - 0 7,b7b6,b6,0.0707,0,57,90,h7h5,h5,29,,yes,93,0,Scotch Game:1
+243,1,7,r1b1kb1r/pp2pppp/1qnp1n2/6B1/4P3/1NN5/PPP2PPP/R2QKB1R b KQkq - 6 7,f6g4,Ng4,0.1490,0,62,61,c8e6,Be6,-86,,yes,74,11,Sicilian Defense:1
+244,1,7,r1bqk2r/pp1nbppp/2p1pn2/3P4/3P4/5NP1/PP2PPBP/RNBQ1RK1 b kq - 0 7,c6d5,cxd5,0.0000,1,56,55,e6d5,exd5,23,,no,61,0,"King's Indian Attack, with e6:1"
+245,1,7,rnbq1rk1/pp2ppbp/3p1np1/2P5/4PP2/2N2N2/PPP1B1PP/R1BQK2R b KQ - 0 7,d6c5,dxc5,0.3014,1,79,88,d8a5,Qa5,-13,,yes,46,0,Pirc Defense:1
+260,1,8,r1bqkb1r/p2p1ppp/2p1p3/3nP3/4N3/8/PPP2PPP/R1BQKB1R b KQkq - 2 8,c8b7,Bb7,0.1269,1,59,58,d8c7,Qc7,-25,,yes,-13,0,Sicilian Defense:1
+261,1,8,r1bqk2r/ppp1npbp/2n3p1/1B1P4/3P4/5N2/PP3PPP/RNBQ1RK1 b kq - 0 8,d8d5,Qxd5,0.0513,0,94,102,e7d5,Nxd5,-76,,yes,92,0,Ruy Lopez:1
+269,1,8,r3kbnr/pp1b1ppp/1qn1p3/3pP3/3P4/P1N2N2/1P3PPP/R1BQKB1R b KQkq - 2 8,c6a5,Na5,0.1935,0,52,52,g8e7,Nge7,-88,,yes,71,0,French Defense:1
+269,1,8,r3kbnr/pp1b1ppp/1qn1p3/3pP3/3P4/P1N2N2/1P3PPP/R1BQKB1R b KQkq - 2 8,f7f6,f6,0.0774,0,71,76,g8e7,Nge7,-88,,yes,42,0,French Defense:1
+274,2,2,rnbqkb1r/pppppppp/5n2/8/3P4/2N5/PPP1PPPP/R1BQKBNR b KQkq - 2 2,d7d6,d6,0.0420,1,64,63,d7d5,d5,17,,yes,48,0,Indian Defense:1
+274,2,2,rnbqkb1r/pppppppp/5n2/8/3P4/2N5/PPP1PPPP/R1BQKBNR b KQkq - 2 2,c7c5,c5,0.0748,2,81,84,d7d5,d5,17,,yes,54,0,Indian Defense:1
+274,2,2,rnbqkb1r/pppppppp/5n2/8/3P4/2N5/PPP1PPPP/R1BQKBNR b KQkq - 2 2,g7g6,g6,0.1183,2,69,64,d7d5,d5,17,,yes,63,0,Indian Defense:1
+281,2,3,r1bqkbnr/pppp1ppp/2n5/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R b KQkq - 3 3,f8c5,Bc5,0.0693,0,62,72,g8f6,Nf6,-11,,yes,51,0,Four Knights Game:2
+314,2,2,rnbqkb1r/pppppppp/5n2/8/8/2N2N2/PPPPPPPP/R1BQKB1R b KQkq - 3 2,g7g6,g6,0.3030,0,79,68,d7d5,d5,14,,yes,87,0,Queen's Pawn Game:1
+317,2,3,rnbqkb1r/pp1ppppp/5n2/2pP4/8/2N5/PPP1PPPP/R1BQKBNR b KQkq - 0 3,e7e5,e5,0.1020,0,54,63,d7d6,d6,-61,,yes,55,0,Indian Defense:1
+323,2,4,r1bqkb1r/pppp1ppp/2n2n2/4p1N1/2B1P3/8/PPPP1PPP/RNBQK2R b KQkq - 5 4,f8c5,Bc5,0.0821,0,86,91,d7d5,d5,-2,,yes,116,0,Italian Game:1
+330,2,5,rnbqkb1r/ppp1pppp/8/3nN3/3P4/8/PPP2PPP/RNBQKB1R b KQkq - 0 5,b8d7,Nd7,0.0630,1,92,61,g7g6,g6,-47,,yes,56,0,Alekhine Defense:1
+332,2,5,r1bqkb1r/pppp1ppp/2n5/1B2p3/3Pn3/5N2/PPP2PPP/RNBQ1RK1 b kq - 0 5,e5d4,exd4,0.0155,1,125,108,e4d6,Nd6,-7,,yes,65,0,Ruy Lopez:1
+333,2,6,rn1qkbnr/pp3ppp/4p3/2ppPb2/3P4/5N2/PPP1BPPP/RNBQ1RK1 b kq - 1 6,c5d4,cxd4,0.0513,0,75,94,b8c6,Nc6,-32,,yes,94,0,Caro-Kann Defense:1
+348,2,2,rnbqkbnr/pppp1ppp/4p3/8/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 1 2,b7b6,b6,0.0656,0,59,56,d7d5,d5,-21,,yes,46,-5,Catalan Opening:1
+353,2,1,rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR b KQkq - 0 1,h7h5,h5,0.0579,0,63,62,d7d5,d5,102,,yes,72,0,Grob Opening:1
+353,2,1,rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR b KQkq - 0 1,d7d6,d6,0.0599,0,75,82,d7d5,d5,102,,yes,71,0,Grob Opening:1
+353,2,1,rnbqkbnr/pppppppp/8/8/6P1/8/PPPPPP1P/RNBQKBNR b KQkq - 0 1,c7c5,c5,0.0638,0,54,55,d7d5,d5,102,,yes,39,0,Grob Opening:1
+356,2,2,rnbqkbnr/pp1ppppp/2p5/8/1PP5/8/P2PPPPP/RNBQKBNR b KQkq - 0 2,d8b6,Qb6,0.0966,0,72,66,g8f6,Nf6,31,,yes,65,6,Polish Opening:1
+359,2,3,rnbqkbnr/pp1ppppp/8/8/3pP3/2P5/PP3PPP/RNBQKBNR b KQkq - 0 3,d4d3,d3,0.1372,0,72,68,d4c3,dxc3,14,,yes,74,0,Sicilian Defense:1
+368,2,3,rnbqkbnr/pp2pppp/8/2Pp2B1/8/8/PPP1PPPP/RN1QKBNR b KQkq - 0 3,f7f6,f6,0.2448,0,76,72,h7h6,h6,46,,yes,77,0,Queen's Pawn Game:1
+371,2,4,rnbqkb1r/pp1ppp1p/5np1/2pP4/4P3/2N5/PPP2PPP/R1BQKBNR b KQkq - 0 4,f8g7,Bg7,0.1133,0,61,54,d7d6,d6,-61,,yes,82,0,Indian Defense:1
+434,2,5,r1bqk2r/pppp1ppp/2n2n2/1B2p3/1b2P3/2N2N2/PPPP1PPP/R1BQ1RK1 b kq - 7 5,d7d6,d6,0.1068,0,97,100,e8g8,O-O,-19,,yes,116,0,Four Knights Game:1
+447,2,6,rnbqkb1r/pp2pppp/2p5/3nN3/2PP4/8/PP3PPP/RNBQKB1R b KQkq - 0 6,d5f6,Nf6,0.1485,0,80,93,d5b4,Nb4,8,,yes,120,0,Alekhine Defense:1
+453,2,6,rnbq1rk1/ppp1ppbp/3p1np1/3P4/2P1P3/2N2N2/PP3PPP/R1BQKB1R b KQ - 0 6,c7c5,c5,0.1575,0,61,62,f8e8,Re8,-10,,yes,73,4,King's Indian Defense:1
+473,2,6,rnbqk1nr/pp2ppb1/7p/2Pp2p1/8/2P3B1/PP2PPPP/RN1QKBNR b KQkq - 0 6,e7e5,e5,0.0903,0,87,75,g8f6,Nf6,44,,yes,105,0,Queen's Pawn Game:1
+478,2,7,2kr1bnr/ppp2ppp/2n5/3qp3/3P2b1/2P2N2/PP2BPPP/RNBQ1RK1 b - - 4 7,g8f6,Nf6,0.1250,0,64,80,e5d4,exd4,36,,yes,88,0,Ponziani Opening:1
+488,2,7,r3kb1r/ppp1pppp/2n2n2/q7/2BP2b1/2N2P2/PPP1N1PP/R1BQK2R b KQkq - 0 7,g4h5,Bh5,0.5446,0,67,71,g4e6,Be6,-31,,yes,77,0,Scandinavian Defense:1
