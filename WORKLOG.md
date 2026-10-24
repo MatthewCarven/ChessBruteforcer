@@ -7096,3 +7096,29 @@ ponder-scope offered the quiet laptop until 06:55 (vet-c-match done at 06:02, th
 - Earlier, from this session (2026-10-23), for the record: the desktop's h1536-3m-ob8 stopped after pass 6 (16:02:43,
   its checkpoint kept) for Matthew's OBS and resumed with --resume at 22:51 by its clock; the laptop's h1024-6m held
   60 minutes after pass 7 for the heat (its .pause file, 17:14:06 to 18:14:11; the CPU was at 92 C in NitroSense).
+
+## 2026-10-25 (06:15-06:35): move times, ours and the opponents' (NNUE session 2b)
+
+- Matthew: "do some profiling too please Claude move times us and them?". **bot/move-times.py** reads the bot's games
+  (bot\games, one PGN a game) and takes each move's time from lichess.org's [%clk] comments (the mover's clock before,
+  plus the increment, less the clock after; whole seconds, so the medians and means count, not single moves; each
+  side's first move left out, since the clocks start after both have moved). By speed and move number, the clock
+  used by the end, time losses, and ours alone against beside another of the bot's games (start from UTCTime, end
+  from the file's write time; checked: no game negative or over 3 h, and no overlap at all after concurrency 1 from
+  2026-10-22 02:25, as it should be).
+- **The baseline, 653 games (2026-10-13 to 10-25), seconds a move, median / mean:**
+
+  | | games | ours | theirs | ours, moves 2-10 | theirs, 2-10 | clock used, ours / theirs | lost on time, us / them |
+  |---|---|---|---|---|---|---|---|
+  | bullet | 55 | 1.0 / 1.7 | 1.0 / 1.8 | 0.5 / 1.1 | 2.0 / 2.2 | 77% / 87% | 2 / 3 |
+  | blitz | 565 | 3.0 / 4.7 | 4.0 / 4.8 | 1.0 / 3.2 | 6.0 / 5.8 | 79% / 84% | 8 / 16 |
+  | rapid | 24 | 5.0 / 8.8 | 6.0 / 8.3 | 1.0 / 4.6 | 10.0 / 12.1 | 77% / 81% | 0 / 0 |
+  | classical | 9 | 17.5 / 26.2 | 23.0 / 26.7 | 1.0 / 14.1 | 32.0 / 33.5 | 81% / 88% | 0 / 2 |
+
+- Over a game the two sides spend about the same; ours is front-loaded differently: the books play the first moves
+  in about a second, then moves 11-40 take as long as the opponents' or a little longer (blitz 11-20: 7.0 / 7.5
+  against 7.0 / 7.2; 21-40: 5.0 / 6.0 against 5.0 / 5.4), and we finish with more of the clock left (79% used
+  against 84%). Half as many time losses as the opponents in blitz (8 against 16).
+- **Beside another game** (blitz, 123 games of 565): ours 3.0 / 4.4 against 4.0 / 4.8 alone. The time a move hardly
+  changes, as expected: the clock sets it. What a second or third game costs is search in that time (the Speed lines:
+  ~0.6x each with two 8-thread engines, 2026-10-20), not seconds. The first sessions at three: `--since 2026-10-25`.
