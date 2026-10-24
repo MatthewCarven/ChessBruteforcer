@@ -7316,3 +7316,38 @@ now says 8 threads each, two filling the 16 hardware threads and three sharing t
   "16 threads while only one game is on" (8 to 16 again; two 8-thread engines did 1.13x one) follow.
 - Takes effect at the bot's next start (start-bot.cmd runs make-config.py); the bot is off, and starting it is
   Matthew's word in the orchestrator's session.
+
+## 2026-10-25 (09:00-09:25): the goodbye says how many positions the bot searched (a side session)
+
+Matthew: "some of the other bots print them, i dont want the message to be long but a figure on the total computed
+positions would be nice", and it "does not need be 100% acurate". Branch claude/chat-stats-f4ed23, off compression
+(1e1cf37).
+
+- **What it says.** At the game's end the goodbye carries the count, in the same message: "Good game! I searched ~6.8
+  billion positions this game, ~14 million a second." (77 characters), and to spectators "Thanks for watching! I
+  searched ..." (87). `!stats` says it at any time, to anyone: "So far I've searched ~2.3 billion positions this game,
+  ~14 million a second."; `!help` lists it (132 characters). No extra message at the end, so nothing more for the
+  chat's flood filter. Matthew's quit.soon goodbye (113 characters) has no room and goes as it was; a game with no
+  search says plain "Good game!"; after a restart mid-game the count says "since my restart".
+- **What it counts.** The sum of the nodes the engine reported for each move lichess-bot kept (move_commentary), the
+  speed from their reported times. A ponder hit's count runs from the start of the ponder (the engine goes on in the
+  same search), so the opponent's time is in it when the guess was right; a ponder miss's search is stopped and dropped
+  by python-chess unreported, so it isn't. Hence the "~", and on the low side.
+- **Sized from the logs** (bot/logs, 2026-10-22 to 24, 34 games one at a time; a scratch script summing each game's
+  "Nodes:" lines): 0.9 to 11 billion positions a game, median 6.8 billion. The counted searches cover 73% of the
+  engine's thinking time from its first search to its last (66-80% the middle half); the rest is mostly ponder misses.
+  The 24th's games (4 threads) came to 1-5 billion; with three games on (~6.5 Mnps each) expect about half the usual.
+- **How.** bot/chat_commands.py: searched(), stats_sentence(), outgoing(), and !stats in reply().
+  bot/lichess-bot-goodbye-stats.patch (new): lichess-bot's Conversation.send_message asks bruteforcer_chat.outgoing()
+  first, and a fault there logs "bruteforcer_chat failed" and sends the message as it was. (The goodbye's own line in
+  play_game sits inside the quit-soon patch's hunk: a patch there would make quit-soon's "in already" check fail at
+  every start. send_message is clear of every other patch.) bot/start-bot.cmd applies it after the chat patch, unless
+  it's in already.
+- **Checked.** A clone of the live lichess-bot with the stack applied (its lib/*.py byte-identical to the live ones)
+  went through start-bot.cmd's apply-unless-in sequence twice, from the live state and from pristine: every patch
+  applied or "in already", both starts. bot/test-goodbye-stats.py (new): lichess-bot's Conversation with a pretend
+  game, engine and lichess.org, and chat_commands.py from the repo; 11 cases pass. It fails with the patch out ("the
+  patch isn't in"), and on each of four mutants of chat_commands.py (no length check, the game-on test gone, reported
+  times ignored, the restart not said).
+- **Not done**: not seen on Lichess. It goes live at the bot's next start once merged into compression. It changes
+  bot/start-bot.cmd, so merge with the bot stopped (cmd.exe reads a running batch file line by line).

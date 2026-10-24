@@ -1585,6 +1585,12 @@ Sessions, in order:
       pick an option in each of O1 (the log), O2 (the net per bot) and O3
       (the opening per bot). (2026-10-22: O1 (a), O2 (a), O3 (b) then (a);
       O1 built, section 2.)
+- [ ] **The goodbye's count of positions searched** (2026-10-25, branch
+      claude/chat-stats-f4ed23; WORKLOG 2026-10-25 09:00): "Good game! I
+      searched ~6.8 billion positions this game, ~14 million a second.",
+      and `!stats` at any time. Live at the bot's next start once merged; it
+      changes bot/start-bot.cmd, so merge with the bot stopped. Then try
+      `!stats` once from his own account.
 - [ ] Restart the bot (between games, `bot\quit-soon.cmd`) once the P8
       branch is in compression, so start-bot.cmd's game record line runs.
       It changes bot\start-bot.cmd, so stop the bot before merging (cmd.exe

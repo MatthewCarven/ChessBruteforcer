@@ -45,6 +45,14 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-chat.patch"
     if errorlevel 1 echo The chat commands didn't go in ^(lichess-bot changed?^): starting without !info.
 )
+rem The goodbye at a game's end says roughly how many positions the engine searched in it, in the same message (!stats
+rem says it any time): bot\lichess-bot-goodbye-stats.patch, 2026-10-25; bot\test-goodbye-stats.py tests it. Unless
+rem that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-goodbye-stats.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-goodbye-stats.patch"
+    if errorlevel 1 echo The goodbye's count didn't go in ^(lichess-bot changed?^): goodbyes go without it.
+)
 rem A game whose stream lichess.org closes mid-game is opened again rather than left to run out of time
 rem (bot\lichess-bot-rejoin.patch, 2026-10-17; bot\test-rejoin.py tests it), unless that's in already.
 git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-rejoin.patch" >nul 2>&1
