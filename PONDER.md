@@ -822,6 +822,30 @@ node as before. The option is there so the bench can be run again on any later c
 - **(b)** Drop P5's code: merge only the write-up and the bench (the docs and `scripts/` from the branch's last commit)
   and leave `src` as it was. Equally fine: with the option off, the code does nothing.
 
+Matthew chose (a), and then (b) of a later question: HistoryKept as a *variety* setting, since a kept history makes
+the bot "at least try something else" (24% of the bench's searches ended on another move at depth 12). That wanted a
+no-regression match.
+
+**The no-regression match: the variety costs nothing measurable** (2026-10-24). `ponder-match.py --arms
+"HistoryKept=50;HistoryKept=0" --sprt -10,0`, 10+0.1, both sides pondering, the bot's network (h1536-3m), one thread
+and one physical core each, 3 games at a time on CPUs 2-12, the bot off. The engine was a copy of the bot's build
+(compression 806e507; no `src` change since). It ran 01:09-04:26, paused for a net match, and carried on 12:15-12:20,
+the same file and the SPRT counting every game. **The SPRT accepted H1 (0 Elo) at game 1,571 (LLR 3.00)**; the games
+under way finished (the last a loss, so the file ends at LLR 2.91):
+
+| A (HistoryKept 50) v B (0), 1,574 games | A | B |
+|---|---:|---:|
+| won / lost / drawn, A's point of view | +267 -256 =1051 | |
+| score, Elo [95%] | 50.3%, **+2 [-7, +12]** | |
+| ponder hit rate | 71.5% | 71.9% |
+| clock a move: all / after a hit / otherwise | 192 / 156 / 282 ms | 195 / 160 / 281 ms |
+| clock left at the end | 4.53 s (45%) | 4.38 s (44%) |
+
+No game was lost on time. So `HistoryKept=50` can be switched on for variety without a measurable cost at this clock;
+it's still off by default, and the bot's config doesn't set it. The per-bot chooser (O2) could turn it on per game.
+Results (1.8 MB, so out of git): the main checkout's `games\ponder-matches\historykept-50-v-0.jsonl` (and `.log`);
+`ponder-match.py --summary <file> --sprt -10,0` prints the table.
+
 **Tests** (KeptHistoryTests, new, 10):
 
 | test | what it checks |

@@ -6234,3 +6234,21 @@ is cut short). PONDER.md, "Option (a), scoped"; a TODO item.
   must send only legal moves; it does by construction.
 - Options: (a1) as designed (my pick), (a2) plus an info string marking
   where the search's own line ends, (a3) later, the endgame tables' line.
+
+## 2026-10-24 (01:09-12:20): HistoryKept=50 costs nothing (the ponder-scope session)
+
+Matthew's (b) in P5 wanted a no-regression match for HistoryKept as a variety
+setting. ponder-match.py --arms "HistoryKept=50;HistoryKept=0" --sprt -10,0,
+10+0.1, both pondering, h1536-3m, one thread and one physical core each, 3 at
+a time on CPUs 2-12, the bot off; the engine a copy of the bot's 806e507
+build. Run 01:09-04:26, paused for h1536-3m-ob8's part 1 (net matches first),
+carried on 12:15-12:20 with the same file.
+
+| HistoryKept 50 v 0 | games | W-L-D | Elo [95%] | LLR |
+|---|---:|---|---|---|
+| SPRT accepted H1 (0) at game 1,571 | 1,574 | +267 -256 =1051 | +2 [-7, +12] | 3.00 (2.91 after the games in flight) |
+
+- No time losses; ponder hit rates 71.5% and 71.9%; clock left 45% and 44%.
+- It stays off by default. The per-bot chooser (O2) could switch it on.
+- Results out of git (1.8 MB): games\ponder-matches\ in the main checkout.
+  PONDER.md, "The no-regression match"; TODO ticked.
