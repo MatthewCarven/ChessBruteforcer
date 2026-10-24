@@ -968,9 +968,13 @@ Sessions, in order:
             the books differ (0.86% of Black games), +0.3 over all Black
             games. Keep the vetted book.** bt-c.md, results/vet-c-match.txt.
       - [ ] **The vetted book into the bot?** Matthew's call: it would take
-            lichess-2200.bin's place in bot\books (both colours; the vetoes
-            only change Black's moves), the bot off. It's also one of the book
-            duel's arms, which could settle it with the other books first.
+            lichess-2200.bin's place at the head of the bot's book chain (both
+            colours; the vetoes only change Black's moves), the bot off.
+            What it takes is in bt-c.md ("Putting it into the bot"): the file
+            into bot\books under its own name and one line of make-config.py
+            (Session context does the bot's config), or over lichess-2200.bin.
+            It's also one of the book duel's arms, which could settle it with
+            the other books first.
 - [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it

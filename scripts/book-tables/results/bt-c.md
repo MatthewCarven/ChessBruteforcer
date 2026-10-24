@@ -146,9 +146,32 @@ games at a time on CPUs 2-13, the laptop otherwise idle.
   game dropped, no engines left over.
 
 Caveats: our engine on both sides, so it's how the vetoes play for us, not against people or Stockfish (who agreed
-with 84% of them); the vetoes came from our own searches, but the games play them out. Whether it goes into the bot
-(bot\books' lichess-2200.bin, both colours; the vetoes only change Black's moves) is Matthew's call; it's also one of
-the book duel's arms.
+with 84% of them); the vetoes came from our own searches, but the games play them out. It's also one of the book
+duel's arms.
+
+## Putting it into the bot (Matthew's call; nothing done)
+
+The bot's books are a chain, set by bot/make-config.py (lines 70-81): lichess-2200.bin, then ours.bin (the learner's),
+then lichess-2200-wide.bin; lichess-bot plays from the first that has the position, for 12 moves a side. The vetted
+book takes the first place, for both colours (the vetoes only change Black's moves; White's lines are the same). The
+copy in games\ is current: the match found the books differ in exactly the veto list's 47 positions.
+
+- **(i) A file of its own (my pick).** Copy games\lichess-2200-vetted-black.bin to bot\books\ under the same name
+  (sha256 6037702a...ab692), and make make-config.py's line 70 prefer it when it's there (then lichess-2200.bin, then
+  September's). start-bot.cmd needs nothing: it runs make-config.py at every start, so the next start plays it. Undo:
+  rename the file and start again.
+  - bot/learn.py needs no change: it only asks whether the main book has a move in a position, and the vetted book
+    never leaves a position empty (where every checked move went, our best went in). The learner keeps running.
+  - The play window (bot/homegame.py's book_paths) keeps the human book unless it gets the same line: optional.
+  - Upkeep: a month rebuild (scripts/month-book.cmd, month-queue.ps1) rewrites lichess-2200.bin only, so the vetted
+    copy lags the new month until vet-c-book.py is run again (no engine; it reads lichess-2200.bin and the veto CSVs
+    in results/) and copied over. That step could go into the month scripts.
+- (ii) The same name: copy it over bot\books\lichess-2200.bin (the human book kept beside it). No code change, but
+  the next month rebuild quietly puts the human book back, and vet-c-book.py and vet-c-match.py read
+  lichess-2200.bin as the human book, so they'd need pointing at the kept copy.
+
+Either way the bot is off for the change. lichess-bot reads the books at every move, so a change while it plays
+would land mid-game.
 
 ## Files
 
