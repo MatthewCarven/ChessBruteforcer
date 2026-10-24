@@ -154,6 +154,10 @@ def main():
             local.ours.configure(ours_options)
             local.sf = chess.engine.SimpleEngine.popen_uci(STOCKFISH)
             local.sf.configure({"UCI_LimitStrength": True, "UCI_Elo": opts["sf-elo"]})
+            # isready now, off the clock: our engine reads its tables on the first one (~1.8 s, 796 MB), which
+            # python-chess would otherwise send inside the first game's first timed move. (Before 2026-10-25 it did.)
+            local.ours.ping()
+            local.sf.ping()
             with lock:
                 opened.extend([local.ours, local.sf])
             local.readers = {b: chess.polyglot.open_reader(b)

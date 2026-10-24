@@ -312,6 +312,18 @@ of games/tune/openings-300.txt in colour-reversed pairs, 5 at a time, below-norm
 | 2026-10-21 | P4 (a cut depth plays the move it proved better), 477d0f8 | P3's tip, 08a4118 | 2,000 | +442 -404 =1154 | 50.9% | +7 [-3, +17] | 5 at a time, the bot stopped; SPRT [0, 10] undecided at the cap (LLR 0.63), LOS 90.4%; halves +14 and -0; equal depth (10.9) and speed; no time losses. The lab saw P4 change no move at this clock, so most likely noise (PONDER.md, "P4") |
 | 2026-10-22 | P6 (a table in buckets of four with an age; Hash in megabytes, so Hash 64 is 4.2 M slots, was 2.8 M), 6b60ff0 | compression before it, e1868ae | 2,000 | +415 -430 =1155 | 49.6% | -3 [-13, +7] | 12:12-15:30, 5 at a time, the bot stopped; SPRT [0, 10] accepted H0 at game 2,000 (LLR -2.98): not 10 better at this clock; LOS 30.3%; halves about -5 and -1; depth 11.2 against 11.1, equal speed (3,308 and 3,310 knps); no time losses. No pondering and one thread here, where P6's gain is (after an 8-thread ponder miss) (PONDER.md, "P6") |
 
+## Against Stockfish again (2026-10-25 on)
+
+The bot's net against Stockfish 16 at reduced strength (WSL, `UCI_LimitStrength`), `scripts\book-match.py`: our
+engine on one thread, Hash 256, our tables, no book on either side; 10+0.1, 6 at once, the bot off (the book
+learner beside it), Matthew's laptop. Stockfish's weakened play picks its move at depth 1 + its skill level (9 at
+UCI_Elo 2700, 20 at its top, 3190), so the short clock costs it little and us more, and its scale is calibrated at a
+longer one: the figure is approximate, and a floor.
+
+| date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-10-25 | h1536-3m-ob8 | Stockfish 16, UCI_Elo 2700 | 40 | +35 -0 =5 | 93.8% | +470 [+356, +788] | the probe, 06:06-06:10: **about 3170 on Stockfish's scale**, too one-sided to say more; no time losses either side (Stockfish's moves come through WSL); 35 mates; 36 different first 8 plies in 40 games. Each thread's first game (0-5) had our tables' read (~1.8 s) on our first move's clock: those scored 75%, the rest 97% |
+
 ## Versions
 
 - **v0.1**: first engine (alpha-beta + PVS, TT, null move, LMR, quiescence,
