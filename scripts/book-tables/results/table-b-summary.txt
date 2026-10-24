@@ -1,0 +1,45 @@
+BT1 (b), depth 18 (human moves at 17), plies 5: 811 of our positions, 0 still without a move.
+  white: 400 (ply 0: 1, ply 2: 20, ply 4: 379)
+  black: 411 (ply 1: 20, ply 3: 391)
+  their replies blocked (a piece lost): 16 positions; games over (no entry): 0
+  searches, best: 811; wall median 167 s, cpu median 157 s, cpu total 38.4 h; nodes median 379,660,757
+  searches, after: 49; wall median 64 s, cpu median 60 s, cpu total 0.9 h; nodes median 154,420,763
+
+Our move | positions | share
+  our best is a human-book move | 379 | 47%
+  the book's most-played move, within 20 cp | 31 | 4%
+  the book's second move, within 20 cp | 1 | 0%
+  our best, the book's moves tried and further than 20 cp | 14 | 2%
+  our best, the position not in the human book | 386 | 48%
+  (in the human book: 425; our stored move is a human-book move in 411 of them)
+  human moves tried: 49; best - human: median +11 [+3, +30], -15 to +131; within 20 cp: 32
+
+Values (cp, our side, the move stored) by colour and ply:
+  white ply 0 (1): median +29 [+29, +29], +29 to +29
+  white ply 2 (20): median +66 [+40, +110], +22 to +127
+  white ply 4 (379): median +125 [+81, +163], +20 to +492
+  black ply 1 (20): median +10 [-13, +32], -34 to +102
+  black ply 3 (391): median +61 [+27, +108], -33 to +9999
+
+As White, move 1: Nf3 (+29, book; human book: e4, d4, Nf3, c4, b3)
+As Black, move 1, against each of White's first moves:
+  1.Nf3 Nf6 (-23, book)
+  1.b3 e5 (+5, book)
+  1.d4 d5 (-26, book)
+  1.f4 d5 (+25, book)
+  1.e4 e6 (-34, book)
+  1.c4 e5 (-15, book)
+  1.g3 d5 (-12, book)
+  1.d3 d5 (+6, book)
+  1.b4 e5 (+20, book)
+  1.Nc3 d5 (+16, book)
+  1.h3 e5 (+12, book)
+  1.e3 Nf6 (-13, book)
+  1.a3 c5 (+8, book)
+  1.h4 d5 (+34, book)
+  1.c3 Nf6 (-1, book)
+  1.f3 e5 (+66, book)
+  1.g4 d5 (+102, book)
+  1.a4 Nf6 (+13, book)
+  1.Nh3 d5 (+60, book)
+  1.Na3 e5 (+62, book)

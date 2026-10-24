@@ -6362,3 +6362,51 @@ the window's rectangle) take whatever is on top. With Matthew at the laptop,
 the second run's first copy caught his browser. All the copies were deleted,
 and none were taken after that. test-play-window.py's --shots is opt-in, and
 its docstring says to use it only when he's away.
+
+## 2026-10-23 to 10-24: BT1 (b) built, the 5-ply "all of theirs, our best" book (the book-table-b session)
+
+Matthew's go (2026-10-23 00:40): "build BT1 (b) as planned, checking up to
+the 2 most-played human moves". Branch claude/book-table-b-cac6a7. Results
+and the write-up: scripts/book-tables/results/bt-b.md. A test book for
+BT4's measurement, not in bot\books.
+
+- **The script** (scripts/book-tables/table-b.py, .cmd, -check.py): every
+  legal reply of theirs to 5 half-moves, less those prune.py blocks at T = 3
+  (a piece lost); at ours one depth-18 search. Where one of the human book's
+  2 most-played moves is within 20 cp (a depth-17 search of the position
+  after it), that move is stored (BT3 (a)). Release build of cb30183,
+  h1536-3m, 1 thread and Hash 64 an engine, below normal, a fresh game a
+  search. The log is resumable; `<log>.engines` sets how many engines to
+  keep busy (read every ~30 s), `<log>.stop` stops after the running
+  searches. Dry run at depth 6: 800 positions, the check clean.
+- **Beside h1024-6m's training it slowed the trainer**: 2 engines 5.6%
+  (283.7k against 300.6k), and a clean 4-engine recheck Matthew OK'd 4.4%
+  (337.0k against 352.5k, every interval below the solo range). By his rule
+  ("if they can without interfering in the run ... then after") it waited
+  for the training, then for the heat rule (light work only ~07:00 to
+  midday). 19 searches came from those tests.
+- **The run**: 2026-10-24 12:52-18:01, 8 engines, nothing dropped (the bot
+  didn't start, no match asked for the cores). 860 searches (811 at depth
+  18, 49 human moves at 17), **39.3 core-h against ~85 estimated**: a
+  depth-18 search took a median 167 s (the guess was ~4.5 min), and only 49
+  positions needed the human-move check.
+- **The book: 811 positions** (White 400, Black 411; 16 blocked).
+  `table-b-check.py`: 0 holes, no search twice, all 32 human moves within 20
+  cp.
+  - Our best was already a human-book move in 47%; the 20 cp rule took the
+    book's move in 4% (31 its most-played, 1 its second); 2% kept our best
+    after the book's moves were tried; 48% aren't in the human book (86% of
+    those straight after a move of theirs the human book never plays).
+  - Weighted by the 2200 book's own choices for their side: White +24 at
+    move 2 and +33 at move 3; **Black -26 at move 1 and -29 at move 2**
+    (89% below 0). The median over all legal replies (White +125 at move 3,
+    Black +61 at move 2) is high only because most legal replies are bad.
+  - As White always 1.Nf3 (+29). As Black against 1.e4 always **the French**
+    (1...e6, -34; 2.d4 d5 -31, 35% of games against the 2200 book's White),
+    the defence the scoping found worst for us out of book (11 games, median
+    -0.84 at the exit). The human book plays it 13% of the time. Against 1.d4
+    1...d5 (-26).
+  - It found the quick mates (1.g4 e5 2.f3 Qh4#).
+- Next: BT4 (the quick look, then the match), and Matthew's call on carrying
+  it to Black's move 3 (~6,620 positions, ~314 core-h at depth 18 at this
+  run's speed, ~40 h on 8 cores).
