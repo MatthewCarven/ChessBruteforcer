@@ -7316,3 +7316,44 @@ now says 8 threads each, two filling the 16 hardware threads and three sharing t
   "16 threads while only one game is on" (8 to 16 again; two 8-thread engines did 1.13x one) follow.
 - Takes effect at the bot's next start (start-bot.cmd runs make-config.py); the bot is off, and starting it is
   Matthew's word in the orchestrator's session.
+
+## 2026-10-25 (09:20-09:35): the bot's stop at 09:19 (a side session)
+
+The bot (started 08:52:54) stopped at 09:19:02 mid-game. Matthew thought the network might have dropped. It hadn't:
+lichess.org stalled for one to two minutes and lost the game in play. What stopped the bot was a Ctrl+C.
+
+| time | what happened |
+|---|---|
+| 09:09:42 | Jc2ds3P2 starts: us (2593, White) against BOT eigenmann-chess (2771), 3+2 |
+| 09:13:24 | a short stall: our move Nf4 needs 4 tries (8 s), then goes through |
+| 09:18:11.7 | our move 60 Rc1 is sent (engine: #-44, mate against us; clock 55 s) and Lichess never answers it: 19 tries to 09:19:01, each connecting in ~0.5 s and then getting no reply within 2 s (DEBUG log, lichess_bot_auto_logs) |
+| 09:19:02.6 | a Ctrl+C: lichess-bot's own handler ran ("Termination requested"), the game worker was killed mid-retry, and run-bot.ps1 stopped as it should for a Ctrl+C |
+| ~09:19:05 | start-bot.cmd run again (config.yml rewritten 09:19:15, games\record.csv 09:19:18) |
+| 09:19:29 | run-bot.ps1: "lichess.org not answering: waiting for the network" (its 10 s check) |
+| 09:19:36 | a second Ctrl+C, 7 s later: run-bot.ps1 stops |
+| ~09:20 | lichess.org answering again |
+| 09:27:01 | the bot started again (start-bot.cmd at 09:26:55); running since |
+
+- **It wasn't our network.** The laptop's WLAN-AutoConfig, Dhcp-Client, NetworkProfile and NCSI logs have nothing
+  since 10-23 21:46, and the System log has nothing from 09:10 to 09:25. Every retry got a new connection to lichess.org
+  without trouble; only the replies were missing. And **Lichess lost the game on its side**: its record
+  (/game/export/Jc2ds3P2) has it "aborted", Termination "Abandoned", no moves, lastMoveAt equal to createdAt. Our two
+  games before it (1oii1fwY, E5xlIafS, draws ending 09:06-09:07) are recorded normally.
+- **Both Ctrl+Cs were real console Ctrl+Cs**: lichess-bot logged its SIGINT handler's line. A closed window or Windows
+  doesn't run that handler, and a network fault never sends one. A Ctrl+C, then start-bot.cmd again within seconds,
+  then a Ctrl+C 7 s after "not answering" looks like someone at the bot's window. Nothing on the laptop records who.
+- **The cost**: one game, aborted by Lichess, so unrated (blitz 2593 before and after). We were losing it, so if
+  anything the abort saved a few points. There's no PGN in bot\games (lichess-bot writes it at the game's end, and
+  Lichess has no moves to export). The moves are only in the DEBUG log's game-state lines. The bot was off for 8
+  minutes, 09:19:02-09:27:01 (about one game at the morning's ~5.5 an hour).
+- **Without the Ctrl+C it would very likely have ridden this out alone.** The move POST is retried for 60 s (2 s a
+  try), so it would have given up at ~09:19:12. The rejoin patch then asks whether the game is still on (each request
+  again retried for 60 s; a failed check counts as "still on") and reopens its stream up to 10 times. Once Lichess
+  answered, it would have found the game over and freed the slot, with no restart needed. Two stalls on 10-22 went
+  that way unaided: 20:22 (16 tries, 35 s) and 22:23 (10 tries, 22 s). Each move went through and both games were
+  played to mate.
+- **The gap is that waiting looks like a freeze.** Every retry is logged at DEBUG, so the window and bot\logs showed
+  nothing for 51 s while our clock ran. Fix options for Matthew: (a) INFO lines while lichess.org isn't answering
+  ("retrying for up to 60 s, no need to restart") and when it answers again, plus run-bot.ps1's wait line saying it
+  will start again by itself (a new lichess-bot patch, a test, a start-bot.cmd block; merge it while the bot is
+  off); (b) a Ctrl+C mid-game asks before stopping for good; (c) no code. (a) recommended; his call.
