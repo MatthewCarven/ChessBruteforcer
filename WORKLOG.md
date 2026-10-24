@@ -7218,3 +7218,22 @@ report's first line says "from ... local". The `--since` values in the entries a
 - The hour at three on its own, blitz (5 games), seconds a move, median / mean: ours 3.0 / 3.7, theirs 3.0 / 4.4;
   ours alone 3.0 / 3.6 (2 games), beside another game 2.5 / 3.9 (3). Clock used by the end: ours 66%, theirs 84%.
   Too few games yet to say what a second game costs.
+
+## 2026-10-25 (08:25-08:30): two 8-thread engines at full load for 2 minutes (a heat test)
+
+Matthew, with the fan on and an overcast morning: "lets run two 8 thread games against each other for 2 minutes and
+i'll screenshot nitrosense". Two copies of the bot's engine (bot\lichess-bot\engines\bruteforcer, h1536-3m-ob8,
+Threads 8, Hash 256, no tables) played each other at 90+1, both pondering, 08:26:40-08:28:42 (one game, 66 moves),
+after 10 s of one engine alone. typeperf every 2 s (a scratch script).
+
+| | one engine alone | two at once |
+|---|---|---|
+| Mnps | 19.0 | 10.8 and 10.7 (0.57x each) |
+| CPU use (16 logical) | 45% | 100% from the first ponder (08:26:50) to the end |
+| clock against base (2.5 GHz) | 151% (3.8 GHz) | 141% falling steadily to 128% (3.2 GHz); median 131% |
+
+- NitroSense (Matthew's screenshots): 92 C at 99% load, 93 C the most; fans 3,448-3,488 RPM (CPU) and 4,109 (GPU)
+  on Custom, not Max; 69 C at 2% a minute after.
+- Two 8-thread engines together do 1.13x the work of one: one already fills the 8 cores, the other 8 threads get
+  only hyperthreading's share, and the clock fell ~13% with the heat. The ~0.6x each of 2026-10-20 holds.
+- At 92 C the CPU gives up clock speed gradually (still 1.28x base after 2 minutes), not all at once.
