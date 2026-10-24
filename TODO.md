@@ -906,7 +906,17 @@ Sessions, in order:
             1.e4 it always plays the French (-0.34), the scoping's weak spot.
       - [ ] **BT4 with the table**: the quick look, then the match (an arm
             playing table-b.bin first, the current books after it).
-            Matthew (2026-10-25): later, kept on the todo.
+            Matthew (2026-10-25): later, kept on the todo. **Then, the
+            same day, his way: "all three should go against each other then
+            the winner goes against a cpu without using any".** Built:
+            scripts/book-tables/book-duel.py and .cmd (our engine on both
+            sides, each with its own books; dry-run checked, not yet with real
+            engines). `book-duel.cmd round-robin` (table-a, table-b, vetted;
+            1,000 games a pair, ±14 Elo, ~4 h), then `book-duel.cmd final
+            <winner>` (against no book, SPRT [0, 10], at most 2,000 games,
+            ~2.6 h). Bot off, ~12 CPUs, an afternoon or night slot from the
+            queue. Open: whether the final's opponent is our engine without a
+            book (built) or Stockfish without one (book-match.py).
       - [ ] **Carry it to Black's move 3** (`--plies 6`, ~6,620 positions,
             ~314 core-h at depth 18 at the measured speed, ~40 h on 8
             cores; less at depth 16). Matthew (2026-10-25): later, kept on

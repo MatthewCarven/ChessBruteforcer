@@ -217,6 +217,27 @@ Here H is `lichess-2200.bin+games\book-match-ours.bin+lichess-2200-wide.bin` wri
 `games\lichess-2200-vetted-black.bin`, replaces lichess-2200.bin). `--summary` gives each arm against
 "human", with the SPRT.
 
+**Matthew's way (2026-10-25), the plan now**: "all three should go against each other then the winner goes against
+a cpu without using any to see if there is benefit". [scripts/book-tables/book-duel.py](scripts/book-tables/book-duel.py)
+plays our engine on both sides, each side with its own books. The setup is (c)'s paired match: 10+0.1, one thread
+an engine, two CPUs a game, 6 games at once, ~13 games a minute.
+
+1. **The round robin**: table-a, table-b and vetted, each against each, in colour-reversed twos
+   (`book-duel.cmd round-robin [games a pair]`). The vetted book is the human book less 57 of Black's moves (~3% of
+   Black games), so it stands in for today's books.
+2. **The final**: the winner against no book, SPRT [0, 10] (`book-duel.cmd final <winner>`).
+
+| games a pair | 95% interval (~59% draws, as in (c)'s match) | round robin (3 pairs) | final |
+|---:|---:|---:|---:|
+| 500 | ±20 Elo | ~2 h | ~40 min |
+| 1,000 | ±14 Elo | ~4 h | ~1.3 h |
+| 2,000 | ±10 Elo | ~8 h | ~2.6 h (the SPRT's cap) |
+
+Both tables are one move a position, so a table against a table plays the same first 6-8 plies every time: (a)
+against (b) is always 1.e4 e6 2.d4 d5 3.e5 c5 4.c3 Nc6 with (a) as White, and 1.Nf3 d5 2.d4 c6 3.c4 Nf6 with (b). The
+variety comes from the human book after them. And it all stays inside our engine's view: (a) and (b) are its own
+choices, played against itself. Against other engines, the earlier match against Stockfish (above) is the check.
+
 **A quick look without games**: walk 2,000 lines, with each book playing our moves and the human wide book playing
 theirs. Score each exit position with Stockfish at depth 20 (WSL, ~1 s each), so the judge isn't the engine that
 built the table, and with our engine at depth 14. At most ~13 core-hours, ~2 h on 8 cores, untimed. A table that doesn't move Black's exits

@@ -4,8 +4,8 @@
         [--games 400] [--tc 60+1] [--sf-elo 2200] [--concurrency 3] [--book main.bin,wide.bin]
         [--eval <file>] [--threads 1] [--arms "book,no book"] [--sf-book wide.bin]
 
---eval is our evaluation (EvalFile): by default the bot's, chosen as bot/make-config.py chooses it (bot/eval/
-nnue1.nnue, else eval-sf1.txt); "none" for the built-in numbers. --threads is our search threads (the bot uses
+--eval is our evaluation (EvalFile): by default the bot's, chosen as bot/make-config.py chooses it (the first
+of its list in bot/eval: h1536-3m-ob8.nnue, h1536-3m.nnue, ...); "none" for the built-in numbers. --threads is our search threads (the bot uses
 8; with more than one, play one game at a time). --arms book plays only the arm with the book, as the bot does
 (2026-10-17: a few games against Stockfish before the bot goes online). The engine doesn't ponder here.
 
@@ -38,8 +38,11 @@ BOOK_MOVES = 12
 # As the bot has them (bot/make-config.py): the wide book answers only where the main one can't.
 BOOKS = [b for b in (os.path.join(REPO, "bot", "books", name) for name in ("lichess-2200.bin", "lichess-2200-wide.bin"))
          if os.path.exists(b)]
-# The bot's evaluation, as bot/make-config.py picks it: the network if there is one, else the tuned numbers.
-EVALS = [e for e in (os.path.join(REPO, "bot", "eval", name) for name in ("nnue1.nnue", "eval-sf1.txt")) if os.path.exists(e)]
+# The bot's evaluation, as bot/make-config.py picks it: the first of its list there is. (Until 2026-10-25 this list
+# was nnue1.nnue, else eval-sf1.txt: the first net, or the tuned numbers where nnue1.nnue is gone, not the bot's.)
+EVALS = [e for e in (os.path.join(REPO, "bot", "eval", name) for name in
+                     ("h1536-3m-ob8.nnue", "h1536-3m.nnue", "h1024-3m.nnue", "h512-3m.nnue", "nnue1-h512.nnue",
+                      "nnue1.nnue", "eval-sf1.txt")) if os.path.exists(e)]
 SPRT = (0, 10)   # Elo: is a later arm 10 better than the first, or no better? (BOOK-TABLES.md section 4)
 
 

@@ -6971,3 +6971,36 @@ game in hand ended 03:53:47 and lichess-bot stopped by 03:54:00. Then the laptop
   ArabicaHCE at move 19 and endspiel-pi at move 29, both as White.
 - The idle watcher fired at 00:49 while the bot played (it doesn't count the bot): a false alarm, no push; re-armed
   after the bot stopped.
+
+## 2026-10-25 (04:10-04:25): the books against each other, Matthew's way (the self-play-book session)
+
+Matthew: "all three should go against each other then the winner goes against
+a cpu without using any to see if there is benefit". All three books are in:
+(a) games\book-table-a\table-a-d8.bin, (b) scripts\book-tables\results\
+table-b.bin, (c) games\lichess-2200-vetted-black.bin. This branch was
+fast-forwarded to compression (206a537) first.
+
+- **scripts/book-tables/book-duel.py** (and book-duel.cmd): our engine on both
+  sides, each side with its own books for its first 12 moves (the table
+  first, then the bot's chain; ours.bin from a copy). It reuses
+  vet-c-match.py's pieces: one thread and Hash 64 an engine, two CPUs a game
+  pinned, below normal, 10+0.1, resumable, a stop time, random movers for a
+  dry run. Every pair of arms meets in colour-reversed twos, the pairs taking
+  turns. The summary gives each pair's Elo with a 95% interval (from the
+  twos) and how many different openings it played, then the round robin's
+  table. With two arms, an SPRT can stop it.
+- Dry runs (random movers): the round robin, 12 games over three pairs, in
+  the right order and colours; the final, 40 games with an SPRT [0, 10];
+  resuming, and refusing a file started with other arms.
+- The tables are deterministic, so a table against a table plays the same
+  first 6-8 plies every time: (a) as White against (b) is 1.e4 e6 2.d4 d5
+  3.e5 c5 4.c3 Nc6; (b) as White against (a) is 1.Nf3 d5 2.d4 c6 3.c4 Nf6.
+  Variety comes from the human book after them.
+- Sizes, at (c)'s match's ~59% draws and ~13 games a minute: 1,000 games a
+  pair is ±14 Elo, ~4 h for the round robin; the final at most 2,000 games,
+  ~2.6 h. Not run: bt-c's timed match has CPUs 2-13 until 06:55, and the heat
+  rule keeps heavy laptop work to the afternoon and night.
+- **book-match.py's default net was wrong**: its list was nnue1.nnue, else
+  eval-sf1.txt, so it played the first net (still in git) or the tuned numbers
+  (the main checkout, where nnue1.nnue is gone), not the bot's h1536-3m-ob8.
+  Now bot/make-config.py's list.
