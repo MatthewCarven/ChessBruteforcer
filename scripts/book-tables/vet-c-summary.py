@@ -56,6 +56,7 @@ for line in (25, 50, 100):
 # the book's loss along each network-era Black game's line, by defence
 rows = {r["id"]: r for r in csv.DictReader(open(os.path.join(MAIN, "bot", "games", "record.csv"), encoding="utf-8"))}
 fam = collections.defaultdict(list)
+drain = collections.defaultdict(lambda: {"loss": 0, "games": 0, "bad": 0, "families": collections.Counter()})
 for path in sorted(glob.glob(os.path.join(MAIN, "bot", "games", "*.pgn"))):
     raw = open(path, "rb").read()
     try:
@@ -70,6 +71,7 @@ for path in sorted(glob.glob(os.path.join(MAIN, "bot", "games", "*.pgn"))):
     if row is None or not row["net"].startswith(("nnue", "h")) or not ev or ev[0][0].startswith("#"):
         continue
     board, total, n, worst, crossed = game.board(), 0, 0, None, False
+    family = row["opening"].split(":")[0]
     for move in game.mainline_moves():
         if board.turn == chess.BLACK and board.fullmove_number <= 8:
             r = screen.get((str(chess.polyglot.zobrist_hash(board)), move.uci()))
@@ -77,10 +79,16 @@ for path in sorted(glob.glob(os.path.join(MAIN, "bot", "games", "*.pgn"))):
                 loss = int(r["loss"])
                 total, n = total + loss, n + 1
                 crossed |= (r["key"], r["move"]) in vetoed
+                d = drain[(r["key"], r["move"])]
+                d["loss"] += loss
+                d["games"] += 1
+                d["bad"] += -float(ev[0][0]) <= -0.5
+                d["families"][family] += 1
+                d["san"], d["move_no"], d["one"] = board.san(move), board.fullmove_number, loss
                 if worst is None or loss > worst[0]:
                     worst = (loss, board.fullmove_number, board.san(move))
         board.push(move)
-    fam[row["opening"].split(":")[0]].append((-float(ev[0][0]), total, n, worst, crossed))
+    fam[family].append((-float(ev[0][0]), total, n, worst, crossed))
 print("\n## By defence (network-era games as Black, 3+ games): exit eval, and the book's loss along the line (depth 16)")
 print("| defence | games | median exit (pawns) | median book loss on the line (cp) | games through a veto | worst move seen |")
 print("|---|---:|---:|---:|---:|---|")
@@ -96,6 +104,18 @@ if allg:
     hi = [x for x in allg if x[0] > -0.5]
     print(f"\nexits at -0.50 or worse: {len(lo)} games, median book loss {statistics.median(x[1] for x in lo) if lo else 0:.0f} cp; "
           f"the rest: {len(hi)}, {statistics.median(x[1] for x in hi) if hi else 0:.0f} cp")
+
+print("\n## The book moves that cost the most, summed over the network-era Black games that played them (depth 16)")
+print("| our move | move | loss each (cp) | games | of them exiting -0.50 or worse | cp in all | vetoed | defences |")
+print("|---:|---|---:|---:|---:|---:|---|---|")
+for (key, move), d in sorted(drain.items(), key=lambda kv: -kv[1]["loss"])[:15]:
+    print(f"| {d['move_no']} | {d['san']} | {d['one']} | {d['games']} | {d['bad']} | {d['loss']} | "
+          f"{'yes' if (key, move) in vetoed else ''} | {', '.join(f'{k} {v}' for k, v in d['families'].most_common(2))} |")
+spent = sum(d["loss"] for d in drain.values())
+top = sum(d["loss"] for d in sorted(drain.values(), key=lambda d: -d["loss"])[:15])
+vet = sum(d["loss"] for k, d in drain.items() if k in vetoed)
+print(f"\nall the book's loss over these games: {spent} cp; the 15 above {top} ({top / spent:.0%}); the vetoed moves' {vet} "
+      f"({vet / spent:.0%})")
 
 print("\n## Vetoes (depth 18), most-reached first")
 print("| our move | position (FEN) | vetoed | share | played | loss d16 / d18 | our best | Stockfish's loss |")
@@ -128,6 +148,7 @@ if ex:
         by[r["family"]].append((int(r["ours_cp"]) / 100, int(r["sf_cp"]) / 100))
     by["(all)"] = [x for v in list(by.values()) for x in v]
     for name, v in sorted(by.items(), key=lambda kv: statistics.median(a - b for a, b in kv[1])):
+        v = [(a, b) for a, b in v if abs(a) < 50 and abs(b) < 50]   # no mates
         if len(v) >= 3:
             print(f"| {name} | {len(v)} | {statistics.median(a for a, _ in v):+.2f} | {statistics.median(b for _, b in v):+.2f} | "
                   f"{statistics.median(a - b for a, b in v):+.2f} |")

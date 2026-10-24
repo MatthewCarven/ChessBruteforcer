@@ -70,12 +70,15 @@ for key, moves in by_key.items():
 entries = []
 data = open(SOURCE, "rb").read()
 removed = 0
+in_book = set()   # vetoed moves today's book has (a move the bot played on an older book may not be)
 for i in range(0, len(data), 16):
     key, move, weight, learn = struct.unpack(">QHHI", data[i:i + 16])
     skey = str(key)
     if skey in by_key:
         board = chess.Board(positions[skey]["fen"])
         decoded = next((m for m in board.legal_moves if polyglot_move(board, m) == move), None)
+        if decoded is not None and decoded.uci() in by_key[skey]:
+            in_book.add((skey, decoded.uci()))
         if skey in replace or (decoded is not None and decoded.uci() in by_key[skey]):
             removed += 1
             continue
@@ -101,12 +104,13 @@ with chess.polyglot.open_reader(TARGET) as reader:
         board = chess.Board(positions[key]["fen"])
         assert [e.move.uci() for e in reader.find_all(board)] == [best], key
 print(f"{TARGET}: {len(entries)} entries ({len(data) // 16} in the human book): {removed} removed, {len(added)} added; "
-      f"{len(vetoed)} moves vetoed in {len(by_key)} positions, {len(replace)} positions given our best alone")
+      f"{len(vetoed)} moves vetoed in {len(by_key)} positions ({len(in_book)} of them in today's book; the rest the bot "
+      f"played from an older one), {len(replace)} positions given our best alone")
 
 with open(os.path.join(RESULTS, "vet-c-vetoes.csv"), "w", newline="", encoding="utf-8") as f:
     w = csv.writer(f)
     w.writerow(["rank", "tier", "move_no", "fen", "vetoed", "san", "share", "played", "loss_d16", "loss_d18",
-                "best_d18", "best_san", "best_cp_d18", "replaced", "sf_loss", "sf_loss_ours", "families"])
+                "best_d18", "best_san", "best_cp_d18", "replaced", "in_book", "sf_loss", "sf_loss_ours", "families"])
     for key, move in sorted(vetoed, key=lambda km: int(positions[km[0]]["rank"])):
         p, s, c = positions[key], screen[(key, move)], confirm[(key, move)]
         board = chess.Board(p["fen"])
@@ -114,4 +118,4 @@ with open(os.path.join(RESULTS, "vet-c-vetoes.csv"), "w", newline="", encoding="
         v = sf.get((key, move), {})
         w.writerow([p["rank"], p["tier"], p["move_no"], p["fen"], move, board.san(chess.Move.from_uci(move)), s["share"],
                     s["played"], s["loss"], c["loss"], best, board.san(chess.Move.from_uci(best)), best18[key]["best_cp"],
-                    "yes" if key in replace else "", v.get("sf_loss", ""), v.get("sf_loss_ours", ""), p["families"]])
+                    "yes" if key in replace else "", "yes" if (key, move) in in_book else "no", v.get("sf_loss", ""), v.get("sf_loss_ours", ""), p["families"]])

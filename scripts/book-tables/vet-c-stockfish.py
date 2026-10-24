@@ -82,8 +82,13 @@ else:
         if row is None or not row["net"].startswith(("nnue", "h")):
             continue
         for node in game.mainline():
-            if node.parent is not None and node.turn() == chess.WHITE and node.eval() is not None:
-                ours = node.eval().pov(chess.BLACK).score(mate_score=10000)
+            # lichess-bot puts the engine's [%eval] at the end of its line, a side variation beside the move played
+            # (book moves have none); the first such move of ours is the exit (bookexit.py's first eval: 142 of 142).
+            if node.turn() != chess.WHITE:
+                continue
+            line = next((v for v in node.parent.variations[1:] if v.move == node.move), None)
+            if line is not None and line.end().eval() is not None:
+                ours = line.end().eval().pov(chess.BLACK).score(mate_score=10000)
                 jobs.append((row["id"], node.parent.board().fen(), node.move.uci(), ours,
                              {"family": row["opening"].split(":")[0], "net": row["net"], "ply": node.ply()}))
                 break

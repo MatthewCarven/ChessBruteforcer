@@ -841,6 +841,14 @@ Sessions, in order:
       arms against Stockfish with the wide book, ~3,000 games an arm, bot
       off), BT5 rebuilds. Searches can run in a training window; the match
       can't. Ask the core queue first.
+- [ ] **Decision C: after BT1 (c)'s vetting** (scripts/book-tables/results/
+      bt-c.md, 2026-10-24): 57 human-book moves vetoed as Black (Stockfish
+      agrees with 84%), in games\lichess-2200-vetted-black.bin; but they are
+      15% of what the book gives away, and they change ~3% of Black games
+      (~1 Elo). The rest is many 10-49 cp moves, much of it the first move.
+      Matthew's call: **(a) measure the vetted book as it stands (my pick)**,
+      (b) a 25 cp line (227 more moves, ~7-8 h of the desktop to confirm), (c)
+      leave Black's first moves to BT1 (b)'s table.
 - [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it

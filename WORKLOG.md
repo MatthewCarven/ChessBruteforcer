@@ -6362,3 +6362,54 @@ the window's rectangle) take whatever is on top. With Matthew at the laptop,
 the second run's first copy caught his browser. All the copies were deleted,
 and none were taken after that. test-play-window.py's --shots is opt-in, and
 its docstring says to use it only when he's away.
+
+## 2026-10-23/24: BT1 (c), the human book's Black lines vetted (the bt-c session)
+
+Matthew's option (a) of BT1 (c) (BOOK-TABLES.md): re-search the human book's
+moves where the bot plays Black, and drop the ones our engine puts 50 cp or
+more behind its best. Write-up: scripts/book-tables/results/bt-c.md.
+
+- **What was checked**: 538 positions (Black to move, our moves 1-8, a move
+  in lichess-2200.bin) on the lines of the 142 network-era Black games, the
+  64 that left book at -0.50 or worse first; 1,445 book moves (5%+ of a
+  position's weight, or played by the bot). Our best at depth 16, each other
+  move by a depth-15 search after it (rescore.py's way); the 81 moves 50+
+  behind re-searched at 18/17. h1536-3m, one thread, Hash 64.
+- **Result**: 57 moves vetoed in 48 positions. Stockfish 16 at depth 20 puts
+  84% of them 50+ cp behind its best too (98% 25+), and 4% of a random 50 we
+  kept. The vetted copy is the main checkout's
+  games\lichess-2200-vetted-black.bin (not in git; 56 entries out, 1 in).
+- **But it isn't where Black's exits go wrong.** The vetoes are 15% of the
+  centipawns the book gives away over the 142 games; the lines of the games
+  that exited at -0.50 or worse give away a median 56 cp, the others 29, in
+  many moves of 10-49 cp. Much of it is the first move (after 1.e4 our best
+  is 1...e6; the book's 1...d5 is 44 cp behind, 1...g6 30, 1...c6 20). The
+  French, our engine's own first choice, has no veto on its lines and still
+  exits at -0.84. Stockfish scores the same exits at -0.36 median (ours
+  -0.48, paired difference -0.03; the French -0.77): the lines, not our net.
+  The vetted book would change ~3% of Black games (13 of the last 144 played
+  a vetoed move): ~1 Elo, unmeasurable alone. Decision C in bt-c.md.
+- **Where it ran**: an 8-position timing on the laptop beside the bot
+  (00:44-01:07 on the 23rd), then the desktop's CPU on Matthew's yes, 6
+  engines on bt-a's SSE build as a scheduled task (vet-c-desktop.ps1, on
+  table-a-desktop.ps1's model), 03:14-12:58 on the 24th. Before starting, the
+  desktop re-searched 5 laptop positions: 15 of 15 rows identical (move,
+  score, nodes). 58 h of desktop engine time (~20 laptop core-hours).
+  Stockfish in WSL on the laptop afterwards, 17 min.
+- **Depth 16 isn't enough to veto on**: 24 of the 81 moves flagged there fell
+  under 50 at 18, some by ~25 cp (the French's 3...b6, 51 to 24).
+
+Environment notes:
+- **lichess-bot's PGNs put [%eval] at the end of the engine's line**, a side
+  variation beside the move played, not on the move: python-chess's
+  node.eval() on the mainline is None everywhere, and my first exits run found
+  nothing. The first mainline move with such a variation is the exit, which
+  agrees with bookexit.py's first [%eval] in all 142 games.
+- **bot\eval's nets are tracked in git** (h1536-3m.nnue among them), so a
+  worktree has its own copy, byte for byte; my brief said otherwise, and I
+  stopped a run for nothing before checking the hashes.
+- vet-c-search.py --stop-at HH:MM (the laptop's light hours) kills its
+  engines at that time and keeps every finished search, exiting 3 so vet-c.cmd
+  doesn't go on; tested with a dummy engine (one sleeping process) so a timed
+  match beside it wasn't disturbed. Unused in the end: the run moved to the
+  desktop.
