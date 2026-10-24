@@ -366,7 +366,13 @@ a whole game: 133 of the 168 accepts made straight after a game). Now
 and bot\lichess-bot-busy.patch declines a challenge at once with "later"
 when both slots are taken (bot\test-busy.py: 6 cases, 2 of them red without
 the patch). He'll go back to one game if it loses more: `concurrency` 1 in
-make-config.py (the patch still helps at 1).
+make-config.py (the patch still helps at 1). **One game from 2026-10-22; three
+from the bot's next start after 2026-10-25** (Matthew: "accommodate anyone who
+asks for a game while we are busy", 4 threads each; he expects the load and
+heat with three on). test-busy.py now checks concurrency 3 too (10 cases).
+- [ ] Read the first sessions at three: Speed lines with 1, 2 and 3 games on,
+      the CPU's temperature, and results split the same way. Fewer games or
+      threads if three lose more or the CPU sits at its 92-93 C limit.
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that
@@ -713,7 +719,9 @@ Sessions, in order:
         small net wins there, build it: one engine holding both nets (a few
         MB), accumulators refreshed at the switch, a switch point by time
         left. If the big net still wins, the idea is answered.
-- [ ] **16 threads while only one game is on** (Matthew, 2026-10-21): the
+- [ ] **16 threads while only one game is on** (Matthew, 2026-10-21; the bot
+      is at 4 threads for the heat since 2026-10-24, up to three games at
+      once from 2026-10-25, so this would now be 4 to more): the
       laptop has 8 cores / 16 threads. With two games at once each engine
       has 8 (and pondering keeps both busy), but while one game plays alone,
       8 threads sit idle. Let a lone game use 16, back to 8 when a second
