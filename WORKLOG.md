@@ -6682,3 +6682,65 @@ passed.
   MATCHES.md and NNUE.md ("More data") have it. Told ponder-scope; the laptop
   is free of this session's work until h1536-3m-ob8 is trained (~04:30 by the
   desktop's clock).
+
+## 2026-10-24 (04:25-04:40): h1536-3m-ob8 trained (the nnue-deep-layers session)
+
+- **h1536-3m-ob8 finished at 04:27** by the desktop's clock (exit 0). Held
+  back as the engine computes it is 0.011760 at K 1.0194, against h1536-3m's
+  0.011952 (-1.6%). Fetched: games\nnue\nets\h1536-3m-ob8.nnue, 2,411,620
+  bytes, network sha256 ff8682d3...5dd0. Told ponder-scope. Its match waits
+  for ponder-scope's go: 1,200 games first, stopped by ~07:00 if undecided
+  (Matthew's heat rule: light work only on the laptop from 07:00 to midday).
+- **A desktop run's automatic start failed.** A background job called
+  scripts\nnue-desktop.ps1 with Windows PowerShell 5.1, which built the
+  scheduled task's name from every option, `/` included, and
+  Register-ScheduledTask refused it ("The parameter is incorrect"). A probe
+  showed the same task registers fine by its proper name, and the same
+  command under PowerShell 7 started it. Claude-Notebook has the gotcha.
+
+## 2026-10-24 (04:28-06:34): h1536-3m-ob8 v h1536-3m, part 1 (the nnue-deep-layers session)
+
+- **`bench 9`, alternated over 5 rounds, the laptop quiet**: h1536-3m 2,591
+  knps, 3,527,432 nodes; h1536-3m-ob8 2,673 knps (+3.2%), 3,876,549 nodes:
+  time to depth 9 x1.07.
+- **Part 1** on ponder-scope's go (its HistoryKept match paused for it),
+  04:31:37-06:34:23, 10+0.1, SPRT [0, 10], a 1,200-game cap so it ends
+  before 07:00 (Matthew's heat rule): **+308 -271 =621, score 51.5%, +11
+  [-3, +24], LOS 93.8%**, SPRT undecided (LLR 1.18). Both nets ran 2,781
+  knps in play, depth 10.6 against 10.7. Endings: 228 mates, 321
+  threefolds, 589 by the tables (351 wins, 238 draws), 60 fifty-move, 2
+  stalemates; no time losses.
+- Part 2 is 800 games after midday on ponder-scope's go
+  (match-h1536-3m-ob8-h1536-3m-800.*). Its wins, losses and draws add to part
+  1's for the 2,000-game figure, with the Elo and LLR worked out by hand.
+
+## 2026-10-24 (10:04-11:50): h1536-3m-ob8, +9 over 2,000; a float-weights exporter (the nnue-deep-layers session)
+
+- **Part 2 of h1536-3m-ob8 v h1536-3m**, 10:04-11:26 on ponder-scope's go
+  (Matthew lifted the morning heat hold for the rain): 800 games, +197 -182
+  =421, +7 [-10, +23]. **With part 1: +505 -453 =1042, +9 [-1, +20], LOS
+  95.4%, LLR 1.40**, the SPRT undecided. The parts were added with the match
+  tool's MatchStats formulas (scratchpad combine.py, which reproduces the
+  tool's own figures for part 1 and for h1024-6m). Speed even in both parts.
+  MATCHES.md and NNUE.md ("Buckets on the bot's net") have it.
+- **scripts/nnue/export-float.py**: an --output-buckets checkpoint's float
+  weights as a .npz (ft_weight 768xH, ft_bias, out_weight KxH2, out_bias;
+  untrained buckets filled as the .nnue export fills them), and a plain-words
+  note of the layout, the forward pass and the training. Then it checks
+  that forward pass against the run's .nnue (nnue_reference.evaluate) over
+  1,000 random positions, and measures what each layer's 16-bit rounding
+  costs on its own. Random positions with 33 pieces
+  (nnue_reference.random_fen can make them) are skipped, as buckets_fixture
+  skips them.
+- Two TODO lines that a Python heredoc had broken ("\n" in a Windows path
+  turned into a line break) are mended.
+
+## 2026-10-24 (11:37): h1536-6m-ob8 training (the nnue-deep-layers session)
+
+- **h1536-6m-ob8 on the desktop** (Matthew's (a)): all three levers on the
+  bot's width, `--hidden 1536 --add-data 2026-04 2026-05 2026-06 2026-07
+  2026-08 --passes 10 --lr-drops 4/7/9 --output-buckets 8`. 132.5 k a second,
+  so ~2.9 h a pass and **~29 h in all, done ~16:40 on 10-25** by its clock (I
+  had told Matthew ~10 h; that was three months' pace). The desktop's tasks
+  had a 24-hour limit, so scripts\nnue-desktop.ps1 now gives them 48 (P2D,
+  checked on the task).

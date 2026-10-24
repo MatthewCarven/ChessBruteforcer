@@ -71,6 +71,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-23 | h1024-3m-ob8 | h1024-3m | 2,000 | +515 -470 =1015 | 51.1% | **+8 [-3, +19]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 0.95), LOS 92.4%: 8 output buckets, the same speed; bot stopped (see below) |
 | 2026-10-23 | h1536-3m-l32 | h1536-3m | 326 | +56 -98 =172 | 43.6% | **-45 [-71, -19]** | SPRT [0, 10] **accepted H0** at game 322 (LLR -2.95): the widest deep net, at 43% of the speed; bot stopped (see below) |
 | 2026-10-24 | h1024-6m | h1024-3m | 2,000 | +528 -464 =1008 | 51.6% | **+11 [0, +22]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 2.05), LOS 97.9%: h1024-3m's recipe on 6 months instead of 3, the same speed; bot stopped (see below) |
+| 2026-10-24 | h1536-3m-ob8 | h1536-3m | 2,000 | +505 -453 =1042 | 51.3% | **+9 [-1, +20]** | SPRT [0, 10] undecided (LLR 1.40), LOS 95.4%, in two parts (1,200 + 800, added by hand): 8 output buckets on the bot's net, the same speed; bot stopped (see below) |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -231,6 +232,20 @@ matches said ~+16 for -2.0%. It read +5 [-10, +20] at 1,000 games, +6 at
 1,500, +9 at 1,769, then +11. No time losses. Endings: 416 mates, 533
 threefolds, 957 by the tables (576 wins, 381 draws), 92 fifty-move, 1
 stalemate, 1 at the move limit.
+
+**h1536-3m-ob8 against h1536-3m** (2026-10-24, the bot stopped, nothing else
+timed on the laptop): the bot's net with 8 output buckets, held back -1.6%
+against it. Played in two parts for Matthew's heat rule (light work only on
+the laptop 07:00-midday; he lifted it at 10:00 for the rain): part 1,
+04:31-06:34, 1,200 games, +308 -271 =621, +11 [-3, +24]; part 2, 10:04-11:26,
+800 games, +197 -182 =421, +7 [-10, +23]. **Together: 2,000 games, +505 -453
+=1042, +9 [-1, +20]**, LOS 95.4%, LLR 1.40: the SPRT stayed undecided. The two
+parts' figures are added by hand with MatchStats' own formulas (checked
+against the tool's own figures for part 1 and h1024-6m). Searches: 2,781 knps
+each in part 1, 2,866 and 2,864 in part 2, depth 10.6-10.7: the buckets cost
+no speed. The rule from our matches said ~+13 for -1.6%. No time losses.
+Endings: 404 mates, 546 threefolds, 940 by the tables (554 wins, 386 draws),
+108 fifty-move, 2 stalemates.
 
 ## Pondering (2026-10-16 on)
 

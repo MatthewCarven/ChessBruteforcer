@@ -1912,6 +1912,28 @@ worth on their own.
   them is h1536 on 6 months with 8 buckets (h1536-6m-ob8), against the bot's
   h1536-3m.
 
+### Buckets on the bot's net: h1536-3m-ob8 (2026-10-24)
+
+h1536-3m's recipe plus `--output-buckets 8`, on the desktop (Matthew's (a)):
+held back 0.011760 as the engine computes it, against h1536-3m's 0.011952
+(-1.6%). Matched in two parts around the laptop's morning heat rule
+(MATCHES.md): **+9 [-1, +20] over 2,000 games**, LOS 95.4%, SPRT undecided,
+the same speed in play. With h1024-3m-ob8's +8 [-3, +19], the buckets' gain
+reads the same at both widths: small, likely real, free. The four results so
+far, each against its own base net:
+
+| lever | at 1024 | at 1536 |
+|---|---|---|
+| 8 output buckets | +8 [-3, +19] (-1.3% error) | +9 [-1, +20] (-1.6%) |
+| 6 months of data | +11 [0, +22] (-2.0%) | |
+| width, 1024 to 1536 | | +7 [-3, +18] (-3.9%) |
+
+The two free levers read ~0.7x what the rule of thumb (+8 Elo a 1% of error)
+says; width pays for its error in speed. The stack of all three,
+h1536-6m-ob8, is the candidate for the bot: training on the desktop since
+2026-10-24 11:37 by its clock, ~132 k a second, ~2.9 h a pass, done ~16:40
+on 10-25.
+
 ## Risks
 
 | risk | what it would look like | what limits it |
