@@ -677,9 +677,16 @@ Sessions, in order:
       ponder-scope): keep the tables as now and count the time losses.** The
       write-up gives them apart, each with its pieces left and its overrun,
       and the figure with them as draws beside the real one: book-match.py's
-      summary prints both now. The 500 games at 3190 (`--games 500 --sf-elo
-      3190`, games\sf-check\sf3190.jsonl) in their slot, after the book duel
-      and h1536-6m-ob8's match, on ponder-scope's go. Separately: does the engine's
+      summary prints both now. **Then Matthew (2026-10-25): "if you want to
+      do both with and without tables id be fine with that"**, so two runs
+      of 500 at 3190, ~50 min each (~1 h 40 in all): with the tables
+      (`--games 500 --sf-elo 3190`, games\sf-check\sf3190.jsonl), then
+      without (the same plus `--tables none`,
+      games\sf-check\sf3190-notables.jsonl; Stockfish has none either, as in
+      the net matches). Each ±~20; their difference (±~28) is what the
+      tables are worth at 10+0.1, their time losses included. In their
+      slot, after the book duel and h1536-6m-ob8's match, on ponder-scope's
+      go. Separately: does the engine's
       clock allow for a slow 5-piece probe? The bot's own games would show
       it (it plays longer controls, so less exposed).
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**

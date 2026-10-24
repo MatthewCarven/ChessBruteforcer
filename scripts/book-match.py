@@ -2,10 +2,12 @@
 
     bot\\lichess-bot\\.venv\\Scripts\\python.exe -I scripts/book-match.py <results .jsonl>
         [--games 400] [--tc 60+1] [--sf-elo 2200] [--concurrency 3] [--book main.bin,wide.bin]
-        [--eval <file>] [--threads 1] [--arms "book,no book"] [--sf-book wide.bin]
+        [--eval <file>] [--threads 1] [--arms "book,no book"] [--sf-book wide.bin] [--tables <folder>]
 
 --eval is our evaluation (EvalFile): by default the bot's, chosen as bot/make-config.py chooses it (the first
-of its list in bot/eval: h1536-3m-ob8.nnue, h1536-3m.nnue, ...); "none" for the built-in numbers. --threads is our search threads (the bot uses
+of its list in bot/eval: h1536-3m-ob8.nnue, h1536-3m.nnue, ...); "none" for the built-in numbers. --tables is our
+endgame tables' folder, by default the repo's tables (as the bot has them); "none" for none, as in the matches
+between nets (Stockfish has none here either). --threads is our search threads (the bot uses
 8; with more than one, play one game at a time). --arms book plays only the arm with the book, as the bot does
 (2026-10-17: a few games against Stockfish before the bot goes online). The engine doesn't ponder here.
 
@@ -19,7 +21,7 @@ increment still counts); then the engine. Without, the engine from move 1. The b
 between those two, but the learner rewrites it live and can't while a reader here holds it open: give a
 copy. Stockfish 16 (WSL, UCI_LimitStrength at --sf-elo, its weakened play varies the games) plays from
 --sf-book in the same way if given (its own first moves on human lines; else no book). Real clocks: a side
-whose time runs out loses. Our engine is a copy of the bot's (bot/lichess-bot/engines/bruteforcer) with our tables.
+whose time runs out loses. Our engine is a copy of the bot's (bot/lichess-bot/engines/bruteforcer) with our tables (unless --tables none).
 
 Each game is appended to the results file as it ends, so a run can be stopped and its games still
 count; run it again with the same file to add more (it carries on numbering). The summary at the end
@@ -149,7 +151,9 @@ def main():
                                         "concurrency": (3, int), "book": (",".join(BOOKS), str),
                                         "eval": (EVALS[0] if EVALS else "none", str), "threads": (1, int),
                                         "arms": ("book,no book", str), "sf-book": ("", str),
-                                        "summary": (False, bool)})
+                                        "tables": (os.path.join(REPO, "tables"), str), "summary": (False, bool)})
+    if opts["tables"] != "none" and not os.path.isdir(opts["tables"]):
+        raise SystemExit(f"no tables folder {opts['tables']!r} (--tables none for none)")
     arms = parse_arms(opts["arms"], [resolve(b) for b in opts["book"].split(",") if b])
     names = list(arms)
     sf_books = [resolve(b) for b in opts["sf-book"].split("+") if b]
@@ -166,8 +170,9 @@ def main():
     def engines():
         if not hasattr(local, "ours"):
             local.ours = chess.engine.SimpleEngine.popen_uci(OURS)
-            ours_options = {"EndgameTables": os.path.join(REPO, "tables"), "Hash": 256, "Move Overhead": 30,
-                            "Threads": opts["threads"]}
+            ours_options = {"Hash": 256, "Move Overhead": 30, "Threads": opts["threads"]}
+            if opts["tables"] != "none":
+                ours_options["EndgameTables"] = opts["tables"]
             if opts["eval"] != "none":
                 ours_options["EvalFile"] = opts["eval"]
             local.ours.configure(ours_options)
@@ -233,7 +238,7 @@ def main():
                "sf_books": [os.path.basename(b) for b in sf_books],
                "our_clock_end": round(clock[chess.WHITE if we_white else chess.BLACK], 1),
                "tc": opts["tc"], "sf_elo": opts["sf-elo"], "eval": os.path.basename(opts["eval"]),
-               "threads": opts["threads"], "moves": " ".join(m.uci() for m in board.move_stack)}
+               "threads": opts["threads"], "tables": opts["tables"], "moves": " ".join(m.uci() for m in board.move_stack)}
         with lock:
             with open(path, "a", encoding="utf-8") as out:
                 out.write(json.dumps(row) + "\n")

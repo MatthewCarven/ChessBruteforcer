@@ -7164,3 +7164,9 @@ and OURS), as the fix wasn't merged yet.
   42.5%, -53 [-129, +19].
 - The 500 games at 3190 wait for their slot (after the book duel and h1536-6m-ob8's match, on ponder-scope's go).
   The bot plays from 06:55 on Matthew's yes, so nothing runs on the laptop meanwhile.
+- Then Matthew, here: "if you want to do both with and without tables id be fine with that". So two runs of 500 at
+  3190 in the slot: with the tables (his (b), the time losses counted and shown apart), then without (`--tables
+  none`, new in book-match.py: our engine gets no EndgameTables, as in the net matches; Stockfish has none
+  either; each row records its tables). ~50 min each. The difference says what the tables are worth at 10+0.1,
+  time losses and all. Checked: it compiles, and a missing tables folder is refused; not run with engines (the
+  bot has the laptop).
