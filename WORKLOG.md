@@ -7357,3 +7357,49 @@ lichess.org stalled for one to two minutes and lost the game in play. What stopp
   ("retrying for up to 60 s, no need to restart") and when it answers again, plus run-bot.ps1's wait line saying it
   will start again by itself (a new lichess-bot patch, a test, a start-bot.cmd block; merge it while the bot is
   off); (b) a Ctrl+C mid-game asks before stopping for good; (c) no code. (a) recommended; his call.
+
+## 2026-10-25 (09:40-10:20): the bot says when lichess.org isn't answering (Matthew's (a), a side session)
+
+Matthew, first-hand in the orchestrator's session: "(a): yes, print a line while lichess.org isn't answering and when
+it's back; merge it after the bot stops."
+
+- **bot/lichess-bot-not-answering.patch** (new). It touches lib/lichess.py only; no patch in the stack touches that
+  file, and neither does chat-stats' goodbye-stats. lichess-bot's api_get and api_post carry every request to
+  lichess.org (all but chessdb's online moves). Each gets a watch outside backoff's retry decorator, so its timer runs
+  from the first try to the last, and a handler beside backoff's own hears each failed try. A request that has waited
+  5 s says so at INFO, in the window and bot\logs: "lichess.org isn't answering (our move g1c1 in game Jc2ds3P2: no
+  reply). Still trying after 5 s, for up to a minute: leave the bot running, it carries on by itself when lichess.org
+  is back (Ctrl+C stops it for good)." It says so again every 10 s ("still isn't answering (...), 16 s so far"), then
+  "answered again (...) after 38 s" (with ", with HTTP 400" when the answer is an error) or "didn't answer (...) in
+  63 s: lichess-bot gives that up and carries on".
+- The reason given is one of: no reply, can't connect, connection closed, or HTTP 5xx. A blip (one failed try, then
+  the answer) says nothing, and neither does an error answer at once. A line names only the endpoint and its url values
+  (the move, the game), never the data, so never the token. The state is per thread, so three games and the event
+  stream each report their own.
+- **bot/run-bot.ps1**: its wait line is now "lichess.org not answering: waiting for it, and lichess-bot starts again by
+  itself when it answers (Ctrl+C stops for good)". While it waits it adds "still waiting for lichess.org (N s): leave
+  this window open" every minute (the window only, not restarts.log). Checked by PowerShell's parser only: running it
+  would start lichess-bot.
+- **bot/start-bot.cmd**: a block that applies the patch unless it's in already. It goes after the last block
+  (logs-30), clear of chat-stats' block, which goes after the chat patch. `git merge-file` of the two over 1e1cf37
+  gives no conflicts.
+- **Checked** on a scratch clone of the live lichess-bot (f2b38b4). With the stack applied, its lib/*.py match the live
+  ones byte for byte.
+  - bot/test-not-answering.py (new) runs lichess-bot's own Lichess class and backoff with a pretend lichess.org and a
+    pretend clock, so a minute of retries takes no time. An unanswered try takes 2.6 s, as at 09:18. All 8 cases pass:
+    a blip; 09:18 answered on the 15th try (lines at 5, 16, 26 and 37 s, answered at 38); never answered (six lines,
+    "didn't answer" at 63 s); a stall ending in HTTP 400; HTTP 400 at once; the event stream unreachable; the token
+    check stalled (no token in any line); and two threads.
+  - Eight mutants of the patch each fail it: no 5 s threshold, no repeat, one state for all threads, no "answered
+    again", an HTTP answer read as none, GETs unwatched, no reason, and a timer per try instead of per request.
+  - start-bot.cmd's sequence (reverse-check each patch, apply it if not in) was replayed for this branch's start-bot.cmd
+    and for its merge with chat-stats'. From pristine and from the live state, two starts each, every patch applied or
+    was "in already", and lib/*.py came out the same every time.
+  - On the merged tree (the stack, goodbye-stats, not-answering), test-not-answering, test-rejoin, test-one-player,
+    test-busy, test-quit-soon, test-ponder-note and test-sigint all pass.
+  - Against the live bot\lichess-bot it fails "the patch isn't in" until start-bot.cmd applies it.
+- To test the merged tree before the bot's next start, use a scratch clone with start-bot.cmd's patches applied:
+  `set LICHESS_BOT=<clone>`, then `bot\lichess-bot\.venv\Scripts\python.exe bot\test-not-answering.py`. After the
+  next start, run it as it is (the live folder has the patch by then).
+- Found on the way (TODO): a token check that fails once at start retries with "<token redacted>" in place of the token
+  (upstream lichess-bot's backoff_handler), and lichess-bot then stops.

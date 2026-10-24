@@ -10,6 +10,10 @@
 # says so. Every start and stop also goes to bot\logs\restarts.log, a Ctrl+C included (2026-10-20: four stops by a
 # held Ctrl+C, with no line here, were taken for crashes).
 #
+# While lichess.org isn't answering, both say so in the window: lichess-bot for a request it's retrying
+# (bot\lichess-bot-not-answering.patch), and this loop every minute while it waits to start lichess-bot again. On
+# 2026-10-25 a quiet window looked frozen, and Ctrl+C stopped the bot through a stall it would have ridden out.
+#
 # To stop once the games are over (Matthew, 2026-10-20), drop bot\quit.soon (bot\quit-soon.cmd makes it):
 # lichess-bot takes no new games and stops when the last one ends (bot\lichess-bot-quit-soon.patch), and this
 # loop, finding the file there, deletes it and starts nothing. Deleting it before then cancels.
@@ -44,9 +48,17 @@ $byCtrlC = $true  # the loop only ends by Ctrl+C, unless it gives up or quit.soo
 try {
     while ($true) {
         if (-not (Lichess-Answers)) {
-            Note 'lichess.org not answering: waiting for the network'
+            Note 'lichess.org not answering: waiting for it, and lichess-bot starts again by itself when it answers (Ctrl+C stops for good)'
             $since = Get-Date
-            while (-not (Lichess-Answers)) { Start-Sleep -Seconds 10 }
+            $told = $since
+            while (-not (Lichess-Answers)) {
+                Start-Sleep -Seconds 10
+                if (((Get-Date) - $told).TotalSeconds -ge 60) {
+                    # The window only, not restarts.log: a quiet window looks like a stuck one.
+                    Write-Host ('{0:yyyy-MM-dd HH:mm:ss}  still waiting for lichess.org ({1:N0} s): leave this window open' -f (Get-Date), ((Get-Date) - $since).TotalSeconds)
+                    $told = Get-Date
+                }
+            }
             Note ('the network is back after {0:N0} s' -f ((Get-Date) - $since).TotalSeconds)
         }
         $started = Get-Date

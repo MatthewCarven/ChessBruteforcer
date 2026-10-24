@@ -97,6 +97,15 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-logs-30.patch"
     if errorlevel 1 echo The 30-day DEBUG log didn't go in ^(lichess-bot changed?^): it keeps 7 days.
 )
+rem While lichess.org isn't answering a request, lichess-bot says so in this window and bot\logs (from 5 s on, then every
+rem 10 s), and says when it answers again. Its retries used to show nothing, so a stall looked like a frozen bot, and a
+rem Ctrl+C stopped it through one it would have ridden out (Jc2ds3P2, 2026-10-25): bot\lichess-bot-not-answering.patch;
+rem bot\test-not-answering.py tests it. Unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-not-answering.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-not-answering.patch"
+    if errorlevel 1 echo The not-answering lines didn't go in ^(lichess-bot changed?^): a stall shows nothing here, as before.
+)
 set BRUTEFORCER_TABLES=%CD%\tables
 rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers;
 rem Ctrl+C stops both, and restarts.log says so.

@@ -1,0 +1,157 @@
+diff --git a/lib/lichess.py b/lib/lichess.py
+index 891a771..b15e6c3 100644
+--- a/lib/lichess.py
++++ b/lib/lichess.py
+@@ -10,8 +10,12 @@ import traceback
+ from collections import defaultdict
+ import datetime
+ import contextlib
++import functools
++import sys
++import threading
+ from lib.timer import Timer, seconds, sec_str
+-from typing import cast
++from typing import Any, TypeVar, cast
++from collections.abc import Callable
+ import chess.engine
+ from lib.lichess_types import (UserProfileType, REQUESTS_PAYLOAD_TYPE, GameType, PublicDataType, OnlineType,
+                        ChallengeType, TOKEN_TESTS_TYPE, BackoffDetails)
+@@ -119,6 +123,108 @@ def backoff_handler(details: BackoffDetails) -> None:
+     logger.debug(f"Exception: {traceback.format_exc()}")
+ 
+ 
++# BruteForceBot (2026-10-25): a request lichess.org hasn't answered says so at INFO once it has waited this long, and
++# again every so often while it still waits; then it says when lichess.org answers, or when the retries give up.
++UNANSWERED_FIRST = seconds(5)
++UNANSWERED_AGAIN = seconds(10)
++
++unanswered = threading.local()  # .request: the request this thread is waiting on, if watch_unanswered watches it
++
++
++def unanswered_reason(exception: BaseException | None) -> str:
++    """Why a try went unanswered, in a few words."""
++    if isinstance(exception, HTTPError) and exception.response is not None:
++        return f"HTTP {exception.response.status_code}"
++    if isinstance(exception, ReadTimeout):
++        return "no reply"
++    if isinstance(exception, RemoteDisconnected):
++        return "connection closed"
++    if isinstance(exception, RequestsConnectionError):
++        return "can't connect"
++    return type(exception).__name__
++
++
++class UnansweredRequest:
++    """A request to lichess.org on its way: how long it has waited, and when it last said so."""
++
++    def __init__(self, args: tuple[Any, ...]) -> None:
++        """Start the wait: `args` are the API call's (self, endpoint name, url values), as backoff sees them."""
++        self.args = args
++        self.timer = Timer()
++        self.said: datetime.timedelta | None = None
++
++    def name(self) -> str:
++        """The request for the log ("our move e2e4 in game abcd1234", "stream abcd1234"); never its data or token."""
++        endpoint, *values = [str(arg) for arg in self.args[1:]] or ["a request"]
++        if endpoint == "move" and len(values) == 2:
++            return f"our move {values[1]} in game {values[0]}"
++        return " ".join([endpoint, *values])
++
++    def failed(self, exception: BaseException | None) -> None:
++        """A try went unanswered: say so once the request has waited UNANSWERED_FIRST, then every UNANSWERED_AGAIN."""
++        waited = self.timer.time_since_reset()
++        if self.said is None and waited >= UNANSWERED_FIRST:
++            logger.info(f"lichess.org isn't answering ({self.name()}: {unanswered_reason(exception)}). Still trying "
++                        f"after {sec_str(waited)} s, for up to a minute: leave the bot running, it carries on by itself "
++                        "when lichess.org is back (Ctrl+C stops it for good).")
++        elif self.said is not None and waited - self.said >= UNANSWERED_AGAIN:
++            logger.info(f"lichess.org still isn't answering ({self.name()}: {unanswered_reason(exception)}), "
++                        f"{sec_str(waited)} s so far.")
++        else:
++            return
++        self.said = waited
++
++    def ended(self, exception: BaseException | None) -> None:
++        """The request is over (`exception` if it raised one): if it said it was waiting, say how it ended."""
++        if self.said is None:
++            return
++        waited = sec_str(self.timer.time_since_reset())
++        if exception is None:
++            logger.info(f"lichess.org answered again ({self.name()}) after {waited} s.")
++        elif isinstance(exception, HTTPError) and exception.response is not None:
++            logger.info(f"lichess.org answered again ({self.name()}) after {waited} s, "
++                        f"with HTTP {exception.response.status_code}.")
++        else:
++            logger.info(f"lichess.org didn't answer ({self.name()}: {unanswered_reason(exception)}) in {waited} s: "
++                        "lichess-bot gives that up and carries on.")
++
++
++def unanswered_handler(details: BackoffDetails) -> None:  # noqa: ARG001
++    """Tell the request this thread is waiting on (watch_unanswered) that a try failed; backoff calls this in its except."""
++    request = getattr(unanswered, "request", None)
++    if request is not None:
++        request.failed(sys.exc_info()[1])
++
++
++API_CALL = TypeVar("API_CALL", bound=Callable[..., Any])
++
++
++def watch_unanswered(api_call: API_CALL) -> API_CALL:
++    """
++    Say in the log, at INFO, while lichess.org isn't answering a request, and when it answers again.
++
++    BruteForceBot (2026-10-25): lichess-bot retries a request for up to a minute, logging each try at DEBUG only. At
++    09:18 lichess.org stalled after our move was sent: the bot's window showed nothing for 51 s while our clock ran, it
++    looked frozen, and a Ctrl+C stopped it for good, though it would have carried on by itself. Now a request that has
++    waited 5 s says so, and again every 10 s, then says when lichess.org answers or the retries give up. This goes
++    outside backoff's decorator, so its timer runs from the first try to the last.
++    """
++    @functools.wraps(api_call)
++    def watched(*args: Any, **kwargs: Any) -> Any:
++        outer = getattr(unanswered, "request", None)
++        request = unanswered.request = UnansweredRequest(args)
++        try:
++            result = api_call(*args, **kwargs)
++        except Exception as e:
++            request.ended(e)
++            raise
++        finally:
++            unanswered.request = outer
++        request.ended(None)
++        return result
++    return cast(API_CALL, watched)
++
++
+ # Docs: https://lichess.org/api.
+ class Lichess:
+     """Communication with lichess.org (and chessdb.cn for getting moves)."""
+@@ -162,12 +268,13 @@ class Lichess:
+                                'has the scope "Play games with the bot API (bot:play)". '
+                                f"The current token has: {scopes}.")
+ 
++    @watch_unanswered
+     @backoff.on_exception(backoff.constant,
+                           (RemoteDisconnected, RequestsConnectionError, HTTPError, ReadTimeout),
+                           max_time=60,
+                           interval=0.1,
+                           giveup=is_final,
+-                          on_backoff=backoff_handler,
++                          on_backoff=[backoff_handler, unanswered_handler],
+                           backoff_log_level=logging.DEBUG,
+                           giveup_log_level=logging.DEBUG)
+     def api_get(self, endpoint_name: str, *template_args: str,
+@@ -238,12 +345,13 @@ class Lichess:
+         response = self.api_get(endpoint_name, *template_args, params=params)
+         return response.text
+ 
++    @watch_unanswered
+     @backoff.on_exception(backoff.constant,
+                           (RemoteDisconnected, RequestsConnectionError, HTTPError, ReadTimeout),
+                           max_time=60,
+                           interval=0.1,
+                           giveup=is_final,
+-                          on_backoff=backoff_handler,
++                          on_backoff=[backoff_handler, unanswered_handler],
+                           backoff_log_level=logging.DEBUG,
+                           giveup_log_level=logging.DEBUG)
+     def api_post(self,

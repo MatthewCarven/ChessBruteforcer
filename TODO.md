@@ -455,6 +455,24 @@ before `bestmove` after a ponderhit, so those moves get their stats too; that's
 in src, so after the optimisation work there lands. (Now P1 of decision M,
 [PONDER.md](PONDER.md), 2026-10-21.)
 
+**The bot says when lichess.org isn't answering** (2026-10-25, Matthew's (a);
+WORKLOG; branch claude/bot-crash-0919-6b95e8). The 09:19 stop was a Ctrl+C
+during a 1-2 minute lichess.org stall that lichess-bot would have ridden out:
+its retries went to the DEBUG log only, so the window looked frozen.
+bot\lichess-bot-not-answering.patch (lib\lichess.py): a request that has
+waited 5 s says so at INFO, again every 10 s, then "answered again" or "didn't
+answer". run-bot.ps1 says so every minute while it waits to start lichess-bot
+again (bot\test-not-answering.py). It changes bot\start-bot.cmd, so merge with
+the bot stopped; live from the next start.
+- [ ] **A retried token check sends "<token redacted>"** (upstream
+      lichess-bot, found reading lib\lichess.py; checked on a scratch copy).
+      Its backoff_handler redacts the token in the retry's own arguments, so
+      a token check that fails once at start sends the placeholder on every
+      try after. lichess-bot then stops on "error in retrieving information
+      about the bot's token", and run-bot.ps1 starts it again 20 s later. Not
+      seen in the logs yet. Fix it here (redact a copy) or report it
+      upstream: his call.
+
 **Waiting on Matthew:** nothing to delete. He emptied `delete me` (42.3 GB)
 on 2026-10-18 at ~20:50: C: has 84 GB free. Leftovers go into it from now
 on, listed in `delete me\WHAT-THIS-IS.txt`. The index lives in `indexes\`
