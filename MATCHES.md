@@ -323,6 +323,7 @@ longer one: the figure is approximate, and a floor.
 | date | engine | opponent | games | +W -L =D | score | Elo diff [95%] | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-25 | h1536-3m-ob8 | Stockfish 16, UCI_Elo 2700 | 40 | +35 -0 =5 | 93.8% | +470 [+356, +788] | the probe, 06:06-06:10: **about 3170 on Stockfish's scale**, too one-sided to say more; no time losses either side (Stockfish's moves come through WSL); 35 mates; 36 different first 8 plies in 40 games. Each thread's first game (0-5) had our tables' read (~1.8 s) on our first move's clock: those scored 75%, the rest 97% |
+| 2026-10-25 | h1536-3m-ob8 | Stockfish 16, UCI_Elo 3190 (its top) | 40 | +6 -12 =22 | 42.5% | -53 [-129, +19] | the second probe, 06:12-06:17, isready off the clock: **about 3140 on Stockfish's scale**. 21 repetitions, 14 mates, median 148 plies. **4 losses on time, all ours**, all in endgames of 7-10 pieces, two by ~2 s (clocks -1.8 and -2.6; the others -0.1 and -0.0): the 5-piece tables read from disk mid-search, 6 engines at once, the likeliest cause (not shown). Had they been draws: 47.5%, -17 |
 
 ## Versions
 
