@@ -39,7 +39,7 @@ BOOK_MOVES = 12
 BOOKS = [b for b in (os.path.join(REPO, "bot", "books", name) for name in ("lichess-2200.bin", "lichess-2200-wide.bin"))
          if os.path.exists(b)]
 # The bot's evaluation, as bot/make-config.py picks it: the first of its list there is. (Until 2026-10-25 this list
-# was nnue1.nnue, else eval-sf1.txt: the first net, or the tuned numbers where nnue1.nnue is gone, not the bot's.)
+# was nnue1.nnue, else eval-sf1.txt: nnue1, the bot's net only until 2026-10-17 23:20.)
 EVALS = [e for e in (os.path.join(REPO, "bot", "eval", name) for name in
                      ("h1536-3m-ob8.nnue", "h1536-3m.nnue", "h1024-3m.nnue", "h512-3m.nnue", "nnue1-h512.nnue",
                       "nnue1.nnue", "eval-sf1.txt")) if os.path.exists(e)]

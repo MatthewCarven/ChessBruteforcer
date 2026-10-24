@@ -7000,7 +7000,18 @@ fast-forwarded to compression (206a537) first.
   pair is ±14 Elo, ~4 h for the round robin; the final at most 2,000 games,
   ~2.6 h. Not run: bt-c's timed match has CPUs 2-13 until 06:55, and the heat
   rule keeps heavy laptop work to the afternoon and night.
-- **book-match.py's default net was wrong**: its list was nnue1.nnue, else
-  eval-sf1.txt, so it played the first net (still in git) or the tuned numbers
-  (the main checkout, where nnue1.nnue is gone), not the bot's h1536-3m-ob8.
-  Now bot/make-config.py's list.
+- **book-match.py's default net was stale**: its list was nnue1.nnue, else
+  eval-sf1.txt, so it played nnue1 (in git, and in the main checkout's
+  bot\eval), not the bot's h1536-3m-ob8. Now bot/make-config.py's list.
+  (Corrected: this said nnue1.nnue was gone from the main checkout, and so the
+  tuned numbers there. A listing cut short by `head`; Session context caught it.)
+- **Checked: no result came from the stale default.** Three book-match.py
+  results files exist, all logged nnue1.nnue: the smoke test (1 game, 10-17
+  18:58), the 10 games against Stockfish-2500 at 3+2 (10-17 22:47, TODO's
+  "the bot as it plays (nnue1, ...)" table, WORKLOG 10-17) and the stray game
+  of 10-23 21:46 (set aside in `delete me`). The bot moved from nnue1 to
+  nnue1-h512 at 23:20 on 10-17, so nnue1 was its net for the first two, and
+  the default went stale only after them. The scoping's figures (BOOK-TABLES.md)
+  come from the bot's own games and Lichess's cloud evaluations, not
+  book-match.py; its "book lasted ~4 moves against weakened Stockfish" is from
+  the 10-13 smoke test and is about Stockfish's odd moves. No caveat or rerun.
