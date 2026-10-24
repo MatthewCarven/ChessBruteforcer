@@ -7032,3 +7032,30 @@ fast-forwarded to compression (206a537) first.
   19), from four lines with noise. So a short control costs it little and us
   more: the figure is a floor. Hence the probe at 2700, below the ~2900 I first
   guessed (that was before allowing for one thread at 10+0.1).
+
+## 2026-10-25 (03:54-06:15): Decision C (a), the vetted book's match run: no worse, keep it (the bt-c session)
+
+The scoping session's go at 03:54 (the bot off, only the learner up, 15 GB of
+commit free). This branch fast-forwarded to compression (463878d) after.
+
+- **Set-up**: the bot's engine copied to the main checkout's
+  games\vet-c-match\engine; the pairs made in 5 min 43 s (below normal):
+  1,500 pairs from 174,132 walks, 0.86% of Black games meeting a veto, at 39
+  positions; the books' difference still the veto list (47 positions).
+- **The stop time with real engines** (the one thing the dry run couldn't
+  check): one game at 60+1 across a stop 2.5 min out. It stopped at 04:04:04,
+  exit 3, the game dropped, no engines left over.
+- **The match**: vet-c-match.cmd 06:55 in its own window from 04:04:18, 6
+  games at a time on CPUs 2-13. **The SPRT [-10, 0] accepted H1 (no worse)
+  at 06:02:22, after 760 pairs (1,521 games), LLR 3.03.** Black scored 47.4%
+  with the vetted book against 42.8% with the human book from the same
+  positions: +32 Elo [+11, +54] on the games where the books differ, +0.3
+  [+0.1, +0.5] over all Black games. Mostly fewer losses (214 to 158).
+- The two biggest positions (1.d4 Nf6 2.Nc3 and 1.d4 b6, 402 pairs) came out
+  level; the gain came from smaller lines, 3.c3 d3 to dxc3 in the Smith-Morra
+  the most (83 pairs, +0.16 a game).
+- ~13 games a minute, not the 16 planned (games ran ~130 plies); no time
+  losses, no engine errors. Summary in scripts/book-tables/results/
+  vet-c-match.txt, the write-up in bt-c.md; games in games\vet-c-match\.
+- **Keep the vetted book.** Putting it in the bot's books is Matthew's call
+  (TODO); it's also one of the book duel's arms.

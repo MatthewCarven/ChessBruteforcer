@@ -1,0 +1,36 @@
+vet-c-match.py's run of 2026-10-25 (games and log in the main checkout's games\vet-c-match\, not in git)
+
+2026-10-25 04:04:18  1500 pairs, 0 games done already (0 pairs complete, LLR 0.00); 3000 games to go; 6 at a time on CPUs [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 10+0.1, SPRT [-10, 0], stop at 06:55; h1536-3m-ob8.nnue; 14.97 GB commit free
+2026-10-25 06:02:22  stopped (the SPRT decided): 1521 games this run, 1521 in all, 760 pairs complete, LLR 3.03
+
+
+1521 games in games\vet-c-match\games.jsonl; 760 pairs complete of 1500. A pair stands for 0.86% of Black games (1500 of 174132 walks met a veto).
+
+| arm (our book as Black) | games | +W -L =D for Black | Black's score | lost on time (Black / White) | plies | book moves (Black / White) |
+|---|---:|---|---:|---|---:|---|
+| human | 760 | +105 -214 =441 | 42.8% | 0 / 0 | 132 | 6.6 / 6.2 |
+| vetted | 760 | +119 -158 =483 | 47.4% | 0 / 0 | 129 | 7.4 / 7.0 |
+
+Vetted less human, a pair at a time: +0.046 points a game (+-0.031), **+32 Elo [+11, +54] on the games where the books differ**; SPRT [-10, 0] LLR 3.03 (-2.94, 2.94): H1 accepted (no worse).
+Pairs by the difference (vetted less human): -1: 24, -0.5: 156, +0: 335, +0.5: 216, +1: 29.
+Over all Black games that's +0.3 Elo [+0.1, +0.5], and over all games (half as Black) half that.
+
+34 positions. The most played:
+
+| move | position (moves from the start) | human book's move -> vetted | pairs | vetted less human |
+|---:|---|---|---:|---:|
+| 2 | 1. d4 Nf6 2. Nc3 | g6 -> d5 (79), c5 -> d5 (52), d6 -> d5 (31) | 211 | -0.01 |
+| 1 | 1. d4 | b6 -> Nf6 (89), b6 -> d5 (52), b6 -> e6 (14) | 191 | +0.04 |
+| 3 | 1. e4 c5 2. d4 cxd4 3. c3 | d3 -> dxc3 (44), d3 -> Nf6 (19), d3 -> d5 (8) | 83 | +0.16 |
+| 3 | 1. e4 e5 2. Nf3 Nf6 3. Nxe5 | Nc6 -> d6 (35), Nc6 -> Nxe4 (3), Nc6 -> d5 (1) | 39 | +0.12 |
+| 3 | 1. e4 e5 2. Nf3 Nc6 3. Nc3 | Bc5 -> Nf6 (32), Bc5 -> Nge7 (1), Bc5 -> Bb4 (1) | 35 | +0.01 |
+| 2 | 1. e4 Nc6 2. Nf3 | f5 -> d6 (14), f5 -> d5 (10), f5 -> e5 (6) | 31 | +0.08 |
+| 2 | 1. d4 e6 2. Nf3 | b6 -> d5 (8), b6 -> f5 (7), b6 -> Nf6 (4) | 24 | +0.00 |
+| 4 | 1. e4 e6 2. d4 d5 3. Nc3 Nf6 4. e5 | Ng8 -> Nfd7 (14), Ng8 -> Ne4 (2) | 16 | -0.03 |
+| 1 | 1. g4 | c5 -> d5 (4), h5 -> d5 (3), d6 -> d5 (2) | 15 | +0.10 |
+| 4 | 1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 | Bc5 -> d5 (13), Bc5 -> Nxe4 (1) | 14 | +0.29 |
+| 8 | 1. e4 c5 2. Nf3 e6 3. d4 cxd4 4. Nxd4 Nf6 5. Nc3 Nc6 6. Nxc6 bxc6 7. e5 Nd5 8. Ne4 | Bb7 -> Qc7 (13), Bb7 -> f5 (1) | 14 | +0.04 |
+| 1 | 1. Nf3 | f6 -> Nf6 (7), f6 -> d5 (3), f6 -> c6 (1) | 12 | +0.08 |
+| 3 | 1. d4 d6 2. c4 e5 3. Nf3 | Nc6 -> e4 (4), Bg4 -> e4 (4), Nc6 -> exd4 (1) | 11 | -0.09 |
+| 3 | 1. e4 e5 2. Nf3 Nc6 3. d4 | d6 -> exd4 (10) | 10 | -0.05 |
+| 1 | 1. e4 | Na6 -> c5 (3), Na6 -> e5 (2), Na6 -> Nf6 (2) | 8 | -0.12 |

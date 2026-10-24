@@ -114,6 +114,42 @@ everywhere; no defence where our engine alone thinks Black is worse.
 - (c) Leave Black's first two moves to BT1 (b)'s table: the biggest single cost is the first move (1...d5, 1...g6,
   1...c6 against 1.e4), and (b) plays our best there.
 
+Matthew chose (a) (2026-10-25 00:35).
+
+## Decision C (a): the match (2026-10-25, 04:04-06:02)
+
+**The vetted book is no worse: the SPRT [-10, 0] accepted H1 after 760 pairs, and it came out ahead, +32 Elo [+11,
++54] on the games where the books differ, +0.3 Elo [+0.1, +0.5] over all Black games.** Keep it.
+
+A match of the whole book would spend 97-99% of its games on lines that go the same way with either book, so
+scripts/book-tables/vet-c-match.py plays only where they part. It walks the opening as the bot would meet it (White from
+the wide book, Black from the human chain, the vetted chain coupled to it so the two part only at a vetoed move): 1,500
+pairs from 174,132 walks, so 0.86% of Black games meet a veto, at 39 positions. Each pair is played twice from the
+position where the books part, once with the human book's move and once with the vetted book's. Our engine plays both
+sides (the bot's build, h1536-3m-ob8, one thread, Hash 64), at 10+0.1, each side on its books for its first 12 moves. 6
+games at a time on CPUs 2-13, the laptop otherwise idle.
+
+| arm (our book as Black) | games | +W -L =D for Black | Black's score | plies | book moves (Black / White) |
+|---|---:|---|---:|---:|---|
+| human | 760 | +105 -214 =441 | 42.8% | 132 | 6.6 / 6.2 |
+| vetted | 760 | +119 -158 =483 | 47.4% | 129 | 7.4 / 7.0 |
+
+- Vetted less human, a pair at a time: +0.046 points a game (±0.031). The pairs by difference: -1: 24, -0.5: 156, 0:
+  335, +0.5: 216, +1: 29. Mostly fewer losses: 56 fewer losses, 42 more draws, 14 more wins.
+- The two biggest positions came out level: 1.d4 Nf6 2.Nc3 (g6/c5/d6 to d5; 211 pairs, -0.01) and 1.d4 b6 (to Nf6, d5
+  or e6; 191 pairs, +0.04), each ±0.06. The gain is in smaller lines: 1.e4 c5 2.d4 cxd4 3.c3 d3 to dxc3 (83 pairs,
+  +0.16, ±0.09), the Petrov's 3.Nxe5 Nc6 to d6 (39, +0.12), the Two Knights' 4.Ng5 Bc5 to d5 (14, +0.29). Picked out
+  of 34 positions after the fact, so read them loosely.
+- 1,521 games in 118 min, ~13 a minute (~130 plies, long for 10+0.1); no time losses (closest 0.15 s), no engine
+  errors. 853 repetitions, 596 mates, 63 bare kings, 8 fifty-move, 1 stalemate.
+- The stop time was tested first with real engines (one game at 60+1 across a stop 2.5 min out): stopped on time, the
+  game dropped, no engines left over.
+
+Caveats: our engine on both sides, so it's how the vetoes play for us, not against people or Stockfish (who agreed
+with 84% of them); the vetoes came from our own searches, but the games play them out. Whether it goes into the bot
+(bot\books' lichess-2200.bin, both colours; the vetoes only change Black's moves) is Matthew's call; it's also one of
+the book duel's arms.
+
 ## Files
 
 | file | what |
@@ -123,3 +159,5 @@ everywhere; no defence where our engine alone thinks Black is worse.
 | vet-c-vetoes.csv | the 57 vetoes: position, move, share, losses at 16 and 18, our best, Stockfish's loss, in today's book |
 | vet-c-sf-vetoes.csv / -controls.csv / -exits.csv | Stockfish at depth 20 |
 | main checkout games\lichess-2200-vetted-black.bin | the vetted book (sha256 6037702a...ab692), never bot\books |
+| vet-c-match.txt | Decision C (a)'s match: the run's first and last log lines and vet-c-match.py's summary |
+| main checkout games\vet-c-match\ | its pairs.json, games.jsonl (1,521 games) and games.log, and the engine copy |

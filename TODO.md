@@ -946,7 +946,7 @@ Sessions, in order:
             ~314 core-h at depth 18 at the measured speed, ~40 h on 8
             cores; less at depth 16). Matthew (2026-10-25): later, kept on
             the todo.
-- [ ] **Decision C: after BT1 (c)'s vetting** (scripts/book-tables/results/
+- [x] **Decision C: after BT1 (c)'s vetting** (scripts/book-tables/results/
       bt-c.md, 2026-10-24): 57 human-book moves vetoed as Black (Stockfish
       agrees with 84%), in games\lichess-2200-vetted-black.bin; but they are
       15% of what the book gives away, and they change ~3% of Black games
@@ -959,14 +959,18 @@ Sessions, in order:
       no-regression test (bt-c-vet-black plans it). Expect no visible
       difference; keep it if it isn't worse. Later, it's also one of BT4's
       arms.
-      - [ ] **The match, planned** (scripts/book-tables/vet-c-match.py and
-            .cmd, 2026-10-25): games only where the books differ (a walk of
-            the books met a veto in 0.75% of Black games), in pairs from the
+      - [x] **The match** (scripts/book-tables/vet-c-match.py and .cmd,
+            2026-10-25): games only where the books differ, in pairs from the
             same position, one with the human book's move and one with the
             vetted book's; our engine both sides, 10+0.1, SPRT [-10, 0] on
-            those games. 6 at a time on CPUs 2-13, ~10 min to make the pairs,
-            then up to ~2 h 40 min; stop at 06:55, resumable. Waits for the
-            scoping session's go, the bot off.
+            those games, 6 at a time on CPUs 2-13. **Done 04:04-06:02: H1
+            (no worse) after 760 pairs, +32 Elo [+11, +54] on the games where
+            the books differ (0.86% of Black games), +0.3 over all Black
+            games. Keep the vetted book.** bt-c.md, results/vet-c-match.txt.
+      - [ ] **The vetted book into the bot?** Matthew's call: it would take
+            lichess-2200.bin's place in bot\books (both colours; the vetoes
+            only change Black's moves), the bot off. It's also one of the book
+            duel's arms, which could settle it with the other books first.
 - [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it
