@@ -22,7 +22,6 @@ Opponents with 3+ games: 37; |z| > 1.96 for 1 (chance alone: 1.5, 95% of runs <=
   TeensyCheesy             4    0.5    1.9  -1.88   -329   nnue1-h512 3, h512-3m 1
   Alieknek                 4    1.0    2.4  -1.88   -267   nnue1-h512 4
   tallikebot               4    0.0    1.1  -1.56   -434   h512-3m 2, nnue1-h512 1, h1024-3m 1
-  fpga-chess               4    4.0    3.3  +1.14   +321   nnue1-h512 2, h512-3m 1, h1024-3m 1
   LunaEngineChess          3    1.0    1.7  -1.11   -173   nnue1 1, nnue1-h512 1, h1024-3m 1
   Mithandros               3    3.0    2.4  +1.11   +358   h512-3m 2, nnue1-h512 1
   AaronsEngine             3    3.0    2.4  +1.09   +352   nnue1-h512 2, h1024-3m 1
