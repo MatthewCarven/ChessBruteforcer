@@ -924,6 +924,14 @@ Sessions, in order:
       no-regression test (bt-c-vet-black plans it). Expect no visible
       difference; keep it if it isn't worse. Later, it's also one of BT4's
       arms.
+      - [ ] **The match, planned** (scripts/book-tables/vet-c-match.py and
+            .cmd, 2026-10-25): games only where the books differ (a walk of
+            the books met a veto in 0.75% of Black games), in pairs from the
+            same position, one with the human book's move and one with the
+            vetted book's; our engine both sides, 10+0.1, SPRT [-10, 0] on
+            those games. 6 at a time on CPUs 2-13, ~10 min to make the pairs,
+            then up to ~2 h 40 min; stop at 06:55, resumable. Waits for the
+            scoping session's go, the bot off.
 - [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it

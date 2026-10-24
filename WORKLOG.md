@@ -6894,3 +6894,45 @@ BT4's measurement, not in bot\books.
   the todo.
 - One opponent's name and record came out of TODO.md's O2 item, on his word,
   before the next push; the per-bot setup idea stays.
+
+## 2026-10-25 (00:40-01:05): Decision C (a), the vetted book's match planned (the bt-c session)
+
+The scoping session asked for a standalone measure of (a) on the laptop after
+the bot, ending by ~07:00 or carrying on after midday; its suggestion was a
+no-regression SPRT [-10, 0] like P5's.
+
+- **A match of the whole book doesn't fit.** The two books differ in 47
+  positions (all on the veto list; the 48th veto isn't in today's book), so
+  97-99% of Black games and every White game go the same way with either.
+  P5's head-to-head measured the difference in every game; two arms against
+  one opponent have ~4 times the variance a game, so [-10, 0] with the truth
+  near 0 would want several times P5's 1,574 games, mostly of noise. And the
+  whole-book answer is arithmetic: changing 1-3% of Black games, the vetted
+  book can't be 10 Elo worse unless nearly all of those became losses.
+- **So scripts/book-tables/vet-c-match.py plays only the lines where the
+  books differ.** `pairs` walks the opening as the match plays it (White
+  from the wide book, Black from the human chain, the vetted chain drawing
+  with it so the two part only where the human chain plays a vetoed move);
+  a line that parts is a pair. `run` plays each pair twice from there, with
+  the human book's move and with the vetted book's: our engine both sides
+  (the bot's build and net, h1536-3m-ob8; one thread, Hash 64, no tables, no
+  pondering; a game's two engines on one physical core), 10+0.1, each side's
+  books for its first 12 moves. SPRT [-10, 0] on the pairs' differences: no
+  worse by 10 Elo on the games that change. It stops at the SPRT, the end of
+  the pairs, or a stop time (games under way dropped, exit 3), and carries on
+  when started again. `summary`: the arms, the difference with a 95%
+  interval, the share of Black games it stands for, the pairs by position.
+  vet-c-match.cmd copies the bot's engine and makes the pairs once, then runs.
+- **Dry run, no engines** (the bot was playing): the books' difference
+  matched the veto list; 2,000 walks in 5 s met a veto in 15 (0.75%), at 9
+  positions (3...Bc5 in the Three Knights, 1.Nf3 f6, 1.d4 b6, ...). Random
+  movers in place of the engines: 12 games over two runs, the second carrying
+  on with no duplicates; a stop time a minute off exited 3 having started
+  nothing. Killing real engines at the stop time is untested: a two-minute
+  check at the go (one game at 60+1 across the stop).
+- **The plan sent**: 6 games at a time on CPUs 2-13, ~10 min of one core for
+  1,500 pairs, then games until 06:55. At P5's ~22 s a game, ~16 games a
+  minute: ~1,250 pairs by 06:55. If the vetoes are worth what the searches
+  say (+30 to +60 Elo in the games they change), the SPRT decides in ~450-830
+  pairs (1-2 h); near 0 it runs to the stop with about +-17 Elo on those
+  games, +-0.15 over all Black games.
