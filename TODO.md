@@ -390,6 +390,9 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
       Information(_Total)\% Processor Performance"), and Speed lines. From
       the next start the bot is on 8 threads: the tests' Mnps a game, 8
       threads, 19.0 alone, 10.8 with two on, ~6.5 with three.
+      The first runs on 8 threads (10-25 08:52-09:52, WORKLOG): Speed 16.0
+      and 13.8 Mnps alone (the two runs), 10.9 with two on, as the tests
+      said; never three on yet. 1W 2D, no time losses.
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that

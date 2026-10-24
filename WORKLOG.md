@@ -7438,3 +7438,33 @@ positions would be nice", and it "does not need be 100% acurate". Branch claude/
   times ignored, the restart not said).
 - **Not done**: not seen on Lichess. It goes live at the bot's next start once merged into compression. It changes
   bot/start-bot.cmd, so merge with the bot stopped (cmd.exe reads a running batch file line by line).
+
+## 2026-10-25 (08:52-09:52): the bot on 8 threads a game, up to three (the orchestrator)
+
+Matthew's yes here, first-hand: "Yes: start the bot now until 11:30, 8 threads, up to three games; the heat rule is
+lifted until then." bot/make-config.py at 1e1cf37: Threads 8, concurrency 3, the vetted Black book, h1536-3m-ob8.
+Started 08:52:45 (online 08:52:57); stopped 09:19:02 by a Ctrl+C during a lichess.org stall (the entry above:
+Lichess aborted Jc2ds3P2); restarted 09:26:55 on his yes (online 09:27:04); stopped by his Ctrl+C between games at
+09:52:09, before the 11:30 stop. The stop timer was cancelled.
+
+- **3 games, 1W 2D 0L** (2/3; opponents' average 2555), plus Jc2ds3P2 against eigenmann-chess (2771), which Lichess
+  aborted (unrated; we were losing it, mate against us in the engine's eyes):
+
+  | Opponent | Elo | Clock | Colour | Result | End |
+  |---|---|---|---|---|---|
+  | SBNovella | 2909 | 5+2 | White | draw | threefold repetition, move 87, rook endgame (6 pieces) |
+  | TalosBot | 2450 | 2+1 | Black | draw | fifty-move rule, move 107, bishops of opposite colour (9 pieces) |
+  | morabandbot | 2305 | 5+2 | White | won | move 67, 3 pieces |
+
+- **Two games at once once** (TalosBot's bullet challenge beside SBNovella's game, 08:59-09:07), never three.
+- **No time losses.** The bullet game was close: 0:09 left to TalosBot's 0:05 after 107 moves, 96% of our clock used
+  (beside another game). `bot\move-times.py --since "2026-10-25 08:52"`: blitz ours 3.0 / 4.9 s a move, theirs
+  4.0 / 5.0.
+- **Speed lines on 8 threads** (Mnps a search, median / mean, by games on): 08:52-09:19, one on 16.0 / 13.8 (83
+  searches), two on 10.9 / 10.7 (148); 09:27-09:52, one on 13.8 / 12.1 (48). Two on matches the heat test's 10.8;
+  alone runs below its 19.0 (the bot's searches include endgames and ponder hits, the test a middlegame). On 4 threads
+  at 06:55-08:00: 8.9 alone, 8.8 with two on.
+- Blitz 2588 before SBNovella's game, 2593 before the last (won); bullet 2635 before TalosBot's.
+- After the stop: chat-stats (the goodbye's count of positions searched, and !stats) and bot-crash's "lichess.org
+  isn't answering" notice merged (8a6086d), tested together on a fresh clone of lichess-bot (ten patches applied
+  twice, eight tests pass). Live from the bot's next start.
