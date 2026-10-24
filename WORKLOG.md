@@ -7237,3 +7237,22 @@ after 10 s of one engine alone. typeperf every 2 s (a scratch script).
 - Two 8-thread engines together do 1.13x the work of one: one already fills the 8 cores, the other 8 threads get
   only hyperthreading's share, and the clock fell ~13% with the heat. The ~0.6x each of 2026-10-20 holds.
 - At 92 C the CPU gives up clock speed gradually (still 1.28x base after 2 minutes), not all at once.
+
+## 2026-10-25 (08:30-08:35): the same with two 4-thread engines
+
+Matthew: "lets run two 4 thread games now and i'll do the same". The same script with Threads 4, 08:30:30-08:32:30
+(one game, 58 moves), started with the CPU still at ~69 C from the run before.
+
+| | one engine alone | two at once |
+|---|---|---|
+| Mnps | 11.2 | 8.6 and 8.5 (0.76x each; 17.0 together) |
+| CPU use (16 logical) | 28% | 49% |
+| clock against base (2.5 GHz) | 156-160% (3.9-4.0 GHz) | 146% falling to 136-138% (3.4 GHz); median 138% |
+
+- NitroSense: 92 C at 48% load, the same as at 99%; 73 then 71 C after.
+- **The temperature doesn't follow the load**: the CPU raises its clock until it reaches ~92 C, then trims it, at
+  half load as at full. The clock is what differs: 1.38x base with 8 threads busy, 1.31x with 16. NitroSense's
+  graph over the bot's hour at three (06:55-08:00, mostly one game on, ~25% load) also sits near its top.
+- The work: two 4-thread engines do 17.0 Mnps together, about one 8-thread engine alone (19.0); two 8-thread
+  engines 21.5 (1.27x the two 4-thread ones, for twice the threads). A game beside another: 8.5 Mnps at 4 threads,
+  10.8 at 8 (+27%). Three 4-thread engines (the bot at its busiest) not measured.
