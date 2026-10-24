@@ -225,7 +225,8 @@ an engine, two CPUs a game, 6 games at once, ~13 games a minute.
 1. **The round robin**: table-a, table-b and vetted, each against each, in colour-reversed twos
    (`book-duel.cmd round-robin [games a pair]`). The vetted book is the human book less 57 of Black's moves (~3% of
    Black games), so it stands in for today's books.
-2. **The final**: the winner against no book, SPRT [0, 10] (`book-duel.cmd final <winner>`).
+2. **The final**: the winner against our own engine with no book (Matthew's pick over Stockfish), SPRT [0, 10]
+   (`book-duel.cmd final <winner>`).
 
 | games a pair | 95% interval (~59% draws, as in (c)'s match) | round robin (3 pairs) | final |
 |---:|---:|---:|---:|

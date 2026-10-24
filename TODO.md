@@ -915,8 +915,8 @@ Sessions, in order:
             1,000 games a pair, ±14 Elo, ~4 h), then `book-duel.cmd final
             <winner>` (against no book, SPRT [0, 10], at most 2,000 games,
             ~2.6 h). Bot off, ~12 CPUs, an afternoon or night slot from the
-            queue. Open: whether the final's opponent is our engine without a
-            book (built) or Stockfish without one (book-match.py).
+            queue. **Matthew (2026-10-25): the final is against our own
+            engine with no book** (as built), not Stockfish.
       - [ ] **Carry it to Black's move 3** (`--plies 6`, ~6,620 positions,
             ~314 core-h at depth 18 at the measured speed, ~40 h on 8
             cores; less at depth 16). Matthew (2026-10-25): later, kept on
