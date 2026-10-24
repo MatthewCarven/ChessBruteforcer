@@ -370,6 +370,8 @@ make-config.py (the patch still helps at 1). **One game from 2026-10-22; three
 from the bot's next start after 2026-10-25** (Matthew: "accommodate anyone who
 asks for a game while we are busy", 4 threads each; he expects the load and
 heat with three on). test-busy.py now checks concurrency 3 too (10 cases).
+**8 threads each from 2026-10-25** (his (a), after the heat tests: 92 C at any
+real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
 - [ ] Read the first sessions at three: Speed lines with 1, 2 and 3 games on,
       the CPU's temperature, and results split the same way. Fewer games or
       threads if three lose more or the CPU sits at its 92-93 C limit.
@@ -382,7 +384,12 @@ heat with three on). test-busy.py now checks concurrency 3 too (10 cases).
       WORKLOG's `--since 2026-10-24` of that day). The first session (10-25
       06:55-08:00, WORKLOG): never three on, two on twice; 4W 2D, no time
       losses; Speed 8.8 Mnps with two on against 8.9 alone (10.8 alone the
-      night before). CPU temperature not read.
+      night before). CPU temperature not read then; the heat tests after
+      (WORKLOG 2026-10-25 08:25-08:50) found it at 92 C under any real load,
+      so read the clock against base instead (typeperf "\Processor
+      Information(_Total)\% Processor Performance"), and Speed lines. From
+      the next start the bot is on 8 threads: the tests' Mnps a game, 8
+      threads, 19.0 alone, 10.8 with two on, ~6.5 with three.
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that
@@ -752,8 +759,8 @@ Sessions, in order:
         MB), accumulators refreshed at the switch, a switch point by time
         left. If the big net still wins, the idea is answered.
 - [ ] **16 threads while only one game is on** (Matthew, 2026-10-21; the bot
-      is at 4 threads for the heat since 2026-10-24, up to three games at
-      once from 2026-10-25, so this would now be 4 to more): the
+      was at 4 threads for the heat 2026-10-24 to 10-25, and is at 8 again,
+      up to three games at once, from 2026-10-25): the
       laptop has 8 cores / 16 threads. With two games at once each engine
       has 8 (and pondering keeps both busy), but while one game plays alone,
       8 threads sit idle. Let a lone game use 16, back to 8 when a second
@@ -763,11 +770,15 @@ Sessions, in order:
         second, 6.9x one thread. The extra 8 are hyperthreads on the same 8
         cores: chess engines usually gain +15-30% nodes a second from them,
         not 2x, and a bit less in depth. Then a match, 16 v 8 threads,
-        nearer the bot's 3+2.
+        nearer the bot's 3+2. A pointer (2026-10-25 heat tests): two 8-thread
+        engines together did 1.13x one alone (21.5 against 19.0 Mnps), the
+        clock at 131% of base against 151%.
       - **How often it applies**: the share of the bot's time with one game
         on, from its logs (if it's mostly two games, the gain is small).
       - **Heat**: the CPU sat at 88-92 C with 5 busy threads (2026-10-20);
         16 busy threads may throttle the clocks and give part of it back.
+        (2026-10-25: 92 C from half load up; 16 busy threads cost clock, not
+        temperature: 131% of base against 138% with 8.)
       - **How**: lichess-bot fixes Threads when it starts an engine.
         Switching means a `setoption Threads` between moves, not while the
         engine ponders: a lichess-bot patch that counts active games (16

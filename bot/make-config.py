@@ -32,8 +32,12 @@ engine["ponder"] = True                                       # think on the opp
 engine["uci_options"] = {
     "EndgameTables": os.path.join(repo, "tables"),            # every table of 5 pieces or fewer
     "Hash": 256,
-    "Threads": 4,                                             # LazySMP; 4 of the 8 cores for the heat (Matthew's (b),
-                                                              # 2026-10-24: 8 took the CPU to 92 C), 8 before that
+    "Threads": 8,                                             # LazySMP; 8 again from 2026-10-25 (Matthew's (a)): the
+                                                              # heat tests found 92 C at any real load, 4 threads or 8,
+                                                              # so 4 only gave up speed (a game alone 19.0 Mnps
+                                                              # against 11.0; two on 10.8 each against 8.5; three on
+                                                              # ~6.5 against 6.1; WORKLOG 2026-10-25 08:25-08:50).
+                                                              # 4 from 2026-10-24 for the heat (his (b)), 8 before
                                                               # (WORKLOG 2026-10-15 21:25, 2026-10-16)
     "Move Overhead": 100,
 }
@@ -98,12 +102,12 @@ for kind in ("syzygy", "gaviota"):
 engine["draw_or_resign"]["resign_enabled"] = False            # play every game out (for now)
 
 challenge = config["challenge"]
-challenge["concurrency"] = 3                                  # up to three games at once, 4 threads each (Matthew,
+challenge["concurrency"] = 3                                  # up to three games at once, 8 threads each (Matthew,
                                                               # 2026-10-25: "accommodate anyone who asks for a game
                                                               # while we are busy"; one from 2026-10-22, two from
-                                                              # 2026-10-18). Pondering keeps each engine busy, so three
-                                                              # make 12 busy threads on 8 cores: more heat, each game
-                                                              # slower. A challenge that comes with every slot taken
+                                                              # 2026-10-18). Pondering keeps each engine busy, so two
+                                                              # fill the 16 hardware threads and three share them:
+                                                              # each game slower. A challenge that comes with every slot taken
                                                               # is declined "later" at once (bot\lichess-bot-busy.patch),
                                                               # not queued to go stale
 challenge["max_simultaneous_games_per_user"] = 1              # with several at once, against different people

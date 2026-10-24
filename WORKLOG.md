@@ -7301,3 +7301,18 @@ games 8 threads each i unlock the fan speed for high cooling". heat-n.py as befo
   and the most.
 - The single-engine runs here were warm (16.7-17.0 Mnps at 142-147%, against 19.0 at 151% at 08:26).
 - NitroSense's graph, hovered: 89 C at 6% load at 07:35, in the bot's hour.
+
+## 2026-10-25 (08:50-09:00): the bot back to 8 threads a game, up to three games
+
+Matthew's (a): "Set the bot to 8 threads, up to 3 games". bot/make-config.py: Threads 4 to 8 (the comment gives the
+heat tests' numbers and the history: 8 to 2026-10-24, 4 for the heat until now); concurrency stays 3, its comment
+now says 8 threads each, two filling the 16 hardware threads and three sharing them. The heat tests (above) found
+92 C at any real load whatever the threads, so 4 only gave up speed: a game searches 19.0 Mnps alone against 11.0,
+10.8 each with two on against 8.5, ~6.5 each with three against 6.1.
+
+- Checked: a copy of make-config.py writing to the scratchpad (not the bot's config.yml, which holds the token)
+  gives Threads 8, Hash 256, concurrency 3, EvalFile h1536-3m-ob8.nnue.
+- TODO: the "Two games at once" note, "Read the first sessions at three" (read the clock, not the temperature), and
+  "16 threads while only one game is on" (8 to 16 again; two 8-thread engines did 1.13x one) follow.
+- Takes effect at the bot's next start (start-bot.cmd runs make-config.py); the bot is off, and starting it is
+  Matthew's word in the orchestrator's session.
