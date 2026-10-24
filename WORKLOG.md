@@ -7278,3 +7278,26 @@ three bot games: 08:36:06-08:38:07 (a scratch script, heat-n.py). One alone firs
 - For the bot at concurrency 3: a game searches ~11 Mnps alone, ~8.5 with a second on, ~6.1 with three on (0.56x).
   The third game adds 8% to the laptop's total work and takes 28% from each of the other two. Temperature 92 C in
   every run, from 48% load up.
+
+## 2026-10-25 (08:40-08:50): three 8-thread engines, then the same with the fans turned up
+
+Matthew: "Yes, run three 8-thread engines for 2 minutes" (after "one 8 best"), then "One more test after same 3
+games 8 threads each i unlock the fan speed for high cooling". heat-n.py as before, Threads 8: 24 threads on 16.
+
+| | three 4-thread (08:36) | three 8-thread, fans ~3,490 RPM (08:41) | three 8-thread, fans 4,900-5,770 RPM (08:44) |
+|---|---|---|---|
+| each engine, Mnps | 6.1 | 6.6, 6.6, 5.9 | 7.0, 6.8, 6.3 |
+| together | 18.3 | 19.0 | 20.0 |
+| CPU use | 68% | 100% | 100% |
+| clock against base, median | 130% | 129% (126-138%) | 133% (131-135%) |
+| NitroSense | 92 C | 92 C; 74 C after | 92 C; 69 C after |
+
+- **With three games on, 8 threads buys ~4%** over 4 threads (19.0 against 18.3 together): 24 threads take turns on
+  16. With one or two on it buys much more (19.0 against 11.0 alone, 10.8 against 8.5 with two), so 8 threads is
+  never the worse choice.
+- **Faster fans don't lower the temperature under load**: it stayed at 92 C. The CPU spends the extra cooling on
+  clock (133% against 129%, and steadier): 5% more work together, and it cooled faster after (69 C against 74 C).
+  Matthew raised the sliders during the run (CPU 4,918 then 5,769 RPM, GPU 5,454 then 6,666), so it's a mix of high
+  and the most.
+- The single-engine runs here were warm (16.7-17.0 Mnps at 142-147%, against 19.0 at 151% at 08:26).
+- NitroSense's graph, hovered: 89 C at 6% load at 07:35, in the bot's hour.
