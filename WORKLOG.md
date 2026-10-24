@@ -7015,3 +7015,20 @@ fast-forwarded to compression (206a537) first.
   come from the bot's own games and Lichess's cloud evaluations, not
   book-match.py; its "book lasted ~4 moves against weakened Stockfish" is from
   the 10-13 smoke test and is about Stockfish's odd moves. No caveat or rerun.
+
+## 2026-10-25 (05:50-06:05): a Stockfish check on the bot's net, planned (Matthew's (b))
+
+- Matthew asked whether we need a Stockfish run against the current net. Not
+  for anything pending: the book final is our engine against itself, and nets
+  are picked net against net. Its only use is a figure on an outside scale, and
+  the one we have is nnue1's 10-0 against Stockfish-2500 (2026-10-17), with no
+  top end. He chose (b), a one-off check on h1536-3m-ob8: ~500 games at
+  10+0.1 near an even score, after the book duel and the h1536-6m-ob8 match,
+  the bot off. Plan and commands in TODO ("A Stockfish check on
+  h1536-3m-ob8"): book-match.py as it is, a 40-game probe at UCI_Elo 2700
+  first, then 500 at the level nearest even (±30 Elo, ~40 min). Nothing run.
+- Stockfish 16's weakened play picks its move at depth 1 + its skill level
+  (UCI_Elo 2700 is level ~8.9, so depth 9; 2900 is ~11.8, depth 12; 3190 is
+  19), from four lines with noise. So a short control costs it little and us
+  more: the figure is a floor. Hence the probe at 2700, below the ~2900 I first
+  guessed (that was before allowing for one thread at 10+0.1).

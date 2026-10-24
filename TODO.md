@@ -621,6 +621,31 @@ Sessions, in order:
       by default, Matthew's call** ("I'd rather be right because error
       compounds on pondering"); `RepetitionRule` Twofold brings the old rule
       back (UCI, or bot/make-config.py's uci_options).
+- [ ] **A Stockfish check on h1536-3m-ob8** (Matthew's (b), 2026-10-25). The
+      only Stockfish figure for a net is nnue1's 10-0 against Stockfish-2500
+      at 3+2 (2026-10-17, as the bot plays: 8 threads, book, tables): above
+      ~2680, no top end. Every net since is measured against the one before
+      (+76, +11, +41, +7, +11: ~+146 over nnue1, chained). **When:** after
+      the book duel and the h1536-6m-ob8 match, the bot off. **How:**
+      `scripts\book-match.py` as it is (nothing to build): our engine, one
+      thread, the bot's tables, no book, against Stockfish 16 (WSL,
+      UCI_LimitStrength), 10+0.1, 6 at once. A probe of 40 games at
+      UCI_Elo 2700 (~4 min, ±110), then 500 games at the level nearest an
+      even score (the probe's estimate rounded to 100, at most 3190): ±30
+      Elo, ~40 min. From the main checkout:
+      `mkdir games\sf-check`, then
+      `bot\lichess-bot\.venv\Scripts\python.exe -I scripts\book-match.py
+      games\sf-check\probe-2700.jsonl --games 40 --tc 10+0.1 --sf-elo 2700
+      --concurrency 6 --arms "no book" --eval bot\eval\h1536-3m-ob8.nnue`
+      (the same with `--games 500`, the level and its own file for the
+      run). Check Stockfish's time losses in the probe too: the summary
+      counts only ours (rows with termination "time" and points 1 are
+      Stockfish's; its Move Overhead is its default 10 ms, through WSL).
+      **Caveats:** Stockfish's weakened play picks its move at a fixed depth
+      (1 + its skill level: 9 at 2700, 12 at 2900), so it loses little at
+      10+0.1 while we lose more, and its scale is calibrated at a longer
+      control: a floor, approximate. If h1536-6m-ob8 wins its match, its
+      figure follows from this one plus that match. Then MATCHES.md.
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**
       (Matthew's (c) in "3. Findings for the thesis"; scripts/turning-points.py
       reads lichess-bot's DEBUG logs, which it keeps 7-8 days). Did the
