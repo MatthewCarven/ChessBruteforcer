@@ -92,11 +92,15 @@ for kind in ("syzygy", "gaviota"):
 engine["draw_or_resign"]["resign_enabled"] = False            # play every game out (for now)
 
 challenge = config["challenge"]
-challenge["concurrency"] = 1                                  # one game at a time (Matthew, 2026-10-22; two from
-                                                              # 2026-10-18); a challenge that comes while it plays is
-                                                              # declined "later" at once (bot\lichess-bot-busy.patch),
+challenge["concurrency"] = 3                                  # up to three games at once, 4 threads each (Matthew,
+                                                              # 2026-10-25: "accommodate anyone who asks for a game
+                                                              # while we are busy"; one from 2026-10-22, two from
+                                                              # 2026-10-18). Pondering keeps each engine busy, so three
+                                                              # make 12 busy threads on 8 cores: more heat, each game
+                                                              # slower. A challenge that comes with every slot taken
+                                                              # is declined "later" at once (bot\lichess-bot-busy.patch),
                                                               # not queued to go stale
-challenge["max_simultaneous_games_per_user"] = 1              # with two at once, against two different people
+challenge["max_simultaneous_games_per_user"] = 1              # with several at once, against different people
 challenge["modes"] = ["casual", "rated"]                      # rated from 2026-10-13 (six clean casual games first)
 challenge["time_controls"] = ["bullet", "blitz", "rapid", "classical"]
 

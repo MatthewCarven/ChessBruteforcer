@@ -4,8 +4,8 @@ their challenges withdrawn while they waited in the queue).
 
     bot\\lichess-bot\\.venv\\Scripts\\python.exe bot\\test-busy.py
 
-Runs lichess-bot's own handle_challenge (lib/lichess_bot.py, as patched) with its default settings at concurrency 2,
-against a pretend lichess.org that only lists ongoing games and records declines; no network, no token. LICHESS_BOT=<dir>
+Runs lichess-bot's own handle_challenge (lib/lichess_bot.py, as patched) with its default settings at concurrency 2
+and 3 (the bot's from 2026-10-25), against a pretend lichess.org that only lists ongoing games and records declines; no network, no token. LICHESS_BOT=<dir>
 tests another copy of lichess-bot.
 """
 import os
@@ -53,13 +53,18 @@ class PretendLichess:
         self.declined.append((challenge_id, reason))
 
 
-def main() -> int:
+def settings(concurrency: int):
+    """lichess-bot's default challenge settings at this concurrency."""
     with open("./config.yml.default") as f:
         raw = yaml.safe_load(f)
     raw["token"] = ""
-    raw["challenge"]["concurrency"] = 2
+    raw["challenge"]["concurrency"] = concurrency
     config.insert_default_values(raw)
-    cfg = config.Configuration(raw).challenge
+    return config.Configuration(raw).challenge
+
+
+def main() -> int:
+    cfg = settings(2)
     failures = 0
 
     def case(name: str, playing: list[str], queued: list[str], expect: str, event: dict | None = None) -> None:
@@ -83,6 +88,12 @@ def main() -> int:
     chess960["challenge"]["variant"] = {"key": "chess960", "name": "Chess960", "short": "960"}
     case("a variant it doesn't play, slots free", [], [], "declined: variant", chess960)
     case("a variant it doesn't play, slots full", ["Alice", "Bob"], [], "declined: variant", chess960)
+    cfg = settings(3)                        # the bot's from 2026-10-25 (bot/make-config.py)
+    print("handle_challenge at concurrency 3:")
+    case("two games", ["Alice", "Bob"], [], "queued")
+    case("three games", ["Alice", "Bob", "Dave"], [], "declined: later")
+    case("two games, one challenge queued", ["Alice", "Bob"], ["Carol"], "declined: later")
+    case("one game, one challenge queued", ["Alice"], ["Carol"], "queued")
     print("passed" if not failures else f"FAILED: {failures} case(s)")
     return 1 if failures else 0
 

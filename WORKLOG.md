@@ -7059,3 +7059,20 @@ commit free). This branch fast-forwarded to compression (463878d) after.
   vet-c-match.txt, the write-up in bt-c.md; games in games\vet-c-match\.
 - **Keep the vetted book.** Putting it in the bot's books is Matthew's call
   (TODO); it's also one of the book duel's arms.
+
+## 2026-10-25 (06:05-06:15): the bot takes up to three games at once (NNUE session 2b)
+
+- **Matthew: three games at once, 4 threads each** ("i am just trying to accommodate anyone who asks for a game while
+  we are busy 3 games should be fine ... load will be high if we get a 3rd request", and he moves to the desktop
+  while it plays). bot/make-config.py: `concurrency` 3 (1 since 2026-10-22), `max_simultaneous_games_per_user` still 1,
+  Threads still 4. It takes effect at the bot's next start (start-bot.cmd runs make-config.py).
+- Weighed first: memory isn't the limit (each engine has its own 256 MB table, ~1 GB per engine in all; 15.3 GB of
+  commit free at 06:10). The cores and the heat are: pondering keeps every engine searching, so three games are 12
+  busy threads on 8 cores, 4 of them sharing a core. Two 8-thread engines on the 16 logical CPUs ran ~0.6x each
+  (2026-10-20); 8 threads took the CPU to 92 C on 10-23, hence 4. Most of the time fewer than three games run.
+- bot/test-busy.py checks concurrency 3 as well (two games: queued; three: declined "later"; two plus one queued:
+  declined; one plus one queued: queued): 10 of 10 against the live lichess-bot copy (imported with -B, nothing
+  written there). make-config.py run on a scratch copy wrote concurrency 3, Threads 4, ponder true.
+- Earlier, from this session (2026-10-23), for the record: the desktop's h1536-3m-ob8 stopped after pass 6 (16:02:43,
+  its checkpoint kept) for Matthew's OBS and resumed with --resume at 22:51 by its clock; the laptop's h1024-6m held
+  60 minutes after pass 7 for the heat (its .pause file, 17:14:06 to 18:14:11; the CPU was at 92 C in NitroSense).
