@@ -7205,3 +7205,16 @@ lichess-bot stopped at 08:00:21.
   RustBot2003's long endgame; White declined each.
 - Blitz 2576 to 2588; bullet, the one game, won (2629 before it).
 - The laptop is free again from 08:00: light work only to midday.
+
+## 2026-10-25 (08:00-08:10): move-times.py's --since takes local time
+
+The orchestrator found `--since` compared with the PGN's UTCDate as a UTC date, so on this UTC+11 laptop the bot's
+mornings sat on the day before (`--since 2026-10-25` found none of 06:55's games). `--since` is now local time, a
+date or "YYYY-MM-DD HH:MM", turned into an aware datetime in the machine's zone before it meets the tags' UTC; the
+report's first line says "from ... local". The `--since` values in the entries above were UTC dates.
+
+- On bot\games: `--since "2026-10-25 06:55"` 6 games (the hour at three), `--since 2026-10-25` 22 (the night's 16
+  too), `--since 2026-10-24` 29; a malformed value is refused with the two formats.
+- The hour at three on its own, blitz (5 games), seconds a move, median / mean: ours 3.0 / 3.7, theirs 3.0 / 4.4;
+  ours alone 3.0 / 3.6 (2 games), beside another game 2.5 / 3.9 (3). Clock used by the end: ours 66%, theirs 84%.
+  Too few games yet to say what a second game costs.

@@ -1,6 +1,10 @@
 """How long each side takes a move in the bot's games, from the clocks lichess.org writes into each PGN.
 
-    python bot\\move-times.py [games folder] [--since YYYY-MM-DD]
+    python bot\\move-times.py [games folder] [--since YYYY-MM-DD | --since "YYYY-MM-DD HH:MM"]
+
+--since is this machine's local time, as the bot's log and Matthew read it. The PGN's UTCDate/UTCTime are UTC, and the
+laptop is on UTC+11, so its mornings carry the day before in the tags (06:59 on 2026-10-25 here is 2026.10.24 19:59);
+the script converts, so `--since "2026-10-25 06:55"` means the bot's 06:55 start that morning.
 
 Reads every .pgn in bot\\games (the bot's own games, one a file). A move's time is the mover's clock before it, plus
 the increment, less the clock after it ([%clk] has whole seconds, so single moves are rough; the medians and means
@@ -42,6 +46,16 @@ def spent(clocks, inc):
     return [(i, clocks[i - 2] + inc - clocks[i]) for i in range(2, len(clocks))]
 
 
+def local_time(text):
+    """--since's local date, or date and time, as an aware datetime (compares with the games' UTC starts)."""
+    for fmt in ("%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            return datetime.datetime.strptime(text, fmt).astimezone()   # naive -> this machine's zone
+        except ValueError:
+            pass
+    raise SystemExit(f'--since wants YYYY-MM-DD or "YYYY-MM-DD HH:MM" (local time), not {text!r}')
+
+
 def describe(xs):
     if not xs:
         return "-"
@@ -54,7 +68,7 @@ def main(args):
     rest = list(args)
     if "--since" in rest:
         i = rest.index("--since")
-        since = datetime.datetime.strptime(rest[i + 1], "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
+        since = local_time(rest[i + 1])
         del rest[i:i + 2]
     if rest:
         folder = rest[0]
@@ -80,7 +94,7 @@ def main(args):
     for g in games:
         g["overlap"] = any(o is not g and o["start"] < g["end"] and g["start"] < o["end"] for o in by_start)
 
-    print(f"{len(games)} games with clocks in {folder}" + (f", from {since:%Y-%m-%d}" if since else ""))
+    print(f"{len(games)} games with clocks in {folder}" + (f", from {since:%Y-%m-%d %H:%M} local" if since else ""))
     print("Seconds a move, median / mean (whole-second clocks); each side's first move left out.\n")
     for speed in SPEEDS:
         sel = [g for g in games if g["speed"] == speed]
