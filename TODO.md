@@ -466,6 +466,23 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
       gap as the 10+0.1 chain (~-57): the short clock doesn't favour the
       small net. Neither built nor trained; nnue-deep-layers records the
       match in MATCHES.md.
+- [ ] **Each game's engine loads its own copy of the tables** (ponder-scope,
+      from self-play-book's Stockfish check, 2026-10-25 19:50): an engine
+      with tables commits ~1,150 MB at start (796 MB of plain tables, all
+      up to 4 pieces, read in by Tablebase.Preload, and Hash 256), ~1,650-
+      1,700 MB once its 512 MB block cache fills; 343 MB without tables.
+      Three games on: ~4-5 GB beside lichess-bot. Three such engines and
+      Stockfish took RAM available from 4.1 GB to 240 MB in a minute and
+      paged another engine out (the check stopped at 19:52, its half with
+      tables put off). Maybe behind time losses at many engines (that
+      morning's 4 probe losses, 6 at once); not shown for the bot's.
+      Options, Matthew's call: (a) leave it; (b) a smaller TableCache in
+      make-config.py (a UCI option already; 128 MB saves up to ~380 MB a
+      game, for more blocks read from disk as probed, unmeasured); (c) the
+      engine memory-maps the plain tables, so Windows keeps one copy for
+      every engine (~800 MB a game after the first; an engine change, and
+      the .cbz files are 1 byte a value on disk but 2 in memory, so those
+      need a 2-byte file or a probe that reads 1).
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that
