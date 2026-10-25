@@ -47,10 +47,12 @@ public static class GamePlayer
     /// <summary>
     /// <paramref name="clock"/> is White's time control, and Black's too unless
     /// <paramref name="blackClock"/> gives Black one of its own (time odds, or depth against depth).
+    /// <paramref name="lagMs"/> is charged to the mover's clock on every move on top of its own time, as a
+    /// server across the world charges the round trip to it (the bot's ~0.3-0.45 s from here).
     /// </summary>
     public static GameRecord Play(IPlayer white, IPlayer black, IReadOnlyList<string> opening, TimeControl clock,
                                   int round, Tablebase? adjudicator = null, string startFen = Fen.StartPosition,
-                                  TimeControl? blackClock = null)
+                                  TimeControl? blackClock = null, int lagMs = 0)
     {
         var whiteClock = clock;
         blackClock ??= clock;
@@ -100,9 +102,12 @@ public static class GamePlayer
                 return Finish(loss, $"{mover.Name} did not answer");
             if (moverClock.MoveTimeMs is null && moverClock.Depth is null)
             {
-                if (elapsed > remaining + TimeMarginMs)
-                    return Finish(loss, $"{mover.Name} lost on time (used {elapsed} ms with {remaining} ms left)");
-                remaining = (int)(remaining - elapsed + moverClock.IncrementMs);
+                long charged = elapsed + lagMs;
+                if (charged > remaining + TimeMarginMs)
+                    return Finish(loss, lagMs > 0
+                        ? $"{mover.Name} lost on time (used {elapsed} ms + {lagMs} ms lag with {remaining} ms left)"
+                        : $"{mover.Name} lost on time (used {elapsed} ms with {remaining} ms left)");
+                remaining = (int)(remaining - charged + moverClock.IncrementMs);
                 if (whiteToMove) whiteTime = remaining; else blackTime = remaining;
             }
 

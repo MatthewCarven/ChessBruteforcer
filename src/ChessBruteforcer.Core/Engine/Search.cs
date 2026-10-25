@@ -29,6 +29,14 @@ public sealed record SearchLimits
     public int MoveOverheadMs { get; init; } = 50;
 
     /// <summary>
+    /// Time lost on every move beyond the search's own (online: the round trip to the server, which it
+    /// charges to our clock), taken off the share of the increment each move plans to spend.  Without it,
+    /// 3/4 of a 1 s increment plus ~0.4 s of lag is more than the increment, so the clock falls however low
+    /// it gets (WORKLOG 2026-10-25, "how the bot uses its clock").  0: none, as in local matches.
+    /// </summary>
+    public int MoveLagMs { get; init; }
+
+    /// <summary>
     /// Percent more planned time a move, for a game in which we ponder (the
     /// UCI engine passes its PonderTimeBonus when the GUI sets Ponder): a ponder
     /// hit answers sooner than planned, and this spends the clock it saves, on
@@ -1124,7 +1132,8 @@ public sealed class Search
     /// the previous ones).  Hard limit: abort mid-search.  Zero means none.
     /// Pondering, the soft limit gets <see cref="SearchLimits.PonderTimeBonusPercent"/>
     /// more, as Stockfish plans a quarter more when Ponder is on; the hard
-    /// limit comes from the plain soft limit, as in Stockfish.
+    /// limit comes from the plain soft limit, as in Stockfish.  <see cref="SearchLimits.MoveLagMs"/> comes
+    /// off the increment in both, down to none of it.
     /// </summary>
     internal static (long Soft, long Hard) TimeBudget(Position root, SearchLimits limits)
     {
@@ -1138,8 +1147,8 @@ public sealed class Search
         int increment = root.SideToMove == Colour.White ? limits.WhiteIncrementMs : limits.BlackIncrementMs;
         int movesToGo = Math.Clamp(limits.MovesToGo ?? 30, 1, 60);
         remaining = Math.Max(1, remaining - limits.MoveOverheadMs);
-        long soft = remaining / movesToGo + increment * 3L / 4;
-        long hard = Math.Min(soft * 3, remaining / 3 + increment);
+        long soft = remaining / movesToGo + Math.Max(0, increment * 3L / 4 - limits.MoveLagMs);
+        long hard = Math.Min(soft * 3, remaining / 3 + Math.Max(0, increment - limits.MoveLagMs));
         hard = Math.Max(5, Math.Min(hard, remaining - 20));
         soft += soft * limits.PonderTimeBonusPercent / 100;
         return (Math.Min(soft, hard), hard);

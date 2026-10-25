@@ -25,6 +25,7 @@ public sealed class UciEngine
 
     private Position _position = Position.Start();
     private int _moveOverheadMs = 50;
+    private int _moveLagMs;            // ms lost on every move beyond our own, off the increment's share (0: none)
     private bool _ponder;              // the GUI may send "go ponder" (UCI's Ponder option)
     private int _ponderTimeBonus;      // percent more planned time a move when it may (0: P3's 25 didn't win games)
     private int _threads = 1;
@@ -96,6 +97,7 @@ public sealed class UciEngine
                     Send("option name EndgameTables type string default <empty>");
                     Send($"option name TableCache type spin default {BlockCache.DefaultMegabytes} min 1 max 65536");
                     Send("option name Move Overhead type spin default 50 min 0 max 5000");
+                    Send("option name MoveLag type spin default 0 min 0 max 5000");
                     Send("option name EvalFile type string default <empty>");
                     Send("option name Threads type spin default 1 min 1 max 64");
                     Send("option name ThreadSplit type combo default LazySMP var LazySMP var Ranges");
@@ -129,6 +131,7 @@ public sealed class UciEngine
                     StartSearch(ParseGo(words) with
                     {
                         MoveOverheadMs = _moveOverheadMs,
+                        MoveLagMs = _moveLagMs,
                         PonderTimeBonusPercent = _ponder ? _ponderTimeBonus : 0,
                     });
                     break;
@@ -187,6 +190,11 @@ public sealed class UciEngine
                 break;
             case "move overhead":
                 _moveOverheadMs = int.Parse(value, CultureInfo.InvariantCulture);
+                break;
+            case "movelag":
+                // Online, every move costs the round trip to the server too (~0.3-0.45 s from here), which the
+                // clock charges us and the search never sees: it comes off the increment each move plans to spend.
+                _moveLagMs = Math.Clamp(int.Parse(value, CultureInfo.InvariantCulture), 0, 5000);
                 break;
             case "threads":
                 _threads = Math.Clamp(int.Parse(value, CultureInfo.InvariantCulture), 1, 64);

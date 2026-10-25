@@ -12,6 +12,9 @@ public sealed record MatchSettings
     public string? TablePath { get; init; }
     public (double Elo0, double Elo1)? Sprt { get; init; }
     public string EventName { get; init; } = "ChessBruteforcer match";
+
+    /// <summary>Charged to each move on top of the engine's own time, as online (GamePlayer.Play's lagMs).</summary>
+    public int LagMs { get; init; }
 }
 
 /// <summary>
@@ -97,7 +100,8 @@ public sealed class MatchRunner
             var clockA = _a.Clock ?? _settings.Clock;
             var clockB = _b.Clock ?? _settings.Clock;
             var record = GamePlayer.Play(aIsWhite ? a : b, aIsWhite ? b : a, opening, aIsWhite ? clockA : clockB,
-                                         game + 1, adjudicator, blackClock: aIsWhite ? clockB : clockA);
+                                         game + 1, adjudicator, blackClock: aIsWhite ? clockB : clockA,
+                                         lagMs: _settings.LagMs);
 
             double scoreForA = record.Result switch
             {

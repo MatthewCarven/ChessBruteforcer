@@ -167,6 +167,24 @@ public class GamePlayerTests
     }
 
     [Fact]
+    public void LagIsChargedToEveryMove()
+    {
+        // 1 s each and 600 ms of lag a move: White's first move leaves 400 ms, its second costs 600 and loses
+        // (past the 100 ms margin), though both players answer at once.
+        var record = GamePlayer.Play(new ScriptedPlayer("W"), new ScriptedPlayer("B"), Array.Empty<string>(),
+                                     new TimeControl(1000, 0), 1, lagMs: 600);
+        Assert.Equal(GameResult.BlackWins, record.Result);
+        Assert.Contains("lost on time", record.Termination);
+        Assert.Contains("600 ms lag", record.Termination);
+        Assert.Equal(2, record.Moves.Count);
+
+        // An increment that covers the lag keeps the clock where it was.
+        var covered = GamePlayer.Play(new ScriptedPlayer("W"), new ScriptedPlayer("B"), Array.Empty<string>(),
+                                      new TimeControl(1000, 600), 1, lagMs: 600);
+        Assert.DoesNotContain("on time", covered.Termination);
+    }
+
+    [Fact]
     public void EachSideCanHaveItsOwnClockAndAFixedDepthNeverLosesOnTime()
     {
         // White searches to depth 5 and takes 300 ms a move with no time on its clock; Black has 60+0.3.

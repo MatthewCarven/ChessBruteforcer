@@ -756,6 +756,55 @@ public class PonderTests
         Assert.Equal((1998L, 5994L), Planned());
     }
 
+    // MoveLag (WORKLOG 2026-10-25, "how the bot uses its clock"): online every move also costs a round trip the
+    // search never sees, so it comes off the share of the increment a move plans to spend, and off the increment in
+    // the hard limit, down to none of it.  0, the default, leaves the budget as it was; no increment, no change.
+
+    [Theory]
+    // our clock, increment, Move Overhead, MoveLag -> planned and hard limit
+    [InlineData(180000, 2000, 100, 0, 7496, 22488)]     // the bot's 3+2, no lag: as before (5,996 + 1,500)
+    [InlineData(180000, 2000, 100, 400, 7096, 21288)]   // 5,996 + 1,100; three times that is under 59,966 + 1,600
+    [InlineData(5000, 1000, 100, 400, 513, 1539)]       // 1+1 at 5 s: 163 + 350; 1,539 under 1,633 + 600
+    [InlineData(5000, 1000, 100, 2000, 163, 489)]       // a lag past the increment takes all of it, no more
+    [InlineData(60000, 0, 100, 400, 1996, 5988)]        // no increment: no change
+    public void MoveLagComesOffTheIncrementsShare(int clockMs, int incrementMs, int overheadMs, int lagMs,
+                                                  long soft, long hard)
+    {
+        var root = Position.FromFen(MoveGeneratorTests.Kiwipete);   // White to move
+        var limits = new SearchLimits
+        {
+            WhiteTimeMs = clockMs, WhiteIncrementMs = incrementMs, MoveOverheadMs = overheadMs, MoveLagMs = lagMs,
+        };
+        Assert.Equal((soft, hard), Search.TimeBudget(root, limits));
+        if (incrementMs == 0)
+            Assert.Equal(Search.TimeBudget(root, limits with { MoveLagMs = 0 }), Search.TimeBudget(root, limits));
+    }
+
+    [Fact]
+    public void UciOffersAMoveLagFrom0To5000()
+    {
+        var (engine, output) = Start();
+        engine.Handle("uci");
+        Assert.Contains("option name MoveLag type spin default 0 min 0 max 5000", output.Lines());
+        // 5 s and 1 s a move (Move Overhead 50): 165 + 750 planned, 2,650 at most (1,650 + 1,000).
+        (long, long) Planned()
+        {
+            engine.Handle("go wtime 5000 btime 5000 winc 1000 binc 1000");
+            var budget = engine.Search.PlannedBudget;
+            engine.Handle("stop");
+            return budget;
+        }
+
+        Assert.Equal((915L, 2650L), Planned());
+        engine.Handle("setoption name MoveLag value 400");
+        Assert.Equal((515L, 1545L), Planned());    // 165 + 350; three times that
+        engine.Handle("setoption name MoveLag value 9000");
+        Assert.Equal((165L, 495L), Planned());     // 5000 at most, which takes all the increment
+        engine.Handle("setoption name MoveLag value -5");
+        Assert.Equal((915L, 2650L), Planned());    // 0 at least
+        Assert.DoesNotContain(output.Lines(), l => l.StartsWith("info string"));
+    }
+
     [Theory]
     [InlineData(1, "LazySMP")]
     [InlineData(4, "LazySMP")]

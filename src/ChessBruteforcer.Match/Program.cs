@@ -23,10 +23,11 @@ const string Usage = """
       --tables <dir>         adjudicate with our endgame tables when they cover a position
       --sprt <elo0> <elo1>   stop early once an SPRT between the two hypotheses is decided
       --openings <file>      one opening per line as UCI moves (default: 16 built-in openings)
+      --lag <ms>             charge every move this much more than the engine took, as a server far away does
     """;
 
 var engines = new List<EngineSpec>();
-int games = 20, concurrency = 1;
+int games = 20, concurrency = 1, lag = 0;
 var clock = TimeControl.Parse("10+0.1");
 string? pgn = null, tables = null;
 (double, double)? sprt = null;
@@ -49,6 +50,7 @@ try
             case "--concurrency": concurrency = int.Parse(args[++i]); break;
             case "--pgn": pgn = args[++i]; break;
             case "--tables": tables = args[++i]; break;
+            case "--lag": lag = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
             case "--sprt":
                 sprt = (double.Parse(args[++i], CultureInfo.InvariantCulture),
                         double.Parse(args[++i], CultureInfo.InvariantCulture));
@@ -84,11 +86,13 @@ var runner = new MatchRunner(engines[0], engines[1], new MatchSettings
     TablePath = tables,
     Sprt = sprt,
     EventName = $"{engines[0].Name} vs {engines[1].Name}",
+    LagMs = lag,
 });
 
 var (clockA, clockB) = (engines[0].Clock ?? clock, engines[1].Clock ?? clock);
 Console.WriteLine($"{engines[0].Name} vs {engines[1].Name}: {games} games at " +
-                  $"{(clockA == clockB ? clockA : $"{clockA} v {clockB}")}, {concurrency} at a time");
+                  $"{(clockA == clockB ? clockA : $"{clockA} v {clockB}")}, {concurrency} at a time" +
+                  (lag > 0 ? $", {lag} ms lag a move" : ""));
 var stats = runner.Run(Console.WriteLine);
 Console.WriteLine();
 Console.WriteLine($"final: {engines[0].Name} vs {engines[1].Name}: {stats}");
