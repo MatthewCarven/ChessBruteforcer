@@ -7791,3 +7791,20 @@ round robin (no scripts beside timed runs), merged into compression.
   263 of 301 games different. BOOK-TABLES.md and TODO have it; whether the bot plays table-b is Matthew's call.
 - Next on ponder-scope's go: the 500 + 500 Stockfish games at 3190, from the main checkout's book-match.py (it has
   --tables and the isready fix now).
+
+## 2026-10-25 (19:48-19:55): the Stockfish check, stopped on memory
+
+- Ponder-scope's go for the 500 + 500 at SF-3190 (with tables, then `--tables none`). First a measure of one
+  engine (Hash 256, h1536-3m-ob8, a 1 s search in a rook ending): **1,150 MB committed with the tables, 343 MB
+  without**; the tables' block cache can add up to 512 MB more. With 4.2 GB of RAM available and 9.5 GB commit
+  free (pagefile fixed at 16 GB; ~12 claude processes at ~0.5 GB each), 6 at once wouldn't fit: held, and on
+  ponder-scope's (a), 3 at once for both halves, stopping if commit free fell under 2 GB.
+- Started 19:51:14 (scratchpad sf3190-both.cmd, the main checkout's book-match.py). At 19:52:11, three games in:
+  **commit free 2.13 GB (from 9.39), RAM available 240 MB (from 4.1 GB)**, our three engines at 1,164, 1,682 and
+  1,656 MB (two caches full), the learner's engine paged out to 10 MB; the other ~2.75 GB the WSL VM growing for
+  Stockfish, which it keeps (commit free 6.64 GB after the stop). Stopped 19:52:30, everything (window, engines,
+  Stockfish); the learner untouched. The 3 games (all draws) moved to games\sf-check\sf3190-stopped-1952.jsonl.
+- So this morning's 6 at once with tables committed ~10 GB: its 4 time losses were most likely paging, not slow
+  table reads as such. And each engine loads its own copy of the tables: the bot's three games at once commit ~5 GB.
+- Waits for Matthew or ponder-scope: (a) the no-tables half now, 3 at once, the with-tables half once memory is
+  freed; (b) both at 2 at once, ~5 h; (c) free memory first, then both at 3.
