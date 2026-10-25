@@ -6716,6 +6716,60 @@ The summary is scripts/book-tables/results/bt-a.md.
 - **Next**: the self-play-book session's match decides whether it's worth
   playing from. Depth 9 on the SSE engine would be a ~16 h rerun.
 
+## 2026-10-23 (13:53-14:25): h1024-6m resumed; the 4-engine speed recheck (the nnue-deep-layers session)
+
+- **h1024-6m resumed at 13:55** on Matthew's word, once the bot had stopped
+  (13:53, bot\quit.soon). Pass 5 from its start. The bot's learner
+  (bot\learn.py and its engine) stays up but idle, 0 s of CPU in 20 s.
+- **Speed, trainer positions a second, pass 5** (scratchpad rates.py over the
+  log's bucket lines):
+
+  | beside the training | window | n | median | range |
+  |---|---|---|---|---|
+  | nothing | 13:59-14:10 | 9 | 351.9 k | 344.1-354.3 k |
+  | bt-b's 4 engines (1 thread, depth 18, below normal; up from 14:11:04) | 14:14:34-14:23 | 6 | 337.1 k | 333.0-339.4 k |
+
+  -4.2%, below the solo range, so by the agreed rule bt-b stops (sent to
+  ponder-scope, whose word it is). The GPU's clock also fell from 1650 to
+  1545 MHz (99 W to 93 W) at 79 C: the laptop's CPU and GPU share their
+  cooling, so CPU load costs GPU clock as well as feeding time. The morning's
+  solo window read 295-304 k, below today's 352 k; the cause isn't measured
+  (the GPU had rested 2.5 h, and the morning ran 300-345 k overall). A pass
+  is ~65 min solo, ~68 with the engines: done ~21:00.
+
+## 2026-10-23 (~16:03): h1536-3m-ob8 paused after pass 6 for OBS (the nnue-deep-layers session)
+
+- **NNUE session 2b stopped h1536-3m-ob8** on the desktop at Matthew's
+  request, right after pass 6's save (16:02:43 by the desktop's clock), so
+  he can use OBS on its GPU. The checkpoint nets\h1536-3m-ob8.pt is 16.9 MB;
+  the task shows Ready, there are no python processes, and the GPU is idle.
+  The .err records the stop. The watcher for its "finished" line keeps
+  waiting, since the stop wrote none.
+- **Held back so far, at each pass's K, against h1536-3m pass by pass:**
+
+  | pass | h1536-3m | h1536-3m-ob8 |
+  |---|---|---|
+  | 3 | 0.012871 | 0.012714 |
+  | 4 | 0.012734 | 0.012643 |
+  | 5 | 0.012199 | 0.012047 |
+  | 6 | 0.012134 | 0.012021 |
+
+  0.7-1.2% lower each pass. h1024-3m-ob8 ended 1.6% below h1024-3m at pass
+  10 (0.012201 against 0.012394) and played +8. Passes 7-10 (~5.6 h at ~134 k a second) carry on with `--resume` on
+  Matthew's word that OBS is done; the command is in TODO.
+
+## 2026-10-23 (21:31): h1024-6m trained, -2.0% held back (the nnue-deep-layers session)
+
+- **h1024-6m finished at 21:31** (exit 0): games\nnue\nets\h1024-6m.nnue,
+  network sha256 60c9ef55...3b39. Held back as the engine computes it is
+  0.012182 at K 1.1377, against h1024-3m's 0.012432 (-2.0%) and
+  h1024-3m-ob8's 0.012272. The trainer's own figure by pass: 4 0.013013,
+  5 0.012414, 6 0.012450, 7 0.012435, 8 0.012223, 9 0.012226, 10 0.012140.
+- A pause file stopped it 17:14-18:14, not this session's; the run went on
+  by itself after. The laptop's GPU ran at 87 C around 20:10.
+- Told ponder-scope. The match against h1024-3m (and `bench 9` first) runs in
+  its slot after bt-a's build. NNUE.md has the comparison table.
+
 ## 2026-10-23 (21:35-21:50): the book match takes a book list per arm (the self-play-book session)
 
 Matthew picked BT1 (a), (b) and (c) to test, each in its own session, with (d)
@@ -6740,6 +6794,64 @@ slowed it 4.4%.
   live and can't replace it while a reader holds it open (Windows), so the
   match plays from a copy. BOOK-TABLES.md section 4 has the five-arm command.
   ~25 h at 3,000 games an arm, bot off; it waits for (b)'s and (c)'s books.
+
+## 2026-10-23 (21:39-22:55): h1024-6m's match started; h1536-3m-ob8 resumed (the nnue-deep-layers session)
+
+- **`bench 9`, alternated over 5 rounds, the bot's learner idle**:
+  h1024-3m 3,150 knps, 3,731,271 nodes; h1024-6m 2,504 knps (-20.5%),
+  2,875,022 nodes. Time to depth 9 is x0.97. At `bench 10` (2 rounds) the
+  knps gap is only -3 to -8% (3,107-3,277 against 3,372-3,393), and
+  h1024-3m-ob8 reads the same as h1024-6m. The two files are the same shape
+  and size (1,579,076 bytes), so the gap is the search tree's shape (which
+  nodes get evaluated), not the net's cost.
+- **h1024-6m v h1024-3m started at 21:40:43** on ponder-scope's go:
+  scripts\nnue-match.cmd, 10+0.1, SPRT [0, 10], 5 at a time, the bot off.
+  From 21:46:33 to ~21:49:20, Session context ran one book-match.py game
+  beside it by mistake (2-3 busy threads, ~25 of the first games). Both nets
+  shared every game, so it's symmetric noise and the games stand.
+- **h1536-3m-ob8 resumed at 22:51 by the desktop's clock** after pass 6
+  (NNUE session 2b, at Matthew's request, OBS done). Pass 7 runs at 133 k a
+  second: done ~04:30 by its clock. Its watcher is reset for the longer wait.
+
+## 2026-10-24 (01:07): h1024-6m v h1024-3m, +11 (the nnue-deep-layers session)
+
+- 2,000 games at 10+0.1, the bot off: +528 -464 =1008, **+11 [0, +22]**, LOS
+  97.9%, the SPRT undecided at the limit (LLR 2.05). Both nets ran 3,300 knps
+  at depth 11.0 in play. The rule of thumb said ~+16 for -2.0% held back.
+  MATCHES.md and NNUE.md ("More data") have it. Told ponder-scope; the laptop
+  is free of this session's work until h1536-3m-ob8 is trained (~04:30 by the
+  desktop's clock).
+
+## 2026-10-24 (04:25-04:40): h1536-3m-ob8 trained (the nnue-deep-layers session)
+
+- **h1536-3m-ob8 finished at 04:27** by the desktop's clock (exit 0). Held
+  back as the engine computes it is 0.011760 at K 1.0194, against h1536-3m's
+  0.011952 (-1.6%). Fetched: games\nnue\nets\h1536-3m-ob8.nnue, 2,411,620
+  bytes, network sha256 ff8682d3...5dd0. Told ponder-scope. Its match waits
+  for ponder-scope's go: 1,200 games first, stopped by ~07:00 if undecided
+  (Matthew's heat rule: light work only on the laptop from 07:00 to midday).
+- **A desktop run's automatic start failed.** A background job called
+  scripts\nnue-desktop.ps1 with Windows PowerShell 5.1, which built the
+  scheduled task's name from every option, `/` included, and
+  Register-ScheduledTask refused it ("The parameter is incorrect"). A probe
+  showed the same task registers fine by its proper name, and the same
+  command under PowerShell 7 started it. Claude-Notebook has the gotcha.
+
+## 2026-10-24 (04:28-06:34): h1536-3m-ob8 v h1536-3m, part 1 (the nnue-deep-layers session)
+
+- **`bench 9`, alternated over 5 rounds, the laptop quiet**: h1536-3m 2,591
+  knps, 3,527,432 nodes; h1536-3m-ob8 2,673 knps (+3.2%), 3,876,549 nodes:
+  time to depth 9 x1.07.
+- **Part 1** on ponder-scope's go (its HistoryKept match paused for it),
+  04:31:37-06:34:23, 10+0.1, SPRT [0, 10], a 1,200-game cap so it ends
+  before 07:00 (Matthew's heat rule): **+308 -271 =621, score 51.5%, +11
+  [-3, +24], LOS 93.8%**, SPRT undecided (LLR 1.18). Both nets ran 2,781
+  knps in play, depth 10.6 against 10.7. Endings: 228 mates, 321
+  threefolds, 589 by the tables (351 wins, 238 draws), 60 fifty-move, 2
+  stalemates; no time losses.
+- Part 2 is 800 games after midday on ponder-scope's go
+  (match-h1536-3m-ob8-h1536-3m-800.*). Its wins, losses and draws add to part
+  1's for the 2,000-game figure, with the Elo and LLR worked out by hand.
 
 ## 2026-10-24 (06:42-07:48): an hour of the bot on h1536-3m-ob8, 4 threads (the orchestrator)
 
@@ -6883,6 +6995,37 @@ BT4's measurement, not in bot\books.
 - Next: BT4 (the quick look, then the match), and Matthew's call on carrying
   it to Black's move 3 (~6,620 positions, ~314 core-h at depth 18 at this
   run's speed, ~40 h on 8 cores).
+
+## 2026-10-24 (10:04-11:50): h1536-3m-ob8, +9 over 2,000; a float-weights exporter (the nnue-deep-layers session)
+
+- **Part 2 of h1536-3m-ob8 v h1536-3m**, 10:04-11:26 on ponder-scope's go
+  (Matthew lifted the morning heat hold for the rain): 800 games, +197 -182
+  =421, +7 [-10, +23]. **With part 1: +505 -453 =1042, +9 [-1, +20], LOS
+  95.4%, LLR 1.40**, the SPRT undecided. The parts were added with the match
+  tool's MatchStats formulas (scratchpad combine.py, which reproduces the
+  tool's own figures for part 1 and for h1024-6m). Speed even in both parts.
+  MATCHES.md and NNUE.md ("Buckets on the bot's net") have it.
+- **scripts/nnue/export-float.py**: an --output-buckets checkpoint's float
+  weights as a .npz (ft_weight 768xH, ft_bias, out_weight KxH2, out_bias;
+  untrained buckets filled as the .nnue export fills them), and a plain-words
+  note of the layout, the forward pass and the training. Then it checks
+  that forward pass against the run's .nnue (nnue_reference.evaluate) over
+  1,000 random positions, and measures what each layer's 16-bit rounding
+  costs on its own. Random positions with 33 pieces
+  (nnue_reference.random_fen can make them) are skipped, as buckets_fixture
+  skips them.
+- Two TODO lines that a Python heredoc had broken ("\n" in a Windows path
+  turned into a line break) are mended.
+
+## 2026-10-24 (11:37): h1536-6m-ob8 training (the nnue-deep-layers session)
+
+- **h1536-6m-ob8 on the desktop** (Matthew's (a)): all three levers on the
+  bot's width, `--hidden 1536 --add-data 2026-04 2026-05 2026-06 2026-07
+  2026-08 --passes 10 --lr-drops 4/7/9 --output-buckets 8`. 132.5 k a second,
+  so ~2.9 h a pass and **~29 h in all, done ~16:40 on 10-25** by its clock (I
+  had told Matthew ~10 h; that was three months' pace). The desktop's tasks
+  had a 24-hour limit, so scripts\nnue-desktop.ps1 now gives them 48 (P2D,
+  checked on the task).
 
 ## 2026-10-25 (00:35): Matthew's calls on the books, and a TODO line out (the ponder-scope session)
 
@@ -7583,3 +7726,56 @@ round robin (no scripts beside timed runs), merged into compression.
   At 10+0.1, shorter thinking than the bot's in time trouble, the bigger nets won (+41, +7). His yes to a check
   first: h512-3m against h1536-3m-ob8 at 2+0.02, 1,000 games, booked with nnue-deep-layers after h1536-6m-ob8's
   match (TODO).
+
+## 2026-10-25 (15:23-15:30): h1536-6m-ob8 trained (the nnue-deep-layers session)
+
+- **h1536-6m-ob8 finished** on the desktop at 15:23 by its clock (27 h 46
+  min, ~137 k a second) and is fetched to games\nnue\nets. **Held back
+  0.011558 as the engine computes it: -3.3% against h1536-3m (0.011952),
+  -1.7% against h1536-3m-ob8 (0.011760).** Its K is 1.150, like h1536-3m's
+  1.116 and h1024-6m's 1.138 (h1536-3m-ob8's 1.019 was the odd one). At
+  1024 the six months were worth -2.0% and the buckets -1.3%, so the two
+  levers stack about as their parts say. Against the bot's net since
+  2026-10-24 06:43, h1536-3m-ob8, the gap is -1.7%: ~+10 by the rule of
+  thumb at the ~0.7x seen so far.
+- Passes 3 and 4 (lr 1e-3) read worse at K 1 than pass 2 (0.012808 and
+  0.012851 against 0.012615) but better at the fitted K; each lr drop then
+  took a step (0.011802 after pass 5, 0.011553 after pass 8).
+- `bench 9` and the match wait for ponder-scope's slot, after BT4's round
+  robin (~16:00): at 15:21 its 12 engines had been on the laptop since
+  12:03. I had asked for h1536-3m as the opponent, left over from before the
+  bot's swap; ponder-scope pointed to the bot's own net, so it's
+  h1536-3m-ob8 (what Matthew decides is whether to swap). NNUE.md ("All
+  three levers") and TODO have the figures.
+
+## 2026-10-25 (15:56-17:45): h1536-6m-ob8 v h1536-3m-ob8 part 1; h512-3m at 2+0.02 (the nnue-deep-layers session)
+
+- **`bench 9`**, 5 rounds alternated, 15:56:54-15:57:16 (the laptop still
+  warm from BT4's round robin: both ~18% below yesterday's quiet figures):
+  h1536-3m-ob8 2,196 knps, 3,876,549 nodes; h1536-6m-ob8 2,125 knps (-3.2%,
+  the ranges overlap), 3,344,763 nodes: time to depth 9 x0.89.
+- **h1536-6m-ob8 v h1536-3m-ob8, part 1**, 15:57:33-17:00:33 on
+  ponder-scope's go, 10+0.1, SPRT [0, 10]: 615 games, **+156 -142 =317,
+  +8 [-11, +27]**, LOS 79.1%, LLR 0.31. Even speed in play (~2,380 v 2,350
+  knps); no time losses. Stopped at 17:00 on Matthew's word to push the
+  fast-net check through first (only the cb-match processes killed; the
+  PGN and log are kept). **Part 2**, the other 1,385 games under their own
+  file name, started 17:44:35; a scratchpad watcher runs the SPRT over both
+  parts together and stops it if that decides.
+- **h512-3m v h1536-3m-ob8 at 2+0.02**, 17:01:30-17:21:54, 1,000 games
+  fixed (Matthew's yes, via Session context): **-56 [-73, -39]**, 1.43x the
+  speed and +0.4 ply; 1 time loss, by h1536-3m-ob8. The short clock doesn't
+  favour the small net (MATCHES.md). Time losses counted from the PGN's
+  Termination tags ("lost on time (used .. ms with .. ms left)") with the
+  pieces left on the board.
+
+## 2026-10-25 (17:44-19:21): h1536-6m-ob8 passes the SPRT against the bot's net (the nnue-deep-layers session)
+
+- **Part 2 of h1536-6m-ob8 v h1536-3m-ob8**, 17:44:35-19:21:34, 10+0.1:
+  938 games, +263 -204 =471, +22 [+6, +38]. A scratchpad watcher
+  (watch-part2.py) added part 1's +156 -142 =317 to part 2's tally after
+  every game and ran MatchStats' LLR over the sum; at 2.97 it stopped the
+  match (only the cb-match processes). **Both parts: 1,553 games, +419 -346
+  =788, +16 [+4, +28], LOS 99.6%, SPRT [0, 10] accepted H1.** No time
+  losses; speed even. MATCHES.md, NNUE.md ("All three levers") and TODO
+  have it; whether the bot plays it is Matthew's call.

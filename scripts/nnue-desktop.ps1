@@ -18,7 +18,7 @@ records, the scripts and the nets; train-desktop.cmd (scripts\nnue\) runs there.
   scripts\nnue-desktop.ps1 fetch <run>             <run>.nnue and <run>.log into games\nnue\nets\ of the main checkout
 
 The task runs as Admin without a stored password (S4U: local files only, no window on Matthew's screen), at the task
-scheduler's below-normal priority. Big copies onto the share go through capped_copy.py (Matthew's 8 MB/s rule), not this.
+scheduler's below-normal priority, for at most 48 hours (24 until 2026-10-24: h1536 on six months takes ~29). Big copies onto the share go through capped_copy.py (Matthew's 8 MB/s rule), not this.
 #>
 param(
     [Parameter(Mandatory, Position = 0)][ValidateSet('sync', 'train', 'data', 'status', 'stop', 'fetch')][string]$Command,
@@ -84,7 +84,7 @@ switch ($Command) {
 if ((Get-ScheduledTask -TaskPath '$TaskPath' -TaskName `$name -ErrorAction SilentlyContinue).State -eq 'Running') { throw "`$name is running" }
 `$a = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument '/c $($line -replace "'", "''")' -WorkingDirectory '$Local'
 `$p = New-ScheduledTaskPrincipal -UserId ([Security.Principal.WindowsIdentity]::GetCurrent().Name) -LogonType S4U -RunLevel Limited
-`$s = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 24) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew
+`$s = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 48) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskPath '$TaskPath' -TaskName `$name -Action `$a -Principal `$p -Settings `$s -Force | Out-Null
 Start-ScheduledTask -TaskPath '$TaskPath' -TaskName `$name
 Start-Sleep 3

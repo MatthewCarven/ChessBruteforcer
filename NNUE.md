@@ -1882,6 +1882,91 @@ its 8 threads.
   its finished leaves with the new engine, and swaps it into the run only if
   move, score and nodes all match, on Matthew's OK.
 
+### More data: h1024-6m, six months (2026-10-23)
+
+h1024-3m's recipe (`--hidden 1024 --passes 10 --lr-drops 4/7/9`) on April to
+September instead of July to September, on the laptop's RTX 3070 (Matthew's
+2(a), in place of h2048-3m). The held-back positions are still September's,
+so the errors compare directly. It asks what three more months of Lichess are
+worth on their own.
+
+- **The run**: 1,372,482,434 positions a pass (2.03x the three months), ~65
+  min a pass at ~348 k a second. Trained 06:28-21:31, with pauses for the
+  heat (11:26-13:55) and an hour's pause file (17:14-18:14).
+- **Held back, as the engine computes it, at each net's K:**
+
+  | net | data | hidden | held back | against h1024-3m |
+  |---|---|---|---|---|
+  | h1024-3m | 3 months | 1024 | 0.012432 | |
+  | h1024-3m-ob8 | 3 months, 8 output buckets | 1024 | 0.012272 | -1.3% |
+  | **h1024-6m** | **6 months** | 1024 | **0.012182** | **-2.0%** |
+  | h1536-3m (the bot's) | 3 months | 1536 | 0.011952 | -3.9% |
+
+- The engine's speed doesn't change: the same shape as h1024-3m. The rule of
+  thumb (+8 Elo for each 1% less error) said ~+16 against h1024-3m.
+- **Matched** (10+0.1, the bot off, 2026-10-23/24): 2,000 games, **+11 [0,
+  +22]**, LOS 97.9%, SPRT undecided (LLR 2.05); both 3,300 knps and depth 11.0
+  in play (MATCHES.md). Three more months are worth about what the buckets
+  are (+8), and like them they cost nothing in play.
+- Data, buckets and width look like separate gains: the next net that stacks
+  them is h1536 on 6 months with 8 buckets (h1536-6m-ob8), against the bot's
+  h1536-3m.
+
+### Buckets on the bot's net: h1536-3m-ob8 (2026-10-24)
+
+h1536-3m's recipe plus `--output-buckets 8`, on the desktop (Matthew's (a)):
+held back 0.011760 as the engine computes it, against h1536-3m's 0.011952
+(-1.6%). Matched in two parts around the laptop's morning heat rule
+(MATCHES.md): **+9 [-1, +20] over 2,000 games**, LOS 95.4%, SPRT undecided,
+the same speed in play. With h1024-3m-ob8's +8 [-3, +19], the buckets' gain
+reads the same at both widths: small, likely real, free. The four results so
+far, each against its own base net:
+
+| lever | at 1024 | at 1536 |
+|---|---|---|
+| 8 output buckets | +8 [-3, +19] (-1.3% error) | +9 [-1, +20] (-1.6%) |
+| 6 months of data | +11 [0, +22] (-2.0%) | |
+| width, 1024 to 1536 | | +7 [-3, +18] (-3.9%) |
+
+The two free levers read ~0.7x what the rule of thumb (+8 Elo a 1% of error)
+says; width pays for its error in speed. The stack of all three,
+h1536-6m-ob8, is the candidate for the bot (next section).
+
+### All three levers: h1536-6m-ob8 (2026-10-25)
+
+h1536-3m's recipe on April to September with `--output-buckets 8`, on the
+desktop's GTX 1660 (Matthew's (a)): 10 passes of 1,372,482,434 positions,
+~2.8 h a pass at ~137 k a second, trained 2026-10-24 11:37 to 10-25 15:23
+by the desktop's clock (27 h 46 min).
+
+| net | data | buckets | held back | against h1536-3m | against h1536-3m-ob8 |
+|---|---|---|---|---|---|
+| h1536-3m | 3 months | 1 | 0.011952 | | |
+| h1536-3m-ob8 (the bot's since 2026-10-24 06:43) | 3 months | 8 | 0.011760 | -1.6% | |
+| **h1536-6m-ob8** | **6 months** | **8** | **0.011558** | **-3.3%** | **-1.7%** |
+
+Held back as the engine computes it, at each net's K (1.150 here; 1.116 and
+1.019 for the other two). The two levers add up: at 1024 the data was worth
+-2.0% and the buckets -1.3%, and here they stack to -3.3%. Against the bot's
+net, h1536-3m-ob8, the gap is the six months' alone, -1.7%: the rule of
+thumb (+8 Elo a 1%) says ~+14, and at the ~0.7x the free levers have shown,
+~+10. The same shape as h1536-3m-ob8, and the same speed: `bench 9`
+2,125 knps against 2,196, time to depth 9 x0.89; even in play.
+
+**Matched against the bot's net** (10+0.1, the bot off, 2026-10-25, two parts
+around Matthew's fast-net check; MATCHES.md): **+16 [+4, +28] over 1,553
+games, SPRT accepted H1** (LLR 2.97 over both parts), LOS 99.6%, no time
+losses. Above the rule's ~+14 for -1.7%. With the earlier levers, each against
+its own base net:
+
+| lever | at 1024 | at 1536 |
+|---|---|---|
+| 8 output buckets | +8 [-3, +19] (-1.3% error) | +9 [-1, +20] (-1.6%) |
+| 6 months of data | +11 [0, +22] (-2.0%) | **+16 [+4, +28] (-1.7%)**, on top of the buckets |
+| width, 1024 to 1536 | | +7 [-3, +18] (-3.9%) |
+
+Whether the bot plays h1536-6m-ob8 is Matthew's call (TODO).
+
 ## Risks
 
 | risk | what it would look like | what limits it |

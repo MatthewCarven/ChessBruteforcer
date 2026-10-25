@@ -70,6 +70,10 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-22 | h1536-3m | h1024-3m | 2,000 | +498 -456 =1046 | 51.0% | **+7 [-3, +18]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR ~0.8), LOS 91.3%; bot stopped (see below) |
 | 2026-10-23 | h1024-3m-ob8 | h1024-3m | 2,000 | +515 -470 =1015 | 51.1% | **+8 [-3, +19]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 0.95), LOS 92.4%: 8 output buckets, the same speed; bot stopped (see below) |
 | 2026-10-23 | h1536-3m-l32 | h1536-3m | 326 | +56 -98 =172 | 43.6% | **-45 [-71, -19]** | SPRT [0, 10] **accepted H0** at game 322 (LLR -2.95): the widest deep net, at 43% of the speed; bot stopped (see below) |
+| 2026-10-24 | h1024-6m | h1024-3m | 2,000 | +528 -464 =1008 | 51.6% | **+11 [0, +22]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 2.05), LOS 97.9%: h1024-3m's recipe on 6 months instead of 3, the same speed; bot stopped (see below) |
+| 2026-10-24 | h1536-3m-ob8 | h1536-3m | 2,000 | +505 -453 =1042 | 51.3% | **+9 [-1, +20]** | SPRT [0, 10] undecided (LLR 1.40), LOS 95.4%, in two parts (1,200 + 800, added by hand): 8 output buckets on the bot's net, the same speed; bot stopped (see below) |
+| 2026-10-25 | h1536-6m-ob8 | h1536-3m-ob8 | 1,553 | +419 -346 =788 | 52.4% | **+16 [+4, +28]** | SPRT [0, 10] **accepted H1** (LLR 2.97) over both parts (615 + 938, added by hand): six months of data on the bot's net, the same speed; bot stopped (see below) |
+| 2026-10-25 | h512-3m | h1536-3m-ob8 | 1,000 | +219 -378 =403 | 42.0% | **-56 [-73, -39]** | fixed, **at 2+0.02** (Matthew's question: a fast net for time trouble?): 1.43x the speed, +0.4 ply, not enough; 1 time loss (h1536-3m-ob8); bot stopped (see below) |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -218,6 +222,61 @@ the ~25-30 the deep nets have fallen short of it), so as predicted: better
 judgement, lost on speed. Not close, so no 60+0.6 run. No time losses.
 Endings: 76 mates, 75 threefolds, 154 by the tables (78 wins, 76 draws), 21
 fifty-move.
+
+**h1024-6m against h1024-3m** (2026-10-23 21:40 to 10-24 01:07, the bot
+stopped, nothing else timed on the laptop but one book-match.py game 21:46-21:49
+by mistake, symmetric): h1024-3m's recipe on April-September instead of
+July-September, held back -2.0% against it. 2,000 games, +528 -464 =1008,
+**+11 [0, +22]**, LOS 97.9%; the SPRT stayed undecided (LLR 2.05). Searches
+over the match: h1024-6m 3,308 knps, depth 11.0; h1024-3m 3,295 and 11.0: the
+same speed (`bench 9`'s -20% knps was its tree's shape). The rule from our
+matches said ~+16 for -2.0%. It read +5 [-10, +20] at 1,000 games, +6 at
+1,500, +9 at 1,769, then +11. No time losses. Endings: 416 mates, 533
+threefolds, 957 by the tables (576 wins, 381 draws), 92 fifty-move, 1
+stalemate, 1 at the move limit.
+
+**h1536-3m-ob8 against h1536-3m** (2026-10-24, the bot stopped, nothing else
+timed on the laptop): the bot's net with 8 output buckets, held back -1.6%
+against it. Played in two parts for Matthew's heat rule (light work only on
+the laptop 07:00-midday; he lifted it at 10:00 for the rain): part 1,
+04:31-06:34, 1,200 games, +308 -271 =621, +11 [-3, +24]; part 2, 10:04-11:26,
+800 games, +197 -182 =421, +7 [-10, +23]. **Together: 2,000 games, +505 -453
+=1042, +9 [-1, +20]**, LOS 95.4%, LLR 1.40: the SPRT stayed undecided. The two
+parts' figures are added by hand with MatchStats' own formulas (checked
+against the tool's own figures for part 1 and h1024-6m). Searches: 2,781 knps
+each in part 1, 2,866 and 2,864 in part 2, depth 10.6-10.7: the buckets cost
+no speed. The rule from our matches said ~+13 for -1.6%. No time losses.
+Endings: 404 mates, 546 threefolds, 940 by the tables (554 wins, 386 draws),
+108 fifty-move, 2 stalemates.
+
+**h1536-6m-ob8 against h1536-3m-ob8** (2026-10-25, the bot stopped, nothing
+else timed on the laptop): all three levers (width 1536, six months of data,
+8 output buckets) against the bot's net since 10-24, which has two of them;
+held back -1.7% against it. Played in two parts around Matthew's fast-net
+check: part 1, 15:57-17:00, 615 games, +156 -142 =317, +8 [-11, +27]; part 2,
+17:44-19:21, 938 games, +263 -204 =471, +22 [+6, +38]. A watcher applied the
+SPRT to both parts together after every game and stopped part 2 when it
+crossed: **1,553 games, +419 -346 =788, +16 [+4, +28]**, LOS 99.6%, **LLR 2.97,
+H1 accepted**, the first of the stacked nets to pass the SPRT. The rule from
+our matches said ~+14 for -1.7% (~+10 at the 0.7x the free levers had shown).
+`bench 9`: 2,125 knps against 2,196 (the ranges overlap), time to depth 9
+x0.89; in play ~2,380 v 2,350 knps in part 1 and ~2,530 each in part 2. No
+time losses. Endings: 285 mates, 386 threefolds, 805 by the tables (480 wins,
+325 draws), 76 fifty-move, 1 stalemate.
+
+**h512-3m against h1536-3m-ob8 at 2+0.02** (2026-10-25, 17:01-17:22, the bot
+stopped, nothing else timed on the laptop): Matthew asked whether a faster,
+smaller net would help the bot in time trouble (switching to one below 30 s
+on the clock with 16 pieces or fewer). Both sides at 2+0.02 for the whole
+game, 1,000 games, fixed: +219 -378 =403, **-56 [-73, -39]**, LOS 0.0%.
+Searches: h512-3m 3,166 knps, depth 8.3; h1536-3m-ob8 2,217 knps, depth 7.9.
+1.43x the speed buys 0.4 ply, well short of what the bigger net's judgement
+is worth. By the 10+0.1 chain (nnue1-h512 +76, h512-3m +11, h1024-3m +41,
+h1536-3m +7, h1536-3m-ob8 +9) h512-3m is ~57 below at 10+0.1 as well: the
+short clock doesn't close the gap. Tripling the width costs only 30% of the
+speed, so a smaller net still would buy little more. Time losses: 1 in
+1,000, by h1536-3m-ob8 (7 pieces, 33 ms past the match tool's 100 ms margin).
+No fast net, then (TODO, "A fast net for time trouble?").
 
 ## Pondering (2026-10-16 on)
 

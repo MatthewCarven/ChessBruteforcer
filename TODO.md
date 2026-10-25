@@ -199,7 +199,23 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     - [ ] **h1536-3m-ob8** (Matthew's (a), 2026-10-23): buckets on the bot's
       own size, h1536-3m's recipe plus `--output-buckets 8`, training on the
       desktop since 07:13 by its clock, ~130 k a second (bt-a-desktop's book
-      run at 6 engines beside it), done ~21:45. Then: fetch, held back
+      run at 6 engines beside it). **Paused after pass 6** (16:02:43 by its
+      clock; held back 0.012021 at K, against h1536-3m's 0.012134 at pass
+      6) so Matthew can use OBS on the desktop's GPU (NNUE session 2b
+      stopped it). **Resumed at 22:51 by its clock** (NNUE session 2b, at
+      Matthew's request), ~133 k a second. **Trained 04:27 by its clock:
+      held back 0.011760 as the engine computes it, -1.6% against
+      h1536-3m's 0.011952**; fetched to games\nnue\nets. Its match: part 1
+      of 1,200 games (SPRT on) on ponder-scope's go, stopped by ~07:00 for
+      the heat if undecided; part 2 of 800 after midday, the two added.
+      **Part 1, 2026-10-24 04:31-06:34: +308 -271 =621, +11 [-3, +24]**,
+      LOS 93.8%, SPRT undecided (LLR 1.18). Part 2, 10:04-11:26 (the heat
+      rule lifted for the rain): +197 -182 =421. **Together: +9 [-1, +20]
+      over 2,000 games**, LOS 95.4%, SPRT undecided (MATCHES.md).
+      The line it carried on with:
+      `scripts\nnue-desktop.ps1 train h1536-3m-ob8 --hidden 1536 --add-data
+      2026-07 2026-08 --passes 10 --lr-drops 4/7/9 --output-buckets 8
+      --resume`; passes 7-10 take ~5.6 h. Then: fetch, held back
       against h1536-3m's 0.011952, `bench 9`, a match against h1536-3m (the
       bot off). With 6 months later, once h1024-6m says what the data is
       worth.
@@ -250,17 +266,36 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     months are worth, alone. **Training since 2026-10-23 06:28**, 300-345 k
     positions a second, 1.38 B a pass, ~70 min a pass. The laptop's reboot at
     10:16 cost ~2 min (resumed from pass 3's save at 10:19). **Paused after
-    pass 4, 11:26-20:00, for the day's heat** (Matthew: the fans on full, CPU
-    and GPU ~80 C), through its own `h1024-6m.pause` file; a background job
-    in this session removes it at 20:00. **Done ~03:00 on 10-24.**
+    pass 4, 11:26-13:55, for the day's heat** (Matthew: the fans on full, CPU
+    and GPU ~80 C), through its own `h1024-6m.pause` file; resumed at 13:55
+    on Matthew's word once the bot had stopped (and a pause file again
+    17:14-18:14, not this session's). **Trained 21:31: held back 0.012182
+    as the engine computes it, -2.0% against h1024-3m's 0.012432** (NNUE.md,
+    "More data"). **Matched 2026-10-24: +11 [0, +22]** against h1024-3m,
+    2,000 games, LOS 97.9%, SPRT undecided; the same speed in play.
     April-June's records came from the desktop and passed `records.py
     check` on the laptop ("all well"). Then: held back against h1024-3m's
     0.012432, `bench 9`, a match against h1024-3m (the bot off).
     - Beside it (Matthew's rule: book runs only if they don't slow it): 2
       one-thread book engines cost it 5.6% (283.7 k against a solo 295-304
-      k), so the books wait until it ends. A clean 4-engine recheck (skip
-      ~3 min of start-up, then ~8 min) only on Matthew's word in bt-b's
-      session.
+      k), so the books wait until it ends. The clean 4-engine recheck
+      (Matthew's word, 2026-10-23 14:11-14:23): solo 351.9 k (344.1-354.3),
+      with bt-b's 4 one-thread depth-18 engines 337.1 k (333.0-339.4), -4.2%,
+      below the solo range, so by the rule bt-b stops (ponder-scope's word);
+      ~17 min on the run's end.
+  - [x] **h1536-6m-ob8: all three levers on the bot's width** (Matthew's (a),
+    2026-10-24): `--hidden 1536 --add-data 2026-04 2026-05 2026-06 2026-07
+    2026-08 --passes 10 --lr-drops 4/7/9 --output-buckets 8`. Trained on
+    the desktop 2026-10-24 11:37 to 10-25 15:23 by its clock (27 h 46 min;
+    the desktop's task limit is 48 h now) and fetched: **held back
+    0.011558 as the engine computes it, -3.3% against h1536-3m's 0.011952,
+    -1.7% against h1536-3m-ob8's 0.011760** (NNUE.md, "All three levers");
+    against the bot's net, h1536-3m-ob8, ~+10 by the rule of thumb at 0.7x.
+    `bench 9`: the same speed. **Matched against h1536-3m-ob8, 2026-10-25:
+    +16 [+4, +28] over 1,553 games, SPRT accepted H1** (two parts, 615 +
+    938, the SPRT run over both together; MATCHES.md). **Matthew's call:
+    whether the bot plays it** (bot\eval and make-config.py, at the bot's
+    next start).
   - **E: h2048-3m, dropped for now** (Matthew's 2(a)): after h1536-3m's +7,
     2048 looked like +0 to +10 at ~13% more speed cost. Nothing to build if
     it comes back: the engine takes 2048 (662a810), and train.py's held-back
