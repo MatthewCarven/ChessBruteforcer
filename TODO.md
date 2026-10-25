@@ -1044,6 +1044,11 @@ Sessions, in order:
             ~2.6 h). Bot off, ~12 CPUs, an afternoon or night slot from the
             queue. **Matthew (2026-10-25): the final is against our own
             engine with no book** (as built), not Stockfish.
+            **Round robin done 2026-10-25 12:03-15:53** (BOOK-TABLES.md):
+            table-a v table-b -1 [-14, +12], table-a v vetted +16, table-b
+            v vetted +20; overall table-b +11, table-a +7, vetted -18. The
+            final waits for h1536-6m-ob8's match (ponder-scope's go, ~19:30)
+            and Matthew's pick: (a) table-b, (b) table-a, (c) both.
       - [ ] **Carry it to Black's move 3** (`--plies 6`, ~6,620 positions,
             ~314 core-h at depth 18 at the measured speed, ~40 h on 8
             cores; less at depth 16). Matthew (2026-10-25): later, kept on

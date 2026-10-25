@@ -234,6 +234,20 @@ an engine, two CPUs a game, 6 games at once, ~13 games a minute.
 | 1,000 | ±14 Elo | ~4 h | ~1.3 h |
 | 2,000 | ±10 Elo | ~8 h | ~2.6 h (the SPRT's cap) |
 
+**The round robin, done (2026-10-25 12:03-15:53, 1,000 games a pair, games\book-duel\round-robin.jsonl)**:
+
+| pair | first-named | score | Elo [95%] | different 12-ply openings |
+|---|---|---:|---|---:|
+| table-a v table-b | +179 -182 =639 | 49.9% | -1 [-14, +12] | 533 |
+| table-a v vetted | +192 -147 =661 | 52.2% | +16 [+3, +28] | 777 |
+| table-b v vetted | +207 -149 =644 | 52.9% | +20 [+8, +33] | 881 |
+
+Over each book's 2,000 games: table-b 51.5% (+11), table-a 51.0% (+7), vetted 47.4% (-18). Both tables beat the
+vetted (today's) book; they can't be told apart from each other, so which one goes to the final is Matthew's call.
+1,819 repetitions, 1,052 mates, 115 by insufficient material, 5 stalemates, 5 by the 50-move rule, 4 on time
+(median 129 plies, White 53.4%). The 4 time losses all came in the last 8 minutes, in 4-7-piece endgames, each over
+by under 0.1 s, spread over the arms (vetted 2, table-a 1, table-b 1); there were no tables in the duel.
+
 Both tables are one move a position, so a table against a table plays the same first 6-8 plies every time: (a)
 against (b) is always 1.e4 e6 2.d4 d5 3.e5 c5 4.c3 Nc6 with (a) as White, and 1.Nf3 d5 2.d4 c6 3.c4 Nf6 with (b). The
 variety comes from the human book after them. And it all stays inside our engine's view: (a) and (b) are its own
