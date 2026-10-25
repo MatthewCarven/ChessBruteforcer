@@ -485,6 +485,66 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
       every engine (~800 MB a game after the first; an engine change, and
       the .cbz files are 1 byte a value on disk but 2 in memory, so those
       need a 2-byte file or a probe that reads 1).
+- [ ] **How the bot uses its clock when time runs low** (Matthew's (b),
+      2026-10-25, after the fast net lost; WORKLOG 2026-10-25 18:00-19:00
+      has the tables). bot/low-clock.py reads the games' clocks,
+      bot/move-lag.py the DEBUG log's (each move split into the engine's
+      time and the rest). Analysis only; nothing changed. Since 10-17
+      (pondering on, the connection kept open), 328 games:
+
+      | clock | we drop below 30 s / 10 s | they do | clock used by the end, ours / theirs |
+      |---|---|---|---|
+      | bullet, increment | 38% / 11% | 79% / 39% | 73% / 87% (all bullet) |
+      | bullet, no increment | 100% / 31% | 83% / 31% | |
+      | blitz, increment | 7% / 2% | 33% / 13% | 73% / 85% (all blitz) |
+      | all | 14% / 5% | 39% / 16% | |
+
+      - When we drop below 30 s it's late (blitz: move ~87, 10 pieces) and
+        in games we fell behind in (they have more time 3 in 4). We keep
+        more clock than the opponents all game (blitz, move 40: 132 s v
+        81) and don't burn it early (a quarter of it in the first 20 moves).
+      - Games that got below 30 s score ~11 points of % under the ratings'
+        expectation against those that didn't, at the same length (60+
+        moves): a correlation with hard games, not shown to be a cost.
+      - Time losses: 11 of ours since 10-12, 9 of them network stalls or a
+        dropped stream (10-13 to 10-16). The clock's own: 2, both since
+        10-17: zyRXq28N (30+0) and Pb90vcro (1+1, finished off by a 3.8 s
+        reconnect). The opponents lost 12 on time over the same games.
+      - Why: lichess.org charges every move a round trip to its servers,
+        0.32 s median (0.45 on 10-25, 90% under 0.53), and the engine never
+        sees it: lichess-bot's 2 s and the engine's Move Overhead (100 ms)
+        come off the clock once, not once a move. The engine plans clock /
+        30 + 3/4 of the increment, so with +1 each move costs more than the
+        increment at any clock (-0.1 s a move even under 10 s): a long 1+1
+        or 2+1 game ends on time sooner or later. +2 settles under 10 s and
+        +3 around 20 s, in very long games only. At 30+0 the lag alone is
+        most of the clock (18 of 30 s), which no time manager can fix.
+
+      Options (Matthew's pick):
+      - (a) **Leave it.** The time manager isn't where points go now. The odd
+        time loss stays possible in 30+0 (his 2(b): keep those) and in long +1
+        games (~7% of the bot's games, all from challengers).
+      - (b) **Take the lag off the increment the engine plans to spend.** A
+        new UCI option (Move Lag; 0 by default, so matches are unchanged; 400
+        ms in make-config.py): each move plans clock / 30 + 3/4 of the
+        increment less the lag, never less than clock / 30. Expected: with +1
+        the clock settles near 10 s instead of running out, +2 near 15-20 s
+        instead of under 10; no change without increment; 0.4 s less planned a
+        move with one (3+2's first moves 7.5 s -> 7.1, -5%). Elo about 0 +- 5
+        overall; it removes the +1 drain. Test: the match tool charges only
+        the engine's own time, so first a `--lag <ms>` for it (each move
+        charged that much more, as online), then new against old under it, the
+        bot off, at the bot's clocks scaled 5x down: 12+0.2 with 80 ms (like
+        1+1 online; count the time losses; 1,000 games ~3 h) and 36+0.4 with
+        80 ms (like 3+2; Elo; ~2.5x as long).
+      - (c) **Cut the lag itself**: run the bot from a server near Lichess's
+        (France), where the round trip is a few hundredths of a second. Not an
+        engine change. Gives back ~0.3-0.4 s every move (in 1+0, ~20 s of a 60
+        s clock), and likely most of the stalls behind 9 of the 11 losses
+        (some were Lichess's end). Costs a rented machine (8+ threads, ~2 GB
+        for the tables) and moving the bot. No test needed for the clock: the
+        logs show the lag directly.
+      Recommended: (a); (b) if +1 bullet should be safe.
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that
@@ -894,6 +954,8 @@ Sessions, in order:
       - A faster net doesn't bank time by itself: the time manager decides
         how long a move takes, and the net only changes the depth reached
         in it. Time trouble is the time manager's to fix first.
+        (2026-10-25: the bot is rarely short of time now; "How the bot
+        uses its clock when time runs low", above.)
       - **The test**: h1024-3m against h512-3m (or nnue1) at a much faster
         clock, e.g. 2+0.02 (~0.05 s a move), the bot off, ~30 min. If the
         small net wins there, build it: one engine holding both nets (a few

@@ -7855,3 +7855,107 @@ TODO). Nothing was started; the heat lift was for the bot.
   and answers 1.Nf3, 1.e4 e6, 1.d4 d5, 1.e4 e6 2.d4 d5. With it first the no-repeat rule still holds: rsJhY1E7 after
   7.Nc3, 200 picks, never 7...Qb6 (the vetted book's 7...Bb4 instead; the skips logged). No line where table-b's own
   move takes the game back to the start.
+
+## 2026-10-25 (18:00-19:00): how the bot uses its clock when time runs low (Matthew's (b))
+
+Matthew's pick (b) after the fast net lost (h512-3m -56 at 2+0.02): "have someone look at how the bot uses its clock
+when time runs low". Analysis only; no engine change. Read only from the bot's files: bot\games (670 games with
+clocks, 2026-10-12 to 10-25) and lichess-bot's DEBUG logs (10-15 to 10-25). Nothing timed was run.
+
+- **Two scripts.** bot/low-clock.py reads the games' [%clk] comments (whole seconds; pieces on the board = 32 less the
+  captures): how often each side drops below 30 s and 10 s, at what move and with how many pieces, the score against
+  what the ratings expect, both clocks at move N, seconds a move by phase, and every time loss. bot/move-lag.py reads
+  the DEBUG log, whose game states carry lichess.org's clocks in milliseconds: 28,702 of our moves paired (the state
+  that gave us the move, the engine's bestmove, the POST that sent it, the state echoing it back), so each move's
+  charge splits into the engine's time and the time the engine never sees.
+- **Low clock is rare now, and rarer for us than for the opponents.** Since 10-17 (pondering on from 10-16, the
+  connection to Lichess kept open), 328 games played out:
+
+  | clock | games | we drop below 30 s | at move, pieces | they drop below 30 s | we drop below 10 s | they drop below 10 s | their clock when we first drop below 30 s |
+  |---|---|---|---|---|---|---|---|
+  | bullet, increment | 44 | 38% | 56, 10 | 79% | 11% | 39% | 18 s |
+  | bullet, no increment | 13 | 100% | 38, 14 | 83% | 31% | 31% | 22 s |
+  | blitz, increment | 239 | 7% | 87, 10 | 33% | 2% | 13% | 55 s |
+  | blitz, no increment | 8 | 0% | - | 12% | 0% | 0% | - |
+  | rapid and classical | 24 | 8% | 99-105, 7-10 | 13% | 4% | 4% | - |
+  | all | 328 | 14% | 67, 10 | 39% | 5% | 16% | 25 s |
+
+  Over all 665 games from 10-12: 23% and 8% for us, 33% and 12% for them; blitz with increment 21% and 7% (32% below
+  30 s before 10-17, with no pondering and ~1.2 s a move to Lichess then, WORKLOG 2026-10-13). When we do drop below
+  30 s in blitz, the opponent has more time three times in four (median 55 s): those are games we fell behind in.
+- **We keep more clock than the opponents** (median, ours v theirs, the same games, since 10-17), and use less of it
+  by the end (bot/move-times.py: bullet 73% v 87%, blitz 73% v 85%, rapid 84% v 81%):
+
+  | clock | move 20 | move 40 | move 60 | move 80 |
+  |---|---|---|---|---|
+  | bullet, increment | 59 v 45 s | 50 v 25 s | 37 v 18 s | 30 v 11 s |
+  | bullet, no increment | 45 v 49 s | 27 v 33 s | 23 v 15 s | - |
+  | blitz, increment | 183 v 150 s | 132 v 81 s | 89 v 51 s | 63 v 40 s |
+  | rapid and classical, increment | 504 v 453 s | 336 v 359 s | 222 v 283 s | - |
+
+- **It doesn't burn the clock early.** Blitz with increment, seconds a move by pieces on the board (mean, ours v
+  theirs): 32-29 pieces 2.8 v 5.9 (the book), 28-21 6.0 v 6.4, 20-13 5.1 v 4.8, 12-7 3.9 v 3.2, 6 or fewer 1.3 v 2.0
+  (the tables). A quarter of our time goes in the first 20 moves.
+- **Score by how low our clock got** (expected: from the ratings, rated games; diff in points of %):
+
+  | since 10-17 | games | score | expected | diff |
+  |---|---|---|---|---|
+  | below 10 s | 15 | 47% | 48% | -2 |
+  | 10-30 s | 33 | 48% | 48% | +0 |
+  | never below 30 s | 280 | 65% | 50% | +15 |
+  | games of 60+ moves: below 30 s | 43 | 47% | 47% | -1 |
+  | games of 60+ moves: never below 30 s | 209 | 57% | 47% | +11 |
+
+  All 665 games: -8, +1, +12; 60+ moves -0 against +9. About 11 points of % between long games that got low and long
+  games that didn't, ~2 standard errors. A correlation, not a cost: a low clock goes with hard games, where the
+  opponent's moves are unexpected (ponder misses) and the bot is often worse already.
+- **Where the clock goes** (bot/move-lag.py). lichess.org charges each move the engine's time plus one HTTP round trip
+  to its servers (France), and nothing else: the rest is ~0. Seconds a move, median (90% under):
+
+  | our moves | n | charged | engine | the POST (lag) |
+  |---|---|---|---|---|
+  | all | 28,702 | 3.31 | 2.89 | 0.32 (0.53) |
+  | our clock under 10 s | 404 | 1.42 | 1.01 | 0.35 (0.49) |
+  | book, tables and ponder hits (engine under 0.05 s) | 7,561 | 0.33 | 0.01 | 0.32 (0.48) |
+  | on 10-15 | 3,376 | 4.66 | 3.98 | 0.42 (1.48) |
+  | on 10-25 | 2,360 | 2.99 | 2.53 | 0.45 (0.55) |
+
+  The engine never sees this lag. lichess-bot takes a flat 2 s (move_overhead 2000) off the clock it passes, and the
+  engine a flat 100 ms (Move Overhead), each once, not once a move. Its plan (Search.TimeBudget, unchanged since
+  2026-09-26) is the clock / 30 + 3/4 of the increment, and the lag comes on top. So our clock's change a move (mean,
+  increment less charged):
+
+  | increment | clock under 10 s | 10-20 s | 20-30 s | 30-60 s |
+  |---|---|---|---|---|
+  | none | -0.48 | -0.54 | -0.79 | -1.09 |
+  | +1 | -0.10 | -0.20 | -0.34 | -0.50 |
+  | +2 | +0.01 | -0.08 | -0.41 | -0.51 |
+  | +3 | +0.26 | +0.42 | -0.28 | -0.49 |
+
+  With +1 the clock falls at every level: 3/4 of a second planned plus ~0.4 s of lag is more than the increment, so a
+  long 1+1 or 2+1 game ends on time sooner or later. +2 settles under 10 s and +3 around 20 s, in very long games only
+  (blitz with increment reaches move 80 with 63 s median). Without increment the lag is 0.3-0.5 s of every move: 1+0
+  and 2+0 games ended with 6-27 s left, but at 30+0 the lag alone took 18 of the 30 s in the 33 moves paired.
+- **Long thinks**: 10-15% of the moves the engine thinks on run past twice the planned time (a depth begun before half
+  of it runs on towards the hard limit, three times it), and they take 26-35% of its thinking time. Often a score drop
+  being resolved, where time is worth spending; left alone.
+- **Time losses: 11 of ours in all, 2 of them the clock's.** Local time:
+
+  | game | when | clock | move, pieces | what happened |
+  |---|---|---|---|---|
+  | aWLxeu2F | 10-13 07:53 | 5+3 | 46, 13 | the network down ~1 min (WORKLOG 2026-10-13) |
+  | cRGX9rrC | 10-14 20:45 | 5+3 | 8, 30 | searching with 5:13 left at 20:45:58, never answered; game over at 20:55 |
+  | K0s15Dh3 | 10-15 18:51 | 5+3 | 37, 26 | POSTs of 5.8 and 6.9 s, a 10.6 s gap, a 9 s search at 25 s left |
+  | yS6snZJm | 10-15 19:32 | 3+3 | 5, 31 | a dropped game stream ("Game over" while it ran on; the rejoin fix, 10-17) |
+  | gME6NTZl | 10-15 19:43 | 1+2 | 37, 17 | gaps of 4.5 and 1.5 s with under 10 s left |
+  | XaE4a0ab | 10-16 12:17 | 3+2 | 17, 24 | the game stream silent 2.5 min on our move (146 s gone), then more stalls |
+  | Y8bbSK3y | 10-16 12:27 | 3+3 | 16, 26 | the game stream silent ~3 min (140 s gone), an 8.8 s POST |
+  | dConOI1p, ucNXNN1k | 10-16 12:48 | 3+3 | 26 and 37 | two games at once against Oxybullet; the same 13-14 s stall in both |
+  | **Pb90vcro** | 10-20 09:09 | 1+1 | 35, 24 | 3.5 s left: ~0.6 s searches, ~0.5 s POSTs, then a 3.8 s reconnect of the stream |
+  | **zyRXq28N** | 10-25 10:04 | 30 s+0 | 46, 11 | the engine at 5-10 ms a move, the lag ~0.5 s: 4 s to nothing in 8 moves |
+
+  None of ours from 10-17 to 10-25 but those two; the opponents lost 12 on time over the same games (24 in all).
+- **What it means**: the time manager isn't where points go. The bot is short of time less often than its opponents,
+  and its two real time losses were 30+0 (no time manager can help: lag is most of that clock) and 1+1 (the one clock
+  where its plan spends more than the increment, finished off by a network hiccup). That also answers the fast net's
+  premise: since 10-17, 14% of games went below 30 s, nearly all bullet. TODO has the options.
