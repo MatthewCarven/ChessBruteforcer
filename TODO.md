@@ -290,9 +290,9 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     the desktop's task limit is 48 h now) and fetched: **held back
     0.011558 as the engine computes it, -3.3% against h1536-3m's 0.011952,
     -1.7% against h1536-3m-ob8's 0.011760** (NNUE.md, "All three levers");
-    ~+18 by the rule of thumb at 0.7x. Then: `bench 9` and a match against
-    h1536-3m (the bot off), waiting for ponder-scope's slot (asked 15:25,
-    while a book-duel had 12 engines on the laptop).
+    against the bot's net, h1536-3m-ob8, ~+10 by the rule of thumb at 0.7x.
+    Then: `bench 9` and a match against h1536-3m-ob8 (the bot off), in
+    ponder-scope's slot after BT4's round robin (~16:00 on 10-25).
   - **E: h2048-3m, dropped for now** (Matthew's 2(a)): after h1536-3m's +7,
     2048 looked like +0 to +10 at ~13% more speed cost. Nothing to build if
     it comes back: the engine takes 2048 (662a810), and train.py's held-back

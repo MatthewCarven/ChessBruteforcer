@@ -1939,20 +1939,21 @@ desktop's GTX 1660 (Matthew's (a)): 10 passes of 1,372,482,434 positions,
 ~2.8 h a pass at ~137 k a second, trained 2026-10-24 11:37 to 10-25 15:23
 by the desktop's clock (27 h 46 min).
 
-| net | data | buckets | held back | against h1536-3m |
-|---|---|---|---|---|
-| h1536-3m (the bot's) | 3 months | 1 | 0.011952 | |
-| h1536-3m-ob8 | 3 months | 8 | 0.011760 | -1.6% |
-| **h1536-6m-ob8** | **6 months** | **8** | **0.011558** | **-3.3%** |
+| net | data | buckets | held back | against h1536-3m | against h1536-3m-ob8 |
+|---|---|---|---|---|---|
+| h1536-3m | 3 months | 1 | 0.011952 | | |
+| h1536-3m-ob8 (the bot's since 2026-10-24 06:43) | 3 months | 8 | 0.011760 | -1.6% | |
+| **h1536-6m-ob8** | **6 months** | **8** | **0.011558** | **-3.3%** | **-1.7%** |
 
 Held back as the engine computes it, at each net's K (1.150 here; 1.116 and
 1.019 for the other two). The two levers add up: at 1024 the data was worth
--2.0% and the buckets -1.3%, and here they stack to -3.3%, -1.7% past
-h1536-3m-ob8. The rule of thumb (+8 Elo a 1%) says +26 against h1536-3m; at
-the ~0.7x the free levers have shown, ~+18. The same shape as
-h1536-3m-ob8, so the same speed is expected. `bench 9` and the match
-against h1536-3m (10+0.1, SPRT [0, 10], the bot off) wait for a slot in
-ponder-scope's queue.
+-2.0% and the buckets -1.3%, and here they stack to -3.3%. Against the bot's
+net, h1536-3m-ob8, the gap is the six months' alone, -1.7%: the rule of
+thumb (+8 Elo a 1%) says ~+14, and at the ~0.7x the free levers have shown,
+~+10. The same shape as h1536-3m-ob8, so the same speed is expected.
+`bench 9` and the match against h1536-3m-ob8 (10+0.1, SPRT [0, 10], the bot
+off; what Matthew decides is whether to swap the bot's net) have
+ponder-scope's slot after BT4's round robin, ~16:00 on 10-25.
 
 ## Risks
 

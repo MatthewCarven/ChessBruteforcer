@@ -6753,11 +6753,15 @@ passed.
   -1.7% against h1536-3m-ob8 (0.011760).** Its K is 1.150, like h1536-3m's
   1.116 and h1024-6m's 1.138 (h1536-3m-ob8's 1.019 was the odd one). At
   1024 the six months were worth -2.0% and the buckets -1.3%, so the two
-  levers stack about as their parts say. The rule of thumb at the ~0.7x
-  seen so far: ~+18 against h1536-3m.
+  levers stack about as their parts say. Against the bot's net since
+  2026-10-24 06:43, h1536-3m-ob8, the gap is -1.7%: ~+10 by the rule of
+  thumb at the ~0.7x seen so far.
 - Passes 3 and 4 (lr 1e-3) read worse at K 1 than pass 2 (0.012808 and
   0.012851 against 0.012615) but better at the fitted K; each lr drop then
   took a step (0.011802 after pass 5, 0.011553 after pass 8).
-- `bench 9` and the match against h1536-3m wait for ponder-scope's slot:
-  at 15:21 a book-duel had 12 engines on the laptop since 12:03, so nothing
-  started. NNUE.md ("All three levers") and TODO have the figures.
+- `bench 9` and the match wait for ponder-scope's slot, after BT4's round
+  robin (~16:00): at 15:21 its 12 engines had been on the laptop since
+  12:03. I had asked for h1536-3m as the opponent, left over from before the
+  bot's swap; ponder-scope pointed to the bot's own net, so it's
+  h1536-3m-ob8 (what Matthew decides is whether to swap). NNUE.md ("All
+  three levers") and TODO have the figures.
