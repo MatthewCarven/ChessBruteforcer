@@ -6765,3 +6765,24 @@ passed.
   bot's swap; ponder-scope pointed to the bot's own net, so it's
   h1536-3m-ob8 (what Matthew decides is whether to swap). NNUE.md ("All
   three levers") and TODO have the figures.
+
+## 2026-10-25 (15:56-17:45): h1536-6m-ob8 v h1536-3m-ob8 part 1; h512-3m at 2+0.02 (the nnue-deep-layers session)
+
+- **`bench 9`**, 5 rounds alternated, 15:56:54-15:57:16 (the laptop still
+  warm from BT4's round robin: both ~18% below yesterday's quiet figures):
+  h1536-3m-ob8 2,196 knps, 3,876,549 nodes; h1536-6m-ob8 2,125 knps (-3.2%,
+  the ranges overlap), 3,344,763 nodes: time to depth 9 x0.89.
+- **h1536-6m-ob8 v h1536-3m-ob8, part 1**, 15:57:33-17:00:33 on
+  ponder-scope's go, 10+0.1, SPRT [0, 10]: 615 games, **+156 -142 =317,
+  +8 [-11, +27]**, LOS 79.1%, LLR 0.31. Even speed in play (~2,380 v 2,350
+  knps); no time losses. Stopped at 17:00 on Matthew's word to push the
+  fast-net check through first (only the cb-match processes killed; the
+  PGN and log are kept). **Part 2**, the other 1,385 games under their own
+  file name, started 17:44:35; a scratchpad watcher runs the SPRT over both
+  parts together and stops it if that decides.
+- **h512-3m v h1536-3m-ob8 at 2+0.02**, 17:01:30-17:21:54, 1,000 games
+  fixed (Matthew's yes, via Session context): **-56 [-73, -39]**, 1.43x the
+  speed and +0.4 ply; 1 time loss, by h1536-3m-ob8. The short clock doesn't
+  favour the small net (MATCHES.md). Time losses counted from the PGN's
+  Termination tags ("lost on time (used .. ms with .. ms left)") with the
+  pieces left on the board.

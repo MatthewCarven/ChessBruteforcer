@@ -72,6 +72,7 @@ two, `scripts\nnue-match.cmd` the rest.
 | 2026-10-23 | h1536-3m-l32 | h1536-3m | 326 | +56 -98 =172 | 43.6% | **-45 [-71, -19]** | SPRT [0, 10] **accepted H0** at game 322 (LLR -2.95): the widest deep net, at 43% of the speed; bot stopped (see below) |
 | 2026-10-24 | h1024-6m | h1024-3m | 2,000 | +528 -464 =1008 | 51.6% | **+11 [0, +22]** | SPRT [0, 10] undecided at the 2,000-game limit (LLR 2.05), LOS 97.9%: h1024-3m's recipe on 6 months instead of 3, the same speed; bot stopped (see below) |
 | 2026-10-24 | h1536-3m-ob8 | h1536-3m | 2,000 | +505 -453 =1042 | 51.3% | **+9 [-1, +20]** | SPRT [0, 10] undecided (LLR 1.40), LOS 95.4%, in two parts (1,200 + 800, added by hand): 8 output buckets on the bot's net, the same speed; bot stopped (see below) |
+| 2026-10-25 | h512-3m | h1536-3m-ob8 | 1,000 | +219 -378 =403 | 42.0% | **-56 [-73, -39]** | fixed, **at 2+0.02** (Matthew's question: a fast net for time trouble?): 1.43x the speed, +0.4 ply, not enough; 1 time loss (h1536-3m-ob8); bot stopped (see below) |
 
 The nnue1 matches ran with the bot stopped, on the charger, at below-normal
 priority: 4.5-5.4 s a game (~790 games an hour). No time losses, crashes or
@@ -246,6 +247,20 @@ each in part 1, 2,866 and 2,864 in part 2, depth 10.6-10.7: the buckets cost
 no speed. The rule from our matches said ~+13 for -1.6%. No time losses.
 Endings: 404 mates, 546 threefolds, 940 by the tables (554 wins, 386 draws),
 108 fifty-move, 2 stalemates.
+
+**h512-3m against h1536-3m-ob8 at 2+0.02** (2026-10-25, 17:01-17:22, the bot
+stopped, nothing else timed on the laptop): Matthew asked whether a faster,
+smaller net would help the bot in time trouble (switching to one below 30 s
+on the clock with 16 pieces or fewer). Both sides at 2+0.02 for the whole
+game, 1,000 games, fixed: +219 -378 =403, **-56 [-73, -39]**, LOS 0.0%.
+Searches: h512-3m 3,166 knps, depth 8.3; h1536-3m-ob8 2,217 knps, depth 7.9.
+1.43x the speed buys 0.4 ply, well short of what the bigger net's judgement
+is worth. By the 10+0.1 chain (nnue1-h512 +76, h512-3m +11, h1024-3m +41,
+h1536-3m +7, h1536-3m-ob8 +9) h512-3m is ~57 below at 10+0.1 as well: the
+short clock doesn't close the gap. Tripling the width costs only 30% of the
+speed, so a smaller net still would buy little more. Time losses: 1 in
+1,000, by h1536-3m-ob8 (7 pieces, 33 ms past the match tool's 100 ms margin).
+No fast net, then (TODO, "A fast net for time trouble?").
 
 ## Pondering (2026-10-16 on)
 
