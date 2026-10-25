@@ -8053,3 +8053,14 @@ ones". bot\quit.soon made 09:12:07; lichess-bot saw it a second later with one g
   end 71% (theirs 80%); blitz ours 2.0 / 3.6, theirs 3.0 / 4.3, clock used 65% (82%).
 - Ratings: blitz 2596 -> 2632, bullet 2637 -> 2642, rapid 2594 -> 2592, classical 2719 -> 2720.
 - lichess.org answered throughout: no not-answering lines.
+
+## 2026-10-26 (09:20-09:35): the nnue-deep-layers session's tools kept (wrapping up)
+
+- Four scratchpad tools from the deep-layer and 6-month matches, now in scripts\: `match-parts.py` (a match's parts
+  summed: Elo, 95%, LOS, LLR by MatchStats' formulas), `match-watch.py` (SPRT over the earlier parts plus the running
+  one; stops only the %TEMP%\cb-match processes; `--dry` to look), `time-losses.py` (a match .pgn's time losses by
+  side, pieces and ms over) and `nnue\rates.py` (the trainer's positions a second between progress lines).
+  nnue-match.cmd's header points to the first three. Checked on the logs they came from: h1536-6m-ob8's two parts give
+  +419 -346 =788, +16 [+4, +28], LLR 2.97, as recorded; h512-3m's 2+0.02 match one time loss; the 6-month run ~137k
+  positions a second.
+- The session's hand-over note is now games\nnue\nnue-deep-layers-handover.md (gitignored), beside the match logs.

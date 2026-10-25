@@ -11,6 +11,9 @@ rem tool and both evaluations are copied to %TEMP%\cb-match first (and the repo 
 rem priority, which the engines inherit, so the bot's games come first.
 rem Logs: games\nnue\match-<net>-<old>.log and .pgn (match-<net>-<old>-<games>.* when [games] isn't 2000, and
 rem -fixed after that when fixed, and -<clock> after that when the clock isn't 10+0.1).
+rem A match can't resume: stopped, its rest plays as a second part with its own [games] (so its own logs);
+rem scripts\match-parts.py sums the parts, scripts\match-watch.py runs the SPRT over them while the last one plays,
+rem and scripts\time-losses.py breaks down a .pgn's time losses.
 rem The clock: NNUE_TC if it's set (set NNUE_TC=30+0.3, say: the bot online thinks ~20x longer a move than 10+0.1),
 rem else 10+0.1.
 setlocal
