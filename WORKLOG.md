@@ -7543,6 +7543,15 @@ The log says "Book <file> skips <moves> for game <id>: back to a position the ga
   changed since 23 Oct 06:16 (the DLLs differ by the build alone), so the copy stands.
 - The first 32 games are all different, even with the tables' fixed choices: table-a v table-b splits at plies
   6-9, so the 1000 games a pair aren't repeats. About 13 games a minute: the 3000 may finish before 16:30.
+- Finished by itself at 15:53:38, all 3,000 played (ponder-scope: let it finish; the final waits for h1536-6m-ob8's
+  match, which finished on the desktop at 15:23). Every duel engine gone at 15:54, the learner aside.
+- table-a v table-b 49.9%, -1 [-14, +12]; table-a v vetted 52.2%, +16 [+3, +28]; table-b v vetted 52.9%, +20
+  [+8, +33]. Overall table-b +11, table-a +7, vetted -18. The tables beat today's books; they can't be told apart
+  from each other. The final's book is Matthew's call: (a) table-b, (b) table-a, (c) both. Its go after the
+  match, ~19:30.
+- 4 time losses, all in the last 8 minutes (15:45-15:51), 4-7 pieces, each over by under 0.1 s, one or two an arm.
+  None in the first 3 h 40, and no tables in the duel: something else on the laptop near the end, or heat? Not
+  checked.
 
 ## 2026-10-25 (12:10-15:56): the bot's net switches between games with no restart (the orchestrator)
 
