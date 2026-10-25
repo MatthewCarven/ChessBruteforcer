@@ -7808,3 +7808,14 @@ round robin (no scripts beside timed runs), merged into compression.
   table reads as such. And each engine loads its own copy of the tables: the bot's three games at once commit ~5 GB.
 - Waits for Matthew or ponder-scope: (a) the no-tables half now, 3 at once, the with-tables half once memory is
   freed; (b) both at 2 at once, ~5 h; (c) free memory first, then both at 3.
+
+## 2026-10-25 (19:54-21:25): the Stockfish check's no-tables half
+
+- Ponder-scope's (a): the no-tables half now, 3 at once, stopping under 2 GB commit free. Started 19:54:22 (my
+  first launch passed an empty path and opened a stray window, closed at once). 9.34 GB commit free at the start
+  (WSL had given its memory back), 5.60 GB three games in (our engines 383-393 MB each, WSL ~2.6 GB), the lowest
+  3.86 GB.
+- **500 games in 88 min: +49 -95 =356, 45.4% ±2.3, -32 [-48, -16] v SF-3190, about 3158 on Stockfish's scale.**
+  No time losses either side; our lowest clock at the end 0.2 s. White 46.8%, Black 44.0%. All engines gone at
+  21:23, the learner aside. MATCHES.md has it, with the memory finding; TODO has the with-tables half (waits for
+  memory) and a new item: each engine loads its own copy of the tables.

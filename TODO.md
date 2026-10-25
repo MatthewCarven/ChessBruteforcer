@@ -813,6 +813,23 @@ Sessions, in order:
       go. Separately: does the engine's
       clock allow for a slow 5-piece probe? The bot's own games would show
       it (it plays longer controls, so less exposed).
+      **2026-10-25 evening:** 6 at once with tables doesn't fit the laptop's
+      memory (an engine commits 1,150 MB with tables, ~1,680 MB with its
+      block cache full, 343 MB without; MATCHES.md): ponder-scope's (a), both
+      halves 3 at once. The with-tables half was stopped a minute in (19:52:
+      commit free 2.13 GB, RAM available 240 MB, the learner paged out).
+      **The no-tables half done, 19:54-21:22: +49 -95 =356, 45.4%, -32 [-48,
+      -16] v SF-3190, about 3158; no time losses.** The with-tables half (3
+      at once, games\sf-check\sf3190.jsonl) waits for memory to be freed
+      (Matthew: finished sessions archived, Discord closed) or another night.
+- [ ] **Each engine loads its own copy of the endgame tables** (found
+      2026-10-25 19:50, MATCHES.md "Memory"): ~800 MB of tables plus up to
+      512 MB of block cache a process, so the bot's three games at once
+      commit ~5 GB and six engines ~10 GB on a 16 GB laptop, which pages
+      (the likeliest cause of the 3190 probe's 4 time losses). One copy for
+      all of them (a memory-mapped file the processes share, read-only)
+      would cut it to ~one engine's worth. Matthew's call whether it's worth
+      doing; it bears on the bot's 30+0 time loss with three games at once.
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**
       (Matthew's (c) in "3. Findings for the thesis"; scripts/turning-points.py
       reads lichess-bot's DEBUG logs, which it keeps 7-8 days). Did the
