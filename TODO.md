@@ -832,6 +832,15 @@ Sessions, in order:
       to ±~24. Matthew's call: (a) stop here; (b) finish another night as
       tonight; (c) the same, stopping on commit free only (the RAM line
       counts pages Windows can drop, but it also guards the learner).
+      **Matthew (~05:10, to ponder-scope): "b".** Tonight (10-26 into
+      10-27), on ponder-scope's go after a quiet check, not while the bot
+      plays: 1 at a time into the same sf3190.jsonl (`--games 315`, tables,
+      Hash 256, h1536-3m-ob8). Stop lines as before: commit free under
+      2 GB, RAM available under 1 GB, or 06:55. After a RAM trip, check
+      the engine and Stockfish are gone and RAM has come back, then restart
+      for the games still missing, until all 500 are in or it's 06:55
+      (~150 games a stint; ponder-scope's reading of "the same way", his
+      word overrides it).
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**
       (Matthew's (c) in "3. Findings for the thesis"; scripts/turning-points.py
       reads lichess-bot's DEBUG logs, which it keeps 7-8 days). Did the
