@@ -6786,3 +6786,14 @@ passed.
   favour the small net (MATCHES.md). Time losses counted from the PGN's
   Termination tags ("lost on time (used .. ms with .. ms left)") with the
   pieces left on the board.
+
+## 2026-10-25 (17:44-19:21): h1536-6m-ob8 passes the SPRT against the bot's net (the nnue-deep-layers session)
+
+- **Part 2 of h1536-6m-ob8 v h1536-3m-ob8**, 17:44:35-19:21:34, 10+0.1:
+  938 games, +263 -204 =471, +22 [+6, +38]. A scratchpad watcher
+  (watch-part2.py) added part 1's +156 -142 =317 to part 2's tally after
+  every game and ran MatchStats' LLR over the sum; at 2.97 it stopped the
+  match (only the cb-match processes). **Both parts: 1,553 games, +419 -346
+  =788, +16 [+4, +28], LOS 99.6%, SPRT [0, 10] accepted H1.** No time
+  losses; speed even. MATCHES.md, NNUE.md ("All three levers") and TODO
+  have it; whether the bot plays it is Matthew's call.

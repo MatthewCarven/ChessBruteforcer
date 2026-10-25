@@ -1950,10 +1950,22 @@ Held back as the engine computes it, at each net's K (1.150 here; 1.116 and
 -2.0% and the buckets -1.3%, and here they stack to -3.3%. Against the bot's
 net, h1536-3m-ob8, the gap is the six months' alone, -1.7%: the rule of
 thumb (+8 Elo a 1%) says ~+14, and at the ~0.7x the free levers have shown,
-~+10. The same shape as h1536-3m-ob8, so the same speed is expected.
-`bench 9` and the match against h1536-3m-ob8 (10+0.1, SPRT [0, 10], the bot
-off; what Matthew decides is whether to swap the bot's net) have
-ponder-scope's slot after BT4's round robin, ~16:00 on 10-25.
+~+10. The same shape as h1536-3m-ob8, and the same speed: `bench 9`
+2,125 knps against 2,196, time to depth 9 x0.89; even in play.
+
+**Matched against the bot's net** (10+0.1, the bot off, 2026-10-25, two parts
+around Matthew's fast-net check; MATCHES.md): **+16 [+4, +28] over 1,553
+games, SPRT accepted H1** (LLR 2.97 over both parts), LOS 99.6%, no time
+losses. Above the rule's ~+14 for -1.7%. With the earlier levers, each against
+its own base net:
+
+| lever | at 1024 | at 1536 |
+|---|---|---|
+| 8 output buckets | +8 [-3, +19] (-1.3% error) | +9 [-1, +20] (-1.6%) |
+| 6 months of data | +11 [0, +22] (-2.0%) | **+16 [+4, +28] (-1.7%)**, on top of the buckets |
+| width, 1024 to 1536 | | +7 [-3, +18] (-3.9%) |
+
+Whether the bot plays h1536-6m-ob8 is Matthew's call (TODO).
 
 ## Risks
 

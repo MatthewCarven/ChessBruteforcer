@@ -283,7 +283,7 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
       with bt-b's 4 one-thread depth-18 engines 337.1 k (333.0-339.4), -4.2%,
       below the solo range, so by the rule bt-b stops (ponder-scope's word);
       ~17 min on the run's end.
-  - [ ] **h1536-6m-ob8: all three levers on the bot's width** (Matthew's (a),
+  - [x] **h1536-6m-ob8: all three levers on the bot's width** (Matthew's (a),
     2026-10-24): `--hidden 1536 --add-data 2026-04 2026-05 2026-06 2026-07
     2026-08 --passes 10 --lr-drops 4/7/9 --output-buckets 8`. Trained on
     the desktop 2026-10-24 11:37 to 10-25 15:23 by its clock (27 h 46 min;
@@ -291,8 +291,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     0.011558 as the engine computes it, -3.3% against h1536-3m's 0.011952,
     -1.7% against h1536-3m-ob8's 0.011760** (NNUE.md, "All three levers");
     against the bot's net, h1536-3m-ob8, ~+10 by the rule of thumb at 0.7x.
-    Then: `bench 9` and a match against h1536-3m-ob8 (the bot off), in
-    ponder-scope's slot after BT4's round robin (~16:00 on 10-25).
+    `bench 9`: the same speed. **Matched against h1536-3m-ob8, 2026-10-25:
+    +16 [+4, +28] over 1,553 games, SPRT accepted H1** (two parts, 615 +
+    938, the SPRT run over both together; MATCHES.md). **Matthew's call:
+    whether the bot plays it** (bot\eval and make-config.py, at the bot's
+    next start).
   - **E: h2048-3m, dropped for now** (Matthew's 2(a)): after h1536-3m's +7,
     2048 looked like +0 to +10 at ~13% more speed cost. Nothing to build if
     it comes back: the engine takes 2048 (662a810), and train.py's held-back
