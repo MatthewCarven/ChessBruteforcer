@@ -1,0 +1,704 @@
+669 of the bot's games, 2026-10-12 to 2026-10-25 (left out: 22 no result)
+A piece is anything on the board, kings and pawns included: 32 at the start.
+
+## Down to 16 pieces: 599 of 669 games (90%); from there they went on 33.3 moves on average (median 28.5)
+
+'at move' is the move number the 16th piece came off (mean); 'moves after' runs from there to the game's end.
+
+result        games  got to 16     %  at move   moves after: mean [95%]  median     range
+won             348        307    88     36.4         26.1 [24.0, 28.2]    23.0   0-117.5
+drawn           116        100    86     36.1         57.2 [48.9, 65.6]    46.0   4-202.5
+lost            205        192    94     39.0         32.5 [30.0, 35.0]    32.0    0-82.5
+-----------------------------------------------------------------------------------------
+total           669        599    90     37.2         33.3 [31.2, 35.5]    28.5   0-202.5
+
+speed         games  got to 16     %  at move   moves after: mean [95%]  median     range
+bullet           63         57    90     37.1         35.1 [27.3, 42.8]    29.0   0-139.5
+blitz           573        512    89     37.3         33.1 [30.8, 35.4]    28.5   0-202.5
+rapid            24         24   100     35.1         35.3 [23.2, 47.4]    30.5   2-126.5
+classical         9          6    67     38.3         29.3 [18.7, 40.0]    30.2   13.5-44
+-----------------------------------------------------------------------------------------
+total           669        599    90     37.2         33.3 [31.2, 35.5]    28.5   0-202.5
+
+colour        games  got to 16     %  at move   moves after: mean [95%]  median     range
+white           313        277    88     36.8         32.1 [29.0, 35.1]    27.5   0-202.5
+black           356        322    90     37.5         34.4 [31.5, 37.4]    30.5     0-197
+-----------------------------------------------------------------------------------------
+total           669        599    90     37.2         33.3 [31.2, 35.5]    28.5   0-202.5
+
+How long the games that got to 16 went on from there:
+
+moves after   games     %   won/drawn/lost
+0-9              98    16       +69 =7 -22
+10-19            99    17      +63 =11 -25
+20-29           114    19      +63 =14 -37
+30-39           101    17       +46 =9 -46
+40-59           117    20      +49 =21 -47
+60+              70    12      +17 =38 -15
+------------------------------------------
+total           599   100   +307 =100 -192
+mean         33.3 [31.2, 35.5] moves after; median 28.5
+
+## At move 50: 465 of 669 games got there (70%), with 11.9 pieces left on average (median 12)
+
+'at the end' is the same games' pieces when they finished (mean).
+
+result        games  to move 50     %   pieces at 50: mean [95%]  median  range  at the end
+won             348         213    61          11.4 [10.9, 11.9]      11   3-22         6.6
+drawn           116          87    75          12.1 [11.4, 12.9]      12   4-26         7.1
+lost            205         165    80          12.3 [11.7, 12.9]      12   5-24         6.6
+-------------------------------------------------------------------------------------------
+total           669         465    70          11.9 [11.5, 12.2]      12   3-26         6.7
+
+speed         games  to move 50     %   pieces at 50: mean [95%]  median  range  at the end
+bullet           63          45    71          11.1 [10.0, 12.3]      11   4-23         6.0
+blitz           573         395    69          12.0 [11.6, 12.3]      12   3-26         6.7
+rapid            24          19    79           10.6 [9.4, 11.9]      11   5-15         6.7
+classical         9           6    67          12.8 [10.7, 14.9]      13   8-16         9.2
+-------------------------------------------------------------------------------------------
+total           669         465    70          11.9 [11.5, 12.2]      12   3-26         6.7
+
+colour        games  to move 50     %   pieces at 50: mean [95%]  median  range  at the end
+white           313         206    66          12.0 [11.5, 12.5]    11.5   4-24         6.9
+black           356         259    73          11.7 [11.3, 12.2]      12   3-26         6.5
+-------------------------------------------------------------------------------------------
+total           669         465    70          11.9 [11.5, 12.2]      12   3-26         6.7
+
+Pieces left at move 50:
+
+pieces        games     %   won/drawn/lost
+2-4               6     1         +5 =1 -0
+5-8              74    16      +35 =15 -24
+9-12            204    44     +105 =35 -64
+13-16            128    28      +48 =25 -55
+17-32             53    11      +20 =11 -22
+------------------------------------------
+total           465   100    +213 =87 -165
+mean         11.9 [11.5, 12.2] pieces; median 12
+
+## Our moves chosen with 16 or fewer pieces on the board: 19,999 of 44,077 (45%)
+
+The share of the bot's decisions a net for 16 pieces or fewer would make (its searches look further on,
+where there are fewer still). 'a game' is the mean over the games that got to 16.
+
+result        games  our moves  at 16 or fewer     %  a game
+won             348     20,330           8,084    40    26.3
+drawn           116      9,783           5,722    58    57.2
+lost            205     13,964           6,193    44    32.3
+------------------------------------------------------------
+total           669     44,077          19,999    45    33.4
+
+speed         games  our moves  at 16 or fewer     %  a game
+bullet           63      4,250           1,998    47    35.1
+blitz           573     37,662          16,985    45    33.2
+rapid            24      1,680             841    50    35.0
+classical         9        485             175    36    29.2
+------------------------------------------------------------
+total           669     44,077          19,999    45    33.4
+
+colour        games  our moves  at 16 or fewer     %  a game
+white           313     20,060           8,903    44    32.1
+black           356     24,017          11,096    46    34.5
+------------------------------------------------------------
+total           669     44,077          19,999    45    33.4
+
+## Every game that got to 16 pieces
+
+date       game     opponent               colour speed     result at move  after at 50  end  termination
+2026-10-12 0tx3iIeW PeachFruit             black  blitz     lost        47   14.5    13   11  Normal
+2026-10-12 6vyD17Qv latrunculi-bot         black  blitz     lost        28     26    12   10  Normal
+2026-10-12 B00wEozu Iskelt-Corax           black  blitz     won         45    0.5     -   15  Time forfeit
+2026-10-12 CoPd2ket DeMen100ns-bot         black  blitz     lost        23    9.5     -   11  Normal
+2026-10-12 FkzE7x9i Martuni                white  blitz     lost        30     56    10    3  Normal
+2026-10-12 GfEx5w4M Stepbot_Chess          black  blitz     won         33     22     4    4  Normal
+2026-10-12 GoIyLHw4 uzenatch               white  blitz     won         32     22    11    9  Normal
+2026-10-12 Ifx8xL7J Bongaclang             black  blitz     lost        39   16.5    11    8  Normal
+2026-10-12 LrftNFDe Botkingteam33          white  blitz     won         31    0.5     -   16  Normal
+2026-10-12 S197swy8 MrTonnerre             black  blitz     drawn       36     54    13   12  Normal
+2026-10-12 SLMglYng agentc313              white  blitz     won         39    8.5     -   11  Normal
+2026-10-12 VXfRSr0m TheChessblazer         white  blitz     lost        36   34.5    10    7  Normal
+2026-10-12 aWLxeu2F Voigtsbach             black  blitz     lost        43    2.5     -   13  Time forfeit
+2026-10-12 bNJ8brLB Iskelt-Corax           black  blitz     lost        54     28    19    6  Normal
+2026-10-12 cRwnectx PlayMarius             black  blitz     won         43   31.5    13    8  Normal
+2026-10-12 cxlZF6DC lamprook               black  blitz     won         36      0     -   16  Normal
+2026-10-12 eigwOeDf VidBot                 black  blitz     lost        40     41    11    4  Normal
+2026-10-12 gx5POfZv Iskelt-Corax           white  blitz     drawn       46     12    16   16  Normal
+2026-10-12 jLYqGKwB bot64jaques            black  blitz     lost        25   27.5     7    7  Normal
+2026-10-12 jpPOHbUX Blobfish-Bot           black  blitz     lost        32   34.5    10    5  Normal
+2026-10-12 n1Ukab5n myChessJava            black  blitz     won         34     46    12    3  Normal
+2026-10-12 n4I5Kdma Zagreus_Engine         black  blitz     lost        44     11    12   10  Normal
+2026-10-12 n4kZuWoQ sseh-c                 white  blitz     won         44      4     -   15  Normal
+2026-10-12 nowQGAW3 stickshark99           black  blitz     won         33   38.5    11    5  Normal
+2026-10-12 qbxKuS6Y Mithandros             black  blitz     lost        39     35    16    7  Normal
+2026-10-12 svAEt17m Windmolen_bot          white  blitz     won         31    5.5     -   13  Normal
+2026-10-12 u6mfTggx StockfishLowDepth      black  blitz     won         34      9     -   13  Normal
+2026-10-12 vE23qVfZ CalciumEngine          white  blitz     lost        33     45    16    7  Normal
+2026-10-12 zFAzH6L4 MinibruteforceBot      black  blitz     won         41     20    12   10  Normal
+2026-10-13 03e3h0zK InanisBot              black  blitz     lost        55   41.5    19    4  Normal
+2026-10-13 0iPfmpup turox-bot              white  blitz     drawn       40     10     -   15  Normal
+2026-10-13 0kRX4Xwa stickshark99           black  blitz     lost        59      9    20   12  Normal
+2026-10-13 0lvsEVs7 MackBot                white  blitz     lost        39      4     -   13  Normal
+2026-10-13 0rM1MHXY MinibruteforceBot      black  blitz     lost        58     22    17    8  Normal
+2026-10-13 19TkkTZA Chessiverse_Raak       black  blitz     won         35   35.5    11    4  Normal
+2026-10-13 1NwE2k7j TopasBot               white  blitz     won         35   28.5    12    9  Normal
+2026-10-13 1eY9ml3j Martuni                white  blitz     lost        27   55.5    10    3  Normal
+2026-10-13 20EP6On9 Chessiverse_Luc        white  blitz     won         32     19     8    8  Normal
+2026-10-13 2BX5Qpyd Oxide-Eg               white  blitz     won         36   21.5    12    8  Normal
+2026-10-13 2GuQvzJJ VietnameseCoffee       white  blitz     won         27     16     -   10  Normal
+2026-10-13 2N03uUpA BerkBot                black  blitz     lost        26   23.5     -    9  Normal
+2026-10-13 3fE47b8u AlphaNolla             white  blitz     won         32    6.5     -   15  Normal
+2026-10-13 3xpCTwsw TroutBot               black  blitz     lost        41     66     8    5  Normal
+2026-10-13 3zvOBlZ9 TroutBot               black  blitz     lost        41   29.5     9    7  Normal
+2026-10-13 4YV2i06i Tigrament              white  blitz     won         31     38    11    4  Normal
+2026-10-13 68zvP41W AconcaguaBot           white  blitz     lost        38    8.5     -   12  Normal
+2026-10-13 7zcFesdu Blobfish-Bot           black  blitz     lost        47   23.5    16    9  Normal
+2026-10-13 88W3aJIU entebot                black  blitz     lost        32     78    12    3  Normal
+2026-10-13 8J0Rxkfz sunfish-engine         black  blitz     won         41   12.5     9    7  Normal
+2026-10-13 9yhYwWGc DeMen100ns-bot         black  blitz     drawn       35   66.5    12    4  Normal
+2026-10-13 AeWFAdN5 MackBot                black  blitz     drawn       43   96.5    10    4  Normal
+2026-10-13 BJ0K80W3 wannalearnbot          black  blitz     won         27     50    10    3  Normal
+2026-10-13 BOV6bb6F AconcaguaBot           black  blitz     lost        32     20     8    8  Normal
+2026-10-13 D3VUN0YK Bot5551                black  blitz     won         27     20     -   13  Normal
+2026-10-13 Dfs8ZU7j CalciumEngine          white  blitz     lost        33   36.5    11    7  Normal
+2026-10-13 EMEKkfmL FataliiBot             white  blitz     lost        33    3.5     -   14  Normal
+2026-10-13 FEBUyJ60 TopasBot               black  blitz     won         52     15    17   10  Normal
+2026-10-13 GOf0viY5 TopasBot               black  blitz     won        120     63    22    3  Normal
+2026-10-13 HEydZjz5 TheChessblazer         black  blitz     won         26     49    10    3  Normal
+2026-10-13 HmOGmhxN thunfisch-bot          black  blitz     lost        35      8     -   12  Normal
+2026-10-13 IUkxcXqO AaronsEngine           black  blitz     lost        34    7.5     -   13  Normal
+2026-10-13 L952sVsA Voigtsbach             white  blitz     drawn       53   55.5    17    4  Normal
+2026-10-13 LnToP855 lamprook               black  blitz     won         38    7.5     -   13  Normal
+2026-10-13 M2SDoeRg Ribfish-Bot            black  blitz     lost        38     35    12    8  Normal
+2026-10-13 MhoV8HDz entebot                black  blitz     lost        24     43     7    5  Normal
+2026-10-13 MmPtTcRW sunfish-engine         black  blitz     won         39    6.5     -   14  Normal
+2026-10-13 NRKQPYIg aposeij                white  blitz     lost        46   25.5    12    7  Normal
+2026-10-13 NfxVDH7j GroshBoss              white  blitz     lost        53   36.5    17    7  Normal
+2026-10-13 PiFaeCjF sseh-c                 black  blitz     won         30     59    13    3  Normal
+2026-10-13 PwB9TEEz simpleEval             black  blitz     won         49     35    16    5  Normal
+2026-10-13 Q5pxmdE6 laura-bot              white  blitz     won         68   10.5    20   12  Normal
+2026-10-13 QTlV5hRg JongsungKim            black  blitz     drawn       34     86    13    5  Normal
+2026-10-13 QWFvOodu turox-bot              black  blitz     won         41      2     -   14  Normal
+2026-10-13 QjbEVIxc HynobiusChess          black  blitz     won         27      3     -   14  Normal
+2026-10-13 RKOhDgZf AetherBot              white  blitz     lost        38     66    13    3  Normal
+2026-10-13 TadDHpjo dala-2000              black  blitz     won         24     11     -   12  Normal
+2026-10-13 Tdubk8zh Bot5551                black  blitz     won         31     10     -   10  Normal
+2026-10-13 V41J7iZL uzenatch               black  blitz     drawn       31     19     -   10  Normal
+2026-10-13 VPLAHzs7 uzenatch               black  blitz     won         38   61.5    13    3  Normal
+2026-10-13 VQAmgBQk CLaude_Bot             white  blitz     lost        31      4     -   12  Normal
+2026-10-13 WrD4aQVr sunfish-engine         white  blitz     won         28   41.5     8    3  Normal
+2026-10-13 XrxDYiRY uzenatch               white  blitz     won         32   46.5    10    4  Normal
+2026-10-13 Yzyl7PGu CLaude_Bot             black  blitz     lost        42     64     7    4  Normal
+2026-10-13 a74gjNST CalciumEngine          black  blitz     lost        39     31    11    7  Normal
+2026-10-13 aq5RMI6S laura-bot              black  blitz     lost        36   82.5    14    6  Normal
+2026-10-13 cqmr4SU3 Chessiverse_Raak       white  blitz     won         37      7     -   12  Normal
+2026-10-13 gXumKaKn AshNostromo            black  blitz     drawn       49     66    15    6  Normal
+2026-10-13 go1lwBIf lukebot                black  blitz     lost        29   19.5     -    8  Normal
+2026-10-13 hY1dwfIq bot64jaques            white  blitz     lost        48   34.5    13    7  Normal
+2026-10-13 hlpncZIP TheChessblazer         black  blitz     won         27     39     5    3  Normal
+2026-10-13 hocH56G6 FlounderBot            black  blitz     lost        45   13.5    13   10  Normal
+2026-10-13 hyxUz7pO Axiom_BOT              black  blitz     won         40      7     -   12  Normal
+2026-10-13 i0alsTXv rust-in-pieces         white  blitz     lost        24   24.5     -    9  Normal
+2026-10-13 idq0AEmW pi0w                   white  blitz     won         53   54.5    19    4  Normal
+2026-10-13 kSFfLfmy VietnameseCoffee       black  blitz     won         32     33     4    3  Normal
+2026-10-13 ksS6RCf7 CalciumEngine          black  blitz     won         54     15    20    8  Normal
+2026-10-13 lIU01UX5 uSunfish               black  blitz     won         40   40.5    10    3  Normal
+2026-10-13 lYHthUui BerkBot                black  blitz     won         28   32.5    10    9  Normal
+2026-10-13 loxKlaZ1 Axiom_BOT              black  blitz     won         38     40    14    9  Normal
+2026-10-13 lsX6QzS8 VietnameseCoffee       white  blitz     won         33   15.5     -   10  Normal
+2026-10-13 m1mLTSsJ mate1-bot              black  blitz     lost        30     31    10    7  Normal
+2026-10-13 nAW0ZZEQ matmoi                 black  blitz     lost        32     22     7    5  Normal
+2026-10-13 nBW2J8Np MinibruteforceBot      black  blitz     lost        28     45     9    6  Normal
+2026-10-13 obeitMyU pi0w                   white  blitz     drawn       52  156.5    18    7  Normal
+2026-10-13 oreul00D stickshark99           black  blitz     lost        48   38.5    15    6  Normal
+2026-10-13 pTKSWL7B Chessiverse_Raak       white  blitz     won         35     23    12   12  Normal
+2026-10-13 pVkPUMAC CosetteBot             black  blitz     lost        47     15    13    9  Normal
+2026-10-13 rSMZ7uub turox-bot              white  blitz     lost        28   53.5    14    6  Normal
+2026-10-13 tCPGtokv DeMen100ns-bot         white  blitz     won         40   48.5    14    3  Normal
+2026-10-13 tkSvRhLl matmoi                 white  blitz     won         23   31.5     6    6  Normal
+2026-10-13 vR0ZzjjN Iskelt-Corax           white  blitz     won         36     28     6    4  Time forfeit
+2026-10-13 vScxXjvN BerkBot                white  blitz     won         30   60.5     8    3  Normal
+2026-10-13 vn5RTs1H bot64jaques            white  blitz     lost        32     23     9    8  Normal
+2026-10-13 vudjWoms Chessiverse_Raak       white  blitz     won         44     34    13    3  Normal
+2026-10-13 wXcYxLhX MinibruteforceBot      black  blitz     lost        54   15.5    18    9  Normal
+2026-10-13 wmMeZzIq SybBot                 white  blitz     won         37   10.5     -   13  Normal
+2026-10-13 yXA5giFU Chessiverse_Raak       white  blitz     won         33      4     -   14  Normal
+2026-10-13 yrrruEgP rust-in-pieces         black  blitz     lost        35     19    10   10  Normal
+2026-10-14 0Q9M8yXX laura-bot              white  blitz     won         35     11     -   14  Normal
+2026-10-14 1KauiepD matmoi                 black  blitz     drawn       35     36    13    3  Normal
+2026-10-14 1mQS5XdT halcyonbot             white  blitz     drawn       42   79.5    15    8  Normal
+2026-10-14 21w1Gt5m AshNostromo            black  blitz     drawn       34     45    11    2  Normal
+2026-10-14 2YhPBMt7 mate1-bot              white  blitz     won         32     58    11    4  Normal
+2026-10-14 39pdToMC myChessJava            white  blitz     won         49    110    15    6  Normal
+2026-10-14 3eXeLfSi anna-bot               black  rapid     lost        34   31.5     7    5  Normal
+2026-10-14 4EeDjILK uzenatch               black  blitz     drawn       39      4     -   16  Normal
+2026-10-14 4ffPZcpE bfiedler-bot           white  blitz     won         34   40.5     9    3  Normal
+2026-10-14 6Vtls6YK laura-bot              white  blitz     won         53      9    19   13  Normal
+2026-10-14 7N5F2uLV thunfisch-bot          white  blitz     lost        51     36    17    7  Normal
+2026-10-14 7RtWZFHi MimirBot               black  blitz     won         40   41.5    13    3  Normal
+2026-10-14 85WGjcg8 DarkElectronBot        white  blitz     drawn       32   38.5    12    4  Normal
+2026-10-14 B3eYq5yr AshNostromo            black  blitz     won         35     34     9    5  Normal
+2026-10-14 D7yjKZPS kopyto_dev             white  blitz     won         32    9.5     -    8  Normal
+2026-10-14 FVC3I9S5 ShallowRedBot          white  blitz     drawn       53      4    17   16  Normal
+2026-10-14 Lzhl3KSz MinibruteforceBot      black  blitz     lost        33     60    13    6  Normal
+2026-10-14 MUEd1sEE Stepbot_Chess          white  blitz     won         33   13.5     -   11  Normal
+2026-10-14 N3ke3LCc Tigrament              black  blitz     won         24   10.5     -   12  Normal
+2026-10-14 NHkwW9mo uSunfish               white  blitz     won         28   41.5     9    3  Normal
+2026-10-14 Q15l5gHZ lamprook               black  blitz     won         35      7     -   15  Normal
+2026-10-14 QgfWc4Qi uSunfish               white  blitz     won         27   23.5     5    5  Normal
+2026-10-14 RoBLgHNd DeMen100ns-bot         black  blitz     lost        45      5     -   14  Normal
+2026-10-14 Rpuqp2Au Tigrament              black  blitz     lost       127     26    20    6  Normal
+2026-10-14 SrwnQEj5 latrunculi-bot         white  blitz     lost        25     32     9    6  Normal
+2026-10-14 U3vZtQ0x aposeij                white  blitz     lost        24   34.5    11    8  Normal
+2026-10-14 UUUczlFu DeMen100ns-bot         white  blitz     drawn       36     45    16   12  Normal
+2026-10-14 VSX0vtMg ThrorBjorn             white  blitz     won         40   20.5    14    9  Normal
+2026-10-14 VmigndCj bfiedler-bot           black  blitz     won         32     71    13    5  Normal
+2026-10-14 VzNZXxcd Musashi-thebot         white  blitz     lost        26     34    12    9  Normal
+2026-10-14 WRZSCQXU Vortex_Bot             black  blitz     won         30      5     -   15  Normal
+2026-10-14 WX2G8mIV uSunfish               black  blitz     won         38      3     -   13  Normal
+2026-10-14 WhsLLgHn Waldemar-the-elf       white  blitz     won         40      9     -   10  Normal
+2026-10-14 Wx2pGKnO Stepbot_Chess          black  blitz     won         31     28    12   10  Normal
+2026-10-14 XTeqRvAy Angela_eng             black  blitz     won         28   42.5     8    5  Normal
+2026-10-14 YPoahhpP TroutBot               black  blitz     lost        56     21    18    8  Normal
+2026-10-14 YnppBn5n sunfish-nnue-engine    white  blitz     won         32   38.5     9    4  Normal
+2026-10-14 YxcNCtMU Blobfish-Bot           black  blitz     lost        28   10.5     -   13  Normal
+2026-10-14 ZHro8CCX SeedChess              black  blitz     won         32     41     5    3  Normal
+2026-10-14 aVAQ6qTG StockDog-bot           white  blitz     drawn       36   10.5     -   12  Normal
+2026-10-14 bBTjO3Qt laura-bot              white  blitz     won         21   23.5     -    8  Normal
+2026-10-14 ceKbLPBB JenniferX              black  classical lost        43   13.5    13   11  Normal
+2026-10-14 d2lrwgno mochi_bot              white  blitz     won         28   18.5     -   10  Normal
+2026-10-14 gPwayDxC Iskelt-Corax           black  blitz     won         32     12     -   10  Normal
+2026-10-14 gqUVp5Zj mochi_bot              white  blitz     won         34      2     -   14  Normal
+2026-10-14 k6sFGxoN Tigrament              white  blitz     won         26     59    11    3  Normal
+2026-10-14 ljQQOZ76 CosetteBot             white  blitz     drawn       46   27.5    16   12  Normal
+2026-10-14 lvRXAiDs sunfish-nnue-engine    white  blitz     won         28      8     -   11  Normal
+2026-10-14 mzYT3SpQ PeachFruit             black  blitz     lost        37     55    13    4  Normal
+2026-10-14 nTurP0dN dala-2000              black  blitz     won         35   13.5     -    9  Normal
+2026-10-14 o6V5AxqQ bfiedler-bot           white  blitz     won         39     72    15    8  Normal
+2026-10-14 pD1ShBNw Axiom_BOT              black  blitz     won         25   51.5     8    3  Normal
+2026-10-14 sBVfmfyX Waldemar-the-elf       white  blitz     won         47      3     -   15  Normal
+2026-10-14 tcOawCw4 dala-2000              black  blitz     won         36     17    13   12  Normal
+2026-10-14 uS0ooncI Axiom_BOT              black  blitz     lost        46      9    15   13  Normal
+2026-10-14 uX8yj5bZ CalciumEngine          black  blitz     lost        52    9.5    18   10  Normal
+2026-10-14 vHSb5z0j DarkElectronBot        white  blitz     won         31   32.5    11    7  Normal
+2026-10-14 vayytpWG JenniferX              black  rapid     lost        30   39.5     5    3  Normal
+2026-10-14 yCgrHTfG Alieknek               white  blitz     lost        30     32     9    7  Normal
+2026-10-14 yOhPdyUn TopasBot               white  blitz     won         41   40.5    14    3  Normal
+2026-10-14 yrZpGEQd SeedChess              white  blitz     won         34     12     -   12  Normal
+2026-10-14 z3N8d6eP uiagBot                white  blitz     lost        48     19    13    7  Normal
+2026-10-14 zx8XVNTU kopyto_dev             black  blitz     drawn       27     94    13    8  Normal
+2026-10-15 1CLzpi6Q DeepBecky              black  classical lost        30     31     8    6  Normal
+2026-10-15 36ta4Sh4 myChessJava            white  blitz     won         37      1     -   14  Normal
+2026-10-15 4f0Yww1t CalciumEngine          white  blitz     won         45     35    13    4  Normal
+2026-10-15 4z0yDFkI AshNostromo            white  blitz     won         28     19     -   12  Normal
+2026-10-15 5mgt0yQ1 stickshark99           black  blitz     won         38   41.5    12    3  Normal
+2026-10-15 6cgX7eG8 mate1-bot              white  blitz     won         27   44.5    11    3  Normal
+2026-10-15 7agBFXmv uzenatch               white  blitz     won         34     46    11    4  Normal
+2026-10-15 7e7AxAOD RavenEngine            white  blitz     drawn       29   28.5     6    3  Normal
+2026-10-15 7j9jRwuH TroutBot               white  blitz     lost        39      7     -   10  Normal
+2026-10-15 ADuANu9V CalciumEngine          black  blitz     lost        39     21     9    8  Normal
+2026-10-15 AGBIUMC9 Kapablanca_balls       black  bullet    lost        45   24.5    15    9  Normal
+2026-10-15 AYS77CYw TroutBot               black  blitz     lost        58   43.5    17    6  Normal
+2026-10-15 Cogh0dhm CLaude_Bot             white  blitz     drawn       47   92.5    12    7  Normal
+2026-10-15 CuA2QTV6 turox-bot              white  blitz     drawn       26    4.5     -   15  Normal
+2026-10-15 D6LaGf09 DarkElectronBot        white  blitz     won         55     13    20   13  Normal
+2026-10-15 DLOgspnW BerkBot                black  blitz     drawn       24     26     -   10  Normal
+2026-10-15 FgzYP6hV coda_bot               white  rapid     lost        32      6     -   10  Normal
+2026-10-15 G5HpBeRd AshNostromo            black  blitz     won         30   15.5     -    9  Normal
+2026-10-15 G8MhMOkD lamprook               black  blitz     won         33   23.5     9    8  Normal
+2026-10-15 GHdu9jUe Goldfish-Engine        white  blitz     lost        39     27    11    7  Normal
+2026-10-15 HI1UvXy3 TempoCore              black  blitz     lost        38   32.5    12    8  Normal
+2026-10-15 HRTihTMJ Angela_eng             white  blitz     won         31     13     -   11  Normal
+2026-10-15 Ha7L7r1J bot64jaques            black  blitz     lost        32   32.5    11    8  Normal
+2026-10-15 IG8S0o0F CalciumEngine          white  blitz     won         38   19.5    11    9  Normal
+2026-10-15 MjrLY4Vi dala-2000              white  blitz     won         35     15     -   12  Normal
+2026-10-15 Mw7jE8rs sseh-c                 white  blitz     won         23     27     -    7  Normal
+2026-10-15 NQNfXgoJ DeMen100ns-bot         black  blitz     lost        37      7     -   14  Normal
+2026-10-15 P2Ac465I aposeij                white  blitz     lost        34   81.5    16    6  Normal
+2026-10-15 QXLkvtDG ShallowRedBot          black  blitz     drawn       32   10.5     -   15  Normal
+2026-10-15 SdntdIoO pi0w                   black  blitz     won         55   10.5    18   12  Normal
+2026-10-15 UuwlHgkD Alieknek               black  blitz     lost        28   18.5     -   10  Normal
+2026-10-15 XP8jZ1Z3 byte-knight            white  blitz     lost        29   62.5    13    6  Normal
+2026-10-15 XR3km6qL GroshBoss              black  blitz     lost        45   46.5    15    7  Normal
+2026-10-15 XrwC78kG pi0w                   black  blitz     won         35   38.5    10    3  Normal
+2026-10-15 Yo0HvSl9 WolfuhfuhBot           white  blitz     lost        42   24.5     9    6  Normal
+2026-10-15 bBNJYzbd VidBot                 white  blitz     won         25   34.5    10    7  Normal
+2026-10-15 bRSnAOeu wangha                 white  blitz     lost        31     10     -   13  Normal
+2026-10-15 dCC3QnuD DeMen100ns-bot         white  blitz     drawn       54     11    18   13  Normal
+2026-10-15 dUNK75gl turox-bot              white  blitz     won         41      9     -   13  Normal
+2026-10-15 eMaID1Gc kopyto_dev             black  blitz     drawn       28   10.5     -   16  Normal
+2026-10-15 eyA1IpM8 WolfuhfuhBot           white  blitz     won         28     44     5    3  Normal
+2026-10-15 fNRaITEx uSunfish               black  blitz     won         30    9.5     -   14  Normal
+2026-10-15 fplAgw18 WasterNew              white  blitz     won         68     29    18    3  Normal
+2026-10-15 fsRIxQw0 rust-in-pieces         white  blitz     lost        35     25    13    9  Normal
+2026-10-15 gME6NTZl NoaBot                 white  bullet    lost        36      0     -   16  Time forfeit
+2026-10-15 ghZ5bnVm matmoi                 black  blitz     lost        40     19    13    7  Normal
+2026-10-15 grXoEDeg thunfisch-bot          black  blitz     lost        37     10     -   11  Normal
+2026-10-15 hdCwhJ5p Axiom_BOT              white  blitz     won         29      5     -   11  Normal
+2026-10-15 iB3W53AK mate1-bot              black  blitz     won         34     76     9    3  Normal
+2026-10-15 ii9W9pjz AshNostromo            black  blitz     won         41    5.5     -   12  Normal
+2026-10-15 lSiao8X7 JongsungKim            black  blitz     won         31     15     -   12  Normal
+2026-10-15 o3GozitR Blobfish-Bot           black  blitz     lost        55     17    20   10  Normal
+2026-10-15 pPFtem8U Martuni                white  blitz     won         46     10    13   11  Normal
+2026-10-15 pxek3zO8 Rodent-IV              black  blitz     lost        55   19.5    18    7  Normal
+2026-10-15 q7wOde0k Iskelt-Corax           black  blitz     won         34   27.5    11    9  Normal
+2026-10-15 qCt7JPqb cinder-bot             white  rapid     lost        28   11.5     -   10  Normal
+2026-10-15 qEIuC0AF Kapablanca_balls       white  bullet    lost        63      5    23   13  Normal
+2026-10-15 qgqqCfVh Martuni                black  blitz     won         22   33.5     7    6  Normal
+2026-10-15 rJkLH8eb BattleBornThe2nd       white  blitz     won         31    8.5     -   11  Normal
+2026-10-15 roeV4X0U Axiom_BOT              white  blitz     lost        34     42    11    7  Normal
+2026-10-15 rtxbWVND Mithandros             black  blitz     drawn       33     24     7    7  Normal
+2026-10-15 s5VYZi5Q uSunfish               white  blitz     won         25   18.5     -   11  Normal
+2026-10-15 sADs157N TheChessblazer         white  blitz     won         33   25.5     9    6  Normal
+2026-10-15 v13hxVRs AetherBot              black  blitz     won         31   34.5     3    3  Normal
+2026-10-15 voTjiYCI AshNostromo            white  blitz     won         31     19     -   11  Normal
+2026-10-15 wzBTv70d AshNostromo            black  blitz     won         26     46     7    3  Normal
+2026-10-15 xatkZP6E RavenEngine            black  blitz     lost        38     62    16    6  Normal
+2026-10-15 zyVxzCf0 uzenatch               white  blitz     won         26   36.5     4    3  Normal
+2026-10-16 0oQcFcnP BerkBot                black  blitz     won         31   77.5    10    6  Normal
+2026-10-16 1clnkk3T TrumCoVuaa             black  bullet    lost        27     28     5    4  Normal
+2026-10-16 2X61nz3m bot64jaques            black  blitz     won         45   30.5    11    3  Normal
+2026-10-16 2riBRoNN AconcaguaBot           white  blitz     lost        35     27    10    6  Normal
+2026-10-16 4R3AmOZJ CalciumEngine          black  blitz     drawn       41    197    11    4  Normal
+2026-10-16 5hzWhO6t DeMen100ns-bot         black  blitz     lost        52   20.5    18    6  Normal
+2026-10-16 61MD0NhZ stickshark99           black  blitz     won         35   25.5    12   10  Normal
+2026-10-16 630Nt5S0 Hyperopic              white  blitz     won         40   18.5    12   11  Normal
+2026-10-16 6CAPeaat likeawizard-bot        black  blitz     lost        28     72    12    4  Normal
+2026-10-16 6ZKxzRso pi0w                   black  blitz     won         46   10.5    11   10  Normal
+2026-10-16 6qZjoglb FourCuriousPandas      white  rapid     lost        35     11     -    9  Normal
+2026-10-16 73bugVW9 LunaEngineChess        black  classical drawn       49   14.5    16   16  Normal
+2026-10-16 7ZyT22bg Miss_snowiee           black  blitz     lost        32     35     7    4  Normal
+2026-10-16 7v2Tz8XR CalciumEngine          black  blitz     won         55   37.5    18    7  Normal
+2026-10-16 8PvL3j5c coolperson_bot1        black  rapid     lost        35      2     -   15  Normal
+2026-10-16 8YIKiFTg KirinChessBot          white  blitz     lost        53     20    18    9  Normal
+2026-10-16 9BdZhWqA coolperson_bot1        white  rapid     lost        40    3.5     -   13  Normal
+2026-10-16 9Wi3tpa2 uzenatch               white  blitz     won         40     37    14    3  Normal
+2026-10-16 A3DFWYJE DarkElectronBot        white  blitz     won         38   32.5     9    4  Normal
+2026-10-16 ABk8iuRH Waldemar-the-elf       black  blitz     won         37      4     -   13  Normal
+2026-10-16 AnqvQ6Du MrTonnerre             white  blitz     drawn       28     42     9    4  Normal
+2026-10-16 BH91YtKU EpimetheusBot          black  blitz     won         52      0    18   16  Normal
+2026-10-16 BOLEv7ZM RavenEngine            black  blitz     won         47      6    12   11  Normal
+2026-10-16 DSxLqRed Hyperopic              black  blitz     won         36      9     -   11  Normal
+2026-10-16 EuB5IW4R CalciumEngine          white  blitz     lost        49      9    16   10  Normal
+2026-10-16 FfAX46vy stickshark99           black  blitz     won         36     21    10    7  Normal
+2026-10-16 FrG5zr9L IlCorvoChess           white  blitz     lost        33   48.5    10    3  Normal
+2026-10-16 GntmGghJ AconcaguaBot           white  blitz     won         42   17.5    11    6  Normal
+2026-10-16 HaRAW9mN turox-bot              white  blitz     won         29   13.5     -   11  Normal
+2026-10-16 Hf1l51Eo byte-knight            white  blitz     lost        42     36    10    5  Normal
+2026-10-16 HkTgmHbE PeachFruit             white  blitz     won         40     15    11   11  Normal
+2026-10-16 I2pZ06nL TheChessblazer         white  blitz     won         29      0     -   16  Normal
+2026-10-16 IHrriiUk kopyto_dev             black  blitz     won         44   16.5    12   10  Normal
+2026-10-16 J5Oavdgt AetherBot              black  blitz     won         32   14.5     -   11  Normal
+2026-10-16 JnFrYaM9 lukebot                white  blitz     drawn       31   22.5    11   11  Normal
+2026-10-16 JyEvp72u rust-in-pieces         black  blitz     won         37     72    12    3  Normal
+2026-10-16 LPaJj3FZ CalciumEngine          white  blitz     won         38   47.5    10    3  Normal
+2026-10-16 O3FGaXcx BattleBornThe3rd       black  blitz     lost        54   33.5    17    8  Normal
+2026-10-16 PJjtQaPm Iskelt-Corax           white  blitz     won         35     21    13   11  Normal
+2026-10-16 PSaS5R1v myChessJava            white  blitz     won         33   11.5     -   10  Normal
+2026-10-16 PzvfhS2P dala-2000              black  blitz     won         30   47.5     9    4  Normal
+2026-10-16 QNaoorlr Chessiverse_Raak       white  blitz     won         47     43    16    3  Normal
+2026-10-16 RZZ1Hw6O arhanpassant           white  rapid     lost        44   21.5    12    7  Normal
+2026-10-16 SP85IbiK sseh-c                 white  blitz     won         97   35.5    22    3  Normal
+2026-10-16 TPRH05Q7 BerkBot                white  blitz     drawn       56   42.5    17    7  Normal
+2026-10-16 VLXAPbsY FlounderBot            white  blitz     won         38     25    12    9  Normal
+2026-10-16 VcEb1MIa byte-knight            white  blitz     lost        40     29    10    7  Normal
+2026-10-16 XdsQAFpY GeoTsiBot              black  blitz     won         40   11.5    10    9  Normal
+2026-10-16 XimLKVry TroutBot               white  blitz     won         39   23.5    11   10  Normal
+2026-10-16 ZXRLYuPX nickl1bot              white  blitz     drawn       24    9.5     -   15  Normal
+2026-10-16 a7x7ZcPI Bongaclang             black  blitz     won         38      5     -   15  Normal
+2026-10-16 c6tfYL4P MinibruteforceBot      white  blitz     won         34   20.5    11   11  Time forfeit
+2026-10-16 d10XSEc0 AetherBot              white  blitz     won         34   18.5    11   11  Normal
+2026-10-16 dConOI1p Oxybullet              white  blitz     lost        25    0.5     -   15  Time forfeit
+2026-10-16 dMtP1mhE Martuni                white  blitz     won         37     34     7    3  Normal
+2026-10-16 eMYCNoUg AetherBot              white  blitz     won         27   50.5     5    3  Normal
+2026-10-16 eisRZkdt Musashi-thebot         black  blitz     lost        42   19.5    10    8  Normal
+2026-10-16 fcpn48ns AAthena101             black  blitz     lost        33     46    14    6  Normal
+2026-10-16 fwLsGETn simpleEval             black  blitz     won         34    5.5     -   14  Normal
+2026-10-16 hHLRqrIF bot64jaques            black  blitz     lost        37   10.5     -   10  Normal
+2026-10-16 iXukbekA BerkBot                white  blitz     won         45     18    16   10  Normal
+2026-10-16 iZYpzQJG Ribfish-Bot            black  blitz     won         41      7     -   11  Normal
+2026-10-16 jJKWK5ao RavenEngine            black  blitz     drawn       46     50    13    4  Normal
+2026-10-16 jMtvdi5Z RavenEngine            black  blitz     won         38     21    12    8  Normal
+2026-10-16 jNlM60lx Martuni                black  blitz     won         57   24.5    21    8  Normal
+2026-10-16 jWLyZhBi CareChess-Bot          white  blitz     won         22   15.5     -   11  Normal
+2026-10-16 jjhYA5JV Musashi-thebot         black  blitz     drawn       31     74     8    4  Normal
+2026-10-16 kpGjnInZ GroshBoss              black  blitz     won         26    9.5     -   16  Normal
+2026-10-16 lfwpbVex BLACK-ICEbot           black  blitz     lost        53   24.5    19    9  Normal
+2026-10-16 n3hIQ5eT BattleBornThe3rd       black  blitz     drawn       36   71.5    11    6  Normal
+2026-10-16 nVBePT53 morabandbot            white  blitz     lost        37   45.5    10    7  Normal
+2026-10-16 oswHB2lH Ribfish-Bot            black  blitz     won         22   50.5     8    3  Normal
+2026-10-16 pilZYtfp byte-knight            white  blitz     drawn       28   16.5     -   12  Normal
+2026-10-16 pmt9ziKL sseh-c                 black  blitz     won         37    5.5     -   13  Normal
+2026-10-16 r0LuHjyx TheGrobBot             white  bullet    drawn       35   51.5    10    3  Normal
+2026-10-16 rMRzHCLE simpleEval             black  blitz     won         41    6.5     -   13  Normal
+2026-10-16 uFSPxH4g bot64jaques            black  blitz     won         33   35.5    10    5  Normal
+2026-10-16 uXv0w2Do TheChessblazer         white  blitz     won         40    6.5     -   13  Normal
+2026-10-16 ujQtcQxw halcyonbot             black  blitz     won         41   65.5    13    3  Normal
+2026-10-16 wEIE4QxB kopyto_dev             black  blitz     won         48     26    16    7  Normal
+2026-10-16 wnibvfk8 turox-bot              black  blitz     won         28  117.5    11    3  Normal
+2026-10-16 xesZobUT BattleBornThe3rd       black  bullet    won         35     29    11    3  Normal
+2026-10-16 y2LsKSqR PeachFruit             black  blitz     lost        33     44     9    6  Normal
+2026-10-16 yXJRPKks AconcaguaBot           black  blitz     lost        33     24     6    6  Normal
+2026-10-16 ynvZoegk MinibruteforceBot      white  blitz     won         51      3    17   15  Normal
+2026-10-17 2BmQJKMU morabandbot            white  blitz     won         33   47.5     9    3  Normal
+2026-10-17 3TOu23kK aposeij                black  blitz     won         38      2     -   14  Normal
+2026-10-17 4Gbpgh4d GroshBoss              black  blitz     drawn       25   43.5     8    3  Normal
+2026-10-17 5FP15eCl RavenEngine            black  blitz     won         52     52    18    7  Normal
+2026-10-17 9ee8j3Tf AconcaguaBot           white  blitz     won         40   28.5    12    3  Normal
+2026-10-17 BVFHJVm6 slate-engine           white  blitz     lost        63     31    18    7  Normal
+2026-10-17 BqFtHoE7 MinibruteforceBot      black  blitz     won         34   24.5    14   12  Normal
+2026-10-17 BuX7dAAV KirinChessBot          white  blitz     won         30   62.5    12    6  Normal
+2026-10-17 GdbbQotm TuxedolphinBot         white  blitz     drawn       36     53    16    3  Normal
+2026-10-17 KDb67me2 TempoCore              black  blitz     lost        38     33    10    8  Normal
+2026-10-17 MsUvIazI Alieknek               black  blitz     lost        45     40    12    3  Normal
+2026-10-17 OxS3j81H Mithandros             white  blitz     won         30     17     -    8  Normal
+2026-10-17 Pncamg3I CareChess-Bot          black  blitz     won         30    7.5     -   15  Normal
+2026-10-17 QYWbAKPZ kulubot                white  blitz     won         41   29.5    15    5  Normal
+2026-10-17 QbYsZ8JR TalosBot               black  bullet    lost        33     73     8    3  Normal
+2026-10-17 Qyx0GR0Y Ribfish-Bot            white  blitz     won         37   13.5    14   14  Normal
+2026-10-17 RBvaCViv agentc313              white  blitz     won         36   26.5     9    7  Normal
+2026-10-17 SUQ6541w Odiodin_ansf           black  bullet    lost        45   30.5    13    3  Normal
+2026-10-17 T44FZKvU BerkBot                white  blitz     won         41     13    12   10  Normal
+2026-10-17 U6PZHJdv kulubot                white  blitz     won         34    7.5     -   12  Normal
+2026-10-17 WZFll4Yr artidigm_research      black  blitz     won         30   45.5    10    5  Normal
+2026-10-17 YvTwwUtv Alieknek               black  blitz     drawn       28     70     8    5  Normal
+2026-10-17 bhJE4lVW NexusChess1            black  blitz     drawn       34     64    12    2  Normal
+2026-10-17 cFB6ccAd BoxNumberbot           black  blitz     won         40   30.5    12    6  Normal
+2026-10-17 dFe4YRwy ratsu-bot              black  blitz     won         40   17.5     9    7  Normal
+2026-10-17 fNOVq2vj GroshBoss              black  blitz     won         46      3     -   15  Normal
+2026-10-17 gpQq9HoI justbot-v1             black  blitz     drawn       40     37    10    5  Time forfeit
+2026-10-17 iOdSquPj KirinChessBot          black  blitz     won         28   34.5     8    6  Normal
+2026-10-17 ibLJaELk lukebot                white  blitz     won         47   16.5    14    9  Normal
+2026-10-17 ki2SHWFc TempoCore              white  bullet    won         41   11.5    10    9  Normal
+2026-10-17 lJzuGd4k AaronsEngine           black  blitz     won         45     19    14    8  Normal
+2026-10-17 mhoMaWKP VortexAuraFarm         white  bullet    drawn       33   27.5     4    3  Normal
+2026-10-17 oLPfv6Pm FlounderBot            black  blitz     won         33   42.5     5    3  Normal
+2026-10-17 qN3RcKxc FSChess-Engine         white  blitz     won         41     23    16   10  Normal
+2026-10-17 rjwPKyy2 TalosBot               black  bullet    won         37   24.5     9    8  Normal
+2026-10-17 sEnaAKHi ArabicaHCE             black  blitz     drawn       35    166     9    7  Normal
+2026-10-17 tA5pV8Gg MrTonnerre             black  blitz     won         40    0.5     -   16  Normal
+2026-10-17 tQMZ4mBz prokopakop             black  bullet    won         51   18.5    17    8  Normal
+2026-10-17 ugpNTtRp Ribfish-Bot            black  blitz     won         26     23     -    9  Normal
+2026-10-17 vZxd19n0 ariadne-bot            white  blitz     won         32      3     -   16  Normal
+2026-10-17 wOQeRV3l morabandbot            white  blitz     won         36     39    10    3  Normal
+2026-10-17 yFJy4ffC Alieknek               black  blitz     drawn       30     47    12    5  Normal
+2026-10-17 yYS0vrWY JongsungKim            white  blitz     won         40   25.5     9    3  Normal
+2026-10-18 0jAIaEf1 SleepMindEngine        white  blitz     drawn       34   82.5    10    4  Normal
+2026-10-18 0nJZOSHu OxydanBot              white  blitz     drawn       30   42.5    11    4  Normal
+2026-10-18 1tQ818fC LevyMaia               black  blitz     won         31     12     -    9  Normal
+2026-10-18 2CA8oFLx JongsungKim            black  blitz     won         28     39     5    3  Normal
+2026-10-18 3UhgcjWI RomanticBot2           black  blitz     won         31    4.5     -   14  Normal
+2026-10-18 4ZACwOMW prokopakop             black  bullet    drawn       46  139.5    13    3  Normal
+2026-10-18 4cLFqM7W overfitted             black  blitz     won         34     83    10    4  Normal
+2026-10-18 6IUpkLcc Vic98lg                white  bullet    won         28   38.5    10    5  Normal
+2026-10-18 8X6zOcJZ Chess3Bot              black  blitz     won         31   71.5    11    3  Normal
+2026-10-18 9ihhpMYf BattleBornThe3rd       white  bullet    won         28    4.5     -   13  Normal
+2026-10-18 9oyY0UTN TeensyCheesy           white  bullet    lost        47     66    16    4  Normal
+2026-10-18 Bl25edyW Ravager_BOT            white  blitz     lost        45   48.5    13    6  Normal
+2026-10-18 CGX9b8IF rust-in-pieces         white  blitz     won         53     30    17    9  Normal
+2026-10-18 CSKx8EjA Alarm2001              white  blitz     drawn       42     94    14    8  Normal
+2026-10-18 CgalnxLM LevyMaia               white  blitz     won         33      5     -   12  Normal
+2026-10-18 CmBoY4PK artidigm_research      white  blitz     won         25     38    10    8  Normal
+2026-10-18 D4nSvjso AaronsEngine           white  blitz     won         47     23    16   12  Normal
+2026-10-18 DGgSZk6A artidigm_research      white  blitz     drawn       20   70.5     8    8  Normal
+2026-10-18 EAyX3Mf9 aposeij                black  blitz     won         44   25.5    15    8  Normal
+2026-10-18 FxS2qBUM TroutBot               black  blitz     won         40   18.5    11    8  Normal
+2026-10-18 IKeWH5wI Jamie22553             black  bullet    lost        38     34    11    7  Normal
+2026-10-18 IyrE8AwR overfitted             white  rapid     won         36     52    11    4  Normal
+2026-10-18 JA0URIGw grail-bot              black  blitz     lost        36     34     8    6  Normal
+2026-10-18 JBDPALwC NNUEandTheVoices       white  blitz     lost        41   40.5    14    3  Normal
+2026-10-18 JUyvrAuS Snaky-Bot              black  blitz     won         48     19    14    7  Normal
+2026-10-18 JhrAnaeX BoxNumberbot           white  bullet    won         37    4.5     -   11  Normal
+2026-10-18 KLb7YnDr ce_meridian            black  rapid     lost        39   34.5     7    3  Normal
+2026-10-18 KVQmuBlU io-bot                 black  blitz     drawn       44   84.5    13    8  Normal
+2026-10-18 KkZ8NZaq Casanchess-NNUE        black  blitz     lost        56     34    17    6  Normal
+2026-10-18 KsPxnjeX slate-engine           white  blitz     won         35     19    10   10  Normal
+2026-10-18 LhOPR4P5 TeensyCheesy           black  blitz     lost        25     29     7    7  Normal
+2026-10-18 LiyY3Z5l slate-engine           white  blitz     won         38   66.5    15    3  Normal
+2026-10-18 Lpd8DWbU MayFlyEngine           white  rapid     lost        37     13    11   11  Normal
+2026-10-18 Mj03oVhf grail-bot              black  blitz     lost        30     28     6    5  Normal
+2026-10-18 MwO2HMMU xPOI                   black  bullet    won         35      9     -   10  Normal
+2026-10-18 NBQi6b3M AconcaguaBot           white  blitz     won         32     41     9    3  Normal
+2026-10-18 ORu7WyJ6 AconcaguaBot           white  blitz     won         31     17     -   11  Normal
+2026-10-18 OVRTBNHl tallikebot             black  blitz     lost        24   42.5    11    9  Normal
+2026-10-18 OdutnRcY rchessengine           white  blitz     won         32   40.5    11    3  Normal
+2026-10-18 OeVxYgHL Snaky-Bot              white  bullet    won         34   37.5     9    5  Normal
+2026-10-18 QLZXymwf rust-in-pieces         white  rapid     drawn       27  105.5    14    7  Normal
+2026-10-18 S62J7LVP VidBot                 white  blitz     won         25     30     7    6  Normal
+2026-10-18 SaHorQMN simple-bot             black  blitz     lost        25   33.5    10    9  Normal
+2026-10-18 SlQawWm7 xPOI                   white  bullet    won         40      5     -   14  Normal
+2026-10-18 TWzFITZs TempoCore              white  blitz     won         39     16    11   11  Normal
+2026-10-18 Tc0h7kqz TroutBot               black  blitz     won         30   24.5     6    6  Normal
+2026-10-18 Tv9rRo7R Kruguer_Engine         white  rapid     won         40     22    15   10  Normal
+2026-10-18 U4Gg0qAp Ravager_BOT            black  blitz     drawn       31   90.5    11    6  Normal
+2026-10-18 UBIA6Hdc thunfisch-bot          white  blitz     drawn       44   78.5    13    3  Normal
+2026-10-18 UHIEk921 chatgpt5_5             white  blitz     lost        33     78     9    5  Normal
+2026-10-18 UYlway4u Oxybullet              white  blitz     won         33     12     -    9  Normal
+2026-10-18 UjXm4isg Snaky-Bot              black  blitz     won         27     25     7    7  Normal
+2026-10-18 Uk5IBUBG artidigm_research      white  blitz     won         34     38     8    5  Normal
+2026-10-18 VCVSkntT Casanchess-NNUE        white  blitz     won         35     54    13    7  Normal
+2026-10-18 VmlMiREF TempoCore              black  bullet    won         23   40.5     5    3  Normal
+2026-10-18 X8Bv55aj CalibanBot             black  blitz     drawn       45     20    14   10  Normal
+2026-10-18 XSMc24RE IlCorvoChess           black  blitz     drawn       44     34    14    3  Normal
+2026-10-18 Y0J1MynV RedBeanTree            black  blitz     won         34    3.5     -   15  Normal
+2026-10-18 YP3YVG0D TempoCore              white  blitz     won         41    7.5     -   12  Normal
+2026-10-18 Yj3wYBwd TrumCoVuaa             white  rapid     drawn       24   66.5    10    8  Normal
+2026-10-18 a1VNq3tX chrismaghuhn           white  bullet    won         31      3     -   12  Normal
+2026-10-18 a7Jmzf4K TeensyCheesy           black  bullet    lost        45     55    15    4  Normal
+2026-10-18 abwK4Vzi xPOI                   white  bullet    won         36   27.5    11    8  Normal
+2026-10-18 aswvT4bd VidBot                 black  blitz     won         35     26    14   10  Normal
+2026-10-18 bSkoa3IP arhanpassant           black  rapid     lost        41     45    13    7  Normal
+2026-10-18 bjjNVN26 Alieknek               black  blitz     lost        41     35    13    7  Normal
+2026-10-18 c2XdXitD arhanpassant           black  bullet    lost        41     23    15    7  Normal
+2026-10-18 dfCxpVhs CareChess-Bot          white  blitz     won         33     39     9    3  Normal
+2026-10-18 dqmPAUCc TrumCoVuaa             white  bullet    won         45     29    15    8  Normal
+2026-10-18 eM8Xp5RG morabandbot            black  blitz     won         46      5    14   12  Normal
+2026-10-18 eMSqf9na Fighting2543           black  blitz     lost        48   31.5    14    7  Normal
+2026-10-18 eSCwE8az Odiodin_ansf           white  blitz     drawn       56   57.5    18   14  Normal
+2026-10-18 g6mFtOL3 PeachFruit             black  blitz     won         33     64    12    3  Normal
+2026-10-18 gXJc1q5N TrumCoVuaa             black  blitz     won         53     17    19    8  Normal
+2026-10-18 gf2fqUlX Vic98lg                white  blitz     drawn       32     27     8    8  Normal
+2026-10-18 giIOhsyS coda_bot               black  rapid     lost        43   11.5    13   10  Normal
+2026-10-18 jtLIIhOe BLACK-ICEbot           white  bullet    won         35     59    11    3  Normal
+2026-10-18 k3z1fk0T GambitOnlyBot          black  blitz     lost        32   43.5    11    5  Normal
+2026-10-18 kDVwVFwk AconcaguaBot           black  blitz     won         26     39    12    5  Normal
+2026-10-18 kq9Vc4JD BattleBornThe3rd       black  rapid     drawn       24   40.5     7    6  Normal
+2026-10-18 lGzgiIiX bot64jaques            white  blitz     won         35     25    12   11  Normal
+2026-10-18 lNzncAi7 Grindfish              white  blitz     drawn       44     31    15    4  Normal
+2026-10-18 lPSTPzpI FataliiBot             black  blitz     won         38     28    14   10  Normal
+2026-10-18 lSmXf8hr rust-in-pieces         black  blitz     won         46   21.5    15   10  Normal
+2026-10-18 mQ2qPq3q CareChess-Bot          black  bullet    drawn       27     25     8    8  Normal
+2026-10-18 mnZzTFXt thunfisch-bot          black  blitz     won         39   43.5    12    3  Normal
+2026-10-18 ooNWI3Ns thunfisch-bot          black  blitz     won         30   40.5     9    5  Normal
+2026-10-18 qs2DZo4I QiOui                  black  bullet    lost        54     45    18    5  Normal
+2026-10-18 tpiNv3fg BoxNumberbot           black  bullet    drawn       42     68    12    8  Normal
+2026-10-18 uoJ7piGC justbot-v1             white  blitz     won         30   22.5    13   12  Time forfeit
+2026-10-18 x2tU0gzn PeachFruit             black  blitz     won         39     21    10    9  Normal
+2026-10-18 xEv6wFYW BattleBornThe3rd       white  rapid     won         25     42     8    3  Normal
+2026-10-18 xF9D2gHc neryba                 black  blitz     won         35     25    12   10  Normal
+2026-10-18 xJisriVV simple-bot             black  blitz     lost        41     41    16    9  Normal
+2026-10-18 xdJrVrJP overfitted             black  blitz     lost        30     54     9    3  Normal
+2026-10-18 yfv1OML1 xPOI                   black  bullet    won         34     37    11    4  Normal
+2026-10-19 1dqQbWet sxphia                 black  blitz     drawn       52    8.5    18   15  Normal
+2026-10-19 3dk0EhCk Valhalla-Bot           black  blitz     drawn       40     38    10    2  Normal
+2026-10-19 57hkO61l VortexAuraFarm         white  bullet    drawn       41    100    16    4  Normal
+2026-10-19 5bNpdgRM bot_adario             white  blitz     drawn       59    4.5    20   16  Normal
+2026-10-19 5e9I7aAF TempoCore              white  blitz     won         35    9.5     -   11  Normal
+2026-10-19 5goydEra ProsperoBot            black  blitz     lost        28     56     8    5  Normal
+2026-10-19 7fu8ANJ1 rudim-bot              black  bullet    lost        37   44.5    11    5  Normal
+2026-10-19 8Zwe0NO4 Ravager_BOT            white  rapid     drawn       37   29.5    10    8  Normal
+2026-10-19 8eT9ey0v RadianceEngine         white  blitz     drawn       28   10.5     -   12  Normal
+2026-10-19 8gJD2hui tallikebot             white  blitz     lost        36   38.5    12    6  Normal
+2026-10-19 9CYAyKos neryba                 white  blitz     lost        44     32    11    6  Normal
+2026-10-19 BqeRdRzl TeensyCheesy           white  blitz     drawn       35     79    12    9  Normal
+2026-10-19 CfJSyPFF TempoCore              black  bullet    drawn       28    9.5     -   15  Normal
+2026-10-19 DhX8Fe5q kleiniBOT              black  blitz     won         32   30.5    13   11  Normal
+2026-10-19 E43jnXnj nickdrohan             white  blitz     drawn       27     21     -    4  Normal
+2026-10-19 EksPBQe3 tallikebot             white  blitz     lost        78     50    24    4  Normal
+2026-10-19 EyniO1Xy LunaEngineChess        white  classical lost        41   43.5    13    5  Normal
+2026-10-19 GcIChtGz PeachFruit             black  blitz     drawn       41  136.5    12    5  Normal
+2026-10-19 IH9q7pwh OxydanBot              white  blitz     lost        28   49.5     7    5  Normal
+2026-10-19 JfwCmAaT AggressiveStockfish    black  blitz     drawn       51   28.5    17    6  Normal
+2026-10-19 KiICg7wJ banerot                white  blitz     lost        35   36.5     7    4  Normal
+2026-10-19 L8uz7i1b nickdrohan             black  blitz     lost        35   48.5     8    4  Normal
+2026-10-19 LK4ODmxv Rodent-IV              white  blitz     won         52      2    19   14  Normal
+2026-10-19 LhVApeLo prokopakop             black  blitz     drawn       28     19     -   11  Normal
+2026-10-19 NkZ1AwDC Bongaclang             white  blitz     won         40      9     -   13  Normal
+2026-10-19 RaYnEOgR Mithandros             black  blitz     won         35     33    10    5  Normal
+2026-10-19 SkT6xdOW DeepBecky              white  bullet    lost        45     27    13   10  Normal
+2026-10-19 V7ZS451t Ravager_BOT            black  rapid     lost        32   53.5    13    7  Normal
+2026-10-19 ZBTeiXaO artidigm_research      black  blitz     won         33     20    10   10  Normal
+2026-10-19 bbPLryIe CalibanBot             black  blitz     lost        30     39    11    5  Normal
+2026-10-19 cZTLzeWt morabandbot            white  blitz     drawn       37   30.5    14   10  Normal
+2026-10-19 d67lsoeU AaronsEngine           black  classical won         43   29.5    14    7  Normal
+2026-10-19 eljfwjuW arhanpassant           white  bullet    won         41     54     9    7  Time forfeit
+2026-10-19 hEUPrIxC tallikebot             black  blitz     lost        31   44.5     7    5  Normal
+2026-10-19 iFc7E0r4 Jamie22553             black  bullet    lost        45   31.5    14    6  Normal
+2026-10-19 m3Uh653K IlCorvoChess           black  blitz     won         37   27.5     9    6  Normal
+2026-10-19 n0QNtoYp arhanpassant           black  blitz     lost        43   47.5    13    7  Normal
+2026-10-19 n5UI53bP cinder-bot             white  classical won         24     44    13   10  Time forfeit
+2026-10-19 nTuLvqAW DeepBecky              black  blitz     drawn       37   90.5    11    4  Normal
+2026-10-19 oLtEamxl Mithandros             white  blitz     won         31   27.5     9    7  Normal
+2026-10-19 oiCHRw7g elshater77_bot         black  bullet    lost        47   24.5    15    8  Normal
+2026-10-19 q5SrQPgw NanoZeroOrg            black  bullet    won         41      8     -   12  Normal
+2026-10-19 qArV8776 endspiel-pi            black  blitz     lost        48   78.5    15    4  Normal
+2026-10-19 reULX1xT lukebot                white  blitz     won         45    8.5    13   13  Normal
+2026-10-19 slJSy3wT TrumCoVuaa             white  rapid     won         40     21    11    9  Normal
+2026-10-19 w9GBmOUH DeepBecky              white  rapid     drawn       36  126.5    10    5  Normal
+2026-10-19 xqDAtJJk neryba                 black  blitz     drawn       29     39    11   10  Normal
+2026-10-19 ybcfdXmz jpg-bot                black  bullet    lost        30   44.5     9    5  Normal
+2026-10-19 zAb07707 ArabicaHCE             white  blitz     won         37   34.5     8    5  Normal
+2026-10-20 70hB8Npn BretemaBot             black  blitz     lost        32     62    16    5  Normal
+2026-10-20 7LWWHoYo elshater77_bot         black  bullet    lost        33   32.5     7    4  Normal
+2026-10-20 V6rheevL TalosBot               white  bullet    won         43   10.5    13   11  Normal
+2026-10-20 ctRpH8A9 TalosBot               black  bullet    drawn       32    136    11    5  Normal
+2026-10-20 dceIxTUp arhanpassant           black  blitz     lost        34   28.5    11    9  Normal
+2026-10-20 fhWdlvn1 Jamie22553             black  rapid     lost        46     33    13    7  Normal
+2026-10-20 gqnnTXnl justbot-v1             black  blitz     drawn       34   51.5    12    5  Time forfeit
+2026-10-20 n1fVU252 FSChess-Engine         black  blitz     won         45   15.5    16   10  Normal
+2026-10-20 wpK2U35B SoloBot                white  blitz     drawn       60  202.5    17    4  Normal
+2026-10-22 0VdIQUnt ChessAI4F              white  blitz     drawn       26   94.5    12   12  Normal
+2026-10-22 61InZpXn caiporaBot             black  blitz     lost        47   44.5    16    5  Normal
+2026-10-22 At7lStXQ RenegadeEngine         white  blitz     lost        49   49.5    15    6  Normal
+2026-10-22 DpEHbqlQ RustBot2003            black  blitz     lost        36   22.5    15   11  Normal
+2026-10-22 ENOMki0z prokopakop             black  blitz     drawn       31  146.5    15    4  Normal
+2026-10-22 KGzIqNfl GroshBoss              black  blitz     won         25      1     -   16  Normal
+2026-10-22 LP2kLsYV Valhalla-Bot           white  blitz     lost        40     24    10    8  Normal
+2026-10-22 PjIG2B02 entebot                white  blitz     won         45   17.5    12    7  Normal
+2026-10-22 QcheHoLR chess_know             white  blitz     lost        35   46.5    13    4  Normal
+2026-10-22 RG8QBsQM RustBot2003            black  blitz     lost        35   53.5    11    6  Normal
+2026-10-22 RrkEQuzN Studyloversz-bot       black  blitz     lost        34   26.5    12    8  Normal
+2026-10-22 TLEE6LBs classical-leela        white  blitz     lost        41    9.5    14   14  Normal
+2026-10-22 XoDIlot7 MinibruteforceBot      black  blitz     won         32   23.5     7    7  Normal
+2026-10-22 e21MKNkh chess_know             black  blitz     lost        37   47.5    13    4  Normal
+2026-10-22 eE7XdPIK incipit_bot            black  blitz     lost        41     33    11    5  Normal
+2026-10-22 fSGUIa1k BatyaraPro             white  blitz     lost        49   32.5    16    7  Normal
+2026-10-22 hbgKoCFq Studyloversz-bot       white  blitz     lost        41   50.5    14    4  Normal
+2026-10-22 iUtGWUZy LucernaBot             black  bullet    won         38      4     -   11  Normal
+2026-10-22 o4qnaAV0 duchessAI              white  blitz     lost        26   43.5     9    6  Normal
+2026-10-22 rl9G81cJ slate-engine           white  blitz     won         38     56    12    6  Normal
+2026-10-22 xoKI53GI Lostfish-bot           white  blitz     drawn       26   97.5    11   11  Normal
+2026-10-23 0o0wjX0B Studyloversz-bot       white  blitz     drawn       23     84     7    4  Normal
+2026-10-23 TYdXTBCZ lukebot                white  bullet    won         28     31     7    6  Normal
+2026-10-23 a0iRfGuJ wangha                 black  blitz     won         37     27     7    4  Normal
+2026-10-23 bLJK81nf VidBot                 black  blitz     won         26     35     7    5  Normal
+2026-10-23 gAtu13BC Kapablanca_balls       black  bullet    lost        34   18.5    11   10  Normal
+2026-10-23 gdrRrAuv PeachFruit             white  blitz     won         36   21.5    12   11  Normal
+2026-10-23 tLbgisSS Weiawaga               black  blitz     lost        26     46    11    6  Normal
+2026-10-23 vmMHuHQq TempoCore              black  blitz     won         33   11.5     -   12  Normal
+2026-10-23 xDcHih3N SleepMindEngine        black  blitz     lost        40     48    14    7  Normal
+2026-10-24 1oii1fwY TalosBot               black  bullet    drawn       20     87     9    9  Normal
+2026-10-24 20nIshQk Weiawaga               white  blitz     drawn       22     28    12   12  Normal
+2026-10-24 2494NPYG Mithandros             white  blitz     won         23     43    11    6  Normal
+2026-10-24 3kkbkEAZ artidigm_research      white  blitz     drawn       26   59.5    10    7  Normal
+2026-10-24 4Mkw3MEw wangha                 black  blitz     won         36   36.5    12    3  Normal
+2026-10-24 50pA1AnJ jpg-bot                black  bullet    lost        32   30.5     9    8  Normal
+2026-10-24 5EbDlkmH Vic98lg                black  blitz     won         32   25.5     9    7  Normal
+2026-10-24 6hH6QOkN morabandbot            white  blitz     won         38   28.5     8    3  Normal
+2026-10-24 E5xlIafS SBNovella              white  blitz     drawn       34   53.5     8    6  Normal
+2026-10-24 FgAXhcy5 BattleBornThe4th       black  blitz     drawn       36     57     6    6  Normal
+2026-10-24 IXscguaP morabandbot            black  blitz     won         50    4.5    15   14  Normal
+2026-10-24 IXvteK5S ArabicaNNUE            black  blitz     drawn       34     49     6    4  Normal
+2026-10-24 KGAsK3db Lynx_BOT               white  blitz     drawn       36     43    15   10  Normal
+2026-10-24 NHpOQu87 ProsperoBot            white  blitz     drawn       28     72    12   12  Normal
+2026-10-24 PM6athgO jpg-bot                white  bullet    lost        38   31.5    10    5  Normal
+2026-10-24 QvoPDMM1 RomanticBot2           white  bullet    won         37      2     -   16  Normal
+2026-10-24 UQ4ftZkY Vic98lg                black  bullet    won         33      8     -   10  Normal
+2026-10-24 UjtErbpk rudim-bot              black  blitz     won         42     20    13   11  Normal
+2026-10-24 V6gPObra Juno-v1                black  bullet    won         37   18.5     6    5  Normal
+2026-10-24 W5IE8FI0 sxphia                 black  blitz     drawn       45     44    13    2  Normal
+2026-10-24 X0AqRqcq rudim-bot              black  bullet    lost        44     49    12    5  Normal
+2026-10-24 XR4bokB3 artidigm_research      white  blitz     won         38   46.5    12    3  Normal
+2026-10-24 e3mgki2U Lili-ai                white  bullet    lost        22   35.5     6    4  Normal
+2026-10-24 eSPvB4tB rust-in-pieces         black  bullet    won         25   74.5     8    3  Normal
+2026-10-24 f7TLbwz6 Alieknek               white  blitz     lost        41     37    11    6  Normal
+2026-10-24 iC1aYzKL TempoCore              white  blitz     won         25   21.5     -   10  Normal
+2026-10-24 kgwpLPO3 Alarm2001              black  rapid     won         38     24    12    8  Normal
+2026-10-24 kqbicbYH RustBot2003            black  blitz     drawn       36    121    10    7  Normal
+2026-10-24 s5B7oUbW rudim-bot              white  blitz     drawn       24   36.5     8    8  Normal
+2026-10-24 sRc69OgC Jacobsbot              white  blitz     drawn       38     20     8    4  Normal
+2026-10-24 tV9iEaEU BattleBornThe4th       black  blitz     won         28     47     8    4  Normal
+2026-10-24 zyRXq28N Lili-ai                black  bullet    lost        34   11.5     -   10  Time forfeit
+2026-10-25 VW7wHHQT Odiodin_ansf           black  blitz     lost        32   41.5    10    4  Normal
+2026-10-25 h7ceMv6k McDonalds1955          white  blitz     lost        41     29    13    6  Normal
+--------------------------------------------------------------------------------------------------------
+total 599 games; moves after, mean 33.3, median 28.5

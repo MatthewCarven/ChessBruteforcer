@@ -7583,3 +7583,24 @@ round robin (no scripts beside timed runs), merged into compression.
   At 10+0.1, shorter thinking than the bot's in time trouble, the bigger nets won (+41, +7). His yes to a check
   first: h512-3m against h1536-3m-ob8 at 2+0.02, 1,000 games, booked with nnue-deep-layers after h1536-6m-ob8's
   match (TODO).
+
+## 2026-10-25 (to 17:30): how many games get down to 16 pieces, and the pieces left at move 50 (lichess-stats)
+
+Matthew, asked which tables he wanted from the bot's Lichess games: "how many games end up with only 16 pieces on the
+board and the lengths of play from that point forward", games and the average length as totals at the bottom; then
+"the average amount of pieces left from the 50 move mark". Statistics once, not a tracker. The why: he estimates that
+a small net that only has to handle 16 pieces or fewer might be a better small net, so the share of our moves made at
+16 or fewer is in too.
+
+- **scripts\piece-counts\pieces.py** (one thread, the PGNs only; `--games` lists every game that got to 16), its
+  output in scripts\piece-counts\results\pieces.txt, run on the main checkout's bot\games. A piece is anything on the
+  board, kings and pawns included (32 at the start); the count is 32 less the captures so far, and python-chess,
+  replaying every game, agreed ply by ply on all 669.
+- 669 games, 2026-10-12 to 2026-10-25, every net and the built-in numbers (22 with no result left out).
+- **Down to 16 pieces: 599 of 669 games (90%)**, the 16th piece off at move 37 on average; from there they went on
+  **33.3 moves on average [31.2, 35.5], median 28.5**. Wins 26.1, losses 32.5, draws 57.2; bullet, blitz and rapid
+  alike (35.1, 33.1, 35.3). 12% went on 60 moves or more, 38 of those 70 draws.
+- **Move 50: 465 of 669 games (70%) got there, with 11.9 pieces left on average [11.5, 12.2], median 12**; 71% of
+  them had 9-16. The same games ended with 6.7 on average.
+- **Our moves chosen with 16 or fewer pieces on the board: 19,999 of 44,077 (45%)**; 40% in wins, 44% in losses,
+  58% in draws. That is the share of the bot's decisions such a net would make.
