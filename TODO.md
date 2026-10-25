@@ -285,12 +285,14 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
       ~17 min on the run's end.
   - [ ] **h1536-6m-ob8: all three levers on the bot's width** (Matthew's (a),
     2026-10-24): `--hidden 1536 --add-data 2026-04 2026-05 2026-06 2026-07
-    2026-08 --passes 10 --lr-drops 4/7/9 --output-buckets 8`. **Training on
-    the desktop since 11:37 by its clock**, ~132 k a second, ~2.9 h a pass:
-    **done ~16:40 on 10-25** (the desktop's task limit is 48 h now). Then:
-    fetch, held back against h1536-3m's 0.011952 and h1536-3m-ob8's
-    0.011760, `bench 9`, a match against h1536-3m (the bot off) in
-    ponder-scope's queue.
+    2026-08 --passes 10 --lr-drops 4/7/9 --output-buckets 8`. Trained on
+    the desktop 2026-10-24 11:37 to 10-25 15:23 by its clock (27 h 46 min;
+    the desktop's task limit is 48 h now) and fetched: **held back
+    0.011558 as the engine computes it, -3.3% against h1536-3m's 0.011952,
+    -1.7% against h1536-3m-ob8's 0.011760** (NNUE.md, "All three levers");
+    ~+18 by the rule of thumb at 0.7x. Then: `bench 9` and a match against
+    h1536-3m (the bot off), waiting for ponder-scope's slot (asked 15:25,
+    while a book-duel had 12 engines on the laptop).
   - **E: h2048-3m, dropped for now** (Matthew's 2(a)): after h1536-3m's +7,
     2048 looked like +0 to +10 at ~13% more speed cost. Nothing to build if
     it comes back: the engine takes 2048 (662a810), and train.py's held-back

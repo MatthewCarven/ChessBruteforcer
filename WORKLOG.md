@@ -6744,3 +6744,20 @@ passed.
   had told Matthew ~10 h; that was three months' pace). The desktop's tasks
   had a 24-hour limit, so scripts\nnue-desktop.ps1 now gives them 48 (P2D,
   checked on the task).
+
+## 2026-10-25 (15:23-15:30): h1536-6m-ob8 trained (the nnue-deep-layers session)
+
+- **h1536-6m-ob8 finished** on the desktop at 15:23 by its clock (27 h 46
+  min, ~137 k a second) and is fetched to games\nnue\nets. **Held back
+  0.011558 as the engine computes it: -3.3% against h1536-3m (0.011952),
+  -1.7% against h1536-3m-ob8 (0.011760).** Its K is 1.150, like h1536-3m's
+  1.116 and h1024-6m's 1.138 (h1536-3m-ob8's 1.019 was the odd one). At
+  1024 the six months were worth -2.0% and the buckets -1.3%, so the two
+  levers stack about as their parts say. The rule of thumb at the ~0.7x
+  seen so far: ~+18 against h1536-3m.
+- Passes 3 and 4 (lr 1e-3) read worse at K 1 than pass 2 (0.012808 and
+  0.012851 against 0.012615) but better at the fitted K; each lr drop then
+  took a step (0.011802 after pass 5, 0.011553 after pass 8).
+- `bench 9` and the match against h1536-3m wait for ponder-scope's slot:
+  at 15:21 a book-duel had 12 engines on the laptop since 12:03, so nothing
+  started. NNUE.md ("All three levers") and TODO have the figures.
