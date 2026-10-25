@@ -7604,3 +7604,8 @@ a small net that only has to handle 16 pieces or fewer might be a better small n
   them had 9-16. The same games ended with 6.7 on average.
 - **Our moves chosen with 16 or fewer pieces on the board: 19,999 of 44,077 (45%)**; 40% in wins, 44% in losses,
   58% in draws. That is the share of the bot's decisions such a net would make.
+- Then "ok rerun but from 25 moves": `--at N` sets the move mark (50 unless given), and the mark's tables gained
+  the moves played after it; results\pieces-at25.txt. **Move 25: 646 of 669 games (97%) got there, with 21.6 pieces
+  left on average [21.3, 21.8], median 22 (range 14-30); from there they went on 42.6 moves on average [40.4,
+  44.9], median 38.5.** None had fewer than 13 pieces at move 25; 77% had 17-24. From move 50 the same games went on
+  28.5 moves on average [26.0, 30.9], median 21.5 (pieces.txt, rerun with the new column).

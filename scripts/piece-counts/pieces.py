@@ -1,16 +1,18 @@
 """How many of the bot's games get down to 16 pieces, how long they go on from there, and the pieces left at move 50.
 
-    python -I scripts\\piece-counts\\pieces.py [games folder] [--games]
+    python -I scripts\\piece-counts\\pieces.py [games folder] [--at N] [--games]
 
 Matthew's questions, 2026-10-25: "how many games end up with only 16 pieces on the board and the lengths of play
-from that point forward", then "the average amount of pieces left from the 50 move mark".
+from that point forward", then "the average amount of pieces left from the 50 move mark", then the same "from 25
+moves" (--at, the move mark: 50 unless given).
 
 Reads every .pgn in bot\\games (the bot's own games, one a file; default the checkout's bot\\games). A piece is
 anything on the board, kings and pawns included: 32 at the start. Every capture takes exactly one off (en passant
 too; a promotion swaps one for another), so the count after a ply is 32 less the captures so far, read from the
 moves' "x", and a game that ever has 16 or fewer passes through exactly 16 at its 16th capture. "Moves after" counts
 from that ply to the game's last, in moves (a move is White's and Black's: two plies). Move 50 is the position after
-Black's 50th move (ply 100). Standard games from the usual start only. --games lists every game that got to 16.
+Black's 50th move (ply 100), and its "moves after" run from there. Standard games from the usual start only. --games
+lists every game that got to 16.
 """
 import math
 import os
@@ -24,7 +26,7 @@ SPEEDS = ("bullet", "blitz", "rapid", "classical", "correspondence")
 TAG = re.compile(r'^\[(\w+) "(.*)"\]\s*$', re.M)
 SAN = re.compile(r"^([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](=[NBRQ])?|O-O(-O)?)[+#]?[!?]*$")
 AFTER_BANDS = ((0, 9), (10, 19), (20, 29), (30, 39), (40, 59), (60, 999))    # moves after 16 pieces
-LEFT_BANDS = ((2, 4), (5, 8), (9, 12), (13, 16), (17, 32))                    # pieces left at move 50
+LEFT_BANDS = ((2, 8), (9, 12), (13, 16), (17, 20), (21, 24), (25, 28), (29, 32))   # pieces left at the move mark
 
 
 def read_text(path):
@@ -90,7 +92,7 @@ def read(path):
         "plies": len(sans),
         "sixteen": sixteen,
         "after": None if sixteen is None else (len(sans) - sixteen) / 2,
-        "at50": left[99] if len(sans) >= 100 else None,
+        "left": left,
         "end": left[-1],
         "ours": len(ours),
         "ours16": sum(n <= 16 for n in ours),
@@ -131,23 +133,29 @@ def sixteen_rows(title, groups, games):
     print()
 
 
-def fifty_rows(title, groups, games):
-    print(f"{title:<12} {'games':>6} {'to move 50':>11} {'%':>5} {'pieces at 50: mean [95%]':>26} {'median':>7} "
-          f"{'range':>6} {'at the end':>11}")
+def mark_rows(title, groups, games, at):
+    print(f"{title:<12} {'games':>6} {f'to move {at}':>11} {'%':>5} {f'pieces at {at}: mean [95%]':>26} {'median':>7} "
+          f"{'range':>6} {'moves after: mean [95%]':>25} {'at the end':>11}")
     for label, gs in groups + [("total", games)]:
         if label == "total":
-            print("-" * 91)
-        hit = [g for g in gs if g["at50"] is not None]
-        at50 = [g["at50"] for g in hit]
+            print("-" * 117)
+        hit = [g for g in gs if g["at"] is not None]
+        left = [g["at"] for g in hit]
+        after = [g["after_at"] for g in hit]
         end = [g["end"] for g in hit]
         print(f"{label:<12} {len(gs):>6} {len(hit):>11} {100 * len(hit) / len(gs) if gs else 0:>5.0f} "
-              f"{mean_range(at50):>26} {statistics.median(at50) if at50 else 0:>7g} {span(at50):>6} "
-              f"{statistics.mean(end) if end else 0:>11.1f}")
+              f"{mean_range(left):>26} {statistics.median(left) if left else 0:>7g} {span(left):>6} "
+              f"{mean_range(after):>25} {statistics.mean(end) if end else 0:>11.1f}")
     print()
 
 
 def main(args):
     rest = [a for a in args if a != "--games"]
+    at = 50
+    if "--at" in rest:
+        i = rest.index("--at")
+        at = int(rest[i + 1])
+        del rest[i:i + 2]
     folder = rest[0] if rest else os.path.join(HERE, "..", "..", "bot", "games")
     games, skipped = [], {}
     for name in sorted(os.listdir(folder)):
@@ -161,6 +169,10 @@ def main(args):
     if not games:
         sys.exit(f"no games in {folder}")
     games.sort(key=lambda g: (g["date"], g["id"]))
+    for g in games:                          # the move mark: pieces left after Black's move `at`, and the moves after
+        reached = g["plies"] >= 2 * at
+        g["at"] = g["left"][2 * at - 1] if reached else None
+        g["after_at"] = (g["plies"] - 2 * at) / 2 if reached else None
     by_result = [(r, [g for g in games if g["result"] == r]) for r in ("won", "drawn", "lost")]
     by_speed = [(s, [g for g in games if g["speed"] == s]) for s in SPEEDS + ("other",)]
     by_speed = [(s, gs) for s, gs in by_speed if gs]
@@ -189,23 +201,28 @@ def main(args):
     print(f"{'total':<12} {len(hit):>6} {100:>5} {wdl(hit):>16}")
     print(f"{'mean':<12} {mean_range(after)} moves after; median {statistics.median(after):g}\n")
 
-    fifty = [g for g in games if g["at50"] is not None]
-    at50 = [g["at50"] for g in fifty]
-    print(f"## At move 50: {len(fifty)} of {len(games)} games got there ({100 * len(fifty) / len(games):.0f}%), "
-          f"with {statistics.mean(at50):.1f} pieces left on average (median {statistics.median(at50):g})\n")
-    print("'at the end' is the same games' pieces when they finished (mean).\n")
-    fifty_rows("result", by_result, games)
-    fifty_rows("speed", by_speed, games)
-    fifty_rows("colour", by_colour, games)
+    marked = [g for g in games if g["at"] is not None]
+    left = [g["at"] for g in marked]
+    after_at = [g["after_at"] for g in marked]
+    print(f"## At move {at}: {len(marked)} of {len(games)} games got there ({100 * len(marked) / len(games):.0f}%), "
+          f"with {statistics.mean(left):.1f} pieces left on average (median {statistics.median(left):g}); "
+          f"from there they went on {statistics.mean(after_at):.1f} moves on average (median "
+          f"{statistics.median(after_at):g})\n")
+    print(f"'moves after' runs from move {at} to the game's end; 'at the end' is the same games' pieces when they "
+          f"finished (mean).\n")
+    mark_rows("result", by_result, games, at)
+    mark_rows("speed", by_speed, games, at)
+    mark_rows("colour", by_colour, games, at)
 
-    print("Pieces left at move 50:\n")
-    print(f"{'pieces':<12} {'games':>6} {'%':>5} {'won/drawn/lost':>16}")
+    print(f"Pieces left at move {at}:\n")
+    print(f"{'pieces':<12} {'games':>6} {'%':>5} {'won/drawn/lost':>16} {'moves after':>12}")
     for lo, hi in LEFT_BANDS:
-        gs = [g for g in fifty if lo <= g["at50"] <= hi]
-        print(f"{lo}-{hi:<10} {len(gs):>6} {100 * len(gs) / len(fifty):>5.0f} {wdl(gs):>16}")
-    print("-" * 42)
-    print(f"{'total':<12} {len(fifty):>6} {100:>5} {wdl(fifty):>16}")
-    print(f"{'mean':<12} {mean_range(at50)} pieces; median {statistics.median(at50):g}\n")
+        gs = [g for g in marked if lo <= g["at"] <= hi]
+        mean_after = f"{statistics.mean(g['after_at'] for g in gs):.1f}" if gs else "-"
+        print(f"{lo}-{hi:<10} {len(gs):>6} {100 * len(gs) / len(marked):>5.0f} {wdl(gs):>16} {mean_after:>12}")
+    print("-" * 55)
+    print(f"{'total':<12} {len(marked):>6} {100:>5} {wdl(marked):>16} {statistics.mean(after_at):>12.1f}")
+    print(f"{'mean':<12} {mean_range(left)} pieces; median {statistics.median(left):g}\n")
 
     ours, ours16 = sum(g["ours"] for g in games), sum(g["ours16"] for g in games)
     print(f"## Our moves chosen with 16 or fewer pieces on the board: {ours16:,} of {ours:,} ({100 * ours16 / ours:.0f}%)\n")
@@ -225,11 +242,11 @@ def main(args):
     if "--games" in args:
         print("## Every game that got to 16 pieces\n")
         print(f"{'date':<10} {'game':<8} {'opponent':<22} {'colour':<6} {'speed':<9} {'result':<6} {'at move':>7} "
-              f"{'after':>6} {'at 50':>5} {'end':>4}  termination")
+              f"{'after':>6} {f'at {at}':>5} {'end':>4}  termination")
         for g in hit:
             print(f"{g['date']:<10} {g['id']:<8} {g['opponent'][:22]:<22} {g['colour']:<6} {g['speed']:<9} "
                   f"{g['result']:<6} {(g['sixteen'] + 1) // 2:>7} {g['after']:>6g} "
-                  f"{'-' if g['at50'] is None else g['at50']:>5} {g['end']:>4}  {g['termination']}")
+                  f"{'-' if g['at'] is None else g['at']:>5} {g['end']:>4}  {g['termination']}")
         print("-" * 104)
         print(f"total {len(hit)} games; moves after, mean {statistics.mean(after):.1f}, median "
               f"{statistics.median(after):g}")
