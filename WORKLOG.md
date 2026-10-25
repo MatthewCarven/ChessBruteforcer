@@ -7468,3 +7468,51 @@ Lichess aborted Jc2ds3P2); restarted 09:26:55 on his yes (online 09:27:04); stop
 - After the stop: chat-stats (the goodbye's count of positions searched, and !stats) and bot-crash's "lichess.org
   isn't answering" notice merged (8a6086d), tested together on a fresh clone of lichess-bot (ten patches applied
   twice, eight tests pass). Live from the bot's next start.
+
+## 2026-10-25 (09:56-11:30): the bot on 8 threads, three games at once for the first time (the orchestrator)
+
+Matthew's word here, first-hand, after his 09:52 stop: "we run until 11:30am please Claude". Same config
+(bot/make-config.py at 1e1cf37: Threads 8, concurrency 3, the vetted Black book, h1536-3m-ob8), now with chat-stats
+and the "lichess.org isn't answering" notice (8a6086d). Online 09:56:07; bot\quit.soon made at 11:30:05; stopped
+11:30:09 between games (restarts.log: "stopped for bot\quit.soon after 94 min").
+
+- **16 games, 7W 3D 6L** (8.5/16; opponents' average 2624). Bullet 3W 4L (7 games), blitz 4W 3D 2L (9). All six
+  losses were to bots rated 2794-3052:
+
+  | Opponent | Elo | Clock | Colour | Result | Most games on |
+  |---|---|---|---|---|---|
+  | Jinko-Chan | 2153 | 3+3 | Black | won | 3 |
+  | wangha | 2440 | 3+2 | Black | won | 3 |
+  | Vic98lg | 2520 | 1+1 | Black | won | 3 |
+  | Lili-ai | 3051 | 1+0 | White | lost | 3 |
+  | Lili-ai | 3052 | 30+0 s | Black | lost on time, move 46 | 2 |
+  | jpg-bot | 2980 | 1+1 | White | lost | 2 |
+  | bot_adario | 2461 | 5+2 | Black | draw, threefold at move 9 (book) | 1 |
+  | artidigm_research | 2320 | 5+2 | White | draw, threefold, move 86, rook endgame (7 pieces) | 3 |
+  | rust-in-pieces | 2400 | 30+2 s | Black | won | 3 |
+  | jpg-bot | 2981 | 1+1 | Black | lost | 3 |
+  | rudim-bot | 2578 | 5+3 | Black | won | 2 |
+  | RomanticBot2 | 2385 | 1+1 | White | won | 2 |
+  | rudim-bot | 2573 | 5+3 | White | draw, threefold, move 60, rook endgame (8 pieces) | 1 |
+  | Mithandros | 2276 | 3+2 | White | won | 1 |
+  | McDonalds1955 | 3019 | 3+3 | White | lost | 2 |
+  | Odiodin_ansf | 2794 | 5+2 | Black | lost | 2 |
+
+- **Three games at once, the first time** (10:01-10:04 and 10:25-10:29). By the most games on during each: three
+  4W 1D 2L (7 games), two 2W 4L (6), alone 1W 2D (3). The losses follow the opponents' ratings, not the games on.
+- **Speed lines on 8 threads** (Mnps a search, median / mean): one on 14.9 / 14.0 (271 searches), two on 9.4 / 9.1
+  (241), three on 7.4 / 7.1 (180). The heat tests said 19.0, 10.8 and ~6.5; three together make ~22, the most of
+  any. CPU clock not read.
+- **One time loss**: zyRXq28N, 30+0 (no increment) against Lili-ai (3052), beside wangha's blitz game: out of time at
+  move 46 with 10 pieces on, Lili-ai at 0:14; ~0.65 s a move to its ~0.35. The other fifteen ended with time to
+  spare. TODO: decline 30+0, or leave it (Matthew's call).
+- **A draw by repetition from the book**: rsJhY1E7 against bot_adario (2461), every one of our moves from the vetted
+  Black book: 1.e4 c5 2.Nf3 e6 3.d4 cxd4 4.Nxd4 Qb6 5.Nc3 Bc5 6.Na4 Qa5+ 7.Nc3 Qb6 8.Na4 Qa5+ 9.Nc3 Qb6, threefold.
+  lichess-bot takes a book move without checking repetition. TODO (Matthew's call).
+- `bot\move-times.py --since "2026-10-25 09:56"`: bullet ours 1.0 / 1.3 s a move, theirs 1.0 / 1.6, clock used by the
+  end 77% (theirs 87%), all seven beside another game; blitz ours 3.0 / 4.3, theirs 4.0 / 5.1, clock used 68% (83%).
+- Ratings: blitz 2594 -> 2597, bullet 2630 -> 2637.
+- **The new chat lines, live:** the goodbye carried the count in 15 games (~200 million to ~7.4 billion positions,
+  ~6-15 million a second); rsJhY1E7 got a plain "Good game!" (all book, nothing searched). Nobody asked !stats.
+  lichess.org answered throughout: no not-answering lines. Mithandros (another bot) sent !help once, prompted by our
+  greeting's "(!help)", and got one answer; no loop between the two bots.
