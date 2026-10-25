@@ -90,7 +90,12 @@ if not os.path.exists(ours):
     os.makedirs(os.path.dirname(ours), exist_ok=True)
     with open(ours, "wb") as f:
         f.write((0).to_bytes(8, "big") + (0).to_bytes(2, "big") + (1).to_bytes(2, "big") + (0).to_bytes(4, "big"))   # key 0, move 0, weight 1
-books = [b for b in (book, ours, os.path.join(here, "books", "lichess-2200-wide.bin")) if os.path.exists(b)]
+# First of all from 2026-10-26 (Matthew's 2:a): table-b.bin, our own 5-ply book (BT1 (b): all of their moves, our
+# engine's best reply at depth 18, 811 positions; scripts/book-tables/results/table-b.bin). BT4 (BOOK-TABLES.md):
+# +20 Elo over the vetted book in the round robin, +38 [+18, +59] over no book in the final. It answers the first
+# 5 plies; the books below take over after. Delete bot\books\table-b.bin to go back.
+table_b = os.path.join(here, "books", "table-b.bin")
+books = [b for b in (table_b, book, ours, os.path.join(here, "books", "lichess-2200-wide.bin")) if os.path.exists(b)]
 engine["polyglot"] = {
     "enabled": bool(books),
     "book": {"standard": books},
