@@ -1,4 +1,4 @@
-"""The Stockfish check (MATCHES.md): the half with tables split by how many games ran at once (games 0-37 at 2,
+r"""The Stockfish check (MATCHES.md): the half with tables split by how many games ran at once (games 0-37 at 2,
 the rest at 1), against the half without, by book-match.py's sums. From the main checkout:
   bot\lichess-bot\.venv\Scripts\python.exe -I scripts\sf-check\sf3190-split.py games\sf-check\sf3190.jsonl games\sf-check\sf3190-notables.jsonl
 """
