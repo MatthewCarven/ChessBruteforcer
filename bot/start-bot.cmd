@@ -122,6 +122,14 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-book-repetition.patch"
     if errorlevel 1 echo The book's repetition check didn't go in ^(lichess-bot changed?^): the book may repeat, as before.
 )
+rem Each game plays on the net bot\eval\net.txt names as it starts, so the net changes between games with no restart
+rem (bot\use-net.cmd writes it; Matthew's (a), 2026-10-25); no file, or an empty one: make-config.py's net, as before.
+rem bot\lichess-bot-net-file.patch; bot\test-net-file.py tests it. Unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-net-file.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-net-file.patch"
+    if errorlevel 1 echo The net.txt switch didn't go in ^(lichess-bot changed?^): every game plays make-config.py's net.
+)
 set BRUTEFORCER_TABLES=%CD%\tables
 rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers;
 rem Ctrl+C stops both, and restarts.log says so.

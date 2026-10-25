@@ -60,6 +60,8 @@ engine["uci_options"] = {
 # nnue1-h512.nnue as well for nnue1, nnue1.nnue as well for sf1, and eval-sf1.txt as well for the built-in numbers.
 # (The deep nets lost to h1024-3m at 10+0.1, 2026-10-22: h1024-3m-l32 -85 Elo, h1024-3m-l16-32 about -55, both
 # at about half its speed; MATCHES.md. The bot played h1024-3m-l16-32 for a game or two before that, then went back.)
+# bot\eval\net.txt overrides this game by game, with no restart (Matthew's (a), 2026-10-25): lichess-bot reads it as
+# each game starts (bot\lichess-bot-net-file.patch; bot\use-net.cmd writes it). Empty or missing: this choice.
 for name in ("h1536-3m-ob8.nnue", "h1536-3m.nnue", "h1024-3m.nnue", "h512-3m.nnue", "nnue1-h512.nnue", "nnue1.nnue", "eval-sf1.txt"):
     evaluation = os.path.join(here, "eval", name)
     if os.path.exists(evaluation):

@@ -24,6 +24,7 @@ $logs = Join-Path $here 'logs'
 $restarts = Join-Path $logs 'restarts.log'
 $quitSoon = Join-Path $here 'quit.soon'
 $env:BRUTEFORCER_QUIT_SOON = $quitSoon  # lichess-bot looks for it there (and for quit.soon.txt)
+$env:BRUTEFORCER_NET = Join-Path $here 'eval\net.txt'  # each game's net, when it names one (bot\use-net.cmd)
 New-Item -ItemType Directory -Force $logs | Out-Null
 
 function Note([string] $text) {

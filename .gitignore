@@ -501,6 +501,8 @@ games/
 bot/lichess-bot/
 
 bot/books/
+# Which net the bot's next games play on (bot\use-net.cmd writes it; Matthew's to switch, not the repo's)
+bot/eval/net.txt
 # Home games against the bot and the window's engine copy (bot\play.cmd; Matthew's games, his own data)
 bot/home/
 
