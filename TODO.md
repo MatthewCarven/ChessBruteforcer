@@ -417,7 +417,7 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
       (bot/lichess-bot-net-file.patch); `bot\use-net.cmd <net>` writes it,
       `default` empties it (make-config.py's net). Not built: a net per
       time control ((b)), which the same hook could do from the game's speed.
-- [ ] **A fast net for time trouble?** (Matthew, 2026-10-25: a fast net
+- [x] **A fast net for time trouble?** (Matthew, 2026-10-25: a fast net
       below 30 s on the clock with 16 pieces or fewer; not with hidden
       layers, which halve the speed.) First the check he said yes to:
       h512-3m against h1536-3m-ob8 at 2+0.02, 1,000 games, fixed
@@ -426,6 +426,11 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
       match, the bot off. If the 512 wins there: the engine holds a second
       net for those positions, and a 512 on 6 months with buckets is worth
       training. If not, neither. At 10+0.1 the bigger nets won (+41, +7).
+      **Done (17:01-17:22, nnue-deep-layers): h512-3m -56 [-73, -39]** over
+      1,000 games at 2+0.02 (42.0%), 1.43x the speed and +0.4 ply, the same
+      gap as the 10+0.1 chain (~-57): the short clock doesn't favour the
+      small net. Neither built nor trained; nnue-deep-layers records the
+      match in MATCHES.md.
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that
