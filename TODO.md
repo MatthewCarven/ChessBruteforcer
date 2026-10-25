@@ -1061,8 +1061,9 @@ Sessions, in order:
             **Round robin done 2026-10-25 12:03-15:53** (BOOK-TABLES.md):
             table-a v table-b -1 [-14, +12], table-a v vetted +16, table-b
             v vetted +20; overall table-b +11, table-a +7, vetted -18. The
-            final waits for h1536-6m-ob8's match (ponder-scope's go, ~19:30)
-            and Matthew's pick: (a) table-b, (b) table-a, (c) both.
+            final waits for the net matches (ponder-scope's go, ~20:45).
+            **Matthew (2026-10-25): "(a) table-b plays the final against no
+            book."** So `book-duel.cmd final table-b`.
       - [ ] **Carry it to Black's move 3** (`--plies 6`, ~6,620 positions,
             ~314 core-h at depth 18 at the measured speed, ~40 h on 8
             cores; less at depth 16). Matthew (2026-10-25): later, kept on

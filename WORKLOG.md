@@ -7552,6 +7552,9 @@ The log says "Book <file> skips <moves> for game <id>: back to a position the ga
 - 4 time losses, all in the last 8 minutes (15:45-15:51), 4-7 pieces, each over by under 0.1 s, one or two an arm.
   None in the first 3 h 40, and no tables in the duel: something else on the laptop near the end, or heat? Not
   checked.
+- Matthew, here: "(a) table-b plays the final against no book." So `book-duel.cmd final table-b` (SPRT [0, 10],
+  at most 2,000 games, ~2.6 h at most), from about 20:45 on ponder-scope's go, after the h512-3m test (~17:00)
+  and part 2 of h1536-6m-ob8's match (to ~20:40). Then the 500 + 500 Stockfish games.
 
 ## 2026-10-25 (12:10-15:56): the bot's net switches between games with no restart (the orchestrator)
 

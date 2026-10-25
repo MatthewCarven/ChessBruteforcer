@@ -243,7 +243,8 @@ an engine, two CPUs a game, 6 games at once, ~13 games a minute.
 | table-b v vetted | +207 -149 =644 | 52.9% | +20 [+8, +33] | 881 |
 
 Over each book's 2,000 games: table-b 51.5% (+11), table-a 51.0% (+7), vetted 47.4% (-18). Both tables beat the
-vetted (today's) book; they can't be told apart from each other, so which one goes to the final is Matthew's call.
+vetted (today's) book; they can't be told apart from each other, so which one goes to the final was Matthew's call:
+"(a) table-b plays the final against no book."
 1,819 repetitions, 1,052 mates, 115 by insufficient material, 5 stalemates, 5 by the 50-move rule, 4 on time
 (median 129 plies, White 53.4%). The 4 time losses all came in the last 8 minutes, in 4-7-piece endgames, each over
 by under 0.1 s, spread over the arms (vetted 2, table-a 1, table-b 1); there were no tables in the duel.
