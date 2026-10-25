@@ -572,6 +572,11 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
         others 49 s or more; +2 lowest 28 s or more, but q4lxHiCe (7+2,
         238 moves, an opponent at ~0.5 s a move) fell to 6 s at move 211.
         Too few games yet; nothing under 10 s in +1 for move-lag.py.
+        q4lxHiCe's 6 s came with RAM available at 96 MB (3 games with
+        tables): 10 moves ran to the hard limit (WORKLOG 2026-10-26
+        09:30; `bot\hard-limit.py --mem`). Matthew's call: (a) leave and
+        log memory during bot runs, (b) cap the hard limit at a low
+        clock, (c) 2 games at once with tables, or the shared table cache.
       - Another ~700 games at 12+0.2 (`scripts\lag-match.cmd 12+0.2 80
         700`, ~1.4 h at 5 at a time; its openings start over) would take
         the two runs together to about ±12.

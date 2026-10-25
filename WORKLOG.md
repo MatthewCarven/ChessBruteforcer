@@ -8053,3 +8053,35 @@ ones". bot\quit.soon made 09:12:07; lichess-bot saw it a second later with one g
   end 71% (theirs 80%); blitz ours 2.0 / 3.6, theirs 3.0 / 4.3, clock used 65% (82%).
 - Ratings: blitz 2596 -> 2632, bullet 2637 -> 2642, rapid 2594 -> 2592, classical 2719 -> 2720.
 - lichess.org answered throughout: no not-answering lines.
+
+## 2026-10-26 (09:30): the 6 s game and memory: q4lxHiCe ran to the hard limit as RAM ran out (ponder-scope)
+
+The laptop's memory, logged each minute through the bot's 06:21-09:13 run (bot\memory\bot-memory-2026-10-26.csv:
+RAM available, commit free, engine processes; the learner's engine is always one of them):
+
+- **RAM available lowest 96 MB at 08:47**, three games on; under 1 GB 08:45-08:47, under 1.5 GB for 7 minutes.
+  Commit free never under 8.9 GB, so the drop is the tables' file-backed pages again (as in the 10-26 Stockfish
+  check), not a commit shortage.
+- That window is the 6 s of q4lxHiCe (7+2, QiOui): a 7-piece table endgame searched to depth 25-31. Our speed in it
+  fell from ~9 Mnps (08:41-08:43, RAM ~1.9 GB) to 1.5-2.7 (08:45-08:47), and 10 of its moves from 08:45:49 ran to the
+  engine's hard limit: 5.2 s with 19.2 s on the engine's clock, 4.0 s at 7.3 s, 3.4 s at 5.5 s. The engine's clock
+  went 20 s -> 3.7 s (lichess's less lichess-bot's 2 s move_overhead: the PGN's 6 s).
+- `bot\hard-limit.py` (new; pairs each search with its info block and sets its wall time against
+  Search.TimeBudget's hard limit) over the whole run, ponder hits left out:
+
+  | RAM available (MB) | searches | at the hard limit | median Mnps |
+  |---|---|---|---|
+  | under 1,000 | 62 | 10 (16%) | 2.6 |
+  | 1,000-2,000 | 164 | 1 (0.6%) | 3.5 |
+  | 2,000-3,000 | 128 | 3 (2.3%) | 7.4 |
+  | 3,000+ | 453 | 13 (2.9%) | 14.7 |
+
+  Elsewhere the hard-limit moves came with plenty of clock (11-16% of it); only iZzuSehC (1+1) also had one under
+  30 s, at 19.8 s. Low RAM and few pieces go together (the endgames pull the tables in), so one game can't split slow
+  probing from tables paged out and read again.
+- Arithmetic: under ~7.3 s on the engine's clock the hard limit is (clock - 0.1)/3 + inc - MoveLag, so with +2 and
+  MoveLag 400 a move at the limit leaves (2/3) clock + 0.43 s - lichess's lag (0.32-0.45 s). Back to back, that walks
+  the engine's clock toward 0-0.3 s, i.e. lichess's ~2 s (the reserve), where a network hiccup flags. Here the run
+  was broken by quick moves and the clock came back to 14 s.
+- Matthew's call: (a) leave and watch (log memory during bot runs), (b) cap the hard limit at a low clock (an engine
+  change, a match to test), (c) the memory side (2 games at once with tables, or the shared table cache).
