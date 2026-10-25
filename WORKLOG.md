@@ -7993,3 +7993,63 @@ bot until it was built and tested, and his heat lift to 11:59 covered the test (
   10-25). start-bot.cmd builds the engine from the main checkout each start, so the option and the engine that knows
   it arrive together once this is merged; the bot's games with an increment plan 0.4 s less a move (3+2's first
   moves 7.5 s -> 7.1).
+
+## 2026-10-26 (06:21-09:13): the bot on h1536-6m-ob8, table-b first and MoveLag 400 (the orchestrator)
+
+Matthew's word here, first-hand: "(a) start the bot until 11:59 with MoveLag 400" (with his 1:a 2:a 3:b from
+ponder-scope's session: the new net, table-b first, the heat line lifted to 11:59). bot\start-bot.cmd from compression
+ddd705d, online 06:21:15. At 09:12, with the sun on the laptop: "throw quit.soon in for me, we'll end after the current
+ones". bot\quit.soon made 09:12:07; lichess-bot saw it a second later with one game on (3aDSUlis) and stopped after it,
+09:13:00 (restarts.log: "stopped for bot\quit.soon after 172 min"). The 11:59 stop was cancelled.
+
+- **23 games, 12W 7D 4L** (15.5/23, 67%; opponents' average 2580; 12.0 expected from the ratings, a performance of
+  ~2706). Bullet 3W 1L (4 games), blitz 8W 6D 3L (17), rapid 1D, classical 1W. Three of the four losses were to bots
+  rated 2737-2975, the fourth to Vic98lg (2520) at 1+1:
+
+  | Opponent | Elo | Clock | Colour | Result | Most games on |
+  |---|---|---|---|---|---|
+  | Void_Bot | 2980 | 5+2 | White | draw, fifty-move rule, move 83 (14 pieces) | 2 |
+  | neryba | 2471 | 3+2 | White | won | 2 |
+  | chmod-bot | 2401 | 3+3 | Black | draw, threefold, move 42 (14 pieces) | 1 |
+  | Chaotong_engine | 2650 | 5+2 | Black | draw, agreed, move 57 (10 pieces) | 1 |
+  | Void_Bot | 2975 | 5+3 | White | lost | 2 |
+  | Vic98lg | 2520 | 1+1 | Black | lost, move 89 | 2 |
+  | TempoCore | 2422 | 3+2 | Black | won | 3 |
+  | QiOui | 2523 | 2+2 | Black | draw, agreed, move 88 (5 pieces) | 3 |
+  | wangha | 2444 | 3+2 | White | won | 3 |
+  | Odiodin_ansf | 2801 | 3+2 | White | draw, threefold, move 80 (10 pieces) | 3 |
+  | QiOui | 2620 | 1.5+2 | White | won | 2 |
+  | NanoZeroOrg | 2615 | 5+2 | Black | draw, fifty-move rule, move 121 (4 pieces) | 2 |
+  | TuxedolphinBot | 2592 | 5+3 | White | won | 2 |
+  | SleepMindEngine | 2821 | 5+3 | White | won on time, move 21 (it stopped moving at 2:33) | 2 |
+  | picoSargon | 1668 | 30+2 | Black | won | 3 |
+  | ChessEngine_Gambit | 2470 | 3+3 | White | won | 3 |
+  | lukebot | 2393 | 1+2 | White | won | 3 |
+  | TempoCore | 2502 | 2+1 | White | won | 2 |
+  | QiOui | 2557 | 7+2 | Black | draw, agreed, move 238 (7 pieces) | 3 |
+  | eigenmann-chess | 2737 | 5+1 | White | lost | 3 |
+  | incipit_bot | 2966 | 3+1 | Black | lost | 3 |
+  | neryba | 2459 | 5+3 | Black | won | 2 |
+  | grail-bot | 2753 | 3+3 | White | won | 1 |
+
+- **By the most games on during each**: alone 1W 2D (3 games), two 6W 2D 2L (10), three 5W 3D 2L (10).
+- **The net**: every game's "plays on" line names h1536-6m-ob8.nnue (bot\eval\net.txt), 23 of 23; the net-file patch's
+  first run.
+- **The books**: table-b answered every ply it has, in all 23 games: 59 moves (3 a game in the 13 as White, 2 in the 10
+  as Black). After it the vetted book gave 140 moves, the wide one 10, ours.bin none: ~9 book moves a game. No "skips"
+  lines: the no-repeat rule (book-repetition, also on its first run) never had to act.
+- **MoveLag 400**, set in each game's engine. No time losses for us; one for them: Byagt6tf, SleepMindEngine (2821)
+  stopped moving at move 21 with 2:33 left (a stall, not a scramble). Our clock went under 30 s in 3 games, under 10 s
+  in one: q4lxHiCe, 7+2 against QiOui (2557), who moved in ~0.5 s; 238 moves, our clock 6 s at move 211 with 7 pieces
+  and 14 s at the end. The 10-25 model put the floor in +2 at 15-20 s. The +1 games: lowest 22 s (iZzuSehC, 1+1, move
+  67), the others 49 s or more. One run is too few; TODO's check stays open.
+- **Draws**: two by the fifty-move rule (9iCTGYR6 against Void_Bot, 2980, with 14 pieces on; bT7nWIrP with 4, our
+  engine offering a draw 51 times), two threefold (3QEAhC3U; 1WYXlJZ1 against Odiodin_ansf, 2801), three agreed on our
+  offer (Cp1chd3X, bBMAweIa, q4lxHiCe).
+- **Speed lines** (Mnps a search, median / mean): one on 17.4 / 16.6 (516 searches), two on 9.6 / 9.7 (602), three on
+  6.2 / 5.8 (294). On 10-25 with h1536-3m-ob8 (the same size of net): 14.9 / 14.0, 9.4 / 9.1, 7.4 / 7.1. CPU clock not
+  read.
+- `bot\move-times.py --since "2026-10-26 06:21"`: bullet ours 2.0 / 1.9 s a move, theirs 1.0 / 1.6, clock used by the
+  end 71% (theirs 80%); blitz ours 2.0 / 3.6, theirs 3.0 / 4.3, clock used 65% (82%).
+- Ratings: blitz 2596 -> 2632, bullet 2637 -> 2642, rapid 2594 -> 2592, classical 2719 -> 2720.
+- lichess.org answered throughout: no not-answering lines.

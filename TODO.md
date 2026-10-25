@@ -567,7 +567,11 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
         (WORKLOG 2026-10-25 18:00-19:00): our clock's change a move under
         10 s in +1 games (was -0.10 s), the lowest clocks in +1 and +2
         games (expected near 10 s and 15-20 s, from ~2-4 s and under 10),
-        and time losses.
+        and time losses. The first run (2026-10-26 06:21-09:13, 23 games,
+        WORKLOG): no time losses; +1 lowest 22 s (1+1, move 67), the
+        others 49 s or more; +2 lowest 28 s or more, but q4lxHiCe (7+2,
+        238 moves, an opponent at ~0.5 s a move) fell to 6 s at move 211.
+        Too few games yet; nothing under 10 s in +1 for move-lag.py.
       - Another ~700 games at 12+0.2 (`scripts\lag-match.cmd 12+0.2 80
         700`, ~1.4 h at 5 at a time; its openings start over) would take
         the two runs together to about ±12.
