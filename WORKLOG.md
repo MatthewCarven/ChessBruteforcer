@@ -7959,3 +7959,37 @@ clocks, 2026-10-12 to 10-25) and lichess-bot's DEBUG logs (10-15 to 10-25). Noth
   and its two real time losses were 30+0 (no time manager can help: lag is most of that clock) and 1+1 (the one clock
   where its plan spends more than the increment, finished off by a network hiccup). That also answers the fast net's
   premise: since 10-17, 14% of games went below 30 s, nearly all bullet. TODO has the options.
+
+## 2026-10-26 (05:25-06:30): MoveLag built, tested at 12+0.2, and set for the bot (Matthew's (b))
+
+Matthew picked (b) of the clock analysis (TODO, "How the bot uses its clock when time runs low"): take the lag off
+the increment the engine plans to spend, with the match tool able to charge a lag so it can be tested. He held the
+bot until it was built and tested, and his heat lift to 11:59 covered the test (his "1.a and 2.a", via ponder-scope).
+
+- **The engine**: SearchLimits.MoveLagMs and the UCI option MoveLag (spin, default 0, 0-5000). In Search.TimeBudget
+  it comes off the 3/4 increment in the planned time and off the increment in the hard limit, down to none of it;
+  at 0 the budget is exactly as before, and with no increment it changes nothing. The match tool: `--lag <ms>`
+  (MatchSettings.LagMs, GamePlayer.Play's lagMs) charges every move that much on top of the engine's own time, both
+  sides, and a time loss names it. scripts\lag-match.cmd plays MoveLag against none under a lag: same build and net
+  (h1536-3m-ob8), Move Overhead 420 on both (online the engine is told its clock less lichess-bot's 2,000 ms and keeps
+  its own 100: 2,100 scaled 5x down), the 300 openings in pairs, our tables adjudicating, no tables in the engines.
+- Tests (PonderTests, GamePlayerTests): the budget's arithmetic (3+2 with 0 and 400, 1+1 at 5 s, a lag past the
+  increment, no increment), the option offered and clamped, the lag charged to every move and its time loss. The
+  full suite passes, 676 and 2 skipped (05:31-05:32).
+- **12+0.2 with 80 ms of lag a move** (the bot's 1+1 scaled 5x down: 0.4 s of lag becomes 80 ms), on ponder-scope's
+  go, nothing else on the laptop but the learner; a 4-game smoke test first (05:34-05:36). From 05:36:17, 5 at a
+  time; RAM available never under 4,350 MB. Matthew, at 129 games: rush it, stop at ~300, the rest on TODO.
+  Stopped 06:12:18 at 303 games: **movelag +56 -57 =190 against none, 49.8%, -1 [-25, +23]. No time losses either
+  side.** Mean depth 10.99 against 11.06 (MoveLag plans 70 of the increment's 150 ms a move here, not 150). Endings:
+  116 threefold, 136 by the tables (71 won or lost, 65 drawn), 42 mates, 9 by the 50-move rule; 119 plies a game.
+- **A correction to the analysis**: "none" never ran out, though the 10-25 write-up said a long +1 game "ends on time
+  sooner or later". The flat reserve is a floor: once the clock the engine is told (ours less 2.1 s online, 0.42 s
+  here) is nearly gone, the hard limit is 5 ms, the move costs ~5 ms + the lag, and the increment refills the clock.
+  So online a +1 clock sits at ~2-4 s, not zero, and a network hiccup there flags it (Pb90vcro: a 3.8 s reconnect at
+  3.5 s left). MoveLag's gain is a higher floor (near 10 s in +1, 15-20 s in +2, by the 10-25 model), which a local
+  match with no hiccups can't show; this one shows it costs nothing at 1+1's scale. TODO has the rest: the bot's own
+  clocks after a day or two online, another ~700 games at 12+0.2, and 36+0.4.
+- **For the bot**: make-config.py sets MoveLag 400 (the measured lag: median 0.32 s, mean 0.45, 0.45 median on
+  10-25). start-bot.cmd builds the engine from the main checkout each start, so the option and the engine that knows
+  it arrive together once this is merged; the bot's games with an increment plan 0.4 s less a move (3+2's first
+  moves 7.5 s -> 7.1).

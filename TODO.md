@@ -485,7 +485,7 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
       every engine (~800 MB a game after the first; an engine change, and
       the .cbz files are 1 byte a value on disk but 2 in memory, so those
       need a 2-byte file or a probe that reads 1).
-- [ ] **How the bot uses its clock when time runs low** (Matthew's (b),
+- [x] **How the bot uses its clock when time runs low** (Matthew's (b),
       2026-10-25, after the fast net lost; WORKLOG 2026-10-25 18:00-19:00
       has the tables). bot/low-clock.py reads the games' clocks,
       bot/move-lag.py the DEBUG log's (each move split into the engine's
@@ -515,8 +515,12 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
         sees it: lichess-bot's 2 s and the engine's Move Overhead (100 ms)
         come off the clock once, not once a move. The engine plans clock /
         30 + 3/4 of the increment, so with +1 each move costs more than the
-        increment at any clock (-0.1 s a move even under 10 s): a long 1+1
-        or 2+1 game ends on time sooner or later. +2 settles under 10 s and
+        increment at any clock (-0.1 s a move even under 10 s), down to
+        lichess-bot's 2 s reserve: there the engine sees no time, moves in
+        ~5 ms, and the increment refills the clock, so it sits at ~2-4 s,
+        where one network hiccup flags it (Pb90vcro; first written here as
+        "ends on time sooner or later", corrected 2026-10-26 after the
+        12+0.2 match below showed no drain to zero). +2 settles under 10 s and
         +3 around 20 s, in very long games only. At 30+0 the lag alone is
         most of the clock (18 of 30 s), which no time manager can fix.
 
@@ -545,6 +549,31 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
         for the tables) and moving the bot. No test needed for the clock: the
         logs show the lag directly.
       Recommended: (a); (b) if +1 bullet should be safe.
+      **Matthew's (b), 2026-10-26: built, tested and live from the bot's
+      next start** (WORKLOG 2026-10-26 05:25-06:30). MoveLag (UCI, default
+      0, so with it unset nothing changes) comes off the 3/4 increment in
+      the planned time and off the increment in the hard limit, down to
+      none; make-config.py sets 400. The match tool's `--lag <ms>` charges
+      every move that much more; scripts\lag-match.cmd plays MoveLag
+      against none under it. 12+0.2 with 80 ms of lag (the bot's 1+1
+      scaled 5x down), stopped at 303 of 1,000 games on his word to rush
+      it: **+56 -57 =190, 49.8%, -1 [-25, +23], no time losses either
+      side**, 0.07 ply shallower. The match has no network hiccups, so it
+      can only show that MoveLag costs nothing, not the higher floor.
+- [ ] **MoveLag's other checks** (Matthew, 2026-10-26: "the rest of the
+      tests go on TODO"):
+      - Online, after a day or two of play: `bot\low-clock.py --since
+        <the start>` and `bot\move-lag.py` against the numbers before
+        (WORKLOG 2026-10-25 18:00-19:00): our clock's change a move under
+        10 s in +1 games (was -0.10 s), the lowest clocks in +1 and +2
+        games (expected near 10 s and 15-20 s, from ~2-4 s and under 10),
+        and time losses.
+      - Another ~700 games at 12+0.2 (`scripts\lag-match.cmd 12+0.2 80
+        700`, ~1.4 h at 5 at a time; its openings start over) would take
+        the two runs together to about ±12.
+      - 36+0.4 with 80 ms (the 3+2 scaled down, the bot's main clock),
+        500 games, ~3.5 h: the cost, if any, where most games are played.
+        A free night on the laptop (ponder-scope's board), or the desktop.
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that

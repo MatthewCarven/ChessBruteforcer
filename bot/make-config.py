@@ -40,6 +40,13 @@ engine["uci_options"] = {
                                                               # 4 from 2026-10-24 for the heat (his (b)), 8 before
                                                               # (WORKLOG 2026-10-15 21:25, 2026-10-16)
     "Move Overhead": 100,
+    "MoveLag": 400,                                           # lichess.org charges every move a round trip the
+                                                              # engine never sees (median 0.32 s, 0.45 on 10-25;
+                                                              # bot\move-lag.py): it comes off the increment each move
+                                                              # plans to spend, so a +1 game's clock settles near 10 s,
+                                                              # not 2-4 s (Matthew's (b), 2026-10-26: no worse in 303
+                                                              # games at 12+0.2 with 80 ms of lag, -1 [-25, +23]; TODO
+                                                              # "How the bot uses its clock when time runs low")
 }
 # The evaluation: the network h1536-3m-ob8 (Matthew's (b), 2026-10-24: h1536-3m with 8 output buckets, .nnue v3;
 # +11 Elo [-3, +24] over h1536-3m after 1,200 games at 10+0.1), else
