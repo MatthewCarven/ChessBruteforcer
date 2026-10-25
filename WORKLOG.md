@@ -7836,3 +7836,22 @@ round robin (no scripts beside timed runs), merged into compression.
 - The RAM drop reads as file-backed: 220 of the engine's 292 tables are read from disk as probed, and their pages
   count in RAM while held but are backed by the files (droppable, shared), while commit stayed ~1.9 GB an engine.
   MATCHES.md has it. TODO has the 315 games left, for another night: Matthew's call, (a)-(c).
+
+## 2026-10-26 (05:15-05:30): the bot's next start readied, then held for Move Lag (the orchestrator)
+
+Matthew in ponder-scope's session, first-hand there: "1:a 2:a 3:b 11:59am" (the new net, table-b first, the heat line
+lifted to 11:59), the bot to start now. Readied here; the start itself waits for his word here (peer messages aren't
+it), and his word here was then "(b) hold the bot until Move Lag is built and tested" (the clock session's (b),
+TODO). Nothing was started; the heat lift was for the bot.
+
+- **The net**: games\nnue\nets\h1536-6m-ob8.nnue copied into bot\eval (2,411,620 bytes, sha256 6bc208f8...eaf4, the
+  same as the source); `bot\use-net.cmd h1536-6m-ob8.nnue` wrote bot\eval\net.txt, so every game from the next start
+  plays on it, make-config.py's h1536-3m-ob8 the fallback should the file fail its check. The engine logs it as
+  "768 -> 1536 x2 -> 1, 8 output buckets, sha256 cb5c6f670f41".
+- **The books**: scripts\book-tables\results\table-b.bin copied into bot\books; make-config.py puts it first (39ac0d1),
+  then the vetted human book, ours and the wide one.
+- **Checked** in lichess-bot with all twelve patches (a scratch clone; the live tree gets book-repetition and net-file
+  from start-bot.cmd at the start): table-b opens as a polyglot book, 811 positions with one move each (weight 1),
+  and answers 1.Nf3, 1.e4 e6, 1.d4 d5, 1.e4 e6 2.d4 d5. With it first the no-repeat rule still holds: rsJhY1E7 after
+  7.Nc3, 200 picks, never 7...Qb6 (the vetted book's 7...Bb4 instead; the skips logged). No line where table-b's own
+  move takes the game back to the start.

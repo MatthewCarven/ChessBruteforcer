@@ -293,9 +293,11 @@ after the reboot; make-config.py tries bot\eval\nnue1-h512.nnue first
     against the bot's net, h1536-3m-ob8, ~+10 by the rule of thumb at 0.7x.
     `bench 9`: the same speed. **Matched against h1536-3m-ob8, 2026-10-25:
     +16 [+4, +28] over 1,553 games, SPRT accepted H1** (two parts, 615 +
-    938, the SPRT run over both together; MATCHES.md). **Matthew's call:
-    whether the bot plays it** (bot\eval and make-config.py, at the bot's
-    next start).
+    938, the SPRT run over both together; MATCHES.md). **Matthew's 1:a
+    (2026-10-26): the bot plays it**, from its next start: copied into
+    bot\eval and named in bot\eval\net.txt (`bot\use-net.cmd`);
+    make-config.py's h1536-3m-ob8 stays the fallback. The start waits
+    for Move Lag (WORKLOG 2026-10-26 05:15).
   - **E: h2048-3m, dropped for now** (Matthew's 2(a)): after h1536-3m's +7,
     2048 looked like +0 to +10 at ~13% more speed cost. Nothing to build if
     it comes back: the engine takes 2048 (662a810), and train.py's held-back
@@ -1151,7 +1153,9 @@ Sessions, in order:
             book."** So `book-duel.cmd final table-b`. **Done 2026-10-25
             19:23-19:47: SPRT accepted H1 after 301 games, table-b +38
             [+18, +59] over no book** (61.9% as White, 49.0% as Black; no
-            time losses). Whether the bot plays table-b is Matthew's call.
+            time losses). **Matthew's 2:a (2026-10-26): table-b first in
+            the bot's books** (make-config.py, 39ac0d1), then the vetted
+            human book, ours and the wide one; from the bot's next start.
       - [ ] **Carry it to Black's move 3** (`--plies 6`, ~6,620 positions,
             ~314 core-h at depth 18 at the measured speed, ~40 h on 8
             cores; less at depth 16). Matthew (2026-10-25): later, kept on
