@@ -7533,3 +7533,13 @@ The log says "Book <file> skips <moves> for game <id>: back to a position the ga
 - The stack on a fresh clone of lichess-bot: all eleven applied, then all "in already"; the patch checks clean
   against the live tree. The older tests on that clone pass: ponder-note, goodbye-stats, not-answering, rejoin,
   one-player, busy, quit-soon, sigint. Live from the bot's next start (the bot off since 11:30).
+
+## 2026-10-25 (12:03-): BT4's round robin
+
+- On ponder-scope's go (quiet check 12:02: only the learner; the bot off since 11:30, the heat rule over for the
+  day): `scripts\book-tables\book-duel.cmd round-robin 1000 16:30` from the main checkout (compression caa4f37)
+  in its own window, started 12:03:37. 12.75 GB commit free at the start, 11.5 GB with the 12 engines up.
+- The engine copy in games\book-duel\engine is from 00:43; the bot's was rebuilt at 09:55, but no engine source has
+  changed since 23 Oct 06:16 (the DLLs differ by the build alone), so the copy stands.
+- The first 32 games are all different, even with the tables' fixed choices: table-a v table-b splits at plies
+  6-9, so the 1000 games a pair aren't repeats. About 13 games a minute: the 3000 may finish before 16:30.
