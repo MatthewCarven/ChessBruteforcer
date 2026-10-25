@@ -249,6 +249,15 @@ vetted (today's) book; they can't be told apart from each other, so which one go
 (median 129 plies, White 53.4%). The 4 time losses all came in the last 8 minutes, in 4-7-piece endgames, each over
 by under 0.1 s, spread over the arms (vetted 2, table-a 1, table-b 1); there were no tables in the duel.
 
+**The final, done (2026-10-25 19:23-19:47, games\book-duel\final-table-b.jsonl)**: table-b against our engine with
+no book, SPRT [0, 10] **accepted H1** (LLR 3.07) after 301 games: table-b +63 -30 =208, 55.5%, **Elo +38 [+18,
++59]**, no time losses. As White 61.9% (151 games), as Black 49.0% (150): the gain is all White's (the no-book side
+always opens 1.d4). 196 repetitions, 93 mates, 12 by insufficient material; median 132 plies. Less variety than
+the round robin, since one side has no book: 45 different 12-ply openings, 263 of the 301 games different (~13%
+repeats), so the interval is a little narrower than it should be. So Matthew's question ("to see if there is
+benefit") is answered yes: table-b, with the human book after it, is worth about +38 over no book at 10+0.1, in
+our engine's own view; with the round robin, table-b ≈ table-a > vetted by 16-20.
+
 Both tables are one move a position, so a table against a table plays the same first 6-8 plies every time: (a)
 against (b) is always 1.e4 e6 2.d4 d5 3.e5 c5 4.c3 Nc6 with (a) as White, and 1.Nf3 d5 2.d4 c6 3.c4 Nf6 with (b). The
 variety comes from the human book after them. And it all stays inside our engine's view: (a) and (b) are its own

@@ -1103,7 +1103,10 @@ Sessions, in order:
             v vetted +20; overall table-b +11, table-a +7, vetted -18. The
             final waits for the net matches (ponder-scope's go, ~20:45).
             **Matthew (2026-10-25): "(a) table-b plays the final against no
-            book."** So `book-duel.cmd final table-b`.
+            book."** So `book-duel.cmd final table-b`. **Done 2026-10-25
+            19:23-19:47: SPRT accepted H1 after 301 games, table-b +38
+            [+18, +59] over no book** (61.9% as White, 49.0% as Black; no
+            time losses). Whether the bot plays table-b is Matthew's call.
       - [ ] **Carry it to Black's move 3** (`--plies 6`, ~6,620 positions,
             ~314 core-h at depth 18 at the measured speed, ~40 h on 8
             cores; less at depth 16). Matthew (2026-10-25): later, kept on

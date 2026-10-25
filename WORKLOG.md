@@ -7779,3 +7779,15 @@ round robin (no scripts beside timed runs), merged into compression.
   =788, +16 [+4, +28], LOS 99.6%, SPRT [0, 10] accepted H1.** No time
   losses; speed even. MATCHES.md, NNUE.md ("All three levers") and TODO
   have it; whether the bot plays it is Matthew's call.
+
+## 2026-10-25 (19:22-19:50): BT4's final, table-b against no book
+
+- On ponder-scope's go (quiet check 19:22: only the learner; h1536-6m-ob8's match over at 19:21; 9.3 GB commit
+  free): `scripts\book-tables\book-duel.cmd final table-b` from the main checkout (compression 13a692c), started
+  19:23:07, the same engine copy and net (h1536-3m-ob8) as the round robin; 7.6 GB commit free with it up.
+- The SPRT [0, 10] accepted H1 at 19:46:53, LLR 3.07, after 301 games: **table-b +63 -30 =208, 55.5%, +38 [+18,
+  +59]** over no book. No time losses. As White 61.9%, as Black 49.0%. Engines gone at 19:47.
+- Fewer openings than the round robin (one side has no book: it always opens 1.d4): 45 different 12-ply openings,
+  263 of 301 games different. BOOK-TABLES.md and TODO have it; whether the bot plays table-b is Matthew's call.
+- Next on ponder-scope's go: the 500 + 500 Stockfish games at 3190, from the main checkout's book-match.py (it has
+  --tables and the isready fix now).
