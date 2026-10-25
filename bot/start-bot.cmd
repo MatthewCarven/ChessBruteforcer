@@ -114,6 +114,14 @@ if errorlevel 1 (
     git -C bot\lichess-bot apply "%~dp0lichess-bot-not-answering.patch"
     if errorlevel 1 echo The not-answering lines didn't go in ^(lichess-bot changed?^): a stall shows nothing here, as before.
 )
+rem The opening book never plays a move back to a position the game has had: another book move does, or the engine
+rem decides (rsJhY1E7, 2026-10-25: the book's moves alone drew by threefold repetition at move 9; Matthew's 1(a)):
+rem bot\lichess-bot-book-repetition.patch; bot\test-book-repetition.py tests it. Unless that's in already.
+git -C bot\lichess-bot apply --reverse --check "%~dp0lichess-bot-book-repetition.patch" >nul 2>&1
+if errorlevel 1 (
+    git -C bot\lichess-bot apply "%~dp0lichess-bot-book-repetition.patch"
+    if errorlevel 1 echo The book's repetition check didn't go in ^(lichess-bot changed?^): the book may repeat, as before.
+)
 set BRUTEFORCER_TABLES=%CD%\tables
 rem lichess-bot in a loop (bot\run-bot.ps1): started again whenever it stops on its own, once lichess.org answers;
 rem Ctrl+C stops both, and restarts.log says so.

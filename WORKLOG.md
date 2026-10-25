@@ -7516,3 +7516,20 @@ and the "lichess.org isn't answering" notice (8a6086d). Online 09:56:07; bot\qui
   ~6-15 million a second); rsJhY1E7 got a plain "Good game!" (all book, nothing searched). Nobody asked !stats.
   lichess.org answered throughout: no not-answering lines. Mithandros (another bot) sent !help once, prompted by our
   greeting's "(!help)", and got one answer; no loop between the two bots.
+
+## 2026-10-25 (11:45-12:00): the book never repeats a position (the orchestrator)
+
+Matthew's picks on the two TODO items from the 09:56-11:30 run: "1.a 2.b leave it". 2(b): 30-second games stay
+accepted. 1(a), built: **bot/lichess-bot-book-repetition.patch** (lib/engine_wrapper.py's get_book_move): a book move
+that brings back a position the game has had is left out, from every book; another book move plays, or the engine
+decides, with the repetition in its search. In rsJhY1E7 that leaves the book at 7...Qb6 (back to 5...Bc5's position).
+The log says "Book <file> skips <moves> for game <id>: back to a position the game has had".
+
+- start-bot.cmd applies it eleventh, after not-answering. bot/test-book-repetition.py: lichess-bot's own
+  get_book_move() with small books written by the test, in rsJhY1E7's positions, under each of the three selections
+  (6...Qa5+ the first time plays; 7...Qb6 beside Nf6 gives Nf6 in 40 of 40 picks; 7...Qb6 alone and 8...Qa5+ the
+  second time give the engine; a second book's move when the first has only the repeat; 1.e4 untouched; the skip
+  logged). Passes with the patch, fails without it.
+- The stack on a fresh clone of lichess-bot: all eleven applied, then all "in already"; the patch checks clean
+  against the live tree. The older tests on that clone pass: ponder-note, goodbye-stats, not-answering, rejoin,
+  one-player, busy, quit-soon, sigint. Live from the bot's next start (the bot off since 11:30).

@@ -1,0 +1,57 @@
+diff --git a/lib/engine_wrapper.py b/lib/engine_wrapper.py
+index e045ea6..07538f7 100644
+--- a/lib/engine_wrapper.py
++++ b/lib/engine_wrapper.py
+@@ -769,6 +769,7 @@ def get_book_move(board: chess.Board, game: model.Game,
+ 
+     change_value_to_list(polyglot_cfg.config, "book", key=variant)
+     books = polyglot_cfg.book.lookup(variant)
++    repeats = repeating_moves(board)
+ 
+     for book in books:
+         with chess.polyglot.open_reader(book) as reader:
+@@ -780,13 +781,16 @@ def get_book_move(board: chess.Board, game: model.Game,
+                 scalar = (sum(weights) if normalization == "sum" and weights else
+                           max(weights) if normalization == "max" and weights else 100)
+                 min_weight = min_weight * scalar / 100
++                skipped = sorted({entry.move.uci() for entry in reader.find_all(board) if entry.move in repeats})
++                if skipped:
++                    logger.info(f"Book {book} skips {', '.join(skipped)} for game {game.id}: back to a position the game has had")
+ 
+                 if selection == "weighted_random":
+-                    move = reader.weighted_choice(board).move
++                    move = reader.weighted_choice(board, exclude_moves=repeats).move
+                 elif selection == "uniform_random":
+-                    move = reader.choice(board, minimum_weight=min_weight).move
++                    move = reader.choice(board, minimum_weight=min_weight, exclude_moves=repeats).move
+                 elif selection == "best_move":
+-                    move = reader.find(board, minimum_weight=min_weight).move
++                    move = reader.find(board, minimum_weight=min_weight, exclude_moves=repeats).move
+             except IndexError:
+                 # python-chess raises "IndexError" if no entries found.
+                 move = None
+@@ -798,6 +802,24 @@ def get_book_move(board: chess.Board, game: model.Game,
+     return no_book_move
+ 
+ 
++def repeating_moves(board: chess.Board) -> list[chess.Move]:
++    """
++    The legal moves that bring back a position the game has had already.
++
++    BruteForceBot (2026-10-25): the book took no account of repetition. In rsJhY1E7 every one of our moves came from
++    it, 6...Qa5+ 7.Nc3 Qb6 8.Na4 Qa5+ 9.Nc3 Qb6, a draw by threefold repetition at move 9 against a bot rated ~140
++    below us. A book move that repeats a position is left out, from every book; when no other is left, the engine
++    decides, with the repetition in its search.
++    """
++    repeats = []
++    for move in board.legal_moves:
++        board.push(move)
++        if board.is_repetition(2):
++            repeats.append(move)
++        board.pop()
++    return repeats
++
++
+ def get_online_move(li: lichess.Lichess, board: chess.Board, game: model.Game, online_moves_cfg: Configuration,
+                     draw_or_resign_cfg: Configuration) -> chess.engine.PlayResult | list[chess.Move]:
+     """

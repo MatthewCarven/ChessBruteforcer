@@ -398,18 +398,20 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
       4W 1D 2L in games that had three on, 2W 4L two, 1W 2D alone, the
       losses all to bots rated 2794-3052. One time loss (30+0, two on).
       CPU clock not read.
-- [ ] The book can play into a draw by repetition: rsJhY1E7 (10-25
+- [x] The book can play into a draw by repetition: rsJhY1E7 (10-25
       09:56-11:30, WORKLOG), drawn at move 9 against a 2461 bot, all nine
       of our moves from the vetted Black book (6...Qa5+ 7.Nc3 Qb6 8.Na4
       Qa5+ 9.Nc3 Qb6, a known repetition 2200 players take). lichess-bot
       takes a book move without checking repetition. A fix: skip a book
       move that repeats a position already played, and let the engine
-      decide (one more patch in the stack). Matthew's call.
-- [ ] 30-second games (30+0, no increment): 10-25's one time loss,
+      decide (one more patch in the stack). **Matthew's 1(a), built**
+      (2026-10-25, WORKLOG): bot/lichess-bot-book-repetition.patch, the
+      eleventh in start-bot.cmd; live from the bot's next start.
+- [x] 30-second games (30+0, no increment): 10-25's one time loss,
       zyRXq28N against Lili-ai (3052) beside another game, out of time at
       move 46 with 10 pieces on: ~0.65 s a move to its ~0.35. Decline them
       (lichess-bot's challenge min_base 60, which also drops 30+2, won once
-      that run), or leave them. Matthew's call.
+      that run), or leave them. **Matthew's 2(b): leave them.**
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that
