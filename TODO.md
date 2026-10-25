@@ -822,14 +822,6 @@ Sessions, in order:
       -16] v SF-3190, about 3158; no time losses.** The with-tables half (3
       at once, games\sf-check\sf3190.jsonl) waits for memory to be freed
       (Matthew: finished sessions archived, Discord closed) or another night.
-- [ ] **Each engine loads its own copy of the endgame tables** (found
-      2026-10-25 19:50, MATCHES.md "Memory"): ~800 MB of tables plus up to
-      512 MB of block cache a process, so the bot's three games at once
-      commit ~5 GB and six engines ~10 GB on a 16 GB laptop, which pages
-      (the likeliest cause of the 3190 probe's 4 time losses). One copy for
-      all of them (a memory-mapped file the processes share, read-only)
-      would cut it to ~one engine's worth. Matthew's call whether it's worth
-      doing; it bears on the bot's 30+0 time loss with three games at once.
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**
       (Matthew's (c) in "3. Findings for the thesis"; scripts/turning-points.py
       reads lichess-bot's DEBUG logs, which it keeps 7-8 days). Did the

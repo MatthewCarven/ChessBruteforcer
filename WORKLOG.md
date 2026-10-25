@@ -7818,4 +7818,4 @@ round robin (no scripts beside timed runs), merged into compression.
 - **500 games in 88 min: +49 -95 =356, 45.4% ±2.3, -32 [-48, -16] v SF-3190, about 3158 on Stockfish's scale.**
   No time losses either side; our lowest clock at the end 0.2 s. White 46.8%, Black 44.0%. All engines gone at
   21:23, the learner aside. MATCHES.md has it, with the memory finding; TODO has the with-tables half (waits for
-  memory) and a new item: each engine loads its own copy of the tables.
+  memory); the tables-copy item is in TODO already (74e41aa).
