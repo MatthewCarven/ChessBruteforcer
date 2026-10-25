@@ -383,7 +383,8 @@ longer one: the figure is approximate, and a floor.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-25 | h1536-3m-ob8 | Stockfish 16, UCI_Elo 2700 | 40 | +35 -0 =5 | 93.8% | +470 [+356, +788] | the probe, 06:06-06:10: **about 3170 on Stockfish's scale**, too one-sided to say more; no time losses either side (Stockfish's moves come through WSL); 35 mates; 36 different first 8 plies in 40 games. Each thread's first game (0-5) had our tables' read (~1.8 s) on our first move's clock: those scored 75%, the rest 97% |
 | 2026-10-25 | h1536-3m-ob8 | Stockfish 16, UCI_Elo 3190 (its top) | 40 | +6 -12 =22 | 42.5% | -53 [-129, +19] | the second probe, 06:12-06:17, isready off the clock: **about 3140 on Stockfish's scale**. 21 repetitions, 14 mates, median 148 plies. **4 losses on time, all ours**, all in endgames of 7-10 pieces, two by ~2 s (clocks -1.8 and -2.6; the others -0.1 and -0.0): the 5-piece tables read from disk mid-search, 6 engines at once, the likeliest cause (not shown). Had they been draws: 47.5%, -17. **Later the same day the likelier cause turned out to be memory (below): 6 engines with tables committed ~10 GB on a 16 GB laptop, so they paged** |
-| 2026-10-25 | h1536-3m-ob8 | Stockfish 16, UCI_Elo 3190 | 500 | +49 -95 =356 | 45.4% | -32 [-48, -16] | **the check without tables** (`--tables none`, as in the net matches; Stockfish has none either), 19:54-21:22, **3 at once** (memory): **about 3158 [3142, 3174] on Stockfish's scale**. No time losses either side (our lowest clock at the end 0.2 s). As White 46.8%, as Black 44.0%. 306 repetitions, 144 mates, 41 by insufficient material, 7 by the 50-move rule, 2 stalemates; median 136 plies; all 500 different. The half with tables waits for memory (below) |
+| 2026-10-25 | h1536-3m-ob8 | Stockfish 16, UCI_Elo 3190 | 500 | +49 -95 =356 | 45.4% | -32 [-48, -16] | **the check without tables** (`--tables none`, as in the net matches; Stockfish has none either), 19:54-21:22, **3 at once** (memory): **about 3158 [3142, 3174] on Stockfish's scale**. No time losses either side (our lowest clock at the end 0.2 s). As White 46.8%, as Black 44.0%. 306 repetitions, 144 mates, 41 by insufficient material, 7 by the 50-move rule, 2 stalemates; median 136 plies; all 500 different. The half with tables is the next row |
+| 2026-10-26 | h1536-3m-ob8 | Stockfish 16, UCI_Elo 3190 | 185 | +19 -40 =126 | 44.3% | -40 [-68, -12] | **the check with our tables** (the bot's set), 03:32-05:01, **stopped on memory at 185 of 500** (below): 38 games at 2 at once (03:32-03:43: +3 -8 =27, 43.4%, -46 [-107, +13]), then 147 at 1 at a time (03:43-05:01: +16 -32 =99, 44.6%, -38 [-70, -6]), level within the noise, so pooled: **about 3150 [3122, 3178] on Stockfish's scale**. **No time losses either side**, so the figure with them as draws is the same (our lowest clock at the end 0.2 s; 18 games under 1 s, 10%, as without tables, 53 of 500). As White 52.2%, as Black 36.4% (92 games each; without tables 46.8% and 44.0%: likely noise). 113 repetitions, 59 mates, 8 by insufficient material, 4 by the 50-move rule, 1 stalemate; median 141 plies; all 185 different. **Against the half without tables: -8 Elo [-40, +25]**, so at 10+0.1 the tables show no worth yet, and no cost: the morning probe's time losses don't recur at 1-2 at once. If anything the comparison flatters the tables (they had the laptop to themselves; the other half ran 3 at once) |
 
 **Memory, and the half with tables (2026-10-25 19:50).** Each engine loads its own copy of the endgame tables:
 measured at Hash 256, one engine commits **1,150 MB with the tables and 343 MB without**, and with its block cache
@@ -394,6 +395,19 @@ engines at 1,164, 1,682 and 1,656 MB, **the learner's engine paged out to 10 MB*
 that runs Stockfish (it keeps it after Stockfish ends). So the morning's probe at 6 at once with tables (~10 GB)
 was paging, the likeliest cause of its 4 time losses. The bot's three games at once with tables need ~5 GB too.
 The half with tables waits until memory is freed (finished sessions archived, Discord closed) or another night.
+
+**The half with tables, overnight (2026-10-26 03:32-05:01).** With memory freed (finished sessions, Discord) it ran
+at 2 at once, stopping if commit free fell under 2 GB or RAM available under 1 GB. Commit free stayed high, but RAM
+available drifted down, and the 1 GB line tripped at 03:43:18 (864 MB) after 38 games. It carried on at 1 at a time
+in the same file: commit free **15.49 GB** and RAM available **3,625 MB** at 03:50, with our engine at 1,903 MB
+committed and a **2,415 MB working set**. RAM available drifted down again, to **972 MB at 05:01:39**, which stopped
+it; commit free never went under **15.34 GB**. A minute after the stop RAM available was 6,283 MB, with the WSL VM
+still holding 1.95 GB. The reading: **the drop is file-backed.** The engine reads 220 of its 292 tables from disk as probed
+(the folder is 12.8 GB). Those pages are counted in RAM while held, but the table files back them,
+not the pagefile: Windows can drop them under pressure, and engines share them. What has to fit is the committed
+memory (~1.9 GB an engine with its cache full), and at 1-2 at once it fits easily. So the 1 GB line is cautious for
+our engines. It still guards what runs beside them, though: short of RAM, Windows trims every working set, and the
+learner's engine sat at 10 MB through the night. 315 games are left for another night (Matthew's call, TODO).
 
 ## Versions
 

@@ -7819,3 +7819,20 @@ round robin (no scripts beside timed runs), merged into compression.
   No time losses either side; our lowest clock at the end 0.2 s. White 46.8%, Black 44.0%. All engines gone at
   21:23, the learner aside. MATCHES.md has it, with the memory finding; TODO has the with-tables half (waits for
   memory); the tables-copy item is in TODO already (74e41aa).
+
+## 2026-10-26 (03:32-05:10): the Stockfish check's half with tables
+
+- On ponder-scope's go, after Matthew freed memory (his pick: 2 at once). Stop lines: commit free under 2 GB, RAM
+  available under 1 GB, or 06:55. Started 03:32:41 at 2 at once (games\sf-check\sf3190.jsonl, log sf3190.log).
+  Commit free stayed high, but RAM available drifted down; the 1 GB line tripped at 03:43:18 (864 MB) after 38
+  games: +3 -8 =27, 43.4%.
+- On ponder-scope's yes, carried on at 1 at a time in the same file from 03:43:35 (log sf3190-1.log). At 03:50
+  commit free 15.49 GB, RAM available 3,625 MB, our engine at 1,903 MB committed and a 2,415 MB working set. RAM
+  available drifted down again, to 972 MB at 05:01:39, which stopped it (commit free never under 15.34 GB).
+  147 games: +16 -32 =99, 44.6%. A minute after the stop RAM available was 6,283 MB; only the learner remained.
+- **185 games: +19 -40 =126, 44.3% ±4.0, -40 [-68, -12] v SF-3190, about 3150. No time losses either side**
+  (our lowest clock at the end 0.2 s). **Tables minus none: -8 [-40, +25]**: no worth or cost shows at 10+0.1 yet.
+  White 52.2%, Black 36.4% (92 games each; likely noise).
+- The RAM drop reads as file-backed: 220 of the engine's 292 tables are read from disk as probed, and their pages
+  count in RAM while held but are backed by the files (droppable, shared), while commit stayed ~1.9 GB an engine.
+  MATCHES.md has it. TODO has the 315 games left, for another night: Matthew's call, (a)-(c).

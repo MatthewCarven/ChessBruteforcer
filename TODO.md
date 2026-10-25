@@ -822,6 +822,16 @@ Sessions, in order:
       -16] v SF-3190, about 3158; no time losses.** The with-tables half (3
       at once, games\sf-check\sf3190.jsonl) waits for memory to be freed
       (Matthew: finished sessions archived, Discord closed) or another night.
+      **2026-10-26 03:32-05:01, the with-tables half, stopped on memory at
+      185 of 500:** 38 at 2 at once, then 147 at 1 at a time (the RAM
+      line, 1 GB, tripped at each; commit free stayed over 15 GB, so the
+      drop is file-backed table pages; MATCHES.md). **+19 -40 =126, 44.3%,
+      -40 [-68, -12], about 3150; no time losses. Tables minus none: -8
+      [-40, +25]**, so no worth (and no cost) shows at 10+0.1 yet. Left:
+      315 games, ~2 h 50 at 1 at a time, which would take the difference
+      to ±~24. Matthew's call: (a) stop here; (b) finish another night as
+      tonight; (c) the same, stopping on commit free only (the RAM line
+      counts pages Windows can drop, but it also guards the learner).
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**
       (Matthew's (c) in "3. Findings for the thesis"; scripts/turning-points.py
       reads lichess-bot's DEBUG logs, which it keeps 7-8 days). Did the
