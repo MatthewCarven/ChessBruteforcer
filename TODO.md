@@ -840,7 +840,13 @@ Sessions, in order:
       the engine and Stockfish are gone and RAM has come back, then restart
       for the games still missing, until all 500 are in or it's 06:55
       (~150 games a stint; ponder-scope's reading of "the same way", his
-      word overrides it).
+      word overrides it). **Scripted** (on claude/self-play-book-83557a
+      until merged): `pwsh -File scripts\sf-check\sf3190-night.ps1
+      -DryRun` says what it would start; without `-DryRun` it runs the
+      stints (sf3190-night.cmd, logs sf3190-2.log on) and the stop lines,
+      waits for RAM back over 3 GB between stints, and logs to
+      games\sf-check\sf3190-night.log. Then `scripts\sf-check\sf3190-split.py`
+      for the write-up.
 - [ ] **Re-run TURNS on a week of the bot's games on one settled build**
       (Matthew's (c) in "3. Findings for the thesis"; scripts/turning-points.py
       reads lichess-bot's DEBUG logs, which it keeps 7-8 days). Did the
