@@ -7543,3 +7543,31 @@ The log says "Book <file> skips <moves> for game <id>: back to a position the ga
   changed since 23 Oct 06:16 (the DLLs differ by the build alone), so the copy stands.
 - The first 32 games are all different, even with the tables' fixed choices: table-a v table-b splits at plies
   6-9, so the 1000 games a pair aren't repeats. About 13 games a minute: the 3000 may finish before 16:30.
+
+## 2026-10-25 (12:10-15:56): the bot's net switches between games with no restart (the orchestrator)
+
+Matthew: "can we dynamically change which neural network we are using?", then "(a)" of three (a file read as each
+game starts; (b) a net per time control; (c) both). Built on branch claude/net-file, tested in the slot after BT4's
+round robin (no scripts beside timed runs), merged into compression.
+
+- **bot/lichess-bot-net-file.patch**, start-bot.cmd's twelfth: lichess-bot's own per-game hook,
+  extra_game_handlers.game_specific_options(), returns the net bot\eval\net.txt names (a file there, or a full path),
+  read as each game starts; lichess-bot starts a fresh engine for every game, so the next game plays on it and the
+  games on keep theirs. The net is checked first as the engine checks it ("CBNNUE01" first, the SHA-256 of the rest
+  last): one missing, cut, damaged or still being copied is logged, and the config's net plays. No net.txt, or one
+  with only blank lines and # notes: make-config.py's net, as before. The bot's window logs "Game <id> plays on
+  <net> (bot\eval\net.txt)".
+- **bot\use-net.cmd**: `bot\use-net.cmd h512-3m.nnue` writes the file, `default` empties it, and no name lists the
+  nets in bot\eval and what net.txt says. run-bot.ps1 names the file in BRUTEFORCER_NET; net.txt is git-ignored.
+- Tests (15:54-15:56): the twelve patches on a fresh clone of lichess-bot, all applied, then all "in already"; the
+  new one checks clean against the live tree. bot/test-net-file.py passes (no setting, no file, notes only, a name
+  with notes, quotes, a BOM and spaces, a full path, a switch over two games and back, a missing, cut, damaged and
+  non-net file; lichess-bot's own configure() merging it; the 6 nets in bot\eval pass the check) and fails without
+  the patch; the nine other bot tests pass on that clone. use-net.cmd's cases tried in a scratch folder.
+- **The fast net for time trouble** (Matthew: "i am making this to be fast as a fall back position for the bot",
+  below 30 s with 16 pieces or fewer; he had asked about a 512 with hidden layers on 6 months). Hidden layers cost
+  speed (every deep net about half speed, -45 to -85), and a faster net saves no clock: the engine spends the time
+  its clock rule gives, the net only changes how many positions fit in it (512 ~1.4x the 1536, ~a quarter of a ply).
+  At 10+0.1, shorter thinking than the bot's in time trouble, the bigger nets won (+41, +7). His yes to a check
+  first: h512-3m against h1536-3m-ob8 at 2+0.02, 1,000 games, booked with nnue-deep-layers after h1536-6m-ob8's
+  match (TODO).

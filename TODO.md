@@ -412,6 +412,20 @@ real load, 4 threads or 8, so 4 only gave up speed; WORKLOG 08:25-08:50).
       move 46 with 10 pieces on: ~0.65 s a move to its ~0.35. Decline them
       (lichess-bot's challenge min_base 60, which also drops 30+2, won once
       that run), or leave them. **Matthew's 2(b): leave them.**
+- [x] Switch the bot's net with no restart (Matthew's (a), 2026-10-25,
+      WORKLOG): bot\eval\net.txt, read as each game starts
+      (bot/lichess-bot-net-file.patch); `bot\use-net.cmd <net>` writes it,
+      `default` empties it (make-config.py's net). Not built: a net per
+      time control ((b)), which the same hook could do from the game's speed.
+- [ ] **A fast net for time trouble?** (Matthew, 2026-10-25: a fast net
+      below 30 s on the clock with 16 pieces or fewer; not with hidden
+      layers, which halve the speed.) First the check he said yes to:
+      h512-3m against h1536-3m-ob8 at 2+0.02, 1,000 games, fixed
+      (`set NNUE_TC=2+0.02`, `scripts\nnue-match.cmd h512-3m h1536-3m-ob8
+      1000 5 fixed`), booked with nnue-deep-layers after h1536-6m-ob8's
+      match, the bot off. If the 512 wins there: the engine holds a second
+      net for those positions, and a 512 on 6 months with buckets is worth
+      training. If not, neither. At 10+0.1 the bigger nets won (+41, +7).
 
 **The one-player fix** (2026-10-19, WORKLOG): after a reconnect lichess-bot
 had two players on one game; bot\lichess-bot-one-player.patch stops that
