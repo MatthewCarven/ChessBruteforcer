@@ -8096,3 +8096,29 @@ RAM available, commit free, engine processes; the learner's engine is always one
   was broken by quick moves and the clock came back to 14 s.
 - Matthew's call: (a) leave and watch (log memory during bot runs), (b) cap the hard limit at a low clock (an engine
   change, a match to test), (c) the memory side (2 games at once with tables, or the shared table cache).
+
+## 2026-10-25 (to 17:30): how many games get down to 16 pieces, and the pieces left at move 50 (lichess-stats)
+
+Matthew, asked which tables he wanted from the bot's Lichess games: "how many games end up with only 16 pieces on the
+board and the lengths of play from that point forward", games and the average length as totals at the bottom; then
+"the average amount of pieces left from the 50 move mark". Statistics once, not a tracker. The why: he estimates that
+a small net that only has to handle 16 pieces or fewer might be a better small net, so the share of our moves made at
+16 or fewer is in too.
+
+- **scripts\piece-counts\pieces.py** (one thread, the PGNs only; `--games` lists every game that got to 16), its
+  output in scripts\piece-counts\results\pieces.txt, run on the main checkout's bot\games. A piece is anything on the
+  board, kings and pawns included (32 at the start); the count is 32 less the captures so far, and python-chess,
+  replaying every game, agreed ply by ply on all 669.
+- 669 games, 2026-10-12 to 2026-10-25, every net and the built-in numbers (22 with no result left out).
+- **Down to 16 pieces: 599 of 669 games (90%)**, the 16th piece off at move 37 on average; from there they went on
+  **33.3 moves on average [31.2, 35.5], median 28.5**. Wins 26.1, losses 32.5, draws 57.2; bullet, blitz and rapid
+  alike (35.1, 33.1, 35.3). 12% went on 60 moves or more, 38 of those 70 draws.
+- **Move 50: 465 of 669 games (70%) got there, with 11.9 pieces left on average [11.5, 12.2], median 12**; 71% of
+  them had 9-16. The same games ended with 6.7 on average.
+- **Our moves chosen with 16 or fewer pieces on the board: 19,999 of 44,077 (45%)**; 40% in wins, 44% in losses,
+  58% in draws. That is the share of the bot's decisions such a net would make.
+- Then "ok rerun but from 25 moves": `--at N` sets the move mark (50 unless given), and the mark's tables gained
+  the moves played after it; results\pieces-at25.txt. **Move 25: 646 of 669 games (97%) got there, with 21.6 pieces
+  left on average [21.3, 21.8], median 22 (range 14-30); from there they went on 42.6 moves on average [40.4,
+  44.9], median 38.5.** None had fewer than 13 pieces at move 25; 77% had 17-24. From move 50 the same games went on
+  28.5 moves on average [26.0, 30.9], median 21.5 (pieces.txt, rerun with the new column).
