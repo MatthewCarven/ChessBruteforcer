@@ -8122,3 +8122,14 @@ a small net that only has to handle 16 pieces or fewer might be a better small n
   left on average [21.3, 21.8], median 22 (range 14-30); from there they went on 42.6 moves on average [40.4,
   44.9], median 38.5.** None had fewer than 13 pieces at move 25; 77% had 17-24. From move 50 the same games went on
   28.5 moves on average [26.0, 30.9], median 21.5 (pieces.txt, rerun with the new column).
+
+## 2026-10-26 (13:30-13:50): bot/heat-test.py, the morning's heat test kept
+
+Matthew: "Please save anything we need and anything you wish". The scratch scripts behind the 10-25 heat tests
+(WORKLOG 08:25-08:50) become **bot/heat-test.py**: `<engines> <threads> [output folder]`. Engines pair off and play
+each other at 90+1, both pondering, and an odd one out searches, for 2 minutes after 10 s of one alone. typeperf
+records CPU use and the clock against base every 2 s; the report gives each engine's Mnps and the medians alone and
+together. The engine and Hash come from the bot's config.yml, and the net from bot\eval\net.txt as the bot's games
+take it (else the config's): on 10-26 config.yml still named h1536-3m-ob8 while net.txt names h1536-6m-ob8. No
+tables. Checked: it parses, prints its usage, and finds the engine and h1536-6m-ob8. Not run: the laptop is in its
+heat window, and it isn't for beside the bot.
