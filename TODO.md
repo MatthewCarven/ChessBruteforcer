@@ -1323,6 +1323,11 @@ Sessions, in order:
       alone it passed 3 of 3. Count operations instead of a time window, or
       start the clock once all threads are running. P6 changes the table it
       tests, so P6 should know.
+- [ ] A flaky test: PonderTests.AHitAtOnceStopsAsAPlainSearchWouldNotAtTheCap
+      took 1,213 ms against its 1,200 ms cap in the full suite on a loaded
+      machine (2026-10-23, the 128-bit session's run); alone it passed 3 of 3,
+      and the merged tree's suite was clean. A wall-clock cap under load: give
+      it more room, or time the search's own CPU.
 
 ### 3. Findings for the thesis
 
