@@ -1299,6 +1299,14 @@ Sessions, in order:
             (Session context does the bot's config), or over lichess-2200.bin.
             It's also one of the book duel's arms, which could settle it with
             the other books first.
+      - [ ] **Keep the vetted copy up with a month rebuild** (2026-10-26):
+            scripts/month-book.cmd and month-queue.ps1 renew only
+            bot\books\lichess-2200.bin, so the bot's vetted copy keeps the old
+            months until scripts/book-tables/vet-c-book.py runs again (no
+            engine; it writes games\lichess-2200-vetted-black.bin) and the
+            result is copied over bot\books' copy, the bot off. Either do that
+            by hand after the next month, or add it as the month scripts' last
+            step. Moves the new months bring aren't vetted either way.
 - [x] **The book learner** (bot/learn.py, from 2026-10-14; 162 positions by
       21:47 that night): measure after a week, ~2026-10-21 (`learn.py
       --summary`): how often its book answers, and moves of the wide book it
